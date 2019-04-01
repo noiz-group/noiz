@@ -1,0 +1,26 @@
+version: "3.7"
+
+services:
+  db:
+    image: postgres:11
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: testuser
+      POSTGRES_PASSWORD: testpassword
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+
+  noiz:
+    build: .
+    environment:
+      FLASK_APP: noiz
+      FLASK_ENV: development
+    ports:
+      - "5000:5000"
+    command: flask run
