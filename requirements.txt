@@ -1,13 +1,13 @@
+click
 flask
 flask-sqlalchemy
 flask-migrate
 pytest
-obspy
 scipy
 numpy
 matplotlib
+obspy
 dash
 plotly
-click
 psycopg2
 environs
