@@ -18,9 +18,6 @@ services:
 
   noiz:
     build: .
-    environment:
-      FLASK_APP: noiz
-      FLASK_ENV: development
     ports:
       - "5000:5000"
-    command: flask run
+    command: flask run --host=0.0.0.0
