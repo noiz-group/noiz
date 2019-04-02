@@ -1,14 +1,14 @@
 from flask import Flask
 
 from noiz.routes import simple_page
-from noiz.cli import user_cli
+from noiz.cli import init
 from noiz.extensions import db, migrate
 
 def create_app(config_object="noiz.settings"):
     app = Flask(__name__)
     app.config.from_object(config_object)
 
-    from noiz.models import ProcessingConfig, User
+    from noiz.models import ProcessingConfig
 
     register_extensions(app)
     register_blueprints(app)
@@ -25,7 +25,7 @@ def register_blueprints(app):
     return None
 
 def register_cli_extensions(app):
-    app.cli.add_command(user_cli)
+    app.cli.add_command(init)
     return None
 
 
