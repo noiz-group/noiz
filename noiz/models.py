@@ -1,9 +1,13 @@
-from flask_sqlalchemy import SQLAlchemy
+from .database import db
+# from noiz import db
 
-db = SQLAlchemy()
+class User(db.Model):
+    __tablename__ = "user"
+    id = db.Column('id', db.Integer, primary_key=True)
+    name = db.Column('name', db.String)
 
-class ProcessingConfig (db.Model):
-    __tablename__ = "config"
+class ProcessingConfig(db.Model):
+    __tablename__ = "processingconfig"
     id = db.Column('id', db.Integer, primary_key = True)
     use_winter_time = db.Column('use_winter_time', db.Boolean)
     f_sampling_out = db.Column('f_sampling_out', db.Integer)
