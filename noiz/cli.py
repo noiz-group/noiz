@@ -2,8 +2,8 @@ import click
 from flask import Flask, current_app
 from flask.cli import AppGroup, FlaskGroup
 
-from .models import ProcessingConfig
-from .extensions import db
+from noiz.models.processingconfig import ProcessingConfig
+from noiz.extensions import db
 
 init = AppGroup('init', help='Performs actions to initiate')
 flask_custom_cli = AppGroup('noizfff')
