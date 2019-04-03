@@ -1,4 +1,4 @@
-from .database import db
+from noiz.database import db
 
 Column = db.Column
 Boolean = db.Boolean
