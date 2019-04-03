@@ -8,7 +8,7 @@ def create_app(config_object="noiz.settings"):
     app = Flask(__name__)
     app.config.from_object(config_object)
 
-    from noiz.models import ProcessingConfig
+    from noiz.models.processingconfig import ProcessingConfig
 
     register_extensions(app)
     register_blueprints(app)

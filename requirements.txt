@@ -2,7 +2,6 @@ click
 flask
 flask-sqlalchemy
 flask-migrate
-pytest
 scipy
 numpy
 matplotlib
@@ -11,3 +10,8 @@ dash
 plotly
 psycopg2
 environs
+
+#test
+pytest
+black
+pre_commit
