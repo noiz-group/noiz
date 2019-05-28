@@ -9,4 +9,9 @@ def hello():
 
 @simple_page.route('/processingconfig')
 def processingconfig():
-    return 'Twoja stara kreci lody'
+    return 'Twoja  kreci lody'
+
+
+@simple_page.route('/wut')
+def ahh():
+    return 'wutwut'
