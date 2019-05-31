@@ -35,7 +35,7 @@ services:
       - "5000:5000"
     command: flask run --host=0.0.0.0
     volumes:
-      - /noiz
+      - /home/damian/noiz-group/noiz/:/noiz
       - /mnt/D4To/STI-SDS:/STI-SDS
 
 #  noiz-worker:
