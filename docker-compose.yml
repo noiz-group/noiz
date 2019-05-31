@@ -18,6 +18,12 @@ services:
 
   noiz:
     build: .
+    image: noiz:noizapp
+    depends_on:
+      - db
     ports:
       - "5000:5000"
     command: flask run --host=0.0.0.0
+    volumes:
+      - /noiz
+      - STI-SDS:/mnt/D4To/STI-SDS:/STI-SDS
