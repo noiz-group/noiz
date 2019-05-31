@@ -4,11 +4,14 @@ from noiz.routes import simple_page
 from noiz.cli import init
 from noiz.extensions import db, migrate
 
+from celery import Celery
+
 def create_app(config_object="noiz.settings"):
     app = Flask(__name__)
     app.config.from_object(config_object)
 
     from noiz.models.processingconfig import ProcessingConfig
+    from noiz.models.file import File
 
     register_extensions(app)
     register_blueprints(app)
