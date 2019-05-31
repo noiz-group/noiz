@@ -1,3 +1,4 @@
+celery
 click
 flask
 flask-sqlalchemy
