@@ -5,20 +5,20 @@ from flask.cli import AppGroup, FlaskGroup
 from noiz.models.processingconfig import ProcessingConfig
 from noiz.extensions import db
 
-init = AppGroup('init', help='Performs actions to initiate')
+user_cli_group = AppGroup('init', help='Performs actions to initiate')
 flask_custom_cli = AppGroup('noizfff')
 
-@init.group("""Introductory actions in the noiz app""")
+@user_cli_group.group("""Introductory actions in the noiz app""")
 def user_cli_group():
     pass
 
-@init.command('populate_config')
+@user_cli_group.command('populate_config')
 def populate_config():
     '''That's the explanation of first command of the group'''
 
     upsert_default_config()
 
-@init.command()
+@user_cli_group.command()
 def second():
     '''That's the explanation of second command of the group'''
     click.echo("That's the second command of the group")
@@ -86,3 +86,9 @@ def upsert_default_config():
     db.session.commit()
 
     return
+
+cli = click.CommandCollection(sources=[user_cli_group, flask_custom_cli])
+
+
+if __name__ == '__main__':
+    cli()

@@ -6,7 +6,7 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'noiz=noiz.cli:flask_custom_cli',
+            'noiz=noiz.cli:cli',
         ],
     },
     install_requires=[
