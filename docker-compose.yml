@@ -9,6 +9,8 @@ services:
       - "5432:5432"
     env_file:
       - postgres.env
+    volumes:
+      - /mnt/D4To/noiz/postgres-data:/var/lib/postgresql/data
 
 
   adminer:
@@ -37,6 +39,7 @@ services:
     volumes:
       - /home/damian/noiz-group/noiz/:/noiz
       - /mnt/D4To/STI-SDS:/STI-SDS
+      - /mnt/G2To/Saint-Illiers/STI-soh:/STI-SOH
 
 #  noiz-worker:
 #    container_name: noiz_worker
