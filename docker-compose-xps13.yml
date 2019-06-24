@@ -10,8 +10,8 @@ services:
     env_file:
       - postgres.env
     volumes:
-      - /mnt/D4To/noiz/postgres-data:/var/lib/postgresql/data
-      - /home/damian/noiz-group/noiz/db-init-scripts/init.sql:/docker-entrypoint-initdb.d/10-init.sql
+      - postgres-data-volume:/var/lib/postgresql/data
+#      - /home/damian/noiz-group/noiz/db-init-scripts/init.sql:/docker-entrypoint-initdb.d/10-init.sql
 
 
 
@@ -41,9 +41,9 @@ services:
       - "5000:5000"
     command: flask run --host=0.0.0.0
     volumes:
-      - /home/damian/noiz-group/noiz/:/noiz
-      - /mnt/D4To/STI-SDS:/STI-SDS
-      - /mnt/G2To/Saint-Illiers/STI-soh:/STI-SOH
+      - c:/Users/damia/noiz-group/noiz:/noiz
+      - c:/noiz/STI-SDS:/STI-SDS
+      - c:/noiz/STI-soh:/STI-soh
 
 #  noiz-worker:
 #    container_name: noiz_worker
@@ -52,3 +52,6 @@ services:
 #    depends_on:
 #      - db
 #      - redis
+
+volumes:
+  postgres-data-volume:
