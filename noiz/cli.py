@@ -1,6 +1,8 @@
 import click
 from flask.cli import AppGroup
 
+from pathlib import Path
+
 from noiz.processing.processing_config import upsert_default_config
 from noiz.processing.file import insert_seismic_files_recursively
 
@@ -24,11 +26,14 @@ def reset_config():
 @click.option('-f', '--commit_frequency', default=150, show_default=True)
 def add_files_recursively(path, glob, filetype, commit_frequency):
 
-    click.echo(path)
-    insert_seismic_files_recursively(main_path=path,
-                                     glob_call=glob,
-                                     filetype=filetype,
-                                     commit_freq=commit_frequency)
+    path = Path(path)
+    if path.exists():
+        insert_seismic_files_recursively(main_path=path,
+                                         glob_call=glob,
+                                         filetype=filetype,
+                                         commit_freq=commit_frequency)
+    else:
+        raise ValueError(f'Provided path {path} does not exist.')
     return
 
 
