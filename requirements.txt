@@ -3,6 +3,7 @@ click
 flask
 flask-sqlalchemy
 flask-migrate
+loguru
 scipy
 numpy
 matplotlib
