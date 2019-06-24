@@ -1,7 +1,8 @@
 import click
 from flask.cli import AppGroup
 
-from processing.processing_config import upsert_default_config
+from noiz.processing.processing_config import upsert_default_config
+from noiz.processing.file import insert_seismic_files_recursively
 
 user_cli_group = AppGroup('init', help='Performs actions to initiate')
 flask_custom_cli = AppGroup('noizfff')
@@ -10,16 +11,25 @@ flask_custom_cli = AppGroup('noizfff')
 def user_cli_group():
     pass
 
-@user_cli_group.command('populate_config')
-def populate_config():
+@user_cli_group.command('reset_config')
+def reset_config():
     '''Replaces current processing config with default one'''
     upsert_default_config()
 
-@user_cli_group.command()
-def second():
-    '''That's the explanation of second command of the group'''
-    click.echo("That's the second command of the group")
+@user_cli_group.command('add_files_recursively')
+# @click.Path('-p', '--path', dir_okay=True, readable=True)\
+@click.option('--path', required=True)
+@click.option('-g', '--glob', default='*', show_default=True)
+@click.option('-t', '--filetype', default='mseed', show_default=True)
+@click.option('-f', '--commit_frequency', default=150, show_default=True)
+def add_files_recursively(path, glob, filetype, commit_frequency):
 
+    click.echo(path)
+    insert_seismic_files_recursively(main_path=path,
+                                     glob_call=glob,
+                                     filetype=filetype,
+                                     commit_freq=commit_frequency)
+    return
 
 
 
