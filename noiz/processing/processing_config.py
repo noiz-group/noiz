@@ -1,5 +1,5 @@
-from extensions import db
-from models.processingconfig import ProcessingConfig
+from noiz.extensions import db
+from noiz.models.processingconfig import ProcessingConfig
 
 
 def upsert_default_config():
