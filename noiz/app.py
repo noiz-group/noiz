@@ -1,7 +1,7 @@
 from flask import Flask
 
 from noiz.routes import simple_page
-from noiz.cli import init
+from noiz.cli import cli
 from noiz.extensions import db, migrate
 
 from celery import Celery
@@ -28,7 +28,8 @@ def register_blueprints(app):
     return None
 
 def register_cli_extensions(app):
-    app.cli.add_command(init)
+    # app.cli.add_command(cli)
+
     return None
 
 
