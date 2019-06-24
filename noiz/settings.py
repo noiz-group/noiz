@@ -1,3 +1,4 @@
+import logging
 from environs import Env
 
 env = Env()
@@ -13,3 +14,8 @@ DEBUG_TB_INTERCEPT_REDIRECTS = False
 CACHE_TYPE = 'simple'  # Can be "memcached", "redis", etc.
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 # WEBPACK_MANIFEST_PATH = 'webpack/manifest.json'
+LOG_FILE = "noiz.log"
+LOG_BACKTRACE = True
+LOG_LEVEL = logging.DEBUG
+LOG_FORMATTER = "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s"
+
