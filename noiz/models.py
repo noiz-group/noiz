@@ -80,3 +80,19 @@ class File (db.Model):
     add_date = db.Column('add_time', db.TIMESTAMP(timezone=True))
     processed = db.Column('processed', db.Boolean)
     readeable = db.Column('readeable', db.Boolean)
+
+
+class Trace (db.Model):
+    __tablename__ = "trace"
+    id = db.Column('id', db.Integer, primary_key = True)
+    file_id = db.Column('file_id', db.Integer, db.ForeignKey('file.id'))
+    trace_number = db.Column('trace_number', db.Integer)
+    channel_id = db.Column('channel_id', db.Integer, db.ForeignKey('channel.id'))
+    # Unknown SQL type: 'time'
+    starttime = db.Column('starttime', db.TIMESTAMP(timezone=True))
+    endtime = db.Column('endtime', db.TIMESTAMP(timezone=True))
+    sampling_rate = db.Column('sampling_rate', db.Float)
+    number_samples = db.Column('number_samples', db.Integer)
+
+    file = db.relationship('File', foreign_keys=file_id)
+    channel = db.relationship('Channel', foreign_keys=channel_id)
