@@ -1,6 +1,6 @@
 from noiz.models import File
 from noiz.database import db
-from typing import Iterable
+from typing import Iterable, List
 
 from pathlib import Path
 from datetime import datetime
@@ -12,25 +12,25 @@ import logging
 logger = logging.getLogger('processing')
 
 
-def insert_seismic_files_recursively(main_path: Path,
-                                     glob_call: str = '*.*',
-                                     filetype: str = 'mseed',
-                                     commit_freq: int = 100):
+def search_recursively_insert_seismic_files(main_path: Path,
+                                            glob_call: str = '*.*',
+                                            filetype: str = 'mseed',
+                                            commit_freq: int = 100) -> None:
     '''
     Recursively globs provided directory with globstring
     and adds to database absolute filepaths
     excluding ones that already exist.
 
-    :param main_path:
+    :param main_path: Directory path to search
     :type main_path: Path
-    :param glob_call:
+    :param glob_call: Glob string used for rglob
     :type glob_call: str
-    :param filetype:
+    :param filetype: Assumed filetype
     :type filetype: str
-    :param commit_freq:
+    :param commit_freq: Frequency of bulk inserts to db.
     :type commit_freq: int
-    :return:
-    :rtype:
+    :return: None
+    :rtype: None
     '''
 
     existing_filepaths = _get_existing_filepaths()
@@ -67,7 +67,7 @@ def insert_seismic_files_recursively(main_path: Path,
 
 
 def insert_single_seismic_file(path: Path,
-                               filetype: str):
+                               filetype: str) -> None:
     '''
 
     :param path:
@@ -95,16 +95,23 @@ def insert_single_seismic_file(path: Path,
     return
 
 
-def _get_existing_filepaths():
+def _get_existing_filepaths() -> List[str]:
+    """
+    Gets from database a column of filepaths from table File
+    :return: List of absolute paths from File.filepath column
+    :rtype: List[str]
+    """
     return [x[0] for x in File.query.with_entities(File.filepath).all()]
 
 
 def search_for_seismic_files(paths: Iterable[str],
                              glob: str,
                              filetype: str,
-                             commit_frequency: int):
+                             commit_frequency: int) -> None:
     '''
-
+    Gets an iterable of file or directory paths and inserts them into database.
+    Directories are searched with recursive glob using provided glob string
+    Files are added directly
 
     :param paths: Iterable of paths
     :type paths: Iterable[str],
@@ -132,10 +139,10 @@ def search_for_seismic_files(paths: Iterable[str],
 
         if path.is_dir():
             logger.info(f'Searching recursively in directory {path}')
-            insert_seismic_files_recursively(main_path=path,
-                                             glob_call=glob,
-                                             filetype=filetype,
-                                             commit_freq=commit_frequency)
+            search_recursively_insert_seismic_files(main_path=path,
+                                                    glob_call=glob,
+                                                    filetype=filetype,
+                                                    commit_freq=commit_frequency)
 
         if path.is_file():
             logger.info(f'Path {path} is a file')
