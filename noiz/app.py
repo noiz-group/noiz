@@ -5,9 +5,7 @@ import logging.config
 from noiz.logging import logger_config
 from noiz.routes import simple_page
 from noiz.database import db, migrate
-
-from noiz.models import ProcessingConfig, File
-
+from noiz.cli import init_group
 
 
 def create_app(config_object="noiz.settings"):
@@ -19,7 +17,8 @@ def create_app(config_object="noiz.settings"):
     register_extensions(app)
     register_blueprints(app)
     register_cli_extensions(app)
-    configure_logger(app)
+    logger = configure_logger(app)
+    logger.info('App initialization successful')
     return app
 
 
@@ -35,7 +34,7 @@ def register_blueprints(app):
 
 
 def register_cli_extensions(app):
-    # app.cli.add_command(cli)
+    app.cli.add_command(init_group)
 
     return None
 
@@ -43,7 +42,8 @@ def configure_logger(app):
     """Configure loggers."""
 
     logging.config.dictConfig(logger_config)
-    logfile = logging.getLogger('app')
-    logfile.debug('Initializing logger')
+    logger = logging.getLogger('app')
+    logger.debug('Initializing logger')
+    return logger
 
 
