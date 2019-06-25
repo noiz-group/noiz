@@ -6,17 +6,24 @@ from pathlib import Path
 from noiz.processing.processing_config import upsert_default_config
 from noiz.processing.file import insert_seismic_files_recursively
 
+import logging
+logger = logging.getLogger('cli')
+
+
 user_cli_group = AppGroup('init', help='Performs actions to initiate')
 flask_custom_cli = AppGroup('noizfff')
+
 
 @user_cli_group.group("""Introductory actions in the noiz app""")
 def user_cli_group():
     pass
 
+
 @user_cli_group.command('reset_config')
 def reset_config():
     '''Replaces current processing config with default one'''
     upsert_default_config()
+
 
 @user_cli_group.command('add_files_recursively')
 # @click.Path('-p', '--path', dir_okay=True, readable=True)\
@@ -26,6 +33,7 @@ def reset_config():
 @click.option('-f', '--commit_frequency', default=150, show_default=True)
 def add_files_recursively(path, glob, filetype, commit_frequency):
 
+    logger.info(f'Processing filepath {path}')
     path = Path(path)
     if path.exists():
         insert_seismic_files_recursively(main_path=path,
