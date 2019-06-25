@@ -18,7 +18,7 @@ def create_app(config_object="noiz.settings"):
     register_blueprints(app)
     register_cli_extensions(app)
     logger = configure_logger(app)
-    logger.info('App initialization successful')
+    logger.info("App initialization successful")
     return app
 
 
@@ -38,12 +38,11 @@ def register_cli_extensions(app):
 
     return None
 
+
 def configure_logger(app):
     """Configure loggers."""
 
     logging.config.dictConfig(logger_config)
-    logger = logging.getLogger('app')
-    logger.debug('Initializing logger')
+    logger = logging.getLogger("app")
+    logger.debug("Initializing logger")
     return logger
-
-

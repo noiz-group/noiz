@@ -1,22 +1,23 @@
-from noiz.models import File
-from noiz.database import db
-from typing import Iterable, List
-
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+from typing import Iterable, List
 
 import sqlalchemy.exc
 
-
 import logging
-logger = logging.getLogger('processing')
+from noiz.database import db
+from noiz.models import File
+
+logger = logging.getLogger("processing")
 
 
-def search_recursively_insert_seismic_files(main_path: Path,
-                                            glob_call: str = '*.*',
-                                            filetype: str = 'mseed',
-                                            commit_freq: int = 100) -> None:
-    '''
+def search_recursively_insert_seismic_files(
+    main_path: Path,
+    glob_call: str = "*.*",
+    filetype: str = "mseed",
+    commit_freq: int = 100,
+) -> None:
+    """
     Recursively globs provided directory with globstring
     and adds to database absolute filepaths
     excluding ones that already exist.
@@ -31,44 +32,45 @@ def search_recursively_insert_seismic_files(main_path: Path,
     :type commit_freq: int
     :return: None
     :rtype: None
-    '''
+    """
 
     existing_filepaths = _get_existing_filepaths()
 
     found_files = []
 
     for i, path in enumerate(main_path.rglob(glob_call)):
-        logger.info(f'Processing {path}')
+        logger.info(f"Processing {path}")
 
         abs_path = str(path.absolute())
 
         if abs_path in existing_filepaths:
-            logger.info(f'Filepath {path} exists, skipping.')
+            logger.info(f"Filepath {path} exists, skipping.")
             continue
 
-        found_files.append(File(
-            add_date=datetime.now(),
-            filepath=abs_path,
-            filetype=filetype,
-            processed=False,
-            readeable=True,
-        ))
+        found_files.append(
+            File(
+                add_date=datetime.now(),
+                filepath=abs_path,
+                filetype=filetype,
+                processed=False,
+                readeable=True,
+            )
+        )
 
         if i % commit_freq == 0:
-            logger.info(f'Pushing to db in bulk')
+            logger.info(f"Pushing to db in bulk")
             db.session.bulk_save_objects(found_files)
             db.session.flush()
             found_files = []
 
-    logger.info(f'Pushing rest of files to db in bulk')
+    logger.info(f"Pushing rest of files to db in bulk")
     db.session.bulk_save_objects(found_files)
     db.session.commit()
     return
 
 
-def insert_single_seismic_file(path: Path,
-                               filetype: str) -> None:
-    '''
+def insert_single_seismic_file(path: Path, filetype: str) -> None:
+    """
 
     :param path:
     :type path: Path
@@ -76,12 +78,13 @@ def insert_single_seismic_file(path: Path,
     :type filetype: str
     :return: None
     :rtype: None
-    '''
-    logger.info(f'Adding single file {path} to DB.')
+    """
+    logger.info(f"Adding single file {path} to DB.")
 
     abs_path = str(path.absolute())
     try:
-        db.session.add(File(
+        db.session.add(
+            File(
                 add_date=datetime.now(),
                 filepath=abs_path,
                 filetype=filetype,
@@ -91,7 +94,7 @@ def insert_single_seismic_file(path: Path,
         )
         db.session.commit()
     except sqlalchemy.exc.IntegrityError as e:
-        logger.error('Integrity error on during insert. Probably file exists.')
+        logger.error("Integrity error on during insert. Probably file exists.")
     return
 
 
@@ -104,11 +107,10 @@ def _get_existing_filepaths() -> List[str]:
     return [x[0] for x in File.query.with_entities(File.filepath).all()]
 
 
-def search_for_seismic_files(paths: Iterable[str],
-                             glob: str,
-                             filetype: str,
-                             commit_frequency: int) -> None:
-    '''
+def search_for_seismic_files(
+    paths: Iterable[str], glob: str, filetype: str, commit_frequency: int
+) -> None:
+    """
     Gets an iterable of file or directory paths and inserts them into database.
     Directories are searched with recursive glob using provided glob string
     Files are added directly
@@ -123,31 +125,32 @@ def search_for_seismic_files(paths: Iterable[str],
     :type commit_frequency: int
     :return: None
     :rtype: None
-    '''
+    """
 
-    logger.info(f'Processing provided paths')
+    logger.info(f"Processing provided paths")
     for path in paths:
-        logger.info(f'Processing filepath {path}')
+        logger.info(f"Processing filepath {path}")
 
         if not isinstance(path, Path) and isinstance(path, str):
-            logger.info(f'Provided path {path} is not instance of Path. Trying to convert')
+            logger.info(
+                f"Provided path {path} is not instance of Path. Trying to convert"
+            )
             path = Path(path)
 
         if not path.exists():
-            logger.warning(f'Provided path {path} does not exist')
+            logger.warning(f"Provided path {path} does not exist")
             continue
 
         if path.is_dir():
-            logger.info(f'Searching recursively in directory {path}')
-            search_recursively_insert_seismic_files(main_path=path,
-                                                    glob_call=glob,
-                                                    filetype=filetype,
-                                                    commit_freq=commit_frequency)
+            logger.info(f"Searching recursively in directory {path}")
+            search_recursively_insert_seismic_files(
+                main_path=path,
+                glob_call=glob,
+                filetype=filetype,
+                commit_freq=commit_frequency,
+            )
 
         if path.is_file():
-            logger.info(f'Path {path} is a file')
-            insert_single_seismic_file(path=path,
-                                       filetype=filetype)
+            logger.info(f"Path {path} is a file")
+            insert_single_seismic_file(path=path, filetype=filetype)
     return
-
-
