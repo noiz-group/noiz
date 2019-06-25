@@ -2,14 +2,11 @@ from noiz.models import File
 from noiz.database import db
 from flask_sqlalchemy import SQLAlchemy
 
-
-
-from flask import logging
 from pathlib import Path
 from datetime import datetime
 
 import logging
-logger = logging.getLogger(f'{__name__}.file')
+logger = logging.getLogger('processing')
 
 
 def insert_seismic_files_recursively(main_path: Path,
@@ -37,7 +34,7 @@ def insert_seismic_files_recursively(main_path: Path,
         )
         return
 
-    existing_filepaths = get_existing_filepaths()
+    existing_filepaths = _get_existing_filepaths()
 
     found_files = []
 
@@ -69,6 +66,7 @@ def insert_seismic_files_recursively(main_path: Path,
     db.session.commit()
     return
 
-def get_existing_filepaths():
+
+def _get_existing_filepaths():
     return [x[0] for x in File.query.with_entities(File.filepath).all()]
 
