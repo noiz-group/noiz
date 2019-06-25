@@ -1,9 +1,11 @@
 import pytest
 
-from noiz.processing.file import (search_for_seismic_files,
+from noiz.processing.file import (
+    search_for_seismic_files,
     search_recursively_insert_seismic_files,
     insert_single_seismic_file,
-    _get_existing_filepaths)
+    _get_existing_filepaths,
+)
 
 
 def test_search_for_seismic_files():
