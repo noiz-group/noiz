@@ -1,9 +1,12 @@
 from noiz.models import File
 from noiz.database import db
-from flask_sqlalchemy import SQLAlchemy
+from typing import Iterable
 
 from pathlib import Path
 from datetime import datetime
+
+import sqlalchemy.exc
+
 
 import logging
 logger = logging.getLogger('processing')
@@ -13,26 +16,22 @@ def insert_seismic_files_recursively(main_path: Path,
                                      glob_call: str = '*.*',
                                      filetype: str = 'mseed',
                                      commit_freq: int = 100):
+    '''
+    Recursively globs provided directory with globstring
+    and adds to database absolute filepaths
+    excluding ones that already exist.
 
-    if not isinstance(main_path, Path) and isinstance(main_path, str):
-        logger.info(f'Provided path {main_path} is not instance of Path. Trying to convert')
-        main_path = Path('main_path')
-
-    if not main_path.exists():
-        logger.info(f'Provided path {main_path} does not exist.')
-        raise ValueError(f'Provided path {main_path} does not exist.')
-
-    if main_path.is_file():
-        logger.info(f'Provided path {main_path} is a file. Adding single file to DB.')
-        db.session.add(File(
-            add_date=datetime.now(),
-            filepath=main_path,
-            filetype=filetype,
-            processed=False,
-            readeable=True,
-            )
-        )
-        return
+    :param main_path:
+    :type main_path: Path
+    :param glob_call:
+    :type glob_call: str
+    :param filetype:
+    :type filetype: str
+    :param commit_freq:
+    :type commit_freq: int
+    :return:
+    :rtype:
+    '''
 
     existing_filepaths = _get_existing_filepaths()
 
@@ -67,6 +66,81 @@ def insert_seismic_files_recursively(main_path: Path,
     return
 
 
+def insert_single_seismic_file(path: Path,
+                               filetype: str):
+    '''
+
+    :param path:
+    :type path: Path
+    :param filetype:
+    :type filetype: str
+    :return: None
+    :rtype: None
+    '''
+    logger.info(f'Adding single file {path} to DB.')
+
+    abs_path = str(path.absolute())
+    try:
+        db.session.add(File(
+                add_date=datetime.now(),
+                filepath=abs_path,
+                filetype=filetype,
+                processed=False,
+                readeable=True,
+            )
+        )
+        db.session.commit()
+    except sqlalchemy.exc.IntegrityError as e:
+        logger.error('Integrity error on during insert. Probably file exists.')
+    return
+
+
 def _get_existing_filepaths():
     return [x[0] for x in File.query.with_entities(File.filepath).all()]
+
+
+def search_for_seismic_files(paths: Iterable[str],
+                             glob: str,
+                             filetype: str,
+                             commit_frequency: int):
+    '''
+
+
+    :param paths: Iterable of paths
+    :type paths: Iterable[str],
+    :param glob: String to use for globbing procedure in pathlib.Path.rglob
+    :type glob: str
+    :param filetype:
+    :type filetype: str
+    :param commit_frequency: Frequency of comminting to db
+    :type commit_frequency: int
+    :return: None
+    :rtype: None
+    '''
+
+    logger.info(f'Processing provided paths')
+    for path in paths:
+        logger.info(f'Processing filepath {path}')
+
+        if not isinstance(path, Path) and isinstance(path, str):
+            logger.info(f'Provided path {path} is not instance of Path. Trying to convert')
+            path = Path(path)
+
+        if not path.exists():
+            logger.warning(f'Provided path {path} does not exist')
+            continue
+
+        if path.is_dir():
+            logger.info(f'Searching recursively in directory {path}')
+            insert_seismic_files_recursively(main_path=path,
+                                             glob_call=glob,
+                                             filetype=filetype,
+                                             commit_freq=commit_frequency)
+
+        if path.is_file():
+            logger.info(f'Path {path} is a file')
+            insert_single_seismic_file(path=path,
+                                       filetype=filetype)
+    return
+
 
