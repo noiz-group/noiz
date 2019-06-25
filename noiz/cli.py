@@ -1,49 +1,49 @@
 import click
+import logging
 from flask.cli import AppGroup
 
-from pathlib import Path
-
 from noiz.processing.processing_config import upsert_default_config
-from noiz.processing.file import insert_seismic_files_recursively
+from noiz.processing.file import search_for_seismic_files
 
-import logging
 logger = logging.getLogger('cli')
 
-
-user_cli_group = AppGroup('init', help='Performs actions to initiate')
+cli = AppGroup('Main')
+init_group = AppGroup('init')
 flask_custom_cli = AppGroup('noizfff')
 
 
-@user_cli_group.group("""Introductory actions in the noiz app""")
-def user_cli_group():
+def _register_subgroups_to_cli(cli: AppGroup):
+    for custom_group in (init_group, flask_custom_cli):
+        cli.add_command(custom_group)
+    return
+
+
+@init_group.group('init-noiz')
+def init_group():
+    'Initiate operation in noiz'
     pass
 
 
-@user_cli_group.command('reset_config')
+@init_group.command('reset_config')
 def reset_config():
     '''Replaces current processing config with default one'''
     upsert_default_config()
 
 
-@user_cli_group.command('add_files_recursively')
-# @click.Path('-p', '--path', dir_okay=True, readable=True)\
-@click.option('--path', required=True)
+@init_group.command('add_files_recursively')
+@click.argument('paths', nargs=-1, required=True,
+                type=click.Path(exists=True))
 @click.option('-g', '--glob', default='*', show_default=True)
 @click.option('-t', '--filetype', default='mseed', show_default=True)
 @click.option('-f', '--commit_frequency', default=150, show_default=True)
-def add_files_recursively(path, glob, filetype, commit_frequency):
+def add_files_recursively(paths, glob, filetype, commit_frequency):
+    '''Globs over provided directories in search of files'''
 
-    logger.info(f'Processing filepath {path}')
-    path = Path(path)
-    if path.exists():
-        insert_seismic_files_recursively(main_path=path,
-                                         glob_call=glob,
-                                         filetype=filetype,
-                                         commit_freq=commit_frequency)
-    else:
-        raise ValueError(f'Provided path {path} does not exist.')
+    search_for_seismic_files(paths=paths,
+                             glob=glob,
+                             commit_frequency=commit_frequency,
+                             filetype=filetype)
     return
-
 
 
 @flask_custom_cli.group("This is explanation of the first group")
@@ -64,7 +64,7 @@ def secondf():
     click.echo("That's the second command of the group")
 
 
-cli = click.CommandCollection(sources=[user_cli_group, flask_custom_cli])
+_register_subgroups_to_cli(cli)
 
 
 if __name__ == '__main__':
