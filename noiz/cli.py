@@ -48,6 +48,7 @@ def add_files_recursively(paths, glob, filetype, commit_frequency):
     )
     return
 
+
 # @init_group.command("scan_files")
 # def scan_files():
 #     """Replaces current processing config with default one"""
@@ -72,8 +73,6 @@ def add_files_recursively(paths, glob, filetype, commit_frequency):
 #         rlist.extend(scan_file_for_traces(session=db.session ,file=file))
 #
 #     db.session.add_all(rlist)
-
-
 
 
 @flask_custom_cli.group("This is explanation of the first group")

@@ -3,12 +3,13 @@ import logging
 
 class MyFormatter(logging.Formatter):
     width = 40
-    datefmt='%Y-%m-%d %H:%M:%S'
+    datefmt = "%Y-%m-%d %H:%M:%S"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         try:
             from celery._state import get_current_task
+
             self.get_current_task = get_current_task
         except ImportError:
             self.get_current_task = lambda: None
@@ -16,20 +17,19 @@ class MyFormatter(logging.Formatter):
     def format(self, record):
         task = self.get_current_task()
         if task and task.request:
-            record.__dict__.update(task_id=task.request.id,
-                                   task_name=task.name)
+            record.__dict__.update(task_id=task.request.id, task_name=task.name)
         else:
-            record.__dict__.setdefault('task_name', '')
-            record.__dict__.setdefault('task_id', '')
+            record.__dict__.setdefault("task_name", "")
+            record.__dict__.setdefault("task_id", "")
 
-        lvl = f'{record.levelname:<7}'
+        lvl = f"{record.levelname:<7}"
         fmted_time = self.formatTime(record, self.datefmt)
-        task_info = f'{record.task_id}|{record.task_name}'
-        breadcrumbs = f'{record.module}:{record.funcName}:{record.lineno}'
-        breadcrumbs = breadcrumbs[-self.width:].ljust(self.width)
+        task_info = f"{record.task_id}|{record.task_name}"
+        breadcrumbs = f"{record.module}:{record.funcName}:{record.lineno}"
+        breadcrumbs = breadcrumbs[-self.width :].ljust(self.width)
         record.message = record.getMessage()
 
-        s = f'{lvl} | {fmted_time} | {task_info} |{breadcrumbs} | {record.getMessage()}'
+        s = f"{lvl} | {fmted_time} | {task_info} |{breadcrumbs} | {record.getMessage()}"
 
         if record.exc_info:
             # Cache the traceback text to avoid converting it multiple times
@@ -41,65 +41,50 @@ class MyFormatter(logging.Formatter):
                 s = s + "\n"
             s = s + record.exc_text
         if record.stack_info:
-           if s[-1:] != "\n":
-               s = s + "\n"
-           s = s + self.formatStack(record.stack_info)
-
-
-
+            if s[-1:] != "\n":
+                s = s + "\n"
+            s = s + self.formatStack(record.stack_info)
 
         return s
 
 
-logger_config = dict({
-    'version': 1,
-    'formatters': {
-        'default': {
-            'format': '%(asctime)s | %(levelname)s | %(module)s | %(message)s',
-        },
-       'myFormatter':{
-          '()': 'noiz.logg.MyFormatter',
-       },
-    },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'level': 'DEBUG',
-            'stream': 'ext://sys.stdout',
-            'formatter': 'myFormatter',
-        },
-        'file': {
-            'class': 'logging.FileHandler',
-            'level': 'DEBUG',
-            'filename': 'noiz.log',
-            'formatter': 'myFormatter',
-        },
-        'wsgi': {
-            'class': 'logging.StreamHandler',
-            'stream': 'ext://flask.logging.wsgi_errors_stream',
-            'formatter': 'myFormatter'
-        },
-    },
-    'loggers': {
-        'app': {
-            'level': 'DEBUG',
-            'handlers': [],
-            'propagate': True,
-        },
-        'processing': {
-            'level': 'DEBUG',
-            'handlers': ['file', 'console'],
-            'propagate': False,
+logger_config = dict(
+    {
+        "version": 1,
+        "formatters": {
+            "default": {
+                "format": "%(asctime)s | %(levelname)s | %(module)s | %(message)s"
             },
-        'cli': {
-            'level': 'DEBUG',
-            'handlers': [],
-            'propagate': True,
+            "myFormatter": {"()": "noiz.logg.MyFormatter"},
         },
-    },
-    'root': {
-            'level': 'DEBUG',
-            'handlers': ['file', 'console', ],
-        }
-}
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+                "level": "DEBUG",
+                "stream": "ext://sys.stdout",
+                "formatter": "myFormatter",
+            },
+            "file": {
+                "class": "logging.FileHandler",
+                "level": "DEBUG",
+                "filename": "noiz.log",
+                "formatter": "myFormatter",
+            },
+            "wsgi": {
+                "class": "logging.StreamHandler",
+                "stream": "ext://flask.logging.wsgi_errors_stream",
+                "formatter": "myFormatter",
+            },
+        },
+        "loggers": {
+            "app": {"level": "DEBUG", "handlers": [], "propagate": True},
+            "processing": {
+                "level": "DEBUG",
+                "handlers": ["file", "console"],
+                "propagate": False,
+            },
+            "cli": {"level": "DEBUG", "handlers": [], "propagate": True},
+        },
+        "root": {"level": "DEBUG", "handlers": ["file", "console"]},
+    }
 )

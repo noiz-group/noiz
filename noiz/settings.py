@@ -21,5 +21,5 @@ LOG_BACKTRACE = True
 LOG_LEVEL = logging.DEBUG
 LOG_FORMATTER = "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s"
 
-CELERY_BROKER_URL = 'redis://redis:6379',
-CELERY_RESULT_BACKEND = 'redis://redis:6379'
+CELERY_BROKER_URL = ("redis://redis:6379",)
+CELERY_RESULT_BACKEND = "redis://redis:6379"

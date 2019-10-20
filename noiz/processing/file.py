@@ -42,7 +42,7 @@ def search_recursively_insert_seismic_files(
         logger.info(f"Processing {path}")
 
         if path.is_dir():
-            logger.info(f'{path} is directory. Skipping')
+            logger.info(f"{path} is directory. Skipping")
             continue
 
         abs_path = str(path.absolute())
