@@ -2,10 +2,15 @@ import click
 import logging
 from flask.cli import AppGroup
 
+from noiz.database import db
+
 from noiz.processing.processing_config import upsert_default_config
-from noiz.processing.file import search_for_seismic_files
+from noiz.processing.file import search_for_seismic_files, get_not_processed_files
+from noiz.processing.trace import scan_file_for_traces
 
 logger = logging.getLogger("cli")
+
+# from celery import group
 
 cli = AppGroup("Main")
 init_group = AppGroup("init")
@@ -42,6 +47,33 @@ def add_files_recursively(paths, glob, filetype, commit_frequency):
         paths=paths, glob=glob, commit_frequency=commit_frequency, filetype=filetype
     )
     return
+
+# @init_group.command("scan_files")
+# def scan_files():
+#     """Replaces current processing config with default one"""
+#
+#     res = []
+#     count = 0
+#     for r1, r2 in izip(FastqGeneralIterator(f1), FastqGeneralIterator(f2)):
+#         count += 1
+#         res.append(tasks.process_read_pair.s(r1, r2))
+#         if count == 10000:
+#             break
+#
+#
+#     g = group(res)
+#     for task in g.tasks:
+#         task.set()
+#
+#
+#     rlist = []
+#     for file in get_not_processed_files(session=db.session):
+#         logger.info(f'Pushing {file} to worker')
+#         rlist.extend(scan_file_for_traces(session=db.session ,file=file))
+#
+#     db.session.add_all(rlist)
+
+
 
 
 @flask_custom_cli.group("This is explanation of the first group")

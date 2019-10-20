@@ -3,7 +3,6 @@ click
 flask
 flask-sqlalchemy
 flask-migrate
-loguru
 scipy
 numpy
 matplotlib
@@ -11,6 +10,8 @@ obspy
 dash
 plotly
 psycopg2
+redis
+utm
 environs
 
 #test
