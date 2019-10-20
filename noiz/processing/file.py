@@ -4,11 +4,11 @@ from typing import Iterable, List
 
 import sqlalchemy.exc
 
-import logging
+import logg
 from noiz.database import db
 from noiz.models import File
 
-logger = logging.getLogger("processing")
+logger = logg.getLogger("processing")
 
 
 def search_recursively_insert_seismic_files(
@@ -40,6 +40,10 @@ def search_recursively_insert_seismic_files(
 
     for i, path in enumerate(main_path.rglob(glob_call)):
         logger.info(f"Processing {path}")
+
+        if path.is_dir():
+            logger.info(f'{path} is directory. Skipping')
+            continue
 
         abs_path = str(path.absolute())
 
@@ -105,6 +109,10 @@ def _get_existing_filepaths() -> List[str]:
     :rtype: List[str]
     """
     return [x[0] for x in File.query.with_entities(File.filepath).all()]
+
+
+def get_not_processed_files(session):
+    return session.query(File).filter(File.processed.is_(False)).all()
 
 
 def search_for_seismic_files(
