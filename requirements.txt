@@ -10,8 +10,6 @@ obspy
 dash
 plotly
 psycopg2
-redis
-utm
 environs
 
 #test
