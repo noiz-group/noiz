@@ -6,7 +6,7 @@ services:
     image: postgres:11
     restart: always
     ports:
-      - "5432:5432"
+      - "5433:5432"
     env_file:
       - postgres.env
     volumes:
@@ -20,11 +20,11 @@ services:
     image: adminer
     restart: always
     ports:
-      - "8070:8080"
+      - "8060:8080"
 
-  redis:
-    container_name: noiz_redis
-    image: redis:alpine
+#  redis:
+#    container_name: noiz_redis
+#    image: redis:alpine
 
   noiz:
     container_name: noiz_main
@@ -34,7 +34,7 @@ services:
       - "db:db"
     depends_on:
       - db
-      - redis
+#      - redis
     env_file:
       - noizapp.env
     ports:
