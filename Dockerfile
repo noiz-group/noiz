@@ -17,6 +17,7 @@ RUN  /opt/conda/bin/conda install -c conda-forge -c heavelock -y \
  flask-sqlalchemy \
  flask-migrate \
  scipy \
+ jupyterlab \
  numpy \
  matplotlib \
  obspy \
