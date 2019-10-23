@@ -1,6 +1,14 @@
 from noiz.database import db
 from sqlalchemy.dialects.postgresql import HSTORE, NUMRANGE, ARRAY
 
+from typing import Optional, Tuple
+
+import utm
+
+from flask.logging import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ProcessingConfig(db.Model):
     __tablename__ = "processingconfig"
@@ -106,7 +114,7 @@ class Trace(db.Model):
     # channel = db.relationship('Channel', foreign_keys=channel_id)
 
 
-class Timeseries(db.Model):
+class Tsindex(db.Model):
     __tablename__ = "tsindex"
     id = db.Column("id", db.BigInteger, primary_key=True)
     network = db.Column("network", db.UnicodeText, nullable=False)
@@ -129,3 +137,88 @@ class Timeseries(db.Model):
     filemodtime = db.Column("filemodtime", db.TIMESTAMP(timezone=True), nullable=False)
     updated = db.Column("updated", db.TIMESTAMP(timezone=True), nullable=False)
     scanned = db.Column("scanned", db.TIMESTAMP(timezone=True), nullable=False)
+
+
+class Station(db.Model):
+    __tablename__ = "station"
+    id = db.Column("id", db.Integer, primary_key=True)
+    network = db.Column("network", db.UnicodeText)
+    station = db.Column("station", db.UnicodeText, unique=True)
+    lat = db.Column("lon", db.Float)
+    lon = db.Column("lat", db.Float)
+    x = db.Column("x", db.Float)
+    y = db.Column("y", db.Float)
+    zone = db.Column("zone", db.Integer)
+    northern = db.Column("northern", db.Boolean)
+    elevation = db.Column("elevation", db.Float)
+    components = db.relationship("Component")
+
+    def __init__(self, **kwargs):
+        super(Station, self).__init__(**kwargs)
+        lat = kwargs.get("lat")
+        lon = kwargs.get("lon")
+        x = kwargs.get("x")
+        y = kwargs.get("y")
+        zone = kwargs.get("zone")
+        northern = kwargs.get("northern")
+
+        if not all((lat, lon)):
+            if not all((x, y)):
+                raise ValueError("You need to provide location either in UTM or latlon")
+            else:
+                zone, northern = self.__validate_zone_hemisphere(northern, zone)
+                self._set_latlon_from_xy(x, y, zone, northern)
+        else:
+            self._set_xy_from_latlon(lat, lon)
+
+    def _make_station_string(self):
+        return f"{self.network}.{self.station}"
+
+    def __str__(self):
+        return f"Station {self._make_station_string()}"
+
+    def _set_xy_from_latlon(self, lat, lon):
+        x, y, zone, zone_letter = utm.from_latlon(lat, lon)
+        self.x = x
+        self.y = y
+        self.zone = zone
+        # Checks if zone letter is in the norther hemisphere
+        self.northern = self.__checkif_zone_letter_in_northern(zone_letter=zone_letter)
+        return
+
+    def _set_latlon_from_xy(self, x, y, zone, northern):
+        lat, lon = utm.to_latlon(x, y, zone, northern)
+        self.lat = lat
+        self.lon = lon
+
+    @staticmethod
+    def __checkif_zone_letter_in_northern(zone_letter: str) -> bool:
+        return zone_letter in ("X", "W", "V", "U", "T", "S", "R", "Q", "P", "N")
+
+    @staticmethod
+    def __validate_zone_hemisphere(
+        northern: Optional[int], zone: Optional[bool]
+    ) -> Tuple[int, bool]:
+        if zone is None:
+            logger.warning("Zone is not set, using default 32.")
+            zone = 32
+        if northern is None:
+            logger.warning("Northern is not set, using default True.")
+            northern = True
+        return zone, northern
+
+
+class Component(db.Model):
+    __tablename__ = "component"
+    __table_args__ = (
+        db.UniqueConstraint("station_id", "name", name="single_component_per_station"),
+    )
+    id = db.Column("id", db.Integer, primary_key=True)
+    station_id = db.Column("station_id", db.Integer, db.ForeignKey("station.id"))
+    name = db.Column("name", db.UnicodeText)
+    inventory_filepath = db.Column("inventory_filepath", db.UnicodeText)
+
+    station = db.relationship("Station", foreign_keys=station_id)
+
+    def __str__(self):
+        return f"Component {self.name} at station {self.station_id}"

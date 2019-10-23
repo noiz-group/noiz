@@ -2,7 +2,7 @@ import logging
 
 
 class MyFormatter(logging.Formatter):
-    width = 40
+    width = 80
     datefmt = "%Y-%m-%d %H:%M:%S"
 
     def __init__(self, *args, **kwargs):

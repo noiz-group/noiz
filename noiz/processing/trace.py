@@ -4,10 +4,10 @@ import logging
 
 # from celery.utils.log import get_task_logger
 
-import logg
 from noiz.database import db
 
-logger = logging.get_logger("processing")
+
+logger = logging.getLogger("processing")
 
 
 def scan_file_for_traces(session, file: File):
