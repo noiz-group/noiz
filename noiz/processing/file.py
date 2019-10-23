@@ -4,11 +4,13 @@ from typing import Iterable, List
 
 import sqlalchemy.exc
 
-import logg
+import logging
 from noiz.database import db
 from noiz.models import File
 
-logger = logg.getLogger("processing")
+from flask.logging import logging
+
+logger = logging.getLogger(__name__)
 
 
 def search_recursively_insert_seismic_files(

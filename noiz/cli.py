@@ -1,14 +1,20 @@
 import click
 import logging
-from flask.cli import AppGroup
+from flask.cli import AppGroup, with_appcontext, current_app
 
 from noiz.database import db
 
 from noiz.processing.processing_config import upsert_default_config
 from noiz.processing.file import search_for_seismic_files, get_not_processed_files
 from noiz.processing.trace import scan_file_for_traces
+from noiz.processing.inventory import (
+    parse_inventory_insert_stations_and_components_into_db,
+    read_inventory,
+)
 
-logger = logging.getLogger("cli")
+from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # from celery import group
 
@@ -45,6 +51,21 @@ def add_files_recursively(paths, glob, filetype, commit_frequency):
 
     search_for_seismic_files(
         paths=paths, glob=glob, commit_frequency=commit_frequency, filetype=filetype
+    )
+    return
+
+
+@init_group.command("add_inventory")
+@with_appcontext
+@click.argument("filepath", nargs=1, required=True, type=click.Path(exists=True))
+@click.option("-t", "--filetype", default="stationxml", show_default=True)
+def add_inventory(filepath, filetype):
+    """Globs over provided directories in search of files"""
+
+    inventory = read_inventory(filepath=filepath, filetype=filetype)
+
+    parse_inventory_insert_stations_and_components_into_db(
+        app=current_app, inventory=inventory
     )
     return
 

@@ -1,5 +1,6 @@
 from flask import Flask
 from flask.helpers import get_root_path
+import os
 
 # from celery import Celery
 import dash
@@ -33,6 +34,7 @@ def create_app(config_object="noiz.settings", mode="app"):
 
     register_dashapps(app)
 
+    load_noiz_config(app)
     app.processing_config = fetch_processing_config(app)
 
     if mode == "app":
@@ -66,15 +68,6 @@ def register_dashapps(app):
         register_callbacks(dashapp1)
 
 
-#
-#     _protect_dashviews(dashapp1)
-#
-# def _protect_dashviews(dashapp):
-#     for view_func in dashapp.server.view_functions:
-#         if view_func.startswith(dashapp.config.url_base_pathname):
-#             dashapp.server.view_functions[view_func] = login_required(dashapp.server.view_functions[view_func])
-
-
 def configure_celery(app, celery):
 
     # set broker url and result backend from app config
@@ -97,8 +90,18 @@ def configure_celery(app, celery):
     return
 
 
+def load_noiz_config(app):
+    app.noiz_config = {}
+    processed_data_dir = os.environ.get("PROCESSED_DATA_DIR")
+    if processed_data_dir is None:
+        raise ValueError("You have to set a PROCESSED_DATA_DIR env variable.")
+    app.noiz_config["processed_data_dir"] = processed_data_dir
+
+
 def register_extensions(app):
     db.init_app(app)
+    import noiz.models
+
     migrate.init_app(app, db)
     return None
 
