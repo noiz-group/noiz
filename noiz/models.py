@@ -212,3 +212,19 @@ class Component(db.Model):
             logger.warning("Northern is not set, using default True.")
             northern = True
         return zone, northern
+
+
+class Soh(db.Model):
+    __tablename__ = "soh"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "datetime", "component_id", name="unique_timestamp_per_station"
+        ),
+    )
+
+    id = db.Column("id", db.Integer, primary_key=True)
+    component_id = db.Column("component_id", db.Integer, db.ForeignKey("file.id"))
+    datetime = db.Column("datetime", db.TIMESTAMP(timezone=True), nullable=False)
+    voltage = db.Column("voltage", db.Float, nullable=True)
+    current = db.Column("current", db.Float, nullable=True)
+    temperature = db.Column("temperature", db.Float, nullable=True)
