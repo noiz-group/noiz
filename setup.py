@@ -1,16 +1,17 @@
 from setuptools import setup
 
 setup(
-    name='noiz',
-    packages=['noiz'],
+    name="noiz",
+    packages=["noiz"],
     include_package_data=True,
-    entry_points={
-        'console_scripts': [
-            'noiz=noiz.cli:cli',
-        ],
-    },
+    entry_points={"console_scripts": ["noiz=noiz.cli:cli"]},
     install_requires=[
-        'flask',
+        "flask",
+        "utm",
+        "obspy",
+        "flask_migrate",
+        "flask-sqlalchemy",
+        "dash",
+        "environs",
     ],
-
 )
