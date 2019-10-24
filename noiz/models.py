@@ -139,11 +139,18 @@ class Tsindex(db.Model):
     scanned = db.Column("scanned", db.TIMESTAMP(timezone=True), nullable=False)
 
 
-class Station(db.Model):
-    __tablename__ = "station"
+class Component(db.Model):
+    __tablename__ = "component"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "network", "station", "component", name="unique_component_per_station"
+        ),
+    )
     id = db.Column("id", db.Integer, primary_key=True)
     network = db.Column("network", db.UnicodeText)
-    station = db.Column("station", db.UnicodeText, unique=True)
+    station = db.Column("station", db.UnicodeText)
+    component = db.Column("component", db.UnicodeText)
+    inventory_filepath = db.Column("inventory_filepath", db.UnicodeText)
     lat = db.Column("lon", db.Float)
     lon = db.Column("lat", db.Float)
     x = db.Column("x", db.Float)
@@ -151,10 +158,9 @@ class Station(db.Model):
     zone = db.Column("zone", db.Integer)
     northern = db.Column("northern", db.Boolean)
     elevation = db.Column("elevation", db.Float)
-    components = db.relationship("Component")
 
     def __init__(self, **kwargs):
-        super(Station, self).__init__(**kwargs)
+        super(Component, self).__init__(**kwargs)
         lat = kwargs.get("lat")
         lon = kwargs.get("lon")
         x = kwargs.get("x")
@@ -172,7 +178,7 @@ class Station(db.Model):
             self._set_xy_from_latlon(lat, lon)
 
     def _make_station_string(self):
-        return f"{self.network}.{self.station}"
+        return f"{self.network}.{self.station}.{self.component}"
 
     def __str__(self):
         return f"Station {self._make_station_string()}"
@@ -206,19 +212,3 @@ class Station(db.Model):
             logger.warning("Northern is not set, using default True.")
             northern = True
         return zone, northern
-
-
-class Component(db.Model):
-    __tablename__ = "component"
-    __table_args__ = (
-        db.UniqueConstraint("station_id", "name", name="single_component_per_station"),
-    )
-    id = db.Column("id", db.Integer, primary_key=True)
-    station_id = db.Column("station_id", db.Integer, db.ForeignKey("station.id"))
-    name = db.Column("name", db.UnicodeText)
-    inventory_filepath = db.Column("inventory_filepath", db.UnicodeText)
-
-    station = db.relationship("Station", foreign_keys=station_id)
-
-    def __str__(self):
-        return f"Component {self.name} at station {self.station_id}"
