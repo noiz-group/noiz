@@ -1,7 +1,7 @@
 import obspy
 from pathlib import Path
 
-from noiz.models import Station, Component
+from noiz.models import Component
 from noiz.database import db
 import logging
 
