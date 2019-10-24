@@ -11,6 +11,7 @@ dash
 plotly
 psycopg2
 environs
+utm
 
 #test
 pytest
