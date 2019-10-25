@@ -12,6 +12,7 @@ plotly
 psycopg2
 environs
 utm
+jupyterlab
 
 #test
 pytest
