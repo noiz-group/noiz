@@ -87,33 +87,6 @@ class ProcessingConfig(db.Model):
     taper_freq_width_max_freqs = db.Column("taper_freq_width_max_freqs", db.Float)
 
 
-class File(db.Model):
-    __tablename__ = "file"
-    id = db.Column("id", db.Integer, primary_key=True)
-    filepath = db.Column("filepath", db.UnicodeText, unique=True)
-    filetype = db.Column("filetype", db.UnicodeText)
-    add_date = db.Column("add_time", db.TIMESTAMP(timezone=True))
-    processed = db.Column("processed", db.Boolean)
-    readeable = db.Column("readeable", db.Boolean)
-
-
-class Trace(db.Model):
-    __tablename__ = "trace"
-    id = db.Column("id", db.Integer, primary_key=True)
-    file_id = db.Column("file_id", db.Integer, db.ForeignKey("file.id"))
-    trace_number = db.Column("trace_number", db.Integer)
-    # channel_id = db.Column('channel_id', db.Integer, db.ForeignKey('channel.id'))
-    starttime = db.Column("starttime", db.TIMESTAMP(timezone=True))
-    endtime = db.Column("endtime", db.TIMESTAMP(timezone=True))
-    sampling_rate = db.Column("sampling_rate", db.Float)
-    npts = db.Column("npts", db.Integer)
-
-    file = db.relationship(
-        "File", foreign_keys=file_id, backref=db.backref("children", lazy="noload")
-    )
-    # channel = db.relationship('Channel', foreign_keys=channel_id)
-
-
 class Tsindex(db.Model):
     __tablename__ = "tsindex"
     id = db.Column("id", db.BigInteger, primary_key=True)
@@ -223,7 +196,7 @@ class Soh(db.Model):
     )
 
     id = db.Column("id", db.Integer, primary_key=True)
-    component_id = db.Column("component_id", db.Integer, db.ForeignKey("file.id"))
+    component_id = db.Column("component_id", db.Integer, db.ForeignKey("component.id"))
     datetime = db.Column("datetime", db.TIMESTAMP(timezone=True), nullable=False)
     voltage = db.Column("voltage", db.Float, nullable=True)
     current = db.Column("current", db.Float, nullable=True)
