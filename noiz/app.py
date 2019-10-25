@@ -97,6 +97,8 @@ def load_noiz_config(app):
         raise ValueError("You have to set a PROCESSED_DATA_DIR env variable.")
     app.noiz_config["processed_data_dir"] = processed_data_dir
 
+    return None
+
 
 def register_extensions(app):
     db.init_app(app)
@@ -128,4 +130,4 @@ def configure_logger(app):
 
 def fetch_processing_config(app):
     # app.
-    return True
+    return {}

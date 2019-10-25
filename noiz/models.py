@@ -228,3 +228,11 @@ class Soh(db.Model):
     voltage = db.Column("voltage", db.Float, nullable=True)
     current = db.Column("current", db.Float, nullable=True)
     temperature = db.Column("temperature", db.Float, nullable=True)
+
+    def to_dict(self):
+        return {
+            "datetime": self.datetime,
+            "voltage": self.voltage,
+            "current": self.current,
+            "temperature": self.temperature,
+        }
