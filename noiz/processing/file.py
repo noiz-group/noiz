@@ -6,7 +6,8 @@ import sqlalchemy.exc
 
 import logging
 from noiz.database import db
-from noiz.models import File
+
+# from noiz.models import File
 
 from flask.logging import logging
 
@@ -54,13 +55,13 @@ def search_recursively_insert_seismic_files(
             continue
 
         found_files.append(
-            File(
-                add_date=datetime.now(),
-                filepath=abs_path,
-                filetype=filetype,
-                processed=False,
-                readeable=True,
-            )
+            # File(
+            #     add_date=datetime.now(),
+            #     filepath=abs_path,
+            #     filetype=filetype,
+            #     processed=False,
+            #     readeable=True,
+            # )
         )
 
         if i % commit_freq == 0:
@@ -90,13 +91,13 @@ def insert_single_seismic_file(path: Path, filetype: str) -> None:
     abs_path = str(path.absolute())
     try:
         db.session.add(
-            File(
-                add_date=datetime.now(),
-                filepath=abs_path,
-                filetype=filetype,
-                processed=False,
-                readeable=True,
-            )
+            # File(
+            #     add_date=datetime.now(),
+            #     filepath=abs_path,
+            #     filetype=filetype,
+            #     processed=False,
+            #     readeable=True,
+            # )
         )
         db.session.commit()
     except sqlalchemy.exc.IntegrityError as e:
@@ -110,11 +111,13 @@ def _get_existing_filepaths() -> List[str]:
     :return: List of absolute paths from File.filepath column
     :rtype: List[str]
     """
-    return [x[0] for x in File.query.with_entities(File.filepath).all()]
+    pass
+    # return [x[0] for x in File.query.with_entities(File.filepath).all()]
 
 
 def get_not_processed_files(session):
-    return session.query(File).filter(File.processed.is_(False)).all()
+    pass
+    # return session.query(File).filter(File.processed.is_(False)).all()
 
 
 def search_for_seismic_files(
