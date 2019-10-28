@@ -47,16 +47,6 @@ def parse_inventory_for_single_component_db_entries(inventory, inventory_dir):
         logger.info(f"Found network {network.code}")
         for station in network:
             logger.info(f"Found station {station.code}")
-            db_station = Station(
-                network=network.code,
-                station=station.code,
-                lat=station.latitude,
-                lon=station.longitude,
-                elevation=station.elevation,
-            )
-            objects_to_commit.append(db_station)
-
-            logger.info(f"Created station for db {db_station}")
             components = divide_channels_by_component(station.channels)
 
             for component, channels in components.items():
@@ -64,7 +54,6 @@ def parse_inventory_for_single_component_db_entries(inventory, inventory_dir):
                 inventory_single_component = _assembly_single_component_inventory(
                     inventory, network, station, channels
                 )
-
                 filename = _assembly_stationxml_filename(network, station, component)
 
                 inventory_filepath = inventory_dir.joinpath(filename)
@@ -84,10 +73,15 @@ def parse_inventory_for_single_component_db_entries(inventory, inventory_dir):
                 logger.info(f"Saving of the inventory file successful!")
 
                 db_component = Component(
-                    name=component,
-                    station=db_station,
+                    network=network.code,
+                    station=station.code,
+                    component=component,
+                    lat=station.latitude,
+                    lon=station.longitude,
+                    elevation=station.elevation,
                     inventory_filepath=str(inventory_filepath),
                 )
+
                 logger.info(f"Created Component object {db_component}")
                 objects_to_commit.append(db_component)
                 logger.info(f"Finished with component {component}")
