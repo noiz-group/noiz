@@ -6,7 +6,8 @@ from noiz.database import db
 
 from noiz.processing.processing_config import upsert_default_config
 from noiz.processing.file import search_for_seismic_files, get_not_processed_files
-from noiz.processing.trace import scan_file_for_traces
+
+# from noiz.processing.trace import scan_file_for_traces
 from noiz.processing.inventory import (
     parse_inventory_insert_stations_and_components_into_db,
     read_inventory,
