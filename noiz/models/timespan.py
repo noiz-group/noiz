@@ -1,6 +1,7 @@
 import datetime
 from typing import Union, Optional, Tuple, Iterable
 
+import obspy
 import numpy as np
 import pandas as pd
 
@@ -82,6 +83,12 @@ class Timespan(db.Model):
 
     def same_day(self):
         return self.starttime.floor("D") == (self.endtime - pd.Timedelta(1)).floor("D")
+
+    def starttime_obspy(self):
+        return obspy.UTCDateTime(self.starttime)
+
+    def endtime_obspy(self):
+        return obspy.UTCDateTime(self.endtime)
 
 
 def generate_starttimes_endtimes(

@@ -2,6 +2,8 @@ from sqlalchemy.dialects.postgresql import HSTORE, ARRAY, NUMRANGE
 from sqlalchemy import extract, func
 from sqlalchemy.ext.hybrid import hybrid_property
 
+import obspy
+
 from noiz.database import db
 
 from flask.logging import logging
@@ -32,6 +34,9 @@ class Tsindex(db.Model):
     filemodtime = db.Column("filemodtime", db.TIMESTAMP(timezone=True), nullable=False)
     updated = db.Column("updated", db.TIMESTAMP(timezone=True), nullable=False)
     scanned = db.Column("scanned", db.TIMESTAMP(timezone=True), nullable=False)
+
+    def read_file(self):
+        return obspy.read(self.filename, format=self.format)
 
     @hybrid_property
     def component(self):
