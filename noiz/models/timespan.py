@@ -6,6 +6,8 @@ import pandas as pd
 
 from noiz.database import db
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import extract, func
+from sqlalchemy.ext.hybrid import hybrid_property
 
 
 from flask.logging import logging
@@ -26,6 +28,54 @@ class Timespan(db.Model):
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
     midtime = db.Column("midtime", db.TIMESTAMP(timezone=True), nullable=False)
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
+
+    @hybrid_property
+    def starttime_year(self):
+        return self.starttime.year
+
+    @starttime_year.expression
+    def starttime_year(cls):
+        return func.date_part("year", cls.starttime)
+
+    @hybrid_property
+    def starttime_doy(self):
+        return self.starttime.timetuple().tm_yday
+
+    @starttime_doy.expression
+    def starttime_doy(cls):
+        return func.date_part("doy", cls.starttime)
+
+    @hybrid_property
+    def midtime_year(self):
+        return self.midtime.year
+
+    @midtime_year.expression
+    def midtime_year(cls):
+        return func.date_part("year", cls.midtime)
+
+    @hybrid_property
+    def midtime_doy(self):
+        return self.midtime.timetuple().tm_yday
+
+    @midtime_doy.expression
+    def midtime_doy(cls):
+        return func.date_part("doy", cls.midtime)
+
+    @hybrid_property
+    def endtime_year(self):
+        return self.endtime.year
+
+    @endtime_year.expression
+    def endtime_year(cls):
+        return func.date_part("year", cls.endtime)
+
+    @hybrid_property
+    def endtime_doy(self):
+        return self.endtime.timetuple().tm_yday
+
+    @endtime_doy.expression
+    def endtime_doy(cls):
+        return func.date_part("doy", cls.endtime)
 
     def remove_last_nanosecond(self):
         return self.endtime - pd.Timedelta(1)

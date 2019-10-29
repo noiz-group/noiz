@@ -1,4 +1,6 @@
 from sqlalchemy.dialects.postgresql import HSTORE, ARRAY, NUMRANGE
+from sqlalchemy import extract, func
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from noiz.database import db
 
@@ -30,3 +32,75 @@ class Tsindex(db.Model):
     filemodtime = db.Column("filemodtime", db.TIMESTAMP(timezone=True), nullable=False)
     updated = db.Column("updated", db.TIMESTAMP(timezone=True), nullable=False)
     scanned = db.Column("scanned", db.TIMESTAMP(timezone=True), nullable=False)
+
+    @hybrid_property
+    def component(self):
+        return self.channel[-1]
+
+    @component.expression
+    def component(cls):
+        return func.right(cls.channel, 1)
+
+    @hybrid_property
+    def starttime_year(self):
+        return self.starttime.year
+
+    @starttime_year.expression
+    def starttime_year(cls):
+        return func.date_part("year", cls.starttime)
+
+    @hybrid_property
+    def starttime_doy(self):
+        return self.starttime.timetuple().tm_yday
+
+    @starttime_doy.expression
+    def starttime_doy(cls):
+        return func.date_part("doy", cls.starttime)
+
+    @hybrid_property
+    def starttime_month(self):
+        return self.starttime.month
+
+    @starttime_month.expression
+    def starttime_month(cls):
+        return func.date_part("month", cls.starttime)
+
+    @hybrid_property
+    def starttime_day(self):
+        return self.starttime.day
+
+    @starttime_day.expression
+    def starttime_day(cls):
+        return func.date_part("day", cls.starttime)
+
+    @hybrid_property
+    def endtime_year(self):
+        return self.endtime.year
+
+    @endtime_year.expression
+    def endtime_year(cls):
+        return func.date_part("year", cls.endtime)
+
+    @hybrid_property
+    def endtime_doy(self):
+        return self.endtime.timetuple().tm_yday
+
+    @endtime_doy.expression
+    def endtime_doy(cls):
+        return func.date_part("doy", cls.endtime)
+
+    @hybrid_property
+    def endtime_month(self):
+        return self.endtime.month
+
+    @endtime_month.expression
+    def endtime_month(cls):
+        return func.date_part("month", cls.endtime)
+
+    @hybrid_property
+    def endtime_day(self):
+        return self.endtime.day
+
+    @endtime_day.expression
+    def endtime_day(cls):
+        return func.date_part("day", cls.endtime)
