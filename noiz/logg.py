@@ -64,12 +64,12 @@ logger_config = dict(
                 "stream": "ext://sys.stdout",
                 "formatter": "myFormatter",
             },
-            "file": {
-                "class": "logging.FileHandler",
-                "level": "DEBUG",
-                "filename": "noiz.log",
-                "formatter": "myFormatter",
-            },
+            # "file": {
+            #     "class": "logging.FileHandler",
+            #     "level": "DEBUG",
+            #     "filename": "noiz.log",
+            #     "formatter": "myFormatter",
+            # },
             "wsgi": {
                 "class": "logging.StreamHandler",
                 "stream": "ext://flask.logging.wsgi_errors_stream",
@@ -80,11 +80,11 @@ logger_config = dict(
             "app": {"level": "DEBUG", "handlers": [], "propagate": True},
             "processing": {
                 "level": "DEBUG",
-                "handlers": ["file", "console"],
+                "handlers": ["console"],
                 "propagate": False,
             },
             "cli": {"level": "DEBUG", "handlers": [], "propagate": True},
         },
-        "root": {"level": "DEBUG", "handlers": ["file", "console"]},
+        "root": {"level": "DEBUG", "handlers": ["console"]},
     }
 )
