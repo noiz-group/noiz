@@ -1,6 +1,7 @@
 from typing import Optional, Tuple
 
 import utm
+import obspy
 
 from noiz.database import db
 
@@ -66,6 +67,9 @@ class Component(db.Model):
         lat, lon = utm.to_latlon(x, y, zone, northern)
         self.lat = lat
         self.lon = lon
+
+    def read_inventory(self):
+        return obspy.read_inventory(self.inventory_filepath, format="stationxml")
 
     @staticmethod
     def __checkif_zone_letter_in_northern(zone_letter: str) -> bool:
