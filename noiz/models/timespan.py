@@ -87,6 +87,9 @@ class Timespan(db.Model):
     def starttime_obspy(self):
         return obspy.UTCDateTime(self.starttime)
 
+    def midtime_obspy(self):
+        return obspy.UTCDateTime(self.midtime)
+
     def endtime_obspy(self):
         return obspy.UTCDateTime(self.endtime)
 
