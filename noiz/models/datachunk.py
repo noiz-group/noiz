@@ -20,3 +20,4 @@ class DataChunk(db.Model):
     timespan_id = db.Column("timespan_id", db.BigInteger, db.ForeignKey("timespan.id"))
     sampling_rate = db.Column("sampling_rate", db.Float)
     npts = db.Column("npts", db.Integer)
+    filepath = db.Column("filepath", db.UnicodeText)
