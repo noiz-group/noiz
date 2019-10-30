@@ -79,7 +79,7 @@ class Timespan(db.Model):
         return func.date_part("doy", cls.endtime)
 
     def remove_last_nanosecond(self):
-        return self.endtime - pd.Timedelta(1)
+        return obspy.UTCDateTime(self.endtime - pd.Timedelta(1000))
 
     def same_day(self):
         return self.starttime.floor("D") == (self.endtime - pd.Timedelta(1)).floor("D")
