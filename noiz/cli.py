@@ -4,7 +4,7 @@ from flask.cli import AppGroup, with_appcontext, current_app
 
 from noiz.database import db
 
-from noiz.processing.processing_config import upsert_default_config
+from noiz.processing.processing_config import upsert_default_params
 from noiz.processing.file import search_for_seismic_files, get_not_processed_files
 
 # from noiz.processing.trace import scan_file_for_traces
@@ -39,7 +39,7 @@ def init_group():
 @init_group.command("reset_config")
 def reset_config():
     """Replaces current processing config with default one"""
-    upsert_default_config()
+    upsert_default_params()
 
 
 @init_group.command("add_files_recursively")
