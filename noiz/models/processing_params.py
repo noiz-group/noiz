@@ -8,39 +8,73 @@ logger = logging.getLogger(__name__)
 class ProcessingParams(db.Model):
     __tablename__ = "processing_params"
     id = db.Column("id", db.Integer, primary_key=True)
-    sampling_rate = db.Column("sampling_rate", db.Float, default=24, nullable=False)
-    prefiltering_low = db.Column(
+    _sampling_rate = db.Column("sampling_rate", db.Float, default=24, nullable=False)
+    _prefiltering_low = db.Column(
         "prefiltering_low", db.Float, default=0.01, nullable=False
     )
-    prefiltering_high = db.Column(
+    _prefiltering_high = db.Column(
         "prefiltering_high", db.Float, default=12.0, nullable=False
     )
-    prefiltering_order = db.Column(
+    _prefiltering_order = db.Column(
         "prefiltering_order", db.Integer, default=4, nullable=False
     )
-    preprocessing_taper_type = db.Column(
+    _preprocessing_taper_type = db.Column(
         "preprocessing_taper_type", db.UnicodeText, default="cosine", nullable=False
     )
-    preprocessing_taper_side = db.Column(
+    _preprocessing_taper_side = db.Column(
         "preprocessing_taper_side", db.UnicodeText, default="both", nullable=False
     )
-    preprocessing_taper_width = db.Column(
+    _preprocessing_taper_width = db.Column(
         "preprocessing_taper_width", db.Float, default=0.1, nullable=False
     )
-    remove_response = db.Column(
+    _remove_response = db.Column(
         "remove_response", db.Boolean, default=True, nullable=False
     )
 
     def __init__(self, **kwargs):
         self.id = kwargs.get("id", 1)
-        self.sampling_rate = kwargs.get("sampling_rate", 24)
-        self.prefiltering_low = kwargs.get("prefiltering_low", 0.01)
-        self.prefiltering_high = kwargs.get("prefiltering_high", 12.0)
-        self.prefiltering_order = kwargs.get("prefiltering_order", 4)
-        self.preprocessing_taper_type = kwargs.get("preprocessing_taper_type", "cosine")
-        self.preprocessing_taper_side = kwargs.get("preprocessing_taper_side", "both")
-        self.preprocessing_taper_width = kwargs.get("preprocessing_taper_width", 0.1)
-        self.remove_response = kwargs.get("remove_response", True)
+        self._sampling_rate = kwargs.get("sampling_rate", 24)
+        self._prefiltering_low = kwargs.get("prefiltering_low", 0.01)
+        self._prefiltering_high = kwargs.get("prefiltering_high", 12.0)
+        self._prefiltering_order = kwargs.get("prefiltering_order", 4)
+        self._preprocessing_taper_type = kwargs.get(
+            "preprocessing_taper_type", "cosine"
+        )
+        self._preprocessing_taper_side = kwargs.get("preprocessing_taper_side", "both")
+        self._preprocessing_taper_width = kwargs.get("preprocessing_taper_width", 0.1)
+        self._remove_response = kwargs.get("remove_response", True)
+
+    @property
+    def sampling_rate(self):
+        return self._sampling_rate
+
+    @property
+    def prefiltering_low(self):
+        return self._prefiltering_low
+
+    @property
+    def prefiltering_high(self):
+        return self._prefiltering_high
+
+    @property
+    def prefiltering_order(self):
+        return self._prefiltering_order
+
+    @property
+    def preprocessing_taper_type(self):
+        return self._preprocessing_taper_type
+
+    @property
+    def preprocessing_taper_side(self):
+        return self._preprocessing_taper_side
+
+    @property
+    def preprocessing_taper_width(self):
+        return self._preprocessing_taper_width
+
+    @property
+    def remove_response(self):
+        return self._remove_response
 
     # use_winter_time = db.Column("use_winter_time", db.Boolean)
     # f_sampling_out = db.Column("f_sampling_out", db.Integer)
