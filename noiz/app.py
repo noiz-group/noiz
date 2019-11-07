@@ -20,7 +20,7 @@ from noiz.database import db, migrate
 #                 backend=noiz.settings.CELERY_RESULT_BACKEND)
 
 
-def create_app(config_object="noiz.settings", mode="app"):
+def create_app(config_object="noiz.settings", mode="app", external_logger=False):
     app = Flask(__name__)
     app.config.from_object(config_object)
 
@@ -29,8 +29,9 @@ def create_app(config_object="noiz.settings", mode="app"):
     register_cli_extensions(app)
     # configure_celery(app, celery)
 
-    logger = configure_logger(app)
-    logger.info("App initialization successful")
+    if not external_logger:
+        logger = configure_logger(app)
+        logger.info("App initialization successful")
 
     register_dashapps(app)
 
