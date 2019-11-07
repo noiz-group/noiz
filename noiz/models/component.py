@@ -1,13 +1,10 @@
+import logging
 from typing import Optional, Tuple
 
-import utm
 import obspy
+import utm
 
 from noiz.database import db
-
-from flask.logging import logging
-
-logger = logging.getLogger(__name__)
 
 
 class Component(db.Model):
@@ -80,9 +77,9 @@ class Component(db.Model):
         northern: Optional[int], zone: Optional[bool]
     ) -> Tuple[int, bool]:
         if zone is None:
-            logger.warning("Zone is not set, using default 32.")
+            logging.warning("Zone is not set, using default 32.")
             zone = 32
         if northern is None:
-            logger.warning("Northern is not set, using default True.")
+            logging.warning("Northern is not set, using default True.")
             northern = True
         return zone, northern
