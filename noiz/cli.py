@@ -2,12 +2,15 @@ import click
 import logging
 from flask.cli import AppGroup, with_appcontext, current_app
 
+from typing import Iterable
+
 from noiz.database import db
 
 from noiz.processing.processing_config import upsert_default_params
 from noiz.processing.file import search_for_seismic_files, get_not_processed_files
 
 # from noiz.processing.trace import scan_file_for_traces
+from noiz.processing.datachunk_preparation import run_paralel_chunk_preparation
 from noiz.processing.inventory import (
     parse_inventory_insert_stations_and_components_into_db,
     read_inventory,
@@ -17,20 +20,19 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# from celery import group
-
 cli = AppGroup("Main")
 init_group = AppGroup("init")
-flask_custom_cli = AppGroup("noizfff")
+proc = AppGroup("proc")
+gggg = AppGroup("noizfff")
 
 
-def _register_subgroups_to_cli(cli: AppGroup):
-    for custom_group in (init_group, flask_custom_cli):
+def _register_subgroups_to_cli(cli: AppGroup, custom_groups: Iterable[AppGroup]):
+    for custom_group in custom_groups:
         cli.add_command(custom_group)
     return
 
 
-@init_group.group("init-noiz")
+@init_group.group("init")
 def init_group():
     "Initiate operation in noiz"
     pass
@@ -97,26 +99,38 @@ def add_inventory(filepath, filetype):
 #     db.session.add_all(rlist)
 
 
-@flask_custom_cli.group("This is explanation of the first group")
-def flask_custom_cli():
+@proc.group("proc")
+def proc():
     """This is short explanation?"""
     pass
 
 
-@flask_custom_cli.command()
+@proc.command("prepare_datachunks")
+@with_appcontext
+@click.option("-a", "--station", multiple=True, required=True, type=str)
+@click.option("-c", "--component", multiple=True, required=True, type=str)
+@click.option("-s", "--startdate", nargs=1, required=True, type=str)
+@click.option("-e", "--enddate", nargs=1, required=True, type=str)
+def prepare_datachunks(station, component, startdate, enddate):
+    """That's the explanation of second command of the group"""
+    run_paralel_chunk_preparation(
+        stations=station, components=component, startdate=startdate, enddate=enddate
+    )
+
+
+@gggg.group()
+def gggg():
+    """This is short explanation?"""
+    pass
+
+
+@gggg.command()
 def firstf():
     """That's the explanation of first command of the group"""
     click.echo("That's the first command of the group")
 
 
-@flask_custom_cli.command()
-# @click.pass_context
-def secondf():
-    """That's the explanation of second command of the group"""
-    click.echo("That's the second command of the group")
-
-
-_register_subgroups_to_cli(cli)
+_register_subgroups_to_cli(cli, (init_group, gggg, proc))
 
 
 if __name__ == "__main__":
