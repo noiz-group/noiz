@@ -1,25 +1,17 @@
-import obspy
-from pathlib import Path
-import numpy as np
-import os
-import psycopg2
-import sqlalchemy
-from sqlalchemy import create_engine
 import datetime
-from tqdm import tqdm
-import itertools
+import logging
+import numpy as np
+import obspy
+import os
 import pandas as pd
+
 from multiprocessing import Pool
-
-from noiz.app import create_app
-from noiz.database import db
-from noiz.models import Component, Soh, DataChunk, Timespan, Tsindex, ProcessingParams
-
+from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
-
 from typing import Union
 
-import logging
+from noiz.database import db
+from noiz.models import Component, DataChunk, Timespan, Tsindex, ProcessingParams
 
 
 class NoDataException(Exception):
