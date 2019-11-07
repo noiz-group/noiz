@@ -86,5 +86,6 @@ def parse_soh_insert_into_db(
         if i % int(no_rows / 10) == 0:
             logging.info(f"Inserted already {i}/{no_rows} rows")
         db.session.execute(insert_command)
+    db.session.commit()
 
     return
