@@ -69,7 +69,9 @@ def directory_exists_or_create(filepath: Path) -> bool:
     return directory.exists()
 
 
-def fetch_timeseries(component: Component, execution_date: datetime.datetime):
+def fetch_timeseries(
+    component: Component, execution_date: datetime.datetime
+) -> Tsindex:
     year = execution_date.year
     day_of_year = execution_date.timetuple().tm_yday
     time_series = Tsindex.query.filter(
@@ -122,13 +124,38 @@ def preprocess_timespan(
     inventory: obspy.Inventory,
     processing_params: ProcessingParams,
 ) -> obspy.Stream:
+    """
+    Applies standard preprocessing to a obspy.Stream. It consist of tapering, detrending,
+    response removal and filtering.
+    :param trimed_st: Stream to be treated
+    :type trimed_st: obspy.Stream
+    :param inventory: Inventory to have the response removed
+    :type inventory: obspy.Inventory
+    :param processing_params: Processing parameters object with all required info.
+    :type processing_params: ProcessingParams
+    :return: Processed Stream
+    :rtype: obspy.Stream
+    """
+    logging.info(
+        f"Tapering stream with type: {processing_params.preprocessing_taper_type}; "
+        f"width: {processing_params.preprocessing_taper_width}; "
+        f"side: {processing_params.preprocessing_taper_side}"
+    )
     trimed_st.taper(
         type=processing_params.preprocessing_taper_type,
         max_percentage=processing_params.preprocessing_taper_width,
         side=processing_params.preprocessing_taper_side,
     )
+    logging.info(f"Detrending")
     trimed_st.detrend(type="polynomial", order=3)
+    logging.info("Removing response")
     trimed_st.remove_response(inventory)
+    logging.info(
+        f"Filtering with bandpass;"
+        f"low: {processing_params.prefiltering_low}; "
+        f"high: {processing_params.prefiltering_high}; "
+        f"order: {processing_params.prefiltering_order};"
+    )
     trimed_st.filter(
         type="bandpass",
         freqmin=processing_params.prefiltering_low,
@@ -137,6 +164,7 @@ def preprocess_timespan(
         zerophase=True,
     )
 
+    logging.info("Finished preprocessing with success")
     return trimed_st
 
 
