@@ -52,9 +52,19 @@ def assembly_filepath(processed_data_dir, processing_type, filepath):
     return Path(processed_data_dir).joinpath(processing_type).joinpath(filepath)
 
 
-def directory_exists_or_create(filepath):
+def directory_exists_or_create(filepath: Path) -> bool:
+    """
+    Checks if directory of a filepath exists. If doesnt, it creates it.
+    Returns bool that indicates if the directory exists in the end. Should be always True.
+    :param filepath: Path to the file you want to save and check it the parent directory exists.
+    :type filepath: Path
+    :return: If the directory exists in the end.
+    :rtype: bool
+    """
     directory = filepath.parent
+    logging.info(f"Checking if directory {directory} exists")
     if not directory.exists():
+        logging.info(f"Directory {directory} does not exists, trying to create.")
         directory.mkdir(parents=True)
     return directory.exists()
 
