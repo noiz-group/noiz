@@ -7,8 +7,9 @@ import sqlalchemy
 from sqlalchemy import create_engine
 import datetime
 from tqdm import tqdm
-import pendulum
 import itertools
+import pandas as pd
+from multiprocessing import Pool
 
 from noiz.app import create_app
 from noiz.database import db
@@ -58,7 +59,7 @@ def directory_exists_or_create(filepath):
     return directory.exists()
 
 
-def fetch_timeseries(component, execution_date):
+def fetch_timeseries(component: Component, execution_date: datetime.datetime):
     year = execution_date.year
     day_of_year = execution_date.timetuple().tm_yday
     time_series = Tsindex.query.filter(
@@ -70,10 +71,11 @@ def fetch_timeseries(component, execution_date):
     ).all()
     if len(time_series) > 1:
         raise ValueError(
-            f"There are more then one files for that day in timeseries! {component._make_station_string()} {year}.{day_of_year}"
+            f"There are more then one files for that day in timeseries!"
+            f" {component._make_station_string()} {year}.{day_of_year}"
         )
     elif len(time_series) == 0:
-        raise NoDataException
+        raise NoDataException(f"No data for {component} on day {year}.{day_of_year}")
     else:
         return time_series[0]
 
@@ -129,7 +131,7 @@ def preprocess_timespan(
 
 
 def create_datachunks_for_component(
-    app, execution_date, component, timespans, processing_params, processed_data_dir
+    execution_date, component, timespans, processing_params, processed_data_dir
 ):
     no_datachunks = check_datachunks_for_timespans(component, timespans)
     logging.info(f"There are {no_datachunks} datachunks for {execution_date} in db")
@@ -140,7 +142,13 @@ def create_datachunks_for_component(
         return
 
     logging.info("Fetching timeseries")
-    time_series = fetch_timeseries(component=component, execution_date=execution_date)
+    try:
+        time_series = fetch_timeseries(
+            component=component, execution_date=execution_date
+        )
+    except NoDataException as e:
+        logging.error(e)
+        raise e
 
     logging.info("Reading timeseries and inventory")
     st = time_series.read_file()
@@ -157,6 +165,10 @@ def create_datachunks_for_component(
             endtime=timespan.remove_last_nanosecond(),
             nearest_sample=False,
         )
+
+        if len(trimed_st) == 0:
+            logging.info(f"There was no data to be cut for that timespan")
+            continue
 
         logging.info("Preprocessing timespan")
         trimed_st = preprocess_timespan(
@@ -210,7 +222,7 @@ def create_datachunks_for_component(
                 insert_command = (
                     insert(DataChunk)
                     .values(
-                        processing_config_id=processing_params.id,
+                        processing_config_id=datachunk.processing_params_id,
                         component_id=datachunk.component_id,
                         timespan_id=datachunk.timespan_id,
                         sampling_rate=datachunk.sampling_rate,
@@ -228,7 +240,7 @@ def create_datachunks_for_component(
 
 
 def run_chunk_preparation(
-    app, station, execution_date, processed_data_dir, processing_config_id=1
+    app, station, component, execution_date, processed_data_dir, processing_config_id=1
 ):
     year = execution_date.year
     day_of_year = execution_date.timetuple().tm_yday
@@ -242,16 +254,63 @@ def run_chunk_preparation(
         )
         timespans = get_timespans_for_doy(year=year, doy=day_of_year)
 
-        components = Component.query.filter(Component.station == station).all()
+        components = Component.query.filter(
+            Component.station == station, Component.component == component
+        ).all()
 
     logging.info(f"Invoking chunc creation itself")
     for component in components:
         with app.app_context() as ctx:
             create_datachunks_for_component(
-                app=app,
                 execution_date=execution_date,
                 component=component,
                 timespans=timespans,
-                processed_data_dir=processed_data_dir,
                 processing_params=processing_config,
+                processed_data_dir=processed_data_dir,
             )
+    return
+
+
+def run_paralel_chunk_preparation(
+    stations, components, startdate, enddate, processing_config_id=1
+):
+    date_range = pd.date_range(start=startdate, end=enddate, freq="D")
+
+    logging.info(f"Fetching processing config, timespans and componsents from db")
+    processing_config = (
+        db.session.query(ProcessingParams)
+        .filter(ProcessingParams.id == processing_config_id)
+        .first()
+    )
+
+    all_timespans = {}
+    for date in date_range:
+        all_timespans[date] = get_timespans_for_doy(
+            year=date.year, doy=date.timetuple().tm_yday
+        )
+    processed_data_dir = os.environ.get("PROCESSED_DATA_DIR")
+
+    components = Component.query.filter(
+        Component.station.in_(stations), Component.component.in_(components)
+    ).all()
+
+    def generate_tasks_for_chunk_preparation(
+        components, all_timespans, processing_config, processed_data_dir
+    ):
+        for component in components:
+            for date, timespans in all_timespans.items():
+                yield (
+                    date,
+                    component,
+                    timespans,
+                    processing_config,
+                    processed_data_dir,
+                )
+
+    joblist = generate_tasks_for_chunk_preparation(
+        components, all_timespans, processing_config, processed_data_dir
+    )
+
+    logging.info(f"Invoking chunk creation itself")
+    with Pool(10) as p:
+        p.starmap(create_datachunks_for_component, joblist)
