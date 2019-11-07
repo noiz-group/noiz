@@ -110,24 +110,45 @@ def get_timespans_for_doy(year, doy):
 
 
 def next_pow_2(number: int) -> int:
+    """
+       Finds a number that is a power of two that is next after value provided to that method
+    :param number: Value of which you need next power of 2
+    :type number: int
+    :return: Next power of two
+    :rtype: int
+    """
     return int(np.ceil(np.log2(number)))
 
 
 def resample_with_padding(
     st: obspy.Stream, sampling_rate: Union[int, float]
 ) -> obspy.Stream:
+    """
+    Pads data of trace (assumes that stream has only one trace) with zeros up to next power of two
+    and resamples it down to provided sampling rate. Furtherwards trims it to original starttime and endtime.
+    :param st: Stream containing one trace to be resampled
+    :type st: obspy.Stream
+    :param sampling_rate: Target sampling rate
+    :type sampling_rate: Union[int, float]
+    :return: Resampled stream
+    :rtype: obspy.Stream
+    """
 
     tr = st[0].copy()
     starttime = tr.stats.starttime
     endtime = tr.stats.endtime
     npts = tr.stats.npts
 
+    logging.info("Finding deficit of sampls up to next power of 2")
     deficit = 2 ** next_pow_2(npts) - npts
 
+    logging.info("Padding with zeros up to the next power of 2")
     tr.data = np.concatenate((tr.data, np.zeros(deficit)))
+    logging.info("Resampling")
     tr.resample(sampling_rate)
     st[0] = tr.slice(starttime=starttime, endtime=endtime)
 
+    logging.info("Resampling done!")
     return st
 
 
