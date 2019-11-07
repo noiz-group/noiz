@@ -30,6 +30,8 @@ class ProcessingParams(db.Model):
     _remove_response = db.Column(
         "remove_response", db.Boolean, default=True, nullable=False
     )
+    _spectral_whitening = db.Column("spectral_whitening", db.Boolean, nullable=False)
+    _one_bit = db.Column("one_bit", db.Boolean, nullable=False)
 
     def __init__(self, **kwargs):
         self.id = kwargs.get("id", 1)
@@ -43,6 +45,9 @@ class ProcessingParams(db.Model):
         self._preprocessing_taper_side = kwargs.get("preprocessing_taper_side", "both")
         self._preprocessing_taper_width = kwargs.get("preprocessing_taper_width", 0.1)
         self._remove_response = kwargs.get("remove_response", True)
+
+        self._spectral_whitening = kwargs.get("spectral_whitening", True)
+        self._one_bit = kwargs.get("one_bit", True)
 
     @property
     def sampling_rate(self):
@@ -75,6 +80,14 @@ class ProcessingParams(db.Model):
     @property
     def remove_response(self):
         return self._remove_response
+
+    @property
+    def spectral_whitening(self):
+        return self._spectral_whitening
+
+    @property
+    def one_bit(self):
+        return self._one_bit
 
     # use_winter_time = db.Column("use_winter_time", db.Boolean)
     # f_sampling_out = db.Column("f_sampling_out", db.Integer)
