@@ -13,7 +13,6 @@ from sqlalchemy.dialects.postgresql import insert
 
 import obspy
 import numpy as np
-from noiz.processing.datachunk_preparation import get_timespans_for_doy
 
 import logging
 
