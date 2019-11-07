@@ -17,6 +17,8 @@ from noiz.models import Component, Soh, DataChunk, Timespan, Tsindex, Processing
 
 from sqlalchemy.dialects.postgresql import insert
 
+from typing import Union
+
 import logging
 
 
@@ -107,15 +109,55 @@ def get_timespans_for_doy(year, doy):
     return timespans
 
 
-def preprocess_whole_day(st: obspy.Stream, preprocessing_config) -> obspy.Stream:
+def next_pow_2(number: int) -> int:
+    return int(np.ceil(np.log2(number)))
+
+
+def resample_with_padding(
+    st: obspy.Stream, sampling_rate: Union[int, float]
+) -> obspy.Stream:
+
+    tr = st[0].copy()
+    starttime = tr.stats.starttime
+    endtime = tr.stats.endtime
+    npts = tr.stats.npts
+
+    deficit = 2 ** next_pow_2(npts) - npts
+
+    tr.data = np.concatenate((tr.data, np.zeros(deficit)))
+    tr.resample(sampling_rate)
+    st[0] = tr.slice(starttime=starttime, endtime=endtime)
+
+    return st
+
+
+def preprocess_whole_day(
+    st: obspy.Stream, preprocessing_config: ProcessingParams
+) -> obspy.Stream:
+    logging.info(f"Trying to merge traces if more than 1")
     st.merge()
-    st.resample(sampling_rate=preprocessing_config.sampling_rate)
+
+    if len(st) > 1:
+        logging.error("There are more than one trace in the stream, raising error.")
+        raise ValueError(f"There are {len(st)} traces in the stream!")
+
+    logging.info(
+        f"Resampling stream to {preprocessing_config.sampling_rate} Hz with padding to next power of 2"
+    )
+    st = resample_with_padding(st=st, sampling_rate=preprocessing_config.sampling_rate)
+    logging.info(
+        f"Filtering with bandpass to "
+        f"low: {preprocessing_config.prefiltering_low};"
+        f"high: {preprocessing_config.prefiltering_high};"
+        f"order: {preprocessing_config.prefiltering_order}"
+    )
     st.filter(
         type="bandpass",
         freqmin=preprocessing_config.prefiltering_low,
         freqmax=preprocessing_config.prefiltering_high,
         corners=preprocessing_config.prefiltering_order,
     )
+    logging.info("Finished processing whole day")
     return st
 
 
