@@ -23,6 +23,9 @@ class ComponentPair(db.Model):
     distance = db.Column("distance", db.Float, nullable=False)
     arcdistance = db.Column("arcdistance", db.Float, nullable=False)
 
+    component_a = db.relationship("Component", foreign_keys=[component_a_id])
+    component_b = db.relationship("Component", foreign_keys=[component_b_id])
+
     def _set_same_station(self) -> None:
         self.azimuth = 0
         self.backazimuth = 0
