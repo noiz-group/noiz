@@ -39,7 +39,13 @@ class DataChunk(db.Model):
     sampling_rate = db.Column("sampling_rate", db.Float, nullable=False)
     npts = db.Column("npts", db.Integer, nullable=False)
     filepath = db.Column("filepath", db.UnicodeText, nullable=False)
-    # error = db.Column('error', db.UnicodeText, nullable=False)
+
+    timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
+    component = db.relationship("Component", foreign_keys=[component_id])
+    processing_params = db.relationship(
+        "ProcessingParams", foreign_keys=[processing_params_id]
+    )
+    processed_datachunks = db.relationship("ProcessedDatachunk")
 
     def load_data(self):
         if Path(self.filepath).exists:
@@ -69,3 +75,11 @@ class ProcessedDatachunk(db.Model):
         "datachunk_id", db.Integer, db.ForeignKey("datachunk.id"), nullable=False
     )
     filepath = db.Column("filepath", db.UnicodeText, nullable=False)
+
+    datachunk = db.relationship("DataChunk", foreign_keys=[datachunk_id])
+
+    def load_data(self):
+        if Path(self.filepath).exists:
+            return obspy.read(self.filepath, "MSEED")
+        else:
+            raise MissingDataFile(f"Data file for chunk {self} is missing")
