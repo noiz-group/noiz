@@ -39,7 +39,7 @@ class ProcessingParams(db.Model):
         nullable=False,
     )
     _datachunk_sample_threshold = db.Column(
-        "datachunk_sample_threshold", db.Float, default=0.9, nullable=False
+        "datachunk_sample_threshold", db.Float, default=0.98, nullable=False
     )
 
     def __init__(self, **kwargs):
@@ -61,7 +61,9 @@ class ProcessingParams(db.Model):
         self._timespan_length = kwargs.get(
             "timespan_length", datetime.timedelta(seconds=1800)
         )
-        self._datachunk_sample_threshold = kwargs.get("datachunk_sample_threshold", 0.9)
+        self._datachunk_sample_threshold = kwargs.get(
+            "datachunk_sample_threshold", 0.98
+        )
 
     @property
     def sampling_rate(self):
