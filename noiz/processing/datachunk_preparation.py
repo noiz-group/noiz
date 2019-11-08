@@ -270,13 +270,16 @@ def create_datachunks_for_component(
             trimed_st.merge()
             if len(trimed_st) > 1:
                 logging.error(
-                    f"There are still {len(trimed_st)} traces in that stream. Skipping that datachunk"
+                    f"There are still {len(trimed_st)} traces in that stream. "
+                    f"Skipping that datachunk"
                 )
                 continue
 
         if trimed_st[0].stats.npts < processing_params.get_expected_no_samples():
             logging.error(
-                f"There were {trimed_st[0].stats.npts} in the trace while {processing_params.get_expected_no_samples()} were expected. Skipping this chunk."
+                f"There were {trimed_st[0].stats.npts} in the trace"
+                f" while {processing_params.get_expected_no_samples()} were expected. "
+                f"Skipping this chunk."
             )
             continue
 
