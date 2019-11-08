@@ -1,12 +1,10 @@
 from noiz.database import db
-
-from flask.logging import logging
-
-logger = logging.getLogger(__name__)
+import datetime
 
 
 class ProcessingParams(db.Model):
     __tablename__ = "processing_params"
+
     id = db.Column("id", db.Integer, primary_key=True)
     _sampling_rate = db.Column("sampling_rate", db.Float, default=24, nullable=False)
     _prefiltering_low = db.Column(
@@ -30,8 +28,19 @@ class ProcessingParams(db.Model):
     _remove_response = db.Column(
         "remove_response", db.Boolean, default=True, nullable=False
     )
-    _spectral_whitening = db.Column("spectral_whitening", db.Boolean, nullable=False)
-    _one_bit = db.Column("one_bit", db.Boolean, nullable=False)
+    _spectral_whitening = db.Column(
+        "spectral_whitening", db.Boolean, default=True, nullable=False
+    )
+    _one_bit = db.Column("one_bit", db.Boolean, default=True, nullable=False)
+    _timespan_length = db.Column(
+        "timespan_length",
+        db.Interval,
+        default=datetime.timedelta(seconds=1800),
+        nullable=True,
+    )
+    _datachunk_sample_threshold = db.Column(
+        "datachunk_sample_threshold", db.Float, default=0.9, nullable=True
+    )
 
     def __init__(self, **kwargs):
         self.id = kwargs.get("id", 1)
@@ -48,6 +57,11 @@ class ProcessingParams(db.Model):
 
         self._spectral_whitening = kwargs.get("spectral_whitening", True)
         self._one_bit = kwargs.get("one_bit", True)
+
+        self._timespan_length = kwargs.get(
+            "timespan_length", datetime.timedelta(seconds=1800)
+        )
+        self._datachunk_sample_threshold = kwargs.get("datachunk_sample_threshold", 0.9)
 
     @property
     def sampling_rate(self):
@@ -88,6 +102,17 @@ class ProcessingParams(db.Model):
     @property
     def one_bit(self):
         return self._one_bit
+
+    @property
+    def timespan_length(self):
+        return self._timespan_length
+
+    @property
+    def datachunk_sample_threshold(self):
+        return self._datachunk_sample_threshold
+
+    def get_expected_no_samples(self):
+        return self._timespan_length.seconds * self._sampling_rate
 
     # use_winter_time = db.Column("use_winter_time", db.Boolean)
     # f_sampling_out = db.Column("f_sampling_out", db.Integer)
