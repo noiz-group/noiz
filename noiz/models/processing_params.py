@@ -112,7 +112,10 @@ class ProcessingParams(db.Model):
         return self._datachunk_sample_threshold
 
     def get_expected_no_samples(self):
-        return self._timespan_length.seconds * self._sampling_rate
+        return int(
+            (self._timespan_length.seconds * self._sampling_rate)
+            * self._datachunk_sample_threshold
+        )
 
     # use_winter_time = db.Column("use_winter_time", db.Boolean)
     # f_sampling_out = db.Column("f_sampling_out", db.Integer)
