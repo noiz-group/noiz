@@ -36,10 +36,10 @@ class ProcessingParams(db.Model):
         "timespan_length",
         db.Interval,
         default=datetime.timedelta(seconds=1800),
-        nullable=True,
+        nullable=False,
     )
     _datachunk_sample_threshold = db.Column(
-        "datachunk_sample_threshold", db.Float, default=0.9, nullable=True
+        "datachunk_sample_threshold", db.Float, default=0.9, nullable=False
     )
 
     def __init__(self, **kwargs):
