@@ -162,7 +162,11 @@ def prepare_componentpairs(components: Iterable[Component]) -> Iterable[Componen
     for i, (cmp_a, cmp_b) in enumerate(potential_pairs):
         logging.info(f"Starting with potential pair {i}/{no - 1}")
 
-        component_pair = ComponentPair(component_a_id=cmp_a.id, component_b_id=cmp_b.id)
+        component_pair = ComponentPair(
+            component_a_id=cmp_a.id,
+            component_b_id=cmp_b.id,
+            component_names="".join([cmp_a.component, cmp_b.component]),
+        )
 
         if is_autocorrelation(cmp_a, cmp_b):
             logging.info(f"Pair {component_pair} is autocorrelation")
