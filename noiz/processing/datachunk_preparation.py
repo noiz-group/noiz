@@ -174,6 +174,21 @@ def preprocess_whole_day(
     return st
 
 
+def pad_zeros_to_exact_time_bounds(st, timespan, expected_no_samples):
+    st.trim(
+        starttime=obspy.UTCDateTime(timespan.starttime),
+        endtime=obspy.UTCDateTime(timespan.endtime),
+        nearest_sample=False,
+        pad=True,
+        fill_value=0,
+    )
+    if st[0].stats.npts != expected_no_samples:
+        raise ValueError(
+            f"The try of padding with zeros to {expected_no_samples} was not successful. Current length of data is {st[0].stats.npts}"
+        )
+    return st
+
+
 def preprocess_timespan(
     trimed_st: obspy.Stream,
     inventory: obspy.Inventory,
@@ -275,13 +290,30 @@ def create_datachunks_for_component(
                 )
                 continue
 
-        if trimed_st[0].stats.npts < processing_params.get_expected_no_samples():
+        if trimed_st[0].stats.npts < processing_params.get_minimum_no_samples():
             logging.error(
                 f"There were {trimed_st[0].stats.npts} in the trace"
-                f" while {processing_params.get_expected_no_samples()} were expected. "
+                f" while {processing_params.get_minimum_no_samples()} were expected. "
                 f"Skipping this chunk."
             )
             continue
+        elif trimed_st[0].stats.npts < processing_params.get_expected_no_samples():
+            deficit = (
+                processing_params.get_expected_no_samples() - trimed_st[0].stats.npts
+            )
+            logging.warning(
+                f"Datachunk has less samples than expected but enough to be accepted."
+                f"It will be padded with {deficit} zeros to match exact length."
+            )
+            try:
+                trimed_st = pad_zeros_to_exact_time_bounds(
+                    trimed_st, timespan, processing_params.get_expected_no_samples()
+                )
+            except ValueError:
+                logging.warning(f"Padding was not successful. SKipping chunk.")
+                continue
+        else:
+            deficit = None
 
         logging.info("Preprocessing timespan")
         trimed_st = preprocess_timespan(
@@ -307,6 +339,7 @@ def create_datachunks_for_component(
             sampling_rate=trimed_st[0].stats.sampling_rate,
             npts=trimed_st[0].stats.npts,
             filepath=str(filepath),
+            padded_npts=deficit,
         )
         logging.info(
             "Checking if there are some chunks fot tht timespan and component in db"
@@ -341,10 +374,11 @@ def create_datachunks_for_component(
                         sampling_rate=datachunk.sampling_rate,
                         npts=datachunk.npts,
                         filepath=datachunk.filepath,
+                        padded_npts=deficit,
                     )
                     .on_conflict_do_update(
                         constraint="unique_datachunk_per_timespan_per_station_per_processing",
-                        set_=dict(filepath=datachunk.filepath),
+                        set_=dict(filepath=datachunk.filepath, padded_npts=deficit),
                     )
                 )
                 db.session.execute(insert_command)
