@@ -1,9 +1,10 @@
 from sqlalchemy.dialects.postgresql import HSTORE, ARRAY, NUMRANGE
 from sqlalchemy import extract, func
 from sqlalchemy.ext.hybrid import hybrid_property
-
+from pathlib import Path
 import obspy
 
+from noiz.exceptions import MissingDataFileException
 from noiz.database import db
 
 from flask.logging import logging
@@ -36,7 +37,16 @@ class Tsindex(db.Model):
     scanned = db.Column("scanned", db.TIMESTAMP(timezone=True), nullable=False)
 
     def read_file(self):
-        return obspy.read(self.filename, format=self.format)
+        """
+        To be removed in order to keep consistency with other methods.
+        """
+        return self.load_data()
+
+    def load_data(self):
+        if Path(self.filename).exists:
+            return obspy.read(self.filename, self.format)
+        else:
+            raise MissingDataFileException(f"Data file for chunk {self} is missing")
 
     @hybrid_property
     def component(self):
