@@ -5,8 +5,6 @@ from noiz.database import db
 from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_property
 
-import logging
-
 
 class TimespanModel(db.Model):
     __abstract__ = True
@@ -89,13 +87,3 @@ class Timespan(TimespanModel):
     )
 
     datachunks = db.relationship("DataChunk")
-
-
-class StackingTimespan(TimespanModel):
-    __tablename__ = "stacking_timespan"
-    __table_args__ = (
-        db.UniqueConstraint("starttime", name="unique_starttime"),
-        db.UniqueConstraint("midtime", name="unique_midtime"),
-        db.UniqueConstraint("endtime", name="unique_endtime"),
-        db.UniqueConstraint("starttime", "midtime", "endtime", name="unique_times"),
-    )
