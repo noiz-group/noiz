@@ -8,20 +8,12 @@ from sqlalchemy.ext.hybrid import hybrid_property
 import logging
 
 
-class Timespan(db.Model):
-    __tablename__ = "timespan"
-    __table_args__ = (
-        db.UniqueConstraint("starttime", name="unique_starttime"),
-        db.UniqueConstraint("midtime", name="unique_midtime"),
-        db.UniqueConstraint("endtime", name="unique_endtime"),
-        db.UniqueConstraint("starttime", "midtime", "endtime", name="unique_times"),
-    )
-
+class TimespanModel(db.Model):
+    __abstract__ = True
     id = db.Column("id", db.BigInteger, primary_key=True)
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
     midtime = db.Column("midtime", db.TIMESTAMP(timezone=True), nullable=False)
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
-    datachunks = db.relationship("DataChunk")
 
     @hybrid_property
     def starttime_year(self):
@@ -85,3 +77,25 @@ class Timespan(db.Model):
 
     def endtime_obspy(self):
         return obspy.UTCDateTime(self.endtime)
+
+
+class Timespan(TimespanModel):
+    __tablename__ = "timespan"
+    __table_args__ = (
+        db.UniqueConstraint("starttime", name="unique_starttime"),
+        db.UniqueConstraint("midtime", name="unique_midtime"),
+        db.UniqueConstraint("endtime", name="unique_endtime"),
+        db.UniqueConstraint("starttime", "midtime", "endtime", name="unique_times"),
+    )
+
+    datachunks = db.relationship("DataChunk")
+
+
+class StackingTimespan(TimespanModel):
+    __tablename__ = "stacking_timespan"
+    __table_args__ = (
+        db.UniqueConstraint("starttime", name="unique_starttime"),
+        db.UniqueConstraint("midtime", name="unique_midtime"),
+        db.UniqueConstraint("endtime", name="unique_endtime"),
+        db.UniqueConstraint("starttime", "midtime", "endtime", name="unique_times"),
+    )
