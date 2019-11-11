@@ -1,5 +1,6 @@
 from noiz.database import db
 import datetime
+import numpy as np
 
 
 class ProcessingParams(db.Model):
@@ -42,6 +43,8 @@ class ProcessingParams(db.Model):
         "datachunk_sample_threshold", db.Float, default=0.98, nullable=False
     )
 
+    _correlation_max_lag = db.Column("correlation_max_lag", db.Float, nullable=True)
+
     def __init__(self, **kwargs):
         self.id = kwargs.get("id", 1)
         self._sampling_rate = kwargs.get("sampling_rate", 24)
@@ -64,6 +67,8 @@ class ProcessingParams(db.Model):
         self._datachunk_sample_threshold = kwargs.get(
             "datachunk_sample_threshold", 0.98
         )
+
+        self._correlation_max_lag = kwargs.get("correlation_max_lag", 60)
 
     @property
     def sampling_rate(self):
@@ -113,11 +118,50 @@ class ProcessingParams(db.Model):
     def datachunk_sample_threshold(self):
         return self._datachunk_sample_threshold
 
-    def get_expected_no_samples(self):
+    @property
+    def correlation_max_lag(self):
+        """
+        Correlation max lag in seconds
+        :return Correlation max lag in seconds
+        :rtype: float
+        """
+        return self._correlation_max_lag
+
+    def get_minimum_no_samples(self):
+        """
+        Minimum number of samples for datachunk
+        :return:
+        :rtype:
+        """
         return int(
             (self._timespan_length.seconds * self._sampling_rate)
             * self._datachunk_sample_threshold
         )
+
+    def get_expected_no_samples(self):
+        """
+        Expected number of samples from datachunk
+        :return:
+        :rtype:
+        """
+        return int(self._timespan_length.seconds * self._sampling_rate)
+
+    def get_correlation_max_lag_samples(self):
+        return int(self._correlation_max_lag * self._sampling_rate)
+
+    def get_correlation_time_vector(self) -> np.array:
+        """
+        Return a np.array containing time vector for cross correlation to required correlation max lag.
+        Compatible with obspy's method to calculate correlation.
+        It returns 2*(max_lag*sampling_rate)+1 samples.
+        :return: Time vector for ccf
+        :rtype: np.array
+        """
+        step = 1 / self._sampling_rate
+        start = -self._correlation_max_lag
+        stop = self._correlation_max_lag + step
+
+        return np.arange(start=start, stop=stop, step=step)
 
     # use_winter_time = db.Column("use_winter_time", db.Boolean)
     # f_sampling_out = db.Column("f_sampling_out", db.Integer)
