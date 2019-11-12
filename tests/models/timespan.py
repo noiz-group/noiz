@@ -1,5 +1,7 @@
 import pytest
 
+from noiz.models import Timespan
+
 
 class TestTimespan:
     def test_starttime_year(self):
