@@ -1,17 +1,12 @@
-import obspy
 import numpy as np
-import scipy
-import matplotlib.pyplot as plt
 import datetime
-import os
 import logging
-from pathlib import Path
 
-from sqlalchemy.orm import aliased, lazyload, subqueryload
-from sqlalchemy import and_, or_
+from sqlalchemy.orm import subqueryload
+from sqlalchemy import and_
 
 from collections import defaultdict
-from typing import Tuple, Union, Iterable, Dict
+from typing import Tuple, Iterable, Dict
 from obspy.signal.cross_correlation import correlate
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.postgresql import insert
@@ -26,7 +21,7 @@ from noiz.models import (
     Crosscorrelation,
 )
 from noiz.database import db
-from noiz.app import create_app
+from noiz.processing.time_utils import get_year_doy
 
 
 def get_time_vector_ccf(max_lag: float, sampling_rate: float) -> np.array:
@@ -53,12 +48,6 @@ def group_componentpairs_by_componenta_componentb(
     for component_pair, component_a_id, component_b_id in component_pairs:
         groupped_componentpairs[component_a_id][component_b_id] = component_pair
     return groupped_componentpairs
-
-
-def get_year_doy(date: datetime.date) -> Tuple[int, int]:
-    year = date.year
-    day_of_year = date.timetuple().tm_yday
-    return year, day_of_year
 
 
 def fetch_processeddatachunks_a_day(
