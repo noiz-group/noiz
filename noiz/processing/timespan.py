@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 from sqlalchemy.dialects.postgresql import insert
 
-from database import db
-from models import Timespan
+from noiz.database import db
+from noiz.models import Timespan
 
 
 def generate_starttimes_endtimes(
