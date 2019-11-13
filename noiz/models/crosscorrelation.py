@@ -1,6 +1,8 @@
 from sqlalchemy.dialects.postgresql import ARRAY
 from noiz.database import db
 
+from noiz.models.stacking import association_table
+
 
 class Crosscorrelation(db.Model):
     __tablename__ = "crosscorrelation"
@@ -35,4 +37,7 @@ class Crosscorrelation(db.Model):
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
     processing_params = db.relationship(
         "ProcessingParams", foreign_keys=[processing_params_id]
+    )
+    stacks = db.relationship(
+        "CCFStack", secondary=association_table, back_populates="ccfs"
     )

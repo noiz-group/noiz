@@ -6,3 +6,4 @@ from noiz.models.soh import Soh
 from noiz.models.datachunk import DataChunk, ProcessedDatachunk
 from noiz.models.component_pair import ComponentPair
 from noiz.models.crosscorrelation import Crosscorrelation
+from noiz.models.stacking import CCFStack, StackingSchema, StackingTimespan
