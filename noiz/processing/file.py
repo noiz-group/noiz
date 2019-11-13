@@ -14,6 +14,10 @@ from flask.logging import logging
 logger = logging.getLogger(__name__)
 
 
+###############################
+# OBSOLETE!
+#
+#######################
 def search_recursively_insert_seismic_files(
     main_path: Path,
     glob_call: str = "*.*",
