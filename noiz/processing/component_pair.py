@@ -10,6 +10,16 @@ from noiz.models import Component, ComponentPair
 
 
 def is_autocorrelation(cmp_a: Component, cmp_b: Component) -> bool:
+    """
+    Checks if two Component objects belong to the same station and have the same component direction.
+
+    :param cmp_a: First Component object
+    :type cmp_a: Component
+    :param cmp_b: Second Component object
+    :type cmp_b: Component
+    :return: If Component belong to the same station and component
+    :rtype: bool
+    """
     if (
         cmp_a.station == cmp_b.station
         and cmp_a.network == cmp_b.network
@@ -21,6 +31,16 @@ def is_autocorrelation(cmp_a: Component, cmp_b: Component) -> bool:
 
 
 def is_intrastation_correlation(cmp_a: Component, cmp_b: Component) -> bool:
+    """
+    Checks if two Components objects belong to the same station but have different component direction.
+
+    :param cmp_a: First Component object
+    :type cmp_a: Component
+    :param cmp_b: Second Component object
+    :type cmp_b: Component
+    :return: If Components belong to the same station ut have different component letter
+    :rtype: bool
+    """
     if (
         cmp_a.station == cmp_b.station
         and cmp_a.network == cmp_b.network
@@ -77,7 +97,6 @@ def calculate_distance_backazimuth(lat_a, lon_a, lat_b, lon_b):
         np.cos(lat_a) * np.sin(arc_distance)
     )
     sina = np.cos(lat_b) * np.sin(lon_b - lon_a) / np.sin(arc_distance)
-
     sina = np.clip(sina, -1.0, 1.0)
 
     backazimuth = np.arcsin(sina)
@@ -120,6 +139,7 @@ def calculate_distance_azimuths(
     """
     Calculates a distance (arc), distancemeters, backazimuth, azimuth either with use of inhouse method or iris.
     Method developed my Max, refactored by Damian.
+
     :param cmp_a: First Component object
     :type cmp_a: Component
     :param cmp_b: Second Component object
@@ -146,15 +166,34 @@ def calculate_distance_azimuths(
     return distaz
 
 
-def is_east_to_west(cmp_a, cmp_b) -> bool:
+def is_east_to_west(cmp_a: Component, cmp_b: Component) -> bool:
+    """
+    Checks if orientation of two componenents is east to west.
+    If longitude of both is the same then checks if first component is to the north of the second.
+
+    :param cmp_a: First Component object
+    :type cmp_a: Component
+    :param cmp_b: Second Component object
+    :type cmp_b: Component
+    :return: If cmp_a is to the east of cmp_b
+    :rtype: bool
+    """
     east_west = cmp_a.lon > cmp_b.lon
     if cmp_a.lon == cmp_b.lon:
         east_west = cmp_a.lat > cmp_b.lat
-
     return east_west
 
 
 def prepare_componentpairs(components: Iterable[Component]) -> Iterable[ComponentPair]:
+    """
+    Takes iterable of Components and creates all possible ComponentPairs including autocorrelations
+    and intrastation correlations.
+
+    :param components: Iterable of Component objects
+    :type components: Iterable[Component]
+    :return: Iterable with ComponentPairs
+    :rtype: Iterable[ComponentPair]
+    """
     component_pairs = []
     potential_pairs = list(itertools.product(components, repeat=2))
     no = len(potential_pairs)
@@ -195,6 +234,18 @@ def prepare_componentpairs(components: Iterable[Component]) -> Iterable[Componen
 
 
 def upsert_component_pairs(component_pairs: Iterable[ComponentPair]) -> None:
+    """
+    Takes iterable of ComponentPairs and inserts it into database.
+    In case of conflict on `single_component_pair` constraint, updates the entry.
+
+    Warning: Used UPSERT operation is PostgreSQL specific due to used SQLAlchemy command.
+    Warning: Has to be run within application context.
+
+    :param component_pairs: Iterable with ComponentPairs to be upserted into db
+    :type component_pairs:
+    :return: None
+    :rtype: None
+    """
     no = len(component_pairs)
     logging.info(f"There are {no} component pairs to process")
     for i, component_pair in enumerate(component_pairs):
@@ -230,9 +281,20 @@ def upsert_component_pairs(component_pairs: Iterable[ComponentPair]) -> None:
     return
 
 
-def create_all_channelpairs():
+def create_all_channelpairs() -> None:
+    """
+    Fetches all components from the database,
+    creates all component pairs possible
+    and upserts them into db.
+
+    Warning: Has to be run within application context.
+
+    :return: None
+    :rtype: None
+    """
     components = Component.query.all()
 
     component_pairs = prepare_componentpairs(components)
 
     upsert_component_pairs(component_pairs)
+    return
