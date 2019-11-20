@@ -2,12 +2,11 @@ from sqlalchemy.dialects.postgresql import insert, ARRAY
 
 from noiz.models.timespan import TimespanModel
 from noiz.database import db
+from noiz.processing.timespan import generate_starttimes_endtimes
 
 import datetime
 import pandas as pd
 from typing import Iterable
-
-from noiz.processing.timespan import generate_starttimes_endtimes
 
 
 class StackingTimespan(TimespanModel):
