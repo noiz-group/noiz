@@ -64,8 +64,6 @@ def stack_crosscorrelation(
 
         logging.info(f"There are {no_pairs} pairs to process")
 
-        stacks = []
-
         for i, pair_id in enumerate(componentpair_ids):
             logging.info(f"Fetching ccfs from pair {i + 1}/{no_pairs}")
 
