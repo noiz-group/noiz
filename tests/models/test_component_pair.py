@@ -4,7 +4,7 @@ from noiz.models import ComponentPair
 
 
 class TestComponentPair:
-    def test__set_same_station(self):
+    def test_set_same_station(self):
         assert False
 
     def test_set_autocorrelation(self):
