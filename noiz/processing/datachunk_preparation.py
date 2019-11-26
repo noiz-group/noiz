@@ -270,7 +270,7 @@ def create_datachunks_for_component(
         logging.info(f"Slicing timespan {i}/{len(timespans)}")
         trimed_st = st.slice(
             starttime=timespan.starttime_obspy(),
-            endtime=timespan.remove_last_nanosecond(),
+            endtime=timespan.remove_last_microsecond(),
             nearest_sample=False,
         )
 
