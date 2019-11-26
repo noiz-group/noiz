@@ -6,15 +6,13 @@ from typing import Iterable
 
 from noiz.database import db
 
-from noiz.processing.processing_config import upsert_default_params
+from api.processing_config import upsert_default_params
 from noiz.processing.file import search_for_seismic_files, get_not_processed_files
 
 # from noiz.processing.trace import scan_file_for_traces
 from noiz.processing.datachunk_preparation import run_paralel_chunk_preparation
-from noiz.processing.inventory import (
-    parse_inventory_insert_stations_and_components_into_db,
-    read_inventory,
-)
+from noiz.processing.inventory import read_inventory
+from noiz.api.inventory import parse_inventory_insert_stations_and_components_into_db
 
 from pathlib import Path
 
