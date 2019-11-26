@@ -55,7 +55,7 @@ class TestAssemblySingleComponentInventory:
         assert False
 
 
-def test_read_inventory(self):
+def test_read_inventory():
     test_file_path = "data/inventory.xml"
     read_inv = obspy.read_inventory(test_file_path)
     assert read_inv == read_inventory(Path(test_file_path))
