@@ -1,22 +1,14 @@
-import click
-import logging
-from flask.cli import AppGroup, with_appcontext, current_app
-
+import os
 from typing import Iterable
 
-from noiz.database import db
+import click
+from flask.cli import AppGroup, with_appcontext, current_app
 
-from api.processing_config import upsert_default_params
-from noiz.processing.file import search_for_seismic_files, get_not_processed_files
-
-# from noiz.processing.trace import scan_file_for_traces
+from noiz.api.inventory import parse_inventory_insert_stations_and_components_into_db
+from noiz.api.processing_config import upsert_default_params
 from noiz.processing.datachunk_preparation import run_paralel_chunk_preparation
 from noiz.processing.inventory import read_inventory
-from noiz.api.inventory import parse_inventory_insert_stations_and_components_into_db
 
-from pathlib import Path
-
-logger = logging.getLogger(__name__)
 
 cli = AppGroup("Main")
 init_group = AppGroup("init")
@@ -44,14 +36,18 @@ def reset_config():
 
 @init_group.command("add_files_recursively")
 @click.argument("paths", nargs=-1, required=True, type=click.Path(exists=True))
-@click.option("-g", "--glob", default="*", show_default=True)
-@click.option("-t", "--filetype", default="mseed", show_default=True)
-@click.option("-f", "--commit_frequency", default=150, show_default=True)
-def add_files_recursively(paths, glob, filetype, commit_frequency):
+def add_files_recursively(paths):
     """Globs over provided directories in search of files"""
 
-    search_for_seismic_files(
-        paths=paths, glob=glob, commit_frequency=commit_frequency, filetype=filetype
+    click.echo(f"Unfortunately this option is not implemented yet.")
+    click.echo(f"You need to run this command")
+    click.echo(
+        f"{os.environ['MSEEDINDEX_EXECUTABLE']} -v "
+        f"-pghost {os.environ['POSTGRES_HOST']}"
+        f"-dbuser {os.environ['POSTGRES_USER']} "
+        f"-dbpass {os.environ['POSTGRES_PASSWORD']} "
+        f"-dbname {os.environ['POSTGRES_DB_NOIZ']} "
+        f"{' '.join(paths)}"
     )
     return
 
@@ -69,32 +65,6 @@ def add_inventory(filepath, filetype):
         app=current_app, inventory=inventory
     )
     return
-
-
-# @init_group.command("scan_files")
-# def scan_files():
-#     """Replaces current processing config with default one"""
-#
-#     res = []
-#     count = 0
-#     for r1, r2 in izip(FastqGeneralIterator(f1), FastqGeneralIterator(f2)):
-#         count += 1
-#         res.append(tasks.process_read_pair.s(r1, r2))
-#         if count == 10000:
-#             break
-#
-#
-#     g = group(res)
-#     for task in g.tasks:
-#         task.set()
-#
-#
-#     rlist = []
-#     for file in get_not_processed_files(session=db.session):
-#         logger.info(f'Pushing {file} to worker')
-#         rlist.extend(scan_file_for_traces(session=db.session ,file=file))
-#
-#     db.session.add_all(rlist)
 
 
 @proc.group("proc")
