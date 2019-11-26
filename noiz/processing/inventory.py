@@ -1,10 +1,11 @@
 import obspy
-from pathlib import Path
-from typing import Iterable, Dict
+
 from obspy import Inventory
 from obspy.core.inventory.network import Network
 from obspy.core.inventory.station import Station
 from obspy.core.inventory.channel import Channel
+from pathlib import Path
+from typing import Iterable, Dict
 
 import logging
 
@@ -32,7 +33,7 @@ def _assembly_single_component_inventory(
     station_new = station_to_clean.copy()
     station_new.channels = components
     network_new.stations = [station_new]
-    inventory_single_component = obspy.Inventory(
+    inventory_single_component = Inventory(
         networks=[network_new], source=inventory_to_clean.source
     )
     return inventory_single_component
@@ -68,7 +69,7 @@ def _assembly_stationxml_filename(
     return f"inventory_{network.code}.{station.code}.{component}.xml"
 
 
-def read_inventory(filepath: Path, filetype: str = "stationxml") -> obspy.Inventory:
+def read_inventory(filepath: Path, filetype: str = "stationxml") -> Inventory:
     """
     Wrapper for path-like objects to be read passed to obspy.read_inventory
     :param filepath: Path to an inventory file
