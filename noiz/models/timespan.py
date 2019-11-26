@@ -5,6 +5,8 @@ from noiz.database import db
 from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_property
 
+from noiz.processing.time_utils import validate_timestamp
+
 
 class TimespanModel(db.Model):
     __abstract__ = True
@@ -12,6 +14,12 @@ class TimespanModel(db.Model):
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
     midtime = db.Column("midtime", db.TIMESTAMP(timezone=True), nullable=False)
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
+
+    def __init__(self, **kwargs):
+        super(TimespanModel, self).__init__(**kwargs)
+        self.starttime = validate_timestamp(kwargs.get("starttime"))
+        self.midtime = validate_timestamp(kwargs.get("midtime"))
+        self.endtime = validate_timestamp(kwargs.get("endtime"))
 
     @hybrid_property
     def starttime_year(self):
@@ -61,19 +69,26 @@ class TimespanModel(db.Model):
     def endtime_doy(cls):
         return func.date_part("doy", cls.endtime)
 
-    def remove_last_nanosecond(self):
-        return obspy.UTCDateTime(self.endtime - pd.Timedelta(1000))
+    def remove_last_microsecond(self) -> obspy.UTCDateTime:
+        return obspy.UTCDateTime(self.endtime - pd.Timedelta(microseconds=1))
 
-    def same_day(self):
+    def same_day(self) -> bool:
+        """
+        Checks if starttime and endtime are effectively the same day.
+        It mean that it checks if an endtime with 10^-9 s removed is still the same day that starttime.
+        It's usefull if you want to check if generated timespan crosses the midnight or not.
+        :return: Check if timespan crosses midnight
+        :rtype: bool
+        """
         return self.starttime.floor("D") == (self.endtime - pd.Timedelta(1)).floor("D")
 
-    def starttime_obspy(self):
+    def starttime_obspy(self) -> obspy.UTCDateTime:
         return obspy.UTCDateTime(self.starttime)
 
-    def midtime_obspy(self):
+    def midtime_obspy(self) -> obspy.UTCDateTime:
         return obspy.UTCDateTime(self.midtime)
 
-    def endtime_obspy(self):
+    def endtime_obspy(self) -> obspy.UTCDateTime:
         return obspy.UTCDateTime(self.endtime)
 
 
