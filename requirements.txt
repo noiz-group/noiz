@@ -20,3 +20,4 @@ black
 pre_commit
 pytest
 pytest-cov
+mypy
