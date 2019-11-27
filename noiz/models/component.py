@@ -37,7 +37,7 @@ class Component(db.Model):
         northern = kwargs.get("northern")
 
         if not all((lat, lon)):
-            if not all((x, y)):
+            if not all((x, y, zone)):
                 raise ValueError("You need to provide location either in UTM or latlon")
             else:
                 zone, northern = self.__validate_zone_hemisphere(northern, zone)
@@ -61,7 +61,9 @@ class Component(db.Model):
         return
 
     def _set_latlon_from_xy(self, x, y, zone, northern):
-        lat, lon = utm.to_latlon(x, y, zone, northern)
+        lat, lon = utm.to_latlon(
+            easting=x, northing=y, zone_number=zone, northern=northern
+        )
         self.lat = lat
         self.lon = lon
 

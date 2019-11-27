@@ -1,17 +1,12 @@
-from noiz.models import Component, Soh
-from noiz.database import db
-from noiz.processing.soh.parsing import (
-    parsing_parameters,
-    read_multiple_soh,
-    postprocess_soh_dataframe,
-)
+import logging
+from pathlib import Path
 
 from sqlalchemy.dialects.postgresql import insert
 
-from pathlib import Path
-
-
-import logging
+from noiz.database import db
+from noiz.models import Component, Soh
+from noiz.processing.soh.parsing import read_multiple_soh, postprocess_soh_dataframe
+from noiz.processing.soh.soh_column_names import parsing_parameters
 
 
 def parse_soh_insert_into_db(
