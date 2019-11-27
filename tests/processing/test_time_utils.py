@@ -22,7 +22,7 @@ def test_get_year_doy(test_date, year, doy):
 
 @pytest.mark.parametrize(
     "test_date",
-    (datetime(2019, 1, 1), pd.Timestamp(2017, 10, 30), np.datetime64("2019-15-07")),
+    (datetime(2019, 1, 1), pd.Timestamp(2017, 10, 30), np.datetime64("2019-05-07")),
 )
 def test_validate_timestamp(test_date):
     assert isinstance(validate_timestamp(test_date), pd.Timestamp)
