@@ -56,6 +56,6 @@ class TestAssemblySingleComponentInventory:
 
 
 def test_read_inventory():
-    test_file_path = Path("data/inventory.xml").absolute()
+    test_file_path = Path(__file__).parent.joinpath("data/inventory.xml")
     read_inv = obspy.read_inventory(str(test_file_path))
     assert read_inv == read_inventory(Path(test_file_path))
