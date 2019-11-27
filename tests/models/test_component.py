@@ -4,9 +4,18 @@ from noiz.models import Component
 
 
 class TestComponent:
-    @pytest.mark.xfail
     def test_init(self):
-        assert False
+        with pytest.raises(ValueError):
+            Component(x=452484.15, y=5411718.72)
+
+        with pytest.raises(ValueError):
+            Component(x=452484.15)
+
+        with pytest.raises(ValueError):
+            Component()
+
+        assert isinstance(Component(lat=10, lon=1), Component)
+        assert isinstance(Component(x=452484.15, y=5411718.72, zone=31), Component)
 
     @pytest.mark.xfail
     def test_make_station_string(self):

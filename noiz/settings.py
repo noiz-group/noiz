@@ -5,9 +5,18 @@ env = Env()
 env.read_env()
 
 ENV = env.str("FLASK_ENV", default="development")
-DEBUG = ENV == "development"
 
+if ENV == "development":
+    DEBUG = True
+else:
+    DEBUG = False
+
+POSTGRES_HOST = env.str("POSTGRES_HOST")
+POSTGRES_USER = env.str("POSTGRES_USER")
+POSTGRES_PASSWORD = env.str("POSTGRES_PASSWORD")
+POSTGRES_DB = env.str("POSTGRES_DB")
 SQLALCHEMY_DATABASE_URI = env.str("DATABASE_URL")
+
 # SECRET_KEY = env.str('SECRET_KEY')
 # BCRYPT_LOG_ROUNDS = env.int('BCRYPT_LOG_ROUNDS', default=13)
 DEBUG_TB_ENABLED = DEBUG

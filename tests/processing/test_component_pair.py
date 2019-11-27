@@ -5,6 +5,8 @@ from noiz.models import ComponentPair, Component
 from noiz.processing.component_pair import (
     is_autocorrelation,
     is_intrastation_correlation,
+    _calculate_distance_backazimuth,
+    is_east_to_west,
 )
 
 
@@ -164,5 +166,32 @@ class TestIsIntrastationCorrelation:
         assert is_intrastation_correlation(cmp_a=cmp_a, cmp_b=cmp_b) is False
 
 
-# class TestsCaculateDistanceBackazimuth:
-#     def test_
+@pytest.mark.xfail
+def test_calculate_distance_backazimuth():
+    assert False
+
+
+@pytest.mark.parametrize(
+    "cmp_a, cmp_b, expected_res",
+    (
+        (Component(lat=1, lon=1), Component(lat=2, lon=2), False),
+        (Component(lat=1, lon=1), Component(lat=-10, lon=-2), True),
+        (
+            Component(x=452484.15, y=5411718.72, zone=31),
+            Component(lat=-10, lon=-2),
+            True,
+        ),
+        (
+            Component(x=452484.15, y=5411718.72, zone=31),
+            Component(x=407950.22, y=5380786.7, zone=32),
+            False,
+        ),
+        (
+            Component(x=407950.22, y=5380786.7, zone=32),
+            Component(x=452484.15, y=5411718.72, zone=31),
+            True,
+        ),
+    ),
+)
+def test_is_east_to_west(cmp_a, cmp_b, expected_res):
+    assert is_east_to_west(cmp_a=cmp_a, cmp_b=cmp_b) == expected_res
