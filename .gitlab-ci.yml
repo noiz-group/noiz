@@ -11,12 +11,12 @@ test-noiz:
     - source activate noiz-test
     - pytest --cov=noiz
 
-black-check:
-  script:
-    - source activate noiz-test
-    - black
-
-type-check:
-  script:
-    - source activate noiz-test
-    - mypy noiz
+#black-check:
+#  script:
+#    - source activate noiz-test
+#    - black
+#
+#type-check:
+#  script:
+#    - source activate noiz-test
+#    - mypy noiz
