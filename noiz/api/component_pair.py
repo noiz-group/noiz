@@ -4,14 +4,15 @@ from typing import Iterable
 
 from sqlalchemy.dialects.postgresql import insert
 
+from models import Component
 from noiz.database import db
 from noiz.models import Component, ComponentPair
 from noiz.processing.component_pair import (
     is_autocorrelation,
     is_intrastation_correlation,
     is_east_to_west,
-    calculate_distance_azimuths,
 )
+from processing.component_pair import _calculate_distance_backazimuth
 
 
 def prepare_componentpairs(components: Iterable[Component]) -> Iterable[ComponentPair]:
@@ -128,3 +129,36 @@ def create_all_channelpairs() -> None:
 
     upsert_component_pairs(component_pairs)
     return
+
+
+def calculate_distance_azimuths(
+    cmp_a: Component, cmp_b: Component, iris: bool = False
+) -> dict:
+    """
+    Calculates a distance (arc), distancemeters, backazimuth, azimuth either with use of inhouse method or iris.
+    Method developed my Max, refactored by Damian.
+
+    :param cmp_a: First Component object
+    :type cmp_a: Component
+    :param cmp_b: Second Component object
+    :type cmp_b: Component
+    :param iris: Should it use iris client or not? Warning! Client uses online resolver!
+    It does not catch potential http errors!
+    :type iris: bool
+    :return: Dict with params.
+    :rtype: dict
+    """
+
+    if iris:
+        logging.info("Calculating distance and azimuths with iris")
+        from obspy.clients.iris import Client
+
+        distaz = Client().distaz(cmp_a.lat, cmp_a.lon, cmp_b.lat, cmp_b.lon)
+        logging.info("Calculation successful!")
+    else:
+        logging.info("Calculating distance and azimuths with local method")
+        distaz = _calculate_distance_backazimuth(
+            cmp_a.lat, cmp_a.lon, cmp_b.lat, cmp_b.lon
+        )
+        logging.info("Calculation successful!")
+    return distaz
