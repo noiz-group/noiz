@@ -1,6 +1,6 @@
 import itertools
 import logging
-from typing import Iterable, Optional
+from typing import Iterable, Optional, List
 
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import aliased, subqueryload
@@ -15,7 +15,7 @@ from noiz.processing.component_pair import (
 from processing.component_pair import calculate_distance_azimuths
 
 
-def prepare_componentpairs(components: Iterable[Component]) -> Iterable[ComponentPair]:
+def prepare_componentpairs(components: List[Component]) -> List[ComponentPair]:
     """
     Takes iterable of Components and creates all possible ComponentPairs including autocorrelations
     and intrastation correlations.
@@ -25,7 +25,7 @@ def prepare_componentpairs(components: Iterable[Component]) -> Iterable[Componen
     :return: Iterable with ComponentPairs
     :rtype: Iterable[ComponentPair]
     """
-    component_pairs = []
+    component_pairs: List[ComponentPair] = []
     potential_pairs = list(itertools.product(components, repeat=2))
     no = len(potential_pairs)
     logging.info(f"There are {no} potential pairs to be checked.")
@@ -64,7 +64,7 @@ def prepare_componentpairs(components: Iterable[Component]) -> Iterable[Componen
     return component_pairs
 
 
-def upsert_component_pairs(component_pairs: Iterable[ComponentPair]) -> None:
+def upsert_component_pairs(component_pairs: List[ComponentPair]) -> None:
     """
     Takes iterable of ComponentPairs and inserts it into database.
     In case of conflict on `single_component_pair` constraint, updates the entry.
@@ -123,7 +123,7 @@ def create_all_channelpairs() -> None:
     :return: None
     :rtype: None
     """
-    components = Component.query.all()
+    components: List[Component] = Component.query.all()
 
     component_pairs = prepare_componentpairs(components)
 
