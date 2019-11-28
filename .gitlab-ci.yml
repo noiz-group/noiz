@@ -14,4 +14,9 @@ test-noiz:
 black-check:
   script:
     - source activate noiz-test
-    - black
+    - black --check noiz
+
+type-check:
+  script:
+    - source activate noiz-test
+    - mypy noiz
