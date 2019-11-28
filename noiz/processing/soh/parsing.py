@@ -1,11 +1,12 @@
 import pandas as pd
-import numpy as np
 from pathlib import Path
 
-from typing import Tuple, List, Optional
+from typing import Tuple, Optional
 
-from soh_processing.soh_column_names import parsing_parameters
-from soh_processing.exceptions import UnparsableDateTimeException, NoSOHPresentException
+from noiz.processing.soh.exceptions import (
+    UnparsableDateTimeException,
+    NoSOHPresentException,
+)
 
 
 def read_single_soh_csv(
@@ -29,7 +30,7 @@ def read_single_soh_csv(
         )
 
     if len(single_df) == 0:
-        return
+        return None
 
     if single_df.index.dtype == "O":
         single_df = single_df[~single_df.index.str.contains("Time")]

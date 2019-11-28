@@ -1,8 +1,10 @@
+# mypy: ignore-errors
 import os
 from typing import Iterable
 
 import click
-from flask.cli import AppGroup, with_appcontext, current_app
+from flask.cli import AppGroup, with_appcontext
+from flask import current_app
 
 from noiz.api.inventory import parse_inventory_insert_stations_and_components_into_db
 from noiz.api.processing_config import upsert_default_params
@@ -11,9 +13,9 @@ from noiz.processing.inventory import read_inventory
 
 
 cli = AppGroup("Main")
-init_group = AppGroup("init")
-proc = AppGroup("proc")
-gggg = AppGroup("noizfff")
+init_group = AppGroup("init")  # type: ignore
+proc = AppGroup("proc")  # type: ignore
+gggg = AppGroup("noizfff")  # type: ignore
 
 
 def _register_subgroups_to_cli(cli: AppGroup, custom_groups: Iterable[AppGroup]):
@@ -23,7 +25,7 @@ def _register_subgroups_to_cli(cli: AppGroup, custom_groups: Iterable[AppGroup])
 
 
 @init_group.group("init")
-def init_group():
+def init_group():  # type: ignore
     "Initiate operation in noiz"
     pass
 
@@ -68,7 +70,7 @@ def add_inventory(filepath, filetype):
 
 
 @proc.group("proc")
-def proc():
+def proc():  # type: ignore
     """This is short explanation?"""
     pass
 
@@ -87,7 +89,7 @@ def prepare_datachunks(station, component, startdate, enddate):
 
 
 @gggg.group()
-def gggg():
+def gggg():  # type: ignore
     """This is short explanation?"""
     pass
 

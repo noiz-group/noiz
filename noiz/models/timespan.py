@@ -3,71 +3,83 @@ import pandas as pd
 
 from noiz.database import db
 from sqlalchemy import func
-from sqlalchemy.ext.hybrid import hybrid_property
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # Use this to make hybrid_property's have the same typing as a normal property until stubs are improved.
+    typed_hybrid_property = property
+else:
+    from sqlalchemy.ext.hybrid import hybrid_property as typed_hybrid_property
 
 from noiz.processing.time_utils import validate_timestamp
 
 
 class TimespanModel(db.Model):
     __abstract__ = True
-    id = db.Column("id", db.BigInteger, primary_key=True)
-    starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
-    midtime = db.Column("midtime", db.TIMESTAMP(timezone=True), nullable=False)
-    endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
+    id: int = db.Column("id", db.BigInteger, primary_key=True)
+    starttime: pd.Timestamp = db.Column(
+        "starttime", db.TIMESTAMP(timezone=True), nullable=False
+    )
+    midtime: pd.Timestamp = db.Column(
+        "midtime", db.TIMESTAMP(timezone=True), nullable=False
+    )
+    endtime: pd.Timestamp = db.Column(
+        "endtime", db.TIMESTAMP(timezone=True), nullable=False
+    )
 
     def __init__(self, **kwargs):
         super(TimespanModel, self).__init__(**kwargs)
-        self.starttime = validate_timestamp(kwargs.get("starttime"))
-        self.midtime = validate_timestamp(kwargs.get("midtime"))
-        self.endtime = validate_timestamp(kwargs.get("endtime"))
+        self.starttime: pd.Timestamp = validate_timestamp(kwargs.get("starttime"))
+        self.midtime: pd.Timestamp = validate_timestamp(kwargs.get("midtime"))
+        self.endtime: pd.Timestamp = validate_timestamp(kwargs.get("endtime"))
 
-    @hybrid_property
-    def starttime_year(self):
-        return self.starttime.year
+    @typed_hybrid_property
+    def starttime_year(self) -> int:
+        return self.starttime.year  # type: ignore
 
     @starttime_year.expression
-    def starttime_year(cls):
-        return func.date_part("year", cls.starttime)
+    def starttime_year(cls) -> int:
+        return func.date_part("year", cls.starttime)  # type: ignore
 
-    @hybrid_property
-    def starttime_doy(self):
-        return self.starttime.timetuple().tm_yday
+    @typed_hybrid_property
+    def starttime_doy(self) -> int:
+        return self.starttime.dayofyear  # type: ignore
 
     @starttime_doy.expression
-    def starttime_doy(cls):
-        return func.date_part("doy", cls.starttime)
+    def starttime_doy(cls) -> int:
+        return func.date_part("doy", cls.starttime)  # type: ignore
 
-    @hybrid_property
-    def midtime_year(self):
-        return self.midtime.year
+    @typed_hybrid_property
+    def midtime_year(self) -> int:
+        return self.midtime.year  # type: ignore
 
     @midtime_year.expression
-    def midtime_year(cls):
-        return func.date_part("year", cls.midtime)
+    def midtime_year(cls) -> int:
+        return func.date_part("year", cls.midtime)  # type: ignore
 
-    @hybrid_property
-    def midtime_doy(self):
-        return self.midtime.timetuple().tm_yday
+    @typed_hybrid_property
+    def midtime_doy(self) -> int:
+        return self.midtime.dayofyear  # type: ignore
 
     @midtime_doy.expression
-    def midtime_doy(cls):
-        return func.date_part("doy", cls.midtime)
+    def midtime_doy(cls) -> int:
+        return func.date_part("doy", cls.midtime)  # type: ignore
 
-    @hybrid_property
-    def endtime_year(self):
-        return self.endtime.year
+    @typed_hybrid_property
+    def endtime_year(self) -> int:
+        return self.endtime.year  # type: ignore
 
     @endtime_year.expression
-    def endtime_year(cls):
-        return func.date_part("year", cls.endtime)
+    def endtime_year(cls) -> int:
+        return func.date_part("year", cls.endtime)  # type: ignore
 
-    @hybrid_property
-    def endtime_doy(self):
-        return self.endtime.timetuple().tm_yday
+    @typed_hybrid_property
+    def endtime_doy(self) -> int:
+        return self.endtime.dayofyear  # type: ignore
 
     @endtime_doy.expression
-    def endtime_doy(cls):
-        return func.date_part("doy", cls.endtime)
+    def endtime_doy(cls) -> int:
+        return func.date_part("doy", cls.endtime)  # type: ignore
 
     def remove_last_microsecond(self) -> obspy.UTCDateTime:
         return obspy.UTCDateTime(self.endtime - pd.Timedelta(microseconds=1))
@@ -80,7 +92,10 @@ class TimespanModel(db.Model):
         :return: Check if timespan crosses midnight
         :rtype: bool
         """
-        return self.starttime.floor("D") == (self.endtime - pd.Timedelta(1)).floor("D")
+        ret: bool = self.starttime.floor("D") == (self.endtime - pd.Timedelta(1)).floor(
+            "D"
+        )
+        return ret
 
     def starttime_obspy(self) -> obspy.UTCDateTime:
         return obspy.UTCDateTime(self.starttime)

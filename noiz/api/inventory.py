@@ -67,11 +67,11 @@ def parse_inventory_insert_stations_and_components_into_db(app, inventory):
     inventory_dir = processed_data_dir.joinpath("inventory")
     inventory_dir.mkdir(exist_ok=True)
 
-    objects_to_commit, added_filepaths = parse_inventory_for_single_component_db_entries(
-        inventory, inventory_dir
-    )
-    with app.app_context() as ctx:
-        for obj in objects_to_commit:
-            db.session.merge(obj)
-        db.session.commit()
+    (
+        objects_to_commit,
+        added_filepaths,
+    ) = parse_inventory_for_single_component_db_entries(inventory, inventory_dir)
+    for obj in objects_to_commit:
+        db.session.merge(obj)
+    db.session.commit()
     return
