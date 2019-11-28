@@ -7,10 +7,6 @@ import obspy
 from noiz.exceptions import MissingDataFileException
 from noiz.database import db
 
-from flask.logging import logging
-
-logger = logging.getLogger(__name__)
-
 
 class Tsindex(db.Model):
     __tablename__ = "tsindex"
@@ -36,86 +32,91 @@ class Tsindex(db.Model):
     updated = db.Column("updated", db.TIMESTAMP(timezone=True), nullable=False)
     scanned = db.Column("scanned", db.TIMESTAMP(timezone=True), nullable=False)
 
-    def read_file(self):
+    def read_file(self) -> obspy.Stream:
         """
         To be removed in order to keep consistency with other methods.
         """
         return self.load_data()
 
-    def load_data(self):
+    def load_data(self) -> obspy.Stream:
+        """
+        Loads a seismic file associated with an entry.
+        :return: Returns seismic stream read from file
+        :rtype: obspy.Stream
+        """
         if Path(self.filename).exists:
             return obspy.read(self.filename, self.format)
         else:
             raise MissingDataFileException(f"Data file for chunk {self} is missing")
 
-    @hybrid_property
+    @hybrid_property  # type: ignore
     def component(self):
         return self.channel[-1]
 
-    @component.expression
+    @component.expression  # type: ignore
     def component(cls):
         return func.right(cls.channel, 1)
 
-    @hybrid_property
+    @hybrid_property  # type: ignore
     def starttime_year(self):
         return self.starttime.year
 
-    @starttime_year.expression
+    @starttime_year.expression  # type: ignore
     def starttime_year(cls):
         return func.date_part("year", cls.starttime)
 
-    @hybrid_property
+    @hybrid_property  # type: ignore
     def starttime_doy(self):
         return self.starttime.timetuple().tm_yday
 
-    @starttime_doy.expression
+    @starttime_doy.expression  # type: ignore
     def starttime_doy(cls):
         return func.date_part("doy", cls.starttime)
 
-    @hybrid_property
+    @hybrid_property  # type: ignore
     def starttime_month(self):
         return self.starttime.month
 
-    @starttime_month.expression
+    @starttime_month.expression  # type: ignore
     def starttime_month(cls):
         return func.date_part("month", cls.starttime)
 
-    @hybrid_property
+    @hybrid_property  # type: ignore
     def starttime_day(self):
         return self.starttime.day
 
-    @starttime_day.expression
+    @starttime_day.expression  # type: ignore
     def starttime_day(cls):
         return func.date_part("day", cls.starttime)
 
-    @hybrid_property
+    @hybrid_property  # type: ignore
     def endtime_year(self):
         return self.endtime.year
 
-    @endtime_year.expression
+    @endtime_year.expression  # type: ignore
     def endtime_year(cls):
         return func.date_part("year", cls.endtime)
 
-    @hybrid_property
+    @hybrid_property  # type: ignore
     def endtime_doy(self):
         return self.endtime.timetuple().tm_yday
 
-    @endtime_doy.expression
+    @endtime_doy.expression  # type: ignore
     def endtime_doy(cls):
         return func.date_part("doy", cls.endtime)
 
-    @hybrid_property
+    @hybrid_property  # type: ignore
     def endtime_month(self):
         return self.endtime.month
 
-    @endtime_month.expression
+    @endtime_month.expression  # type: ignore
     def endtime_month(cls):
         return func.date_part("month", cls.endtime)
 
-    @hybrid_property
+    @hybrid_property  # type: ignore
     def endtime_day(self):
         return self.endtime.day
 
-    @endtime_day.expression
+    @endtime_day.expression  # type: ignore
     def endtime_day(cls):
         return func.date_part("day", cls.endtime)
