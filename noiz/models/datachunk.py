@@ -1,12 +1,8 @@
 from noiz.exceptions import MissingDataFileException
 from noiz.database import db
 
-from flask.logging import logging
 from pathlib import Path
 import obspy
-
-
-logger = logging.getLogger(__name__)
 
 
 class DataChunk(db.Model):
