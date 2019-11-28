@@ -92,9 +92,10 @@ class TimespanModel(db.Model):
         :return: Check if timespan crosses midnight
         :rtype: bool
         """
-        return self.starttime.floor("D") == (self.endtime - pd.Timedelta(1)).floor(
+        ret: bool = self.starttime.floor("D") == (self.endtime - pd.Timedelta(1)).floor(
             "D"
-        )  # type: ignore
+        )
+        return ret
 
     def starttime_obspy(self) -> obspy.UTCDateTime:
         return obspy.UTCDateTime(self.starttime)
