@@ -10,3 +10,8 @@ test-noiz:
   script:
     - source activate noiz-test
     - pytest --cov=noiz
+
+black-check:
+  script:
+    - source activate noiz-test
+    - black
