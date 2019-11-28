@@ -10,6 +10,7 @@ from noiz.processing.inventory import (
 )
 
 
+
 def parse_inventory_for_single_component_db_entries(inventory, inventory_dir):
     objects_to_commit = []
     added_filepaths = []
