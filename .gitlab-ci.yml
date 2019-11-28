@@ -14,7 +14,7 @@ test-noiz:
 black-check:
   script:
     - source activate noiz-test
-    - black --check noiz
+    - black --verbose --check noiz
 
 type-check:
   script:
