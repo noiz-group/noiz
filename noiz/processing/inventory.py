@@ -5,7 +5,7 @@ from obspy.core.inventory.network import Network
 from obspy.core.inventory.station import Station
 from obspy.core.inventory.channel import Channel
 from pathlib import Path
-from typing import Iterable, Dict
+from typing import Iterable, Dict, List
 
 import logging
 
@@ -41,7 +41,7 @@ def _assembly_single_component_inventory(
 
 def divide_channels_by_component(
     channels: Iterable[Channel]
-) -> Dict[str, Iterable[Channel]]:
+) -> Dict[str, List[Channel]]:
     """
     Groups provided channels by component letter (last letter of channel code)
 
@@ -52,7 +52,7 @@ def divide_channels_by_component(
     """
 
     logging.info("Parsing channels to find components")
-    components = {}
+    components: Dict[str, List[Channel]] = {}
     for channel in channels:
         component = channel.code[-1]
         logging.info(f"Found component {component}")
