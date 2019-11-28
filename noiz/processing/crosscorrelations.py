@@ -98,10 +98,13 @@ def find_correlations_in_chunks(
 
     local_corrs: DefaultDict[int, Dict[int, ComponentPair]] = defaultdict(dict)
     for component_a_id, chunk_a in chunks.items():
-        if groupped_componentpairs.get(component_a_id) is None:
+
+        group_component_a = groupped_componentpairs.get(component_a_id)
+        if group_component_a is None:
             continue
+
         for component_b_id, chunk_b in chunks.items():
-            found_pair = groupped_componentpairs.get(component_a_id).get(component_b_id)
+            found_pair = group_component_a.get(component_b_id)
 
             if found_pair is None:
                 continue
