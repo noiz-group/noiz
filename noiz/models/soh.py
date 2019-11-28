@@ -1,9 +1,5 @@
 from noiz.database import db
 
-from flask.logging import logging
-
-logger = logging.getLogger(__name__)
-
 
 class Soh(db.Model):
     __tablename__ = "soh"
