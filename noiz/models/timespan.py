@@ -35,51 +35,51 @@ class TimespanModel(db.Model):
 
     @typed_hybrid_property
     def starttime_year(self) -> int:
-        return self.starttime.year
+        return self.starttime.year  # type: ignore
 
     @starttime_year.expression
     def starttime_year(cls) -> int:
-        return func.date_part("year", cls.starttime)
+        return func.date_part("year", cls.starttime)  # type: ignore
 
     @typed_hybrid_property
     def starttime_doy(self) -> int:
-        return self.starttime.dayofyear
+        return self.starttime.dayofyear  # type: ignore
 
     @starttime_doy.expression
     def starttime_doy(cls) -> int:
-        return func.date_part("doy", cls.starttime)
+        return func.date_part("doy", cls.starttime)  # type: ignore
 
     @typed_hybrid_property
     def midtime_year(self) -> int:
-        return self.midtime.year
+        return self.midtime.year  # type: ignore
 
     @midtime_year.expression
     def midtime_year(cls) -> int:
-        return func.date_part("year", cls.midtime)
+        return func.date_part("year", cls.midtime)  # type: ignore
 
     @typed_hybrid_property
     def midtime_doy(self) -> int:
-        return self.midtime.dayofyear
+        return self.midtime.dayofyear  # type: ignore
 
     @midtime_doy.expression
     def midtime_doy(cls) -> int:
-        return func.date_part("doy", cls.midtime)
+        return func.date_part("doy", cls.midtime)  # type: ignore
 
     @typed_hybrid_property
     def endtime_year(self) -> int:
-        return self.endtime.year
+        return self.endtime.year  # type: ignore
 
     @endtime_year.expression
     def endtime_year(cls) -> int:
-        return func.date_part("year", cls.endtime)
+        return func.date_part("year", cls.endtime)  # type: ignore
 
     @typed_hybrid_property
     def endtime_doy(self) -> int:
-        return self.endtime.dayofyear
+        return self.endtime.dayofyear  # type: ignore
 
     @endtime_doy.expression
     def endtime_doy(cls) -> int:
-        return func.date_part("doy", cls.endtime)
+        return func.date_part("doy", cls.endtime)  # type: ignore
 
     def remove_last_microsecond(self) -> obspy.UTCDateTime:
         return obspy.UTCDateTime(self.endtime - pd.Timedelta(microseconds=1))
@@ -92,7 +92,9 @@ class TimespanModel(db.Model):
         :return: Check if timespan crosses midnight
         :rtype: bool
         """
-        return self.starttime.floor("D") == (self.endtime - pd.Timedelta(1)).floor("D")
+        return self.starttime.floor("D") == (self.endtime - pd.Timedelta(1)).floor(
+            "D"
+        )  # type: ignore
 
     def starttime_obspy(self) -> obspy.UTCDateTime:
         return obspy.UTCDateTime(self.starttime)
