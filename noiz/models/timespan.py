@@ -21,52 +21,52 @@ class TimespanModel(db.Model):
         self.midtime = validate_timestamp(kwargs.get("midtime"))
         self.endtime = validate_timestamp(kwargs.get("endtime"))
 
-    @hybrid_property
-    def starttime_year(self):
+    @hybrid_property  # type: ignore
+    def starttime_year(self) -> int:
         return self.starttime.year
 
-    @starttime_year.expression
-    def starttime_year(cls):
+    @starttime_year.expression  # type: ignore
+    def starttime_year(cls) -> int:
         return func.date_part("year", cls.starttime)
 
-    @hybrid_property
-    def starttime_doy(self):
+    @hybrid_property  # type: ignore
+    def starttime_doy(self) -> int:
         return self.starttime.timetuple().tm_yday
 
-    @starttime_doy.expression
-    def starttime_doy(cls):
+    @starttime_doy.expression  # type: ignore
+    def starttime_doy(cls) -> int:
         return func.date_part("doy", cls.starttime)
 
-    @hybrid_property
-    def midtime_year(self):
+    @hybrid_property  # type: ignore
+    def midtime_year(self) -> int:
         return self.midtime.year
 
-    @midtime_year.expression
-    def midtime_year(cls):
+    @midtime_year.expression  # type: ignore
+    def midtime_year(cls) -> int:
         return func.date_part("year", cls.midtime)
 
-    @hybrid_property
-    def midtime_doy(self):
+    @hybrid_property  # type: ignore
+    def midtime_doy(self) -> int:
         return self.midtime.timetuple().tm_yday
 
-    @midtime_doy.expression
-    def midtime_doy(cls):
+    @midtime_doy.expression  # type: ignore
+    def midtime_doy(cls) -> int:
         return func.date_part("doy", cls.midtime)
 
-    @hybrid_property
-    def endtime_year(self):
+    @hybrid_property  # type: ignore
+    def endtime_year(self) -> int:
         return self.endtime.year
 
-    @endtime_year.expression
-    def endtime_year(cls):
+    @endtime_year.expression  # type: ignore
+    def endtime_year(cls) -> int:
         return func.date_part("year", cls.endtime)
 
-    @hybrid_property
-    def endtime_doy(self):
+    @hybrid_property  # type: ignore
+    def endtime_doy(self) -> int:
         return self.endtime.timetuple().tm_yday
 
-    @endtime_doy.expression
-    def endtime_doy(cls):
+    @endtime_doy.expression  # type: ignore
+    def endtime_doy(cls) -> int:
         return func.date_part("doy", cls.endtime)
 
     def remove_last_microsecond(self) -> obspy.UTCDateTime:
