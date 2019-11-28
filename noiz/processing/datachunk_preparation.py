@@ -8,7 +8,7 @@ import pandas as pd
 from multiprocessing import Pool
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
-from typing import Union
+from typing import Union, List
 
 from noiz.database import db
 from noiz.models import Component, DataChunk, Timespan, Tsindex, ProcessingParams
@@ -68,7 +68,7 @@ def fetch_timeseries(
 ) -> Tsindex:
     year = execution_date.year
     day_of_year = execution_date.timetuple().tm_yday
-    time_series = Tsindex.query.filter(
+    time_series: List[Tsindex] = Tsindex.query.filter(
         Tsindex.network == component.network,
         Tsindex.station == component.station,
         Tsindex.component == component.component,
