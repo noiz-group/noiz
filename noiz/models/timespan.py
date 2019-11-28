@@ -10,16 +10,22 @@ from noiz.processing.time_utils import validate_timestamp
 
 class TimespanModel(db.Model):
     __abstract__ = True
-    id = db.Column("id", db.BigInteger, primary_key=True)
-    starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
-    midtime = db.Column("midtime", db.TIMESTAMP(timezone=True), nullable=False)
-    endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
+    id: int = db.Column("id", db.BigInteger, primary_key=True)
+    starttime: pd.Timestamp = db.Column(
+        "starttime", db.TIMESTAMP(timezone=True), nullable=False
+    )
+    midtime: pd.Timestamp = db.Column(
+        "midtime", db.TIMESTAMP(timezone=True), nullable=False
+    )
+    endtime: pd.Timestamp = db.Column(
+        "endtime", db.TIMESTAMP(timezone=True), nullable=False
+    )
 
     def __init__(self, **kwargs):
         super(TimespanModel, self).__init__(**kwargs)
-        self.starttime = validate_timestamp(kwargs.get("starttime"))
-        self.midtime = validate_timestamp(kwargs.get("midtime"))
-        self.endtime = validate_timestamp(kwargs.get("endtime"))
+        self.starttime: pd.Timestamp = validate_timestamp(kwargs.get("starttime"))
+        self.midtime: pd.Timestamp = validate_timestamp(kwargs.get("midtime"))
+        self.endtime: pd.Timestamp = validate_timestamp(kwargs.get("endtime"))
 
     @hybrid_property  # type: ignore
     def starttime_year(self) -> int:
