@@ -3,7 +3,13 @@ import pandas as pd
 
 from noiz.database import db
 from sqlalchemy import func
-from sqlalchemy.ext.hybrid import hybrid_property
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # Use this to make hybrid_property's have the same typing as a normal property until stubs are improved.
+    typed_hybrid_property = property
+else:
+    from sqlalchemy.ext.hybrid import hybrid_property as typed_hybrid_property
 
 from noiz.processing.time_utils import validate_timestamp
 
@@ -27,51 +33,51 @@ class TimespanModel(db.Model):
         self.midtime: pd.Timestamp = validate_timestamp(kwargs.get("midtime"))
         self.endtime: pd.Timestamp = validate_timestamp(kwargs.get("endtime"))
 
-    @hybrid_property  # type: ignore
+    @typed_hybrid_property
     def starttime_year(self) -> int:
         return self.starttime.year
 
-    @starttime_year.expression  # type: ignore
+    @starttime_year.expression
     def starttime_year(cls) -> int:
         return func.date_part("year", cls.starttime)
 
-    @hybrid_property  # type: ignore
+    @typed_hybrid_property
     def starttime_doy(self) -> int:
-        return self.starttime.timetuple().tm_yday
+        return self.starttime.dayofyear
 
-    @starttime_doy.expression  # type: ignore
+    @starttime_doy.expression
     def starttime_doy(cls) -> int:
         return func.date_part("doy", cls.starttime)
 
-    @hybrid_property  # type: ignore
+    @typed_hybrid_property
     def midtime_year(self) -> int:
         return self.midtime.year
 
-    @midtime_year.expression  # type: ignore
+    @midtime_year.expression
     def midtime_year(cls) -> int:
         return func.date_part("year", cls.midtime)
 
-    @hybrid_property  # type: ignore
+    @typed_hybrid_property
     def midtime_doy(self) -> int:
-        return self.midtime.timetuple().tm_yday
+        return self.midtime.dayofyear
 
-    @midtime_doy.expression  # type: ignore
+    @midtime_doy.expression
     def midtime_doy(cls) -> int:
         return func.date_part("doy", cls.midtime)
 
-    @hybrid_property  # type: ignore
+    @typed_hybrid_property
     def endtime_year(self) -> int:
         return self.endtime.year
 
-    @endtime_year.expression  # type: ignore
+    @endtime_year.expression
     def endtime_year(cls) -> int:
         return func.date_part("year", cls.endtime)
 
-    @hybrid_property  # type: ignore
+    @typed_hybrid_property
     def endtime_doy(self) -> int:
-        return self.endtime.timetuple().tm_yday
+        return self.endtime.dayofyear
 
-    @endtime_doy.expression  # type: ignore
+    @endtime_doy.expression
     def endtime_doy(cls) -> int:
         return func.date_part("doy", cls.endtime)
 
