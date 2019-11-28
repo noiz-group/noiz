@@ -3,20 +3,10 @@ image: continuumio/miniconda3:latest
 before_script:
   - apt-get update && apt-get upgrade -yy
   - conda create -c conda-forge -c heavelock -n noiz-test python=3.7 --file=requirements.txt --yes
-#  - source activate noiz-test
-#  - pip install sqlalchemy-stubs
+  - source activate noiz-test
+  - pip install sqlalchemy-stubs
 
 test-noiz:
   script:
     - source activate noiz-test
     - pytest --cov=noiz
-
-#black-check:
-#  script:
-#    - source activate noiz-test
-#    - black
-#
-#type-check:
-#  script:
-#    - source activate noiz-test
-#    - mypy noiz
