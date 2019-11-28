@@ -40,7 +40,9 @@ class Component(db.Model):
             if not all((x, y, zone)):
                 raise ValueError("You need to provide location either in UTM or latlon")
             else:
-                zone, northern = self.__validate_zone_hemisphere(northern, zone)
+                zone, northern = self.__validate_zone_hemisphere(
+                    zone=zone, northern=northern
+                )
                 self._set_latlon_from_xy(x, y, zone, northern)
         else:
             self._set_xy_from_latlon(lat, lon)
@@ -76,7 +78,7 @@ class Component(db.Model):
 
     @staticmethod
     def __validate_zone_hemisphere(
-        northern: Optional[int], zone: Optional[bool]
+        zone: Optional[int], northern: Optional[bool]
     ) -> Tuple[int, bool]:
         if zone is None:
             logging.warning("Zone is not set, using default 32.")

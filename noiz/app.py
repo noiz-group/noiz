@@ -2,22 +2,12 @@ from flask import Flask
 from flask.helpers import get_root_path
 import os
 
-# from celery import Celery
 import dash
 import logging.config
 
 from noiz.logg import logger_config
 from noiz.routes import simple_page
 from noiz.database import db, migrate
-
-
-# from noiz.cli import cli
-# from noiz.tasks import celery
-
-
-# celery = Celery(__name__,
-#                 broker=noiz.settings.CELERY_BROKER_URL,
-#                 backend=noiz.settings.CELERY_RESULT_BACKEND)
 
 
 def create_app(config_object="noiz.settings", mode="app", external_logger=False):
@@ -27,7 +17,6 @@ def create_app(config_object="noiz.settings", mode="app", external_logger=False)
     register_extensions(app)
     register_blueprints(app)
     register_cli_extensions(app)
-    # configure_celery(app, celery)
 
     if not external_logger:
         logger = configure_logger(app)
@@ -36,12 +25,9 @@ def create_app(config_object="noiz.settings", mode="app", external_logger=False)
     register_dashapps(app)
 
     load_noiz_config(app)
-    app.processing_config = fetch_processing_config(app)
 
     if mode == "app":
         return app
-    # if mode == 'celery':
-    #     return celery
 
 
 def register_dashapps(app):
@@ -67,28 +53,6 @@ def register_dashapps(app):
         dashapp1.title = "Dashapp 1"
         dashapp1.layout = layout
         register_callbacks(dashapp1)
-
-
-def configure_celery(app, celery):
-
-    # set broker url and result backend from app config
-    celery.conf.broker_url = app.config["CELERY_BROKER_URL"]
-    celery.conf.result_backend = app.config["CELERY_RESULT_BACKEND"]
-
-    # subclass task base for app context
-    # http://flask.pocoo.org/docs/0.12/patterns/celery/
-    TaskBase = celery.Task
-
-    class ContextTask(celery.Task):
-        def __call__(self, *args, **kwargs):
-            with app.app_context():
-                return self.run(*args, **kwargs)
-
-    celery.Task = ContextTask
-
-    # run finalize to process decorated tasks
-    celery.finalize()
-    return
 
 
 def load_noiz_config(app):
@@ -127,8 +91,3 @@ def configure_logger(app):
     logger = logging.getLogger("app")
     logger.debug("Initializing logger")
     return logger
-
-
-def fetch_processing_config(app):
-    # app.
-    return {}
