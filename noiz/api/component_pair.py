@@ -1,10 +1,10 @@
 import itertools
 import logging
-from typing import Iterable
+from typing import Iterable, Optional
 
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import aliased, subqueryload
 
-from models import Component
 from noiz.database import db
 from noiz.models import Component, ComponentPair
 from noiz.processing.component_pair import (
@@ -12,7 +12,7 @@ from noiz.processing.component_pair import (
     is_intrastation_correlation,
     is_east_to_west,
 )
-from processing.component_pair import _calculate_distance_backazimuth
+from processing.component_pair import calculate_distance_azimuths
 
 
 def prepare_componentpairs(components: Iterable[Component]) -> Iterable[ComponentPair]:
@@ -131,34 +131,47 @@ def create_all_channelpairs() -> None:
     return
 
 
-def calculate_distance_azimuths(
-    cmp_a: Component, cmp_b: Component, iris: bool = False
-) -> dict:
+def fetch_component_pairs(
+    station_a: Iterable[str],
+    component_a: Iterable[str],
+    station_b: Optional[Iterable[str]],
+    component_b: Optional[Iterable[str]],
+) -> Iterable[ComponentPair]:
     """
-    Calculates a distance (arc), distancemeters, backazimuth, azimuth either with use of inhouse method or iris.
-    Method developed my Max, refactored by Damian.
-
-    :param cmp_a: First Component object
-    :type cmp_a: Component
-    :param cmp_b: Second Component object
-    :type cmp_b: Component
-    :param iris: Should it use iris client or not? Warning! Client uses online resolver!
-    It does not catch potential http errors!
-    :type iris: bool
-    :return: Dict with params.
-    :rtype: dict
+    Fetches from db requested channelpairs
+    :param station_a:
+    :type station_a:
+    :param component_a:
+    :type component_a:
+    :param station_b:
+    :type station_b:
+    :param component_b:
+    :type component_b:
+    :return:
+    :rtype:
     """
 
-    if iris:
-        logging.info("Calculating distance and azimuths with iris")
-        from obspy.clients.iris import Client
+    if station_b is None:
+        station_b = station_a
+    if component_b is None:
+        component_b = component_a
 
-        distaz = Client().distaz(cmp_a.lat, cmp_a.lon, cmp_b.lat, cmp_b.lon)
-        logging.info("Calculation successful!")
-    else:
-        logging.info("Calculating distance and azimuths with local method")
-        distaz = _calculate_distance_backazimuth(
-            cmp_a.lat, cmp_a.lon, cmp_b.lat, cmp_b.lon
+    cmp_a = aliased(Component)
+    cmp_b = aliased(Component)
+    component_pairs = (
+        db.session.query(ComponentPair)
+        .join(cmp_a, ComponentPair.component_a)
+        .join(cmp_b, ComponentPair.component_b)
+        .options(
+            subqueryload(ComponentPair.component_a),
+            subqueryload(ComponentPair.component_b),
         )
-        logging.info("Calculation successful!")
-    return distaz
+        .filter(
+            cmp_a.station.in_(station_a),
+            cmp_b.station.in_(station_b),
+            cmp_a.component.in_(component_a),
+            cmp_b.component.in_(component_b),
+        )
+        .all()
+    )
+    return component_pairs
