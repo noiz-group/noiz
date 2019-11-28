@@ -40,7 +40,7 @@ def _assembly_single_component_inventory(
 
 
 def divide_channels_by_component(
-    channels: Iterable[Channel]
+    channels: Iterable[Channel],
 ) -> Dict[str, List[Channel]]:
     """
     Groups provided channels by component letter (last letter of channel code)

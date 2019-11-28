@@ -72,7 +72,7 @@ def group_componentpairs_by_componenta_componentb(
 
 
 def fetch_processeddatachunks_a_day(
-    date: datetime.date
+    date: datetime.date,
 ) -> List[Tuple[ProcessedDatachunk, int, int]]:
 
     year, day_of_year = get_year_doy(date)
