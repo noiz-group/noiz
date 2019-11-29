@@ -11,7 +11,7 @@ from sqlalchemy.dialects.postgresql import insert
 from typing import Union, List
 
 from noiz.database import db
-from noiz.models import Component, DataChunk, Timespan, Tsindex, ProcessingParams
+from noiz.models import Component, Datachunk, Timespan, Tsindex, ProcessingParams
 
 
 class NoDataException(Exception):
@@ -88,8 +88,8 @@ def fetch_timeseries(
 
 def check_datachunks_for_timespans(component, timespans):
     timespan_ids = [x.id for x in timespans]
-    count = DataChunk.query.filter(
-        DataChunk.component_id == component.id, DataChunk.timespan_id.in_(timespan_ids)
+    count = Datachunk.query.filter(
+        Datachunk.component_id == component.id, Datachunk.timespan_id.in_(timespan_ids)
     ).count()
     return count
 
@@ -332,7 +332,7 @@ def create_datachunks_for_component(
         logging.info(f"Chunk will be written to {str(filepath)}")
         directory_exists_or_create(filepath)
 
-        datachunk = DataChunk(
+        datachunk = Datachunk(
             processing_params_id=processing_params.id,
             component_id=component.id,
             timespan_id=timespan.id,
@@ -345,10 +345,10 @@ def create_datachunks_for_component(
             "Checking if there are some chunks fot tht timespan and component in db"
         )
         existing_chunks = (
-            db.session.query(DataChunk)
+            db.session.query(Datachunk)
             .filter(
-                DataChunk.component_id == datachunk.component_id,
-                DataChunk.timespan_id == datachunk.timespan_id,
+                Datachunk.component_id == datachunk.component_id,
+                Datachunk.timespan_id == datachunk.timespan_id,
             )
             .all()
         )
@@ -366,7 +366,7 @@ def create_datachunks_for_component(
                 )
                 trimed_st.write(datachunk.filepath, format="mseed")
                 insert_command = (
-                    insert(DataChunk)
+                    insert(Datachunk)
                     .values(
                         processing_config_id=datachunk.processing_params_id,
                         component_id=datachunk.component_id,

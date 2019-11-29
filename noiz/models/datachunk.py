@@ -5,7 +5,7 @@ from pathlib import Path
 import obspy
 
 
-class DataChunk(db.Model):
+class Datachunk(db.Model):
     __tablename__ = "datachunk"
     __table_args__ = (
         db.UniqueConstraint(
