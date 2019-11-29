@@ -3,9 +3,7 @@ from typing import Union, Optional, Tuple, Iterable
 
 import numpy as np
 import pandas as pd
-from sqlalchemy.dialects.postgresql import insert
 
-from noiz.database import db
 from noiz.models import Timespan
 
 
@@ -89,53 +87,3 @@ def generate_timespans(
             timespan = Timespan(starttime=starttime, midtime=midtime, endtime=endtime)
             if timespan.same_day():
                 yield timespan
-
-
-def insert_timespans_into_db(app, timespans, bulk_insert):
-    if bulk_insert:
-        with app.app_context() as ctx:
-            db.session.bulk_save_objects(timespans)
-            db.session.commit()
-    else:
-        with app.app_context() as ctx:
-            con = db.session.connection()
-            for ts in timespans:
-                insert_command = (
-                    insert(Timespan)
-                    .values(
-                        starttime=ts.starttime, midtime=ts.midtime, endtime=ts.endtime
-                    )
-                    .on_conflict_do_update(
-                        constraint="unique_starttime",
-                        set_=dict(
-                            starttime=ts.starttime,
-                            midtime=ts.midtime,
-                            endtime=ts.endtime,
-                        ),
-                    )
-                    .on_conflict_do_update(
-                        constraint="unique_midtime",
-                        set_=dict(
-                            starttime=ts.starttime,
-                            midtime=ts.midtime,
-                            endtime=ts.endtime,
-                        ),
-                    )
-                    .on_conflict_do_update(
-                        constraint="unique_endtime",
-                        set_=dict(
-                            starttime=ts.starttime,
-                            midtime=ts.midtime,
-                            endtime=ts.endtime,
-                        ),
-                    )
-                    .on_conflict_do_update(
-                        constraint="unique_times",
-                        set_=dict(
-                            starttime=ts.starttime,
-                            midtime=ts.midtime,
-                            endtime=ts.endtime,
-                        ),
-                    )
-                )
-                con.execute(insert_command)
