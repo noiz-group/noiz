@@ -14,7 +14,7 @@ from noiz.models import (
     ProcessingParams,
     Timespan,
     Component,
-    DataChunk,
+    Datachunk,
     ProcessedDatachunk,
     ComponentPair,
 )
@@ -102,7 +102,7 @@ def perform_crosscorrelations_for_day_and_pairs(
 
     components_day = (
         db.session.query(Timespan, Component)
-        .join(DataChunk)
+        .join(Datachunk)
         .join(ProcessedDatachunk)
         .join(Component)
         .distinct(Component.id)
@@ -219,11 +219,11 @@ def fetch_processeddatachunks_a_day(
     year, day_of_year = get_year_doy(date)
     processed_datachunks_day: List[Tuple[ProcessedDatachunk, int, int]] = (
         db.session.query(ProcessedDatachunk, Component.id, Timespan.id)
-        .join(DataChunk)
+        .join(Datachunk)
         .join(Timespan)
         .join(Component)
         .options(
-            subqueryload(ProcessedDatachunk.datachunk).subqueryload(DataChunk.component)
+            subqueryload(ProcessedDatachunk.datachunk).subqueryload(Datachunk.component)
         )
         .filter(Timespan.starttime_year == year, Timespan.starttime_doy == day_of_year)
         .order_by(Timespan.id)
