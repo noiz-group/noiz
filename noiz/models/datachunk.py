@@ -70,7 +70,7 @@ class ProcessedDatachunk(db.Model):
     )
     filepath = db.Column("filepath", db.UnicodeText, nullable=False)
 
-    datachunk = db.relationship("DataChunk", foreign_keys=[datachunk_id])
+    datachunk = db.relationship("Datachunk", foreign_keys=[datachunk_id])
 
     def load_data(self):
         if Path(self.filepath).exists:
