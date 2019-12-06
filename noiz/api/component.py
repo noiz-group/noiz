@@ -27,12 +27,13 @@ def fetch_components_by_id(component_ids: Iterable[int]) -> List[Component]:
 
 
 def fetch_components(
-    networks: Optional[Tuple[str]],
-    stations: Optional[Tuple[str]],
-    components: Optional[Tuple[str]],
+    networks: Optional[Tuple[str]] = None,
+    stations: Optional[Tuple[str]] = None,
+    components: Optional[Tuple[str]] = None,
 ) -> List[Component]:
     """
     Fetches components based on provided network codes, station codes and component codes.
+    If none of the arguments are provided, will raise ValueError.
     :param networks: Networks of components
     :type networks: Optional[Tuple[str]]
     :param stations: Stations of components
@@ -41,6 +42,7 @@ def fetch_components(
     :type components: Optional[Tuple[str]]
     :return: Component fetched based on provided values.
     :rtype: List[Component]
+    :raises: ValueError
     """
 
     filters = []
@@ -51,6 +53,9 @@ def fetch_components(
         filters.append(Component.station.in_(validate_tuple_str(stations)))
     if networks is not None:
         filters.append(Component.component.in_(validate_tuple_str(components)))
+
+    if len(filters) == 0:
+        raise ValueError("At least one argument has to be provided.")
 
     ret = Component.query.filter(*filters).all()
     return ret
