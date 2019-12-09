@@ -1,7 +1,8 @@
 import logging
 from typing import Optional, Tuple
+from obspy.core.util import AttribDict
+from obspy import read_inventory
 
-import obspy
 import utm
 
 from noiz.database import db
@@ -53,6 +54,9 @@ class Component(db.Model):
     def __str__(self):
         return f"Station {self._make_station_string()}"
 
+    def __repr__(self):
+        return f"{self.id}.{self._make_station_string()}"
+
     def _set_xy_from_latlon(self, lat, lon):
         x, y, zone, zone_letter = utm.from_latlon(lat, lon)
         self.x = x
@@ -70,7 +74,12 @@ class Component(db.Model):
         self.lon = lon
 
     def read_inventory(self):
-        return obspy.read_inventory(self.inventory_filepath, format="stationxml")
+        return read_inventory(self.inventory_filepath, format="stationxml")
+
+    def get_location_as_attribdict(self):
+        return AttribDict(
+            {"latitude": self.lat, "longitude": self.lon, "elevation": self.elevation}
+        )
 
     @staticmethod
     def __checkif_zone_letter_in_northern(zone_letter: str) -> bool:
