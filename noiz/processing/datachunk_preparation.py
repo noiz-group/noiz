@@ -1,25 +1,32 @@
 import datetime
 import logging
-import numpy as np
-import obspy
 import os
-import pandas as pd
-
 from multiprocessing import Pool
 from pathlib import Path
-from sqlalchemy.dialects.postgresql import insert
 from typing import Union, List
 
+import numpy as np
+import obspy
+import pandas as pd
+from sqlalchemy.dialects.postgresql import insert
+
 from noiz.database import db
+from noiz.exceptions import NoDataException
 from noiz.models import Component, Datachunk, Timespan, Tsindex, ProcessingParams
 
 
-class NoDataException(Exception):
-    pass
-
-
-def expected_npts(timespan_length, sampling_rate):
-    return timespan_length * sampling_rate
+def expected_npts(timespan_length: float, sampling_rate: float) -> int:
+    """
+    Calculates expected number of npts in a trace based on timespan length and sampling rate.
+    Casted to int with floor rounding.
+    :param timespan_length: Length of timespan in seconds
+    :type timespan_length: float
+    :param sampling_rate: Sampling rate in samples per second
+    :type sampling_rate: float
+    :return: Number of samples in the timespan
+    :rtype: int
+    """
+    return int(timespan_length * sampling_rate)
 
 
 def assembly_preprocessing_filename(component, timespan):
@@ -33,7 +40,17 @@ def assembly_preprocessing_filename(component, timespan):
     return fname
 
 
-def assembly_sds_like_dir(component, timespan):
+def assembly_sds_like_dir(component: Component, timespan: Timespan) -> Path:
+    """
+    Asembles a Path object in a SDS manner. Object consists of year/network/station/component codes.
+    Warning: The component here is a single letter component!
+    :param component: Component object containing information about used channel
+    :type component: Component
+    :param timespan: Timespan object containing information about time
+    :type timespan: Timespan
+    :return:  Pathlike object containing SDS-like directory hierarchy.
+    :rtype: Path
+    """
     return (
         Path(str(timespan.starttime.year))
         .joinpath(component.network)
@@ -42,7 +59,21 @@ def assembly_sds_like_dir(component, timespan):
     )
 
 
-def assembly_filepath(processed_data_dir, processing_type, filepath):
+def assembly_filepath(
+    processed_data_dir: Path, processing_type: Path, filepath: Path
+) -> Path:
+    """
+    Assembles a filepath for processed files.
+    It assembles a root processed-data directory with processing type and a rest of a filepath.
+    :param processed_data_dir:
+    :type processed_data_dir: Path
+    :param processing_type:
+    :type processing_type: Path
+    :param filepath:
+    :type filepath: Path
+    :return:
+    :rtype: Path
+    """
     return Path(processed_data_dir).joinpath(processing_type).joinpath(filepath)
 
 
