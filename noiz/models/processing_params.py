@@ -163,6 +163,19 @@ class ProcessingParams(db.Model):
 
         return np.arange(start=start, stop=stop, step=step)
 
+
+class BeamformingParams(db.Model):
+    __tablename__ = "beamforming_params"
+    id = db.Column("id", db.Integer, primary_key=True)
+
+    min_freq = db.Column("min_freq", db.Float, nullable=False)
+    max_freq = db.Column("max_freq", db.Float, nullable=False)
+    slowness_limit = db.Column("slowness_limit", db.Float, nullable=False)
+    slowness_step = db.Column("slowness_step", db.Float, nullable=False)
+    window_length = db.Column("window_length", db.Float, nullable=False)
+    window_step = db.Column("window_step", db.Float, nullable=False)
+    window_length = db.Column("window_length", db.Float, nullable=False)
+
     # use_winter_time = db.Column("use_winter_time", db.Boolean)
     # f_sampling_out = db.Column("f_sampling_out", db.Integer)
     # downsample_filt_order = db.Column("downsample_filt_order", db.Integer)
