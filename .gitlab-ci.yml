@@ -20,3 +20,14 @@ type-check:
   script:
     - source activate noiz-test
     - mypy noiz
+
+pages:
+  script:
+  - pip install -r requirements-docs.txt
+  - make html
+  - mv _build/html/ public/
+  artifacts:
+    paths:
+    - public
+#  only:
+#  - master
