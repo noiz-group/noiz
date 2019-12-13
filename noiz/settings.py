@@ -11,11 +11,11 @@ if ENV == "development":
 else:
     DEBUG = False
 
-POSTGRES_HOST = env.str("POSTGRES_HOST")
-POSTGRES_USER = env.str("POSTGRES_USER")
-POSTGRES_PASSWORD = env.str("POSTGRES_PASSWORD")
-POSTGRES_DB = env.str("POSTGRES_DB")
-SQLALCHEMY_DATABASE_URI = env.str("DATABASE_URL")
+POSTGRES_HOST = env.str("POSTGRES_HOST", default="")
+POSTGRES_USER = env.str("POSTGRES_USER", default="")
+POSTGRES_PASSWORD = env.str("POSTGRES_PASSWORD", default="")
+POSTGRES_DB = env.str("POSTGRES_DB", default="")
+SQLALCHEMY_DATABASE_URI = env.str("DATABASE_URL", default="")
 
 # SECRET_KEY = env.str('SECRET_KEY')
 # BCRYPT_LOG_ROUNDS = env.int('BCRYPT_LOG_ROUNDS', default=13)
