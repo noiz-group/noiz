@@ -18,8 +18,7 @@ test-noiz:
 
 black-check:
   before_script:
-    - apt-get update && apt-get upgrade && apt-get install build-essential -yy
-    - pip install black
+    - conda install black
   stage: linting
   script:
     - black --verbose --check noiz
