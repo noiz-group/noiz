@@ -30,7 +30,7 @@ type-check:
     - source activate noiz-test
     - mypy noiz
 
-docs_buil:
+build-docs:
   stage: docs_stage
   script:
   - apt-get install build-essential -yy
