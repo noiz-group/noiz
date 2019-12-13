@@ -6,25 +6,28 @@ stages:
   - documentation
   - deployment
 
-before_script:
-  - apt-get update && apt-get upgrade -yy
-  - conda create -c conda-forge -c heavelock -n noiz-test python=3.7 --file=requirements.txt --yes
-  - source activate noiz-test
-  - pip install sqlalchemy-stubs
-
 test-noiz:
+  before_script:
+    - conda create -c conda-forge -c heavelock -n noiz-test python=3.7 --file=requirements.txt --yes
+    - source activate noiz-test
+    - pip install sqlalchemy-stubs
   stage: testing
   script:
     - source activate noiz-test
     - pytest --cov=noiz
 
 black-check:
+  before_script:
+    - pip install black
   stage: linting
   script:
-    - source activate noiz-test
     - black --verbose --check noiz
 
 type-check:
+  before_script:
+    - conda create -c conda-forge -c heavelock -n noiz-test python=3.7 --file=requirements.txt --yes
+    - source activate noiz-test
+    - pip install sqlalchemy-stubs
   stage: linting
   script:
     - source activate noiz-test
@@ -35,7 +38,7 @@ build-docs:
   script:
   - apt-get install build-essential -yy
   - pip install -r requirements-docs.txt
-  - sphinx-apidoc -f -o docs noiz 
+  - sphinx-apidoc -f -o docs noiz
   - cd docs
   - make html
   artifacts:
