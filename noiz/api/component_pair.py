@@ -12,7 +12,7 @@ from noiz.processing.component_pair import (
     is_intrastation_correlation,
     is_east_to_west,
 )
-from processing.component_pair import calculate_distance_azimuths
+from noiz.processing.component_pair import calculate_distance_azimuths
 
 
 def prepare_componentpairs(components: List[Component]) -> List[ComponentPair]:
