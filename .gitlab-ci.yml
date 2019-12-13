@@ -1,10 +1,10 @@
 image: continuumio/miniconda3:latest
 
 stages:
-  - test_stage
-  - linting_stage
-  - docs_stage
-  - deploy_stage
+  - testing
+  - linting
+  - documentation
+  - deployment
 
 before_script:
   - apt-get update && apt-get upgrade -yy
@@ -13,25 +13,25 @@ before_script:
   - pip install sqlalchemy-stubs
 
 test-noiz:
-  stage: test_stage
+  stage: testing
   script:
     - source activate noiz-test
     - pytest --cov=noiz
 
 black-check:
-  stage: linting_stage
+  stage: linting
   script:
     - source activate noiz-test
     - black --verbose --check noiz
 
 type-check:
-  stage: linting_stage
+  stage: linting
   script:
     - source activate noiz-test
     - mypy noiz
 
 build-docs:
-  stage: docs_stage
+  stage: documentation
   script:
   - apt-get install build-essential -yy
   - pip install -r requirements-docs.txt
@@ -42,7 +42,7 @@ build-docs:
     - docs/_build/html/
 
 pages:
-  stage: deploy_stage
+  stage: deployment
   script:
   - mv docs/_build/html/ public/
   artifacts:
