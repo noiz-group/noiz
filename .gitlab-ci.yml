@@ -1,5 +1,10 @@
 image: continuumio/miniconda3:latest
 
+stages:
+  - test_stage
+  - linting_stage
+  - docs_stage
+
 before_script:
   - apt-get update && apt-get upgrade -yy
   - conda create -c conda-forge -c heavelock -n noiz-test python=3.7 --file=requirements.txt --yes
@@ -7,23 +12,27 @@ before_script:
   - pip install sqlalchemy-stubs
 
 test-noiz:
+  stage: test_stage
   script:
     - source activate noiz-test
     - pytest --cov=noiz
 
 black-check:
+  stage: linting_stage
   script:
     - source activate noiz-test
     - black --verbose --check noiz
 
 type-check:
+  stage: linting_stage
   script:
     - source activate noiz-test
     - mypy noiz
 
 pages:
+  stage: docs_stage
   script:
-  - apt-get install build-essentials -yy
+  - apt-get install build-essential -yy
   - pip install -r requirements-docs.txt
   - make html
   - mv _build/html/ public/
