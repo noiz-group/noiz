@@ -4,6 +4,7 @@ stages:
   - test_stage
   - linting_stage
   - docs_stage
+  - deploy_stage
 
 before_script:
   - apt-get update && apt-get upgrade -yy
@@ -29,13 +30,21 @@ type-check:
     - source activate noiz-test
     - mypy noiz
 
-pages:
+docs_buil:
   stage: docs_stage
   script:
   - apt-get install build-essential -yy
   - pip install -r requirements-docs.txt
+  - cd docs
   - make html
-  - mv _build/html/ public/
+  artifacts:
+    paths:
+    - docs/_build/html/
+
+pages:
+  stage: deploy_stage
+  script:
+  - mv docs/_build/html/ public/
   artifacts:
     paths:
     - public
