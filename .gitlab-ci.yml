@@ -1,22 +1,57 @@
 image: continuumio/miniconda3:latest
 
-before_script:
-  - apt-get update && apt-get upgrade -yy
-  - conda create -c conda-forge -c heavelock -n noiz-test python=3.7 --file=requirements.txt --yes
-  - source activate noiz-test
-  - pip install sqlalchemy-stubs
+stages:
+  - testing
+  - linting
+  - documentation
+  - deployment
 
 test-noiz:
+  before_script:
+    - conda create -c conda-forge -c heavelock -n noiz-test python=3.7 --file=requirements.txt --yes
+    - source activate noiz-test
+    - pip install sqlalchemy-stubs
+  stage: testing
   script:
     - source activate noiz-test
     - pytest --cov=noiz
 
 black-check:
+  before_script:
+    - conda install black
+  stage: linting
   script:
-    - source activate noiz-test
     - black --verbose --check noiz
 
 type-check:
+  before_script:
+    - conda create -c conda-forge -c heavelock -n noiz-test python=3.7 --file=requirements.txt --yes
+    - source activate noiz-test
+    - pip install sqlalchemy-stubs
+  stage: linting
   script:
     - source activate noiz-test
     - mypy noiz
+
+build-docs:
+  stage: documentation
+  script:
+  - apt-get update && apt-get upgrade -yy && apt-get install build-essential -yy
+  - pip install -r requirements-docs.txt
+  - sphinx-apidoc -f -o docs noiz
+  - cd docs
+  - make html
+  artifacts:
+    paths:
+    - docs/_build/html/
+
+pages:
+  stage: deployment
+  image: alpine
+  script:
+  - mv docs/_build/html/ public/
+  artifacts:
+    paths:
+    - public
+  only:
+  - master

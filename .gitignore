@@ -109,3 +109,4 @@ venv.bak/
 
 postgres.env
 migrations
+docs/_build
