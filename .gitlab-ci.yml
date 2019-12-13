@@ -18,7 +18,7 @@ test-noiz:
 
 black-check:
   before_script:
-    - apt-get install build-essential -yy
+    - apt-get update && apt-get upgrade && apt-get install build-essential -yy
     - pip install black
   stage: linting
   script:
@@ -37,6 +37,7 @@ type-check:
 build-docs:
   stage: documentation
   script:
+  - apt-get update && apt-get upgrade && apt-get install build-essential -yy
   - pip install -r requirements-docs.txt
   - sphinx-apidoc -f -o docs noiz
   - cd docs
