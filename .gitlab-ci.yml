@@ -23,6 +23,7 @@ type-check:
 
 pages:
   script:
+  - apt-get install build-essentials -yy
   - pip install -r requirements-docs.txt
   - make html
   - mv _build/html/ public/
