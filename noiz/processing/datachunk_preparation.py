@@ -2,13 +2,14 @@ import logging
 import os
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Union, Iterable
+from typing import Union
 
 import numpy as np
 import obspy
 import pandas as pd
 from sqlalchemy.dialects.postgresql import insert
 
+from noiz.api.datachunk import count_datachunks_for_timespans
 from noiz.api.timespan import fetch_timespans_for_doy
 from noiz.api.timeseries import fetch_raw_timeseries
 from noiz.database import db
@@ -95,28 +96,6 @@ def directory_exists_or_create(filepath: Path) -> bool:
         logging.info(f"Directory {directory} does not exists, trying to create.")
         directory.mkdir(parents=True)
     return directory.exists()
-
-
-def count_datachunks_for_timespans(
-    components: Iterable[Component], timespans: Iterable[Timespan]
-) -> int:
-    """
-    Counts number of datachunks for all provided components associated with all provided timespans.
-
-    :param components: Components to be checked
-    :type components: Iterable[Component]
-    :param timespans: Timespans to be checked
-    :type timespans: Iterable[Timespan]
-    :return: Count fo datachunks
-    :rtype: int
-    """
-    timespan_ids = [x.id for x in timespans]
-    component_ids = [x.id for x in components]
-    count = Datachunk.query.filter(
-        Datachunk.component_id.in_(component_ids),
-        Datachunk.timespan_id.in_(timespan_ids),
-    ).count()
-    return count
 
 
 def next_pow_2(number: int) -> int:
