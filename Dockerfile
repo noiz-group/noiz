@@ -36,5 +36,6 @@ RUN  /opt/conda/bin/conda install \
 RUN mkdir /noiz
 WORKDIR /noiz
 COPY ./ /noiz/
-RUN /opt/conda/bin/conda install -c conda-forge -c heavelock --file requirements.txt -y
-RUN pip install -e .
+RUN /opt/conda/bin/conda install -c conda-forge -c heavelock --file requirements.txt -y && \
+ pip install -e . && \
+ conda clean --all --yes
