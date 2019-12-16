@@ -2,13 +2,14 @@ import logging
 import os
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Union
+from typing import Union, Iterable
 
 import numpy as np
 import obspy
 import pandas as pd
 from sqlalchemy.dialects.postgresql import insert
 
+from noiz.api.timespan import fetch_timespans_for_doy
 from noiz.api.timeseries import fetch_raw_timeseries
 from noiz.database import db
 from noiz.exceptions import NoDataException
@@ -96,19 +97,26 @@ def directory_exists_or_create(filepath: Path) -> bool:
     return directory.exists()
 
 
-def check_datachunks_for_timespans(component, timespans):
+def count_datachunks_for_timespans(
+    components: Iterable[Component], timespans: Iterable[Timespan]
+) -> int:
+    """
+    Counts number of datachunks for all provided components associated with all provided timespans.
+
+    :param components: Components to be checked
+    :type components: Iterable[Component]
+    :param timespans: Timespans to be checked
+    :type timespans: Iterable[Timespan]
+    :return: Count fo datachunks
+    :rtype: int
+    """
     timespan_ids = [x.id for x in timespans]
+    component_ids = [x.id for x in components]
     count = Datachunk.query.filter(
-        Datachunk.component_id == component.id, Datachunk.timespan_id.in_(timespan_ids)
+        Datachunk.component_id.in_(component_ids),
+        Datachunk.timespan_id.in_(timespan_ids),
     ).count()
     return count
-
-
-def get_timespans_for_doy(year, doy):
-    timespans = Timespan.query.filter(
-        Timespan.starttime_year == year, Timespan.starttime_doy == doy
-    ).all()
-    return timespans
 
 
 def next_pow_2(number: int) -> int:
@@ -251,7 +259,7 @@ def preprocess_timespan(
 def create_datachunks_for_component(
     execution_date, component, timespans, processing_params, processed_data_dir
 ):
-    no_datachunks = check_datachunks_for_timespans(component, timespans)
+    no_datachunks = count_datachunks_for_timespans((component,), timespans)
     logging.info(f"There are {no_datachunks} datachunks for {execution_date} in db")
     if no_datachunks == len(timespans):
         logging.info(
@@ -409,7 +417,7 @@ def run_chunk_preparation(
             .filter(ProcessingParams.id == processing_config_id)
             .first()
         )
-        timespans = get_timespans_for_doy(year=year, doy=day_of_year)
+        timespans = fetch_timespans_for_doy(year=year, doy=day_of_year)
 
         components = Component.query.filter(
             Component.station == station, Component.component == component
@@ -442,7 +450,7 @@ def run_paralel_chunk_preparation(
 
     all_timespans = {}
     for date in date_range:
-        all_timespans[date] = get_timespans_for_doy(
+        all_timespans[date] = fetch_timespans_for_doy(
             year=date.year, doy=date.timetuple().tm_yday
         )
     processed_data_dir = os.environ.get("PROCESSED_DATA_DIR")
