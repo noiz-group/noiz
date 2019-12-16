@@ -1,18 +1,18 @@
-import datetime
 import logging
 import os
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Union, List
+from typing import Union
 
 import numpy as np
 import obspy
 import pandas as pd
 from sqlalchemy.dialects.postgresql import insert
 
+from noiz.api.timeseries import fetch_raw_timeseries
 from noiz.database import db
 from noiz.exceptions import NoDataException
-from noiz.models import Component, Datachunk, Timespan, Tsindex, ProcessingParams
+from noiz.models import Component, Datachunk, Timespan, ProcessingParams
 
 
 def expected_npts(timespan_length: float, sampling_rate: float) -> int:
@@ -94,29 +94,6 @@ def directory_exists_or_create(filepath: Path) -> bool:
         logging.info(f"Directory {directory} does not exists, trying to create.")
         directory.mkdir(parents=True)
     return directory.exists()
-
-
-def fetch_timeseries(
-    component: Component, execution_date: datetime.datetime
-) -> Tsindex:
-    year = execution_date.year
-    day_of_year = execution_date.timetuple().tm_yday
-    time_series: List[Tsindex] = Tsindex.query.filter(
-        Tsindex.network == component.network,
-        Tsindex.station == component.station,
-        Tsindex.component == component.component,
-        Tsindex.starttime_year == year,
-        Tsindex.starttime_doy == day_of_year,
-    ).all()
-    if len(time_series) > 1:
-        raise ValueError(
-            f"There are more then one files for that day in timeseries!"
-            f" {component._make_station_string()} {year}.{day_of_year}"
-        )
-    elif len(time_series) == 0:
-        raise NoDataException(f"No data for {component} on day {year}.{day_of_year}")
-    else:
-        return time_series[0]
 
 
 def check_datachunks_for_timespans(component, timespans):
@@ -284,7 +261,7 @@ def create_datachunks_for_component(
 
     logging.info("Fetching timeseries")
     try:
-        time_series = fetch_timeseries(
+        time_series = fetch_raw_timeseries(
             component=component, execution_date=execution_date
         )
     except NoDataException as e:
