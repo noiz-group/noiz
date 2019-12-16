@@ -60,7 +60,9 @@ def assembly_sds_like_dir(component: Component, timespan: Timespan) -> Path:
 
 
 def assembly_filepath(
-    processed_data_dir: Path, processing_type: Path, filepath: Path
+    processed_data_dir: Union[str, Path],
+    processing_type: Union[str, Path],
+    filepath: Union[str, Path],
 ) -> Path:
     """
     Assembles a filepath for processed files.
