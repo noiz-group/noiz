@@ -1,17 +1,20 @@
-from typing import List, Iterable
+from typing import List, Iterable, Union
 
 from noiz.models import Component, Datachunk, Timespan
 
 
-def fetch_datachunks_for_timespan(timespan: Timespan) -> List[Datachunk]:
+def fetch_datachunks_for_timespan(
+    timespans: Union[Timespan, Iterable[Timespan]]
+) -> List[Datachunk]:
     """
-
-    :param timespan:
-    :type timespan:
-    :return:
-    :rtype:
+    Fetches all datachunks associated with provided timespans. Timespan can be a single one or Iterable of timespans.
+    :param timespans: Instances of timespans to be checked
+    :type timespans: Union[Timespan, Iterable[Timespan]]
+    :return: List of Datachunks
+    :rtype: List[Datachunk]
     """
-    ret = Datachunk.query.filter(Datachunk.timespan_id == timespan.id).all()
+    timespan_ids = extract_object_ids(timespans)
+    ret = Datachunk.query.filter(Datachunk.timespan_id.in_(timespan_ids)).all()
     return ret
 
 
@@ -28,10 +31,24 @@ def count_datachunks_for_timespans(
     :return: Count fo datachunks
     :rtype: int
     """
-    timespan_ids = [x.id for x in timespans]
-    component_ids = [x.id for x in components]
+    timespan_ids = extract_object_ids(timespans)
+    component_ids = extract_object_ids(components)
     count = Datachunk.query.filter(
         Datachunk.component_id.in_(component_ids),
         Datachunk.timespan_id.in_(timespan_ids),
     ).count()
     return count
+
+
+def extract_object_ids(instances: Iterable[Union[Timespan, Component]]) -> List[int]:
+    """
+    Extracts parameter .id from all provided instances of objects. It can either be a single object or iterbale of them.
+    :param instances: instances of objects to be checked
+    :type instances:
+    :return: ids of objects
+    :rtype: List[int]
+    """
+    if not isinstance(instances, Iterable):
+        instances = list(instances)
+    ids = [x.id for x in instances]
+    return ids
