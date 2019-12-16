@@ -71,7 +71,7 @@ def fetch_timespans_for_doy(year: int, doy: int) -> List[Timespan]:
     :return: List of all timespans on given day
     :rtype: List[Timespan]
     """
-    ret = Timespan.query.filter(
+    timespans = Timespan.query.filter(
         Timespan.midtime_year == year, Timespan.midtime_doy == doy
     ).all()
-    return ret
+    return timespans
