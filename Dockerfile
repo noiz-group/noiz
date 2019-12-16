@@ -9,7 +9,7 @@ FROM continuumio/miniconda3:latest
 ENV PYTHONUNBUFFERED 1
 RUN apt-get update && \
     apt-get upgrade -yy
-RUN  /opt/conda/bin/conda install
+RUN  /opt/conda/bin/conda install \
  -c conda-forge \
  -c heavelock \
  -y \
