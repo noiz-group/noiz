@@ -51,7 +51,7 @@ def fetch_components(
         filters.append(Component.network.in_(validate_tuple_str(networks)))
     if stations is not None:
         filters.append(Component.station.in_(validate_tuple_str(stations)))
-    if networks is not None:
+    if components is not None:
         filters.append(Component.component.in_(validate_tuple_str(components)))
 
     if len(filters) == 0:
