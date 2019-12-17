@@ -133,8 +133,13 @@ def resample_with_padding(
 
     logging.info("Padding with zeros up to the next power of 2")
     tr.data = np.concatenate((tr.data, np.zeros(deficit)))
+
     logging.info("Resampling")
     tr.resample(sampling_rate)
+
+    logging.info(
+        f"Slicing data to fit them between starttime {starttime} and endtime {endtime}"
+    )
     st[0] = tr.slice(starttime=starttime, endtime=endtime)
 
     logging.info("Resampling done!")
@@ -171,7 +176,23 @@ def preprocess_whole_day(
     return st
 
 
-def pad_zeros_to_exact_time_bounds(st, timespan, expected_no_samples):
+def pad_zeros_to_exact_time_bounds(
+    st: obspy.Stream, timespan: Timespan, expected_no_samples: int
+) -> obspy.Stream:
+    """
+    Takes a obspy Stream and trims it with Stream.trim to starttime and endtime of provided Timespan.
+    It also verifies if resulting number of samples is as expected.
+
+    :param st: stream to be trimmed
+    :type st: obspy.Stream
+    :param timespan: Timespan to be used for trimming
+    :type timespan: Timespan
+    :param expected_no_samples: Expected number of samples to be verified
+    :type expected_no_samples: int
+    :return: Trimmed stream
+    :rtype: obspy.Stream
+    :raises ValueError
+    """
     st.trim(
         starttime=obspy.UTCDateTime(timespan.starttime),
         endtime=obspy.UTCDateTime(timespan.endtime),
@@ -179,6 +200,7 @@ def pad_zeros_to_exact_time_bounds(st, timespan, expected_no_samples):
         pad=True,
         fill_value=0,
     )
+
     if st[0].stats.npts != expected_no_samples:
         raise ValueError(
             f"The try of padding with zeros to {expected_no_samples} was not successful. Current length of data is {st[0].stats.npts}"
