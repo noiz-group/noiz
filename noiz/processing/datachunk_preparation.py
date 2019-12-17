@@ -1,12 +1,16 @@
+import datetime
 import logging
 import os
+from collections import Collection
+
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Union
+from typing import Union, Iterable, Sized, Optional, Tuple
 
 import numpy as np
 import obspy
 import pandas as pd
+
 from sqlalchemy.dialects.postgresql import insert
 
 from noiz.api.datachunk import count_datachunks_for_timespans
@@ -176,6 +180,19 @@ def preprocess_whole_day(
     return st
 
 
+def merge_traces_fill_zeros(st: obspy.Stream) -> obspy.Stream:
+    """
+    TODO Fill the docstring
+
+    :param st: stream to be trimmed
+    :type st: obspy.Stream
+    :return: Trimmed stream
+    :rtype: obspy.Stream
+    """
+    st.merge(fill_value=0)
+    return st
+
+
 def pad_zeros_to_exact_time_bounds(
     st: obspy.Stream, timespan: Timespan, expected_no_samples: int
 ) -> obspy.Stream:
@@ -258,13 +275,22 @@ def preprocess_timespan(
 
 
 def create_datachunks_for_component(
-    execution_date, component, timespans, processing_params, processed_data_dir
-):
+    execution_date: datetime.datetime,
+    component: Component,
+    timespans: Collection[Timespan],
+    processing_params: ProcessingParams,
+    processed_data_dir: Path,
+) -> None:
+
     no_datachunks = count_datachunks_for_timespans((component,), timespans)
+
+    timespans_count = len(timespans)
+
     logging.info(f"There are {no_datachunks} datachunks for {execution_date} in db")
-    if no_datachunks == len(timespans):
+
+    if no_datachunks == timespans_count:
         logging.info(
-            f"There is enough of datachunks in the db (no_datahcunks==no_timespans)"
+            f"There is enough of datachunks in the db (no_datahcunks == no_timespans)"
         )
         return
 
@@ -281,58 +307,22 @@ def create_datachunks_for_component(
     st = time_series.read_file()
     inventory = component.read_inventory()
 
-    logging.info("Preprocessing initially full day timeseries")
-    st = preprocess_whole_day(st, processing_params)
+    # logging.info("Preprocessing initially full day timeseries")
+    # st = preprocess_whole_day(st, processing_params)
 
     logging.info("Splitting full day into timespans")
     for i, timespan in enumerate(timespans):
-        logging.info(f"Slicing timespan {i}/{len(timespans)}")
+
+        logging.info(f"Slicing timespan {i}/{timespans_count}")
         trimed_st = st.slice(
             starttime=timespan.starttime_obspy(),
             endtime=timespan.remove_last_microsecond(),
             nearest_sample=False,
         )
 
-        if len(trimed_st) == 0:
-            logging.error(f"There was no data to be cut for that timespan")
-            continue
-
-        if len(trimed_st) > 1:
-            logging.warning(
-                f"There are {len(trimed_st)} traces in that stream. Trying to merge"
-            )
-            trimed_st.merge()
-            if len(trimed_st) > 1:
-                logging.error(
-                    f"There are still {len(trimed_st)} traces in that stream. "
-                    f"Skipping that datachunk"
-                )
-                continue
-
-        if trimed_st[0].stats.npts < processing_params.get_minimum_no_samples():
-            logging.error(
-                f"There were {trimed_st[0].stats.npts} in the trace"
-                f" while {processing_params.get_minimum_no_samples()} were expected. "
-                f"Skipping this chunk."
-            )
-            continue
-        elif trimed_st[0].stats.npts < processing_params.get_expected_no_samples():
-            deficit = (
-                processing_params.get_expected_no_samples() - trimed_st[0].stats.npts
-            )
-            logging.warning(
-                f"Datachunk has less samples than expected but enough to be accepted."
-                f"It will be padded with {deficit} zeros to match exact length."
-            )
-            try:
-                trimed_st = pad_zeros_to_exact_time_bounds(
-                    trimed_st, timespan, processing_params.get_expected_no_samples()
-                )
-            except ValueError:
-                logging.warning(f"Padding was not successful. SKipping chunk.")
-                continue
-        else:
-            deficit = None
+        trimed_st, deficit = validate_slice(
+            trimed_st, timespan, processing_params, time_series.samplerate
+        )
 
         logging.info("Preprocessing timespan")
         trimed_st = preprocess_timespan(
@@ -403,6 +393,59 @@ def create_datachunks_for_component(
                 db.session.execute(insert_command)
         db.session.commit()
     return
+
+
+def validate_slice(
+    trimed_st: obspy.Stream,
+    timespan: Timespan,
+    processing_params: ProcessingParams,
+    raw_sps: int,
+) -> Tuple[obspy.Stream, Optional[int]]:
+    if len(trimed_st) == 0:
+        ValueError(f"There was no data to be cut for that timespan")
+
+    if len(trimed_st) > 1:
+        logging.warning(
+            f"There are {len(trimed_st)} traces in that stream. Trying to proceed anyway."
+        )
+
+    samples_in_stream = sum([x.stats.npts for x in trimed_st])
+
+    if samples_in_stream < processing_params.get_raw_minimum_no_samples(raw_sps):
+        logging.error(
+            f"There were {samples_in_stream} in the trace"
+            f" while {processing_params.get_raw_minimum_no_samples(raw_sps)} were expected. "
+            f"Skipping this chunk."
+        )
+        raise ValueError(f"Not enough data in a chunk.")
+
+    elif samples_in_stream < processing_params.get_raw_expected_no_samples(raw_sps):
+        deficit = (
+            processing_params.get_raw_expected_no_samples(raw_sps)
+            - trimed_st[0].stats.npts
+        )
+        logging.warning(
+            f"Datachunk has less samples than expected but enough to be accepted."
+            f"It will be padded with {deficit} zeros to match exact length."
+        )
+
+        trimed_st = merge_traces_fill_zeros(trimed_st)
+
+        if trimed_st[0].stats.npts < processing_params.get_raw_expected_no_samples(
+            raw_sps
+        ):
+            try:
+                trimed_st = pad_zeros_to_exact_time_bounds(
+                    trimed_st,
+                    timespan,
+                    processing_params.get_raw_expected_no_samples(raw_sps),
+                )
+            except ValueError as e:
+                logging.warning(f"Padding was not successful. SKipping chunk.")
+                raise ValueError(f"Datachunk padding unsuccessful.")
+    else:
+        deficit = None
+    return trimed_st, deficit
 
 
 def run_chunk_preparation(
