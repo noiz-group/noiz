@@ -1,6 +1,4 @@
-from typing import List, Iterable, Union, Sized
-
-from collections import Collection
+from typing import List, Iterable, Union, Sized, Collection
 
 from noiz.models import Component, Datachunk, Timespan
 
