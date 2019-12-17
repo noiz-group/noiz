@@ -1,4 +1,6 @@
-from typing import List, Iterable, Union
+from typing import List, Iterable, Union, Sized
+
+from collections import Collection
 
 from noiz.models import Component, Datachunk, Timespan
 
@@ -19,7 +21,7 @@ def fetch_datachunks_for_timespan(
 
 
 def count_datachunks_for_timespans(
-    components: Iterable[Component], timespans: Iterable[Timespan]
+    components: Collection[Component], timespans: Collection[Timespan]
 ) -> int:
     """
     Counts number of datachunks for all provided components associated with all provided timespans.
