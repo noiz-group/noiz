@@ -138,6 +138,17 @@ class ProcessingParams(db.Model):
             * self._datachunk_sample_threshold
         )
 
+    def get_raw_minimum_no_samples(self, sampling_rate):
+        """
+        Minimum number of samples for datachunk
+        :return:
+        :rtype:
+        """
+        return int(
+            (self._timespan_length.seconds * sampling_rate)
+            * self._datachunk_sample_threshold
+        )
+
     def get_expected_no_samples(self):
         """
         Expected number of samples from datachunk
@@ -145,6 +156,14 @@ class ProcessingParams(db.Model):
         :rtype:
         """
         return int(self._timespan_length.seconds * self._sampling_rate)
+
+    def get_raw_expected_no_samples(self, sampling_rate):
+        """
+        Expected number of samples from datachunk
+        :return:
+        :rtype:
+        """
+        return int(self._timespan_length.seconds * sampling_rate)
 
     def get_correlation_max_lag_samples(self):
         return int(self._correlation_max_lag * self._sampling_rate)
