@@ -1,11 +1,10 @@
 import datetime
 import logging
 import os
-from collections import Collection
 
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Union, Iterable, Sized, Optional, Tuple
+from typing import Union, Iterable, Sized, Optional, Tuple, Collection
 
 import numpy as np
 import obspy
@@ -127,7 +126,7 @@ def resample_with_padding(
     :rtype: obspy.Stream
     """
 
-    tr = st[0].copy()
+    tr = st[0]
     starttime = tr.stats.starttime
     endtime = tr.stats.endtime
     npts = tr.stats.npts
@@ -144,7 +143,7 @@ def resample_with_padding(
     logging.info(
         f"Slicing data to fit them between starttime {starttime} and endtime {endtime}"
     )
-    st[0] = tr.slice(starttime=starttime, endtime=endtime)
+    st = obspy.Stream(tr.slice(starttime=starttime, endtime=endtime))
 
     logging.info("Resampling done!")
     return st
@@ -339,7 +338,7 @@ def create_datachunks_for_component(
         )
 
         trimed_st, deficit = validate_slice(
-            trimed_st, timespan, processing_params, time_series.samplerate
+            trimed_st, timespan, processing_params, float(time_series.samplerate)
         )
 
         logging.info("Preprocessing timespan")
@@ -417,8 +416,11 @@ def validate_slice(
     trimed_st: obspy.Stream,
     timespan: Timespan,
     processing_params: ProcessingParams,
-    raw_sps: int,
+    raw_sps: Union[float, int],
 ) -> Tuple[obspy.Stream, Optional[int]]:
+
+    deficit = None
+
     if len(trimed_st) == 0:
         ValueError(f"There was no data to be cut for that timespan")
 
@@ -429,19 +431,23 @@ def validate_slice(
 
     samples_in_stream = sum([x.stats.npts for x in trimed_st])
 
-    if samples_in_stream < processing_params.get_raw_minimum_no_samples(raw_sps):
+    minimum_no_samples = processing_params.get_raw_minimum_no_samples(raw_sps)
+    expected_no_samples = processing_params.get_raw_expected_no_samples(raw_sps)
+
+    if samples_in_stream < minimum_no_samples:
         logging.error(
             f"There were {samples_in_stream} in the trace"
-            f" while {processing_params.get_raw_minimum_no_samples(raw_sps)} were expected. "
+            f" while {minimum_no_samples} were expected. "
             f"Skipping this chunk."
         )
         raise ValueError(f"Not enough data in a chunk.")
 
-    elif samples_in_stream < processing_params.get_raw_expected_no_samples(raw_sps):
-        deficit = (
-            processing_params.get_raw_expected_no_samples(raw_sps)
-            - trimed_st[0].stats.npts
-        )
+    if samples_in_stream == expected_no_samples + 1:
+        trimed_st[0].data = trimed_st[0].data[:-1]
+        return trimed_st, deficit
+
+    if samples_in_stream < expected_no_samples:
+        deficit = expected_no_samples - trimed_st[0].stats.npts
         logging.warning(
             f"Datachunk has less samples than expected but enough to be accepted."
             f"It will be padded with {deficit} zeros to match exact length."
@@ -449,20 +455,15 @@ def validate_slice(
 
         trimed_st = merge_traces_fill_zeros(trimed_st)
 
-        if trimed_st[0].stats.npts < processing_params.get_raw_expected_no_samples(
-            raw_sps
-        ):
+        if trimed_st[0].stats.npts < expected_no_samples:
             try:
                 trimed_st = pad_zeros_to_exact_time_bounds(
-                    trimed_st,
-                    timespan,
-                    processing_params.get_raw_expected_no_samples(raw_sps),
+                    trimed_st, timespan, expected_no_samples
                 )
             except ValueError as e:
                 logging.warning(f"Padding was not successful. SKipping chunk.")
                 raise ValueError(f"Datachunk padding unsuccessful.")
-    else:
-        deficit = None
+
     return trimed_st, deficit
 
 
