@@ -254,6 +254,24 @@ def preprocess_timespan(
     )
     logging.info(f"Detrending")
     trimed_st.detrend(type="polynomial", order=3)
+    logging.info(
+        f"Resampling stream to {processing_params.sampling_rate} Hz with padding to next power of 2"
+    )
+    trimed_st = resample_with_padding(
+        st=trimed_st, sampling_rate=processing_params.sampling_rate
+    )
+    logging.info(
+        f"Filtering with bandpass to "
+        f"low: {processing_params.prefiltering_low};"
+        f"high: {processing_params.prefiltering_high};"
+        f"order: {processing_params.prefiltering_order}"
+    )
+    trimed_st.filter(
+        type="bandpass",
+        freqmin=processing_params.prefiltering_low,
+        freqmax=processing_params.prefiltering_high,
+        corners=processing_params.prefiltering_order,
+    )
     logging.info("Removing response")
     trimed_st.remove_response(inventory)
     logging.info(
