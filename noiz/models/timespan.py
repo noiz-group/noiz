@@ -116,4 +116,4 @@ class Timespan(TimespanModel):
         db.UniqueConstraint("starttime", "midtime", "endtime", name="unique_times"),
     )
 
-    datachunks = db.relationship("DataChunk")
+    datachunks = db.relationship("Datachunk")

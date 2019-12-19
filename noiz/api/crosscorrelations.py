@@ -1,5 +1,6 @@
+import datetime
 import logging
-from typing import Iterable
+from typing import Iterable, List, Tuple
 
 from obspy.signal.cross_correlation import correlate
 from sqlalchemy import and_
@@ -13,14 +14,13 @@ from noiz.models import (
     ProcessingParams,
     Timespan,
     Component,
-    DataChunk,
+    Datachunk,
     ProcessedDatachunk,
     ComponentPair,
 )
 from noiz.processing.crosscorrelations import (
     split_component_pairs_to_components,
     group_componentpairs_by_componenta_componentb,
-    fetch_processeddatachunks_a_day,
     group_chunks_by_timespanid_componentid,
     find_correlations_in_chunks,
     load_data_for_chunks,
@@ -102,7 +102,7 @@ def perform_crosscorrelations_for_day_and_pairs(
 
     components_day = (
         db.session.query(Timespan, Component)
-        .join(DataChunk)
+        .join(Datachunk)
         .join(ProcessedDatachunk)
         .join(Component)
         .distinct(Component.id)
@@ -210,3 +210,23 @@ def perform_crosscorrelations_for_day_and_pairs(
 
     logging.info(f"Success!")
     return
+
+
+def fetch_processeddatachunks_a_day(
+    date: datetime.datetime,
+) -> List[Tuple[ProcessedDatachunk, int, int]]:
+
+    year, day_of_year = get_year_doy(date)
+    processed_datachunks_day: List[Tuple[ProcessedDatachunk, int, int]] = (
+        db.session.query(ProcessedDatachunk, Component.id, Timespan.id)
+        .join(Datachunk)
+        .join(Timespan)
+        .join(Component)
+        .options(
+            subqueryload(ProcessedDatachunk.datachunk).subqueryload(Datachunk.component)
+        )
+        .filter(Timespan.starttime_year == year, Timespan.starttime_doy == day_of_year)
+        .order_by(Timespan.id)
+        .all()
+    )
+    return processed_datachunks_day

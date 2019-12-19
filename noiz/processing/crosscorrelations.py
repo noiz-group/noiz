@@ -1,21 +1,10 @@
 import numpy as np
-import datetime
 import obspy
 
-from sqlalchemy.orm import subqueryload
-
 from collections import defaultdict
-from typing import Tuple, Iterable, Dict, DefaultDict, List
+from typing import Tuple, Iterable, Dict, DefaultDict
 
-from noiz.models import (
-    DataChunk,
-    ProcessedDatachunk,
-    Component,
-    Timespan,
-    ComponentPair,
-)
-from noiz.database import db
-from noiz.processing.time_utils import get_year_doy
+from noiz.models import ProcessedDatachunk, ComponentPair
 
 
 def get_time_vector_ccf(max_lag: float, sampling_rate: float) -> np.array:
@@ -69,26 +58,6 @@ def group_componentpairs_by_componenta_componentb(
     for component_pair, component_a_id, component_b_id in component_pairs:
         groupped_componentpairs[component_a_id][component_b_id] = component_pair
     return groupped_componentpairs
-
-
-def fetch_processeddatachunks_a_day(
-    date: datetime.date,
-) -> List[Tuple[ProcessedDatachunk, int, int]]:
-
-    year, day_of_year = get_year_doy(date)
-    processed_datachunks_day: List[Tuple[ProcessedDatachunk, int, int]] = (
-        db.session.query(ProcessedDatachunk, Component.id, Timespan.id)
-        .join(DataChunk)
-        .join(Timespan)
-        .join(Component)
-        .options(
-            subqueryload(ProcessedDatachunk.datachunk).subqueryload(DataChunk.component)
-        )
-        .filter(Timespan.starttime_year == year, Timespan.starttime_doy == day_of_year)
-        .order_by(Timespan.id)
-        .all()
-    )
-    return processed_datachunks_day
 
 
 def find_correlations_in_chunks(

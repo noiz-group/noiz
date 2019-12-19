@@ -1,5 +1,7 @@
 import pytest
 
+from obspy.core.util import AttribDict
+
 from noiz.models import Component
 
 
@@ -16,6 +18,16 @@ class TestComponent:
 
         assert isinstance(Component(lat=10, lon=1), Component)
         assert isinstance(Component(x=452484.15, y=5411718.72, zone=31), Component)
+
+    def test_get_location_as_attribdict(self):
+        latitude = 10
+        longitude = 1
+        elevation = 100
+        cmp = Component(lat=latitude, lon=longitude, elevation=elevation)
+        assert isinstance(cmp.get_location_as_attribdict(), AttribDict)
+        assert cmp.get_location_as_attribdict()["latitude"] == latitude
+        assert cmp.get_location_as_attribdict()["longitude"] == longitude
+        assert cmp.get_location_as_attribdict()["elevation"] == elevation
 
     @pytest.mark.xfail
     def test_make_station_string(self):
