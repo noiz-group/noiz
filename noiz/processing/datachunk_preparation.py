@@ -241,6 +241,20 @@ def preprocess_timespan(
     :return: Processed Stream
     :rtype: obspy.Stream
     """
+
+    logging.info(f"Detrending")
+    trimed_st.detrend(type="polynomial", order=3)
+
+    logging.info(f"Demeaning")
+    trimed_st.detrend(type="demean")
+
+    logging.info(
+        f"Resampling stream to {processing_params.sampling_rate} Hz with padding to next power of 2"
+    )
+    trimed_st = resample_with_padding(
+        st=trimed_st, sampling_rate=processing_params.sampling_rate
+    )
+
     logging.info(
         f"Tapering stream with type: {processing_params.preprocessing_taper_type}; "
         f"width: {processing_params.preprocessing_taper_width}; "
@@ -251,14 +265,7 @@ def preprocess_timespan(
         max_percentage=processing_params.preprocessing_taper_width,
         side=processing_params.preprocessing_taper_side,
     )
-    logging.info(f"Detrending")
-    trimed_st.detrend(type="polynomial", order=3)
-    logging.info(
-        f"Resampling stream to {processing_params.sampling_rate} Hz with padding to next power of 2"
-    )
-    trimed_st = resample_with_padding(
-        st=trimed_st, sampling_rate=processing_params.sampling_rate
-    )
+
     logging.info(
         f"Filtering with bandpass to "
         f"low: {processing_params.prefiltering_low};"
@@ -271,6 +278,7 @@ def preprocess_timespan(
         freqmax=processing_params.prefiltering_high,
         corners=processing_params.prefiltering_order,
     )
+
     logging.info("Removing response")
     trimed_st.remove_response(inventory)
     logging.info(
