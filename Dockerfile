@@ -1,15 +1,19 @@
 #LABEL name="noiz"
-#LABEL description="Descirption of noiz app"
+#LABEL description="Base image for Noiz app"
 #LABEL maintainer="Damian Kula, dkula@unistra.fr"
-#LABEL version="0.0.3"
-#LABEL date="2019.05.31"
+#LABEL version="0.0.4"
+#LABEL date="2019.12.16"
 #LABEL schema-version="1.0.0"
 
 FROM continuumio/miniconda3:latest
 ENV PYTHONUNBUFFERED 1
 RUN apt-get update && \
-    apt-get upgrade -y
-RUN  /opt/conda/bin/conda install -c conda-forge -c heavelock -y \
+    apt-get upgrade -yy
+RUN  /opt/conda/bin/conda install \
+ -c conda-forge \
+ -c heavelock \
+ -y \
+ python=3.7 \
  celery \
  click \
  environs \
@@ -32,5 +36,6 @@ RUN  /opt/conda/bin/conda install -c conda-forge -c heavelock -y \
 RUN mkdir /noiz
 WORKDIR /noiz
 COPY ./ /noiz/
-RUN /opt/conda/bin/conda install -c conda-forge -c heavelock --file requirements.txt -y
-RUN pip install -e .
+RUN /opt/conda/bin/conda install -c conda-forge -c heavelock --file requirements.txt -y && \
+ pip install -e . && \
+ conda clean --all --yes

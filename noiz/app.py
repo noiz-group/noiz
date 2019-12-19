@@ -22,7 +22,7 @@ def create_app(config_object="noiz.settings", mode="app", external_logger=False)
         logger = configure_logger(app)
         logger.info("App initialization successful")
 
-    register_dashapps(app)
+    # register_dashapps(app)
 
     load_noiz_config(app)
 
@@ -30,29 +30,31 @@ def create_app(config_object="noiz.settings", mode="app", external_logger=False)
         return app
 
 
-def register_dashapps(app):
-    app.logger.info("Starting to initailize dashapps")
-    from noiz.dashapp.layout import layout
-    from noiz.dashapp.callbacks import register_callbacks
-
-    # Meta tags for viewport responsiveness
-    meta_viewport = {
-        "name": "viewport",
-        "content": "width=device-width, initial-scale=1, shrink-to-fit=no",
-    }
-    #
-    dashapp1 = dash.Dash(
-        __name__,
-        server=app,
-        url_base_pathname="/dashboard/",
-        assets_folder=get_root_path(__name__) + "/dashboard/assets/",
-        meta_tags=[meta_viewport],
-    )
-    #
-    with app.app_context():
-        dashapp1.title = "Dashapp 1"
-        dashapp1.layout = layout
-        register_callbacks(dashapp1)
+#
+#
+# def register_dashapps(app):
+#     app.logger.info("Starting to initailize dashapps")
+#     from noiz.dashapp.layout import layout
+#     from noiz.dashapp.callbacks import register_callbacks
+#
+#     # Meta tags for viewport responsiveness
+#     meta_viewport = {
+#         "name": "viewport",
+#         "content": "width=device-width, initial-scale=1, shrink-to-fit=no",
+#     }
+#     #
+#     dashapp1 = dash.Dash(
+#         __name__,
+#         server=app,
+#         url_base_pathname="/dashboard/",
+#         assets_folder=get_root_path(__name__) + "/dashboard/assets/",
+#         meta_tags=[meta_viewport],
+#     )
+#     #
+#     with app.app_context():
+#         dashapp1.title = "Dashapp 1"
+#         dashapp1.layout = layout
+#         register_callbacks(dashapp1)
 
 
 def load_noiz_config(app):
