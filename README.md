@@ -3,3 +3,5 @@
 [![coverage report](https://gitlab.com/noiz-group/noiz/badges/master/coverage.svg)](https://gitlab.com/noiz-group/noiz/commits/master)
 
 Ambient Seismic noiz processing app
+
+Documentation can be found at https://noiz-group.gitlab.io/noiz
