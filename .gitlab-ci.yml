@@ -6,6 +6,7 @@ stages:
   - documentation
   - documentation-deployment
   - image-building
+  - downstream
 
 test-noiz:
   before_script:
@@ -88,5 +89,11 @@ latest_build:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker build -t $IMAGE_TAG .
     - docker push $IMAGE_TAG
+  only:
+  - master
+
+trigger_airflow_master:
+  stage: downstream
+  script: "curl -X POST -F token=353b4796edcc7c14051b386acc68a6 -F ref=master https://gitlab.com/api/v4/projects/13151521/trigger/pipeline"
   only:
   - master
