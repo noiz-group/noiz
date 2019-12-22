@@ -95,5 +95,5 @@ latest_build:
 trigger_airflow_master:
   stage: downstream
   script: "curl -X POST -F token=353b4796edcc7c14051b386acc68a6 -F ref=master https://gitlab.com/api/v4/projects/13151521/trigger/pipeline"
-  only:
-  - master
+#  only:
+#  - master
