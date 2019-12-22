@@ -34,8 +34,10 @@ RUN  /opt/conda/bin/conda install \
  black \
  pre_commit
 RUN mkdir /noiz
+
 WORKDIR /noiz
 COPY ./ /noiz/
+
 RUN /opt/conda/bin/conda install -c conda-forge -c heavelock --file requirements.txt -y && \
  pip install -e . && \
  conda clean --all --yes
