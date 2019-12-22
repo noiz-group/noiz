@@ -97,6 +97,6 @@ trigger_airflow_master:
   image: alpine
   script:
     - apk update && apk add curl
-    - "curl -X POST -F token=353b4796edcc7c14051b386acc68a6 -F ref=master https://gitlab.com/api/v4/projects/13151521/trigger/pipeline"
-#  only:
-#  - master
+    - "curl -X POST -F token=$TOKEN_TRIGGER_MASTER_AIRFLOW -F ref=master https://gitlab.com/api/v4/projects/13151521/trigger/pipeline"
+  only:
+  - master
