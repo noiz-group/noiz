@@ -8,11 +8,15 @@ stages:
   - image-building
   - downstream
 
+.install_noiz: &install_noiz
+  - conda create -c conda-forge -c heavelock -n noiz-test python=3.7 --file=requirements.txt --yes
+  - source activate noiz-test
+  - pip install sqlalchemy-stubs
+
 test-noiz:
   before_script:
-    - conda create -c conda-forge -c heavelock -n noiz-test python=3.7 --file=requirements.txt --yes
-    - source activate noiz-test
-    - pip install sqlalchemy-stubs
+    - *install_noiz
+
   stage: testing
   script:
     - source activate noiz-test
@@ -27,9 +31,7 @@ black-check:
 
 type-check:
   before_script:
-    - conda create -c conda-forge -c heavelock -n noiz-test python=3.7 --file=requirements.txt --yes
-    - source activate noiz-test
-    - pip install sqlalchemy-stubs
+    - *install_noiz
   stage: linting
   script:
     - source activate noiz-test
