@@ -7,7 +7,7 @@ flask-sqlalchemy
 flask-migrate
 jupyterlab
 matplotlib
-numpy==1.16
+numpy
 obspy
 pandas
 plotly
@@ -15,6 +15,7 @@ psycopg2
 scipy
 tqdm
 utm
+beautifulsoup4
 
 #test
 black
