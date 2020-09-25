@@ -9,7 +9,7 @@ stages:
   - downstream
 
 .install_noiz: &install_noiz
-  - python -m pip install -f requirements.txt --no-cache-dir
+  - python -m pip install -r requirements.txt --no-cache-dir
   - python -m pip install sqlalchemy-stubs
 
 test-noiz:
