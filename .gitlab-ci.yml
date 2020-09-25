@@ -47,8 +47,8 @@ build-docs:
   artifacts:
     paths:
     - docs/_build/html/
-  only:
-    - master
+#  only:
+#    - master
 
 pages:
   stage: documentation-deployment
