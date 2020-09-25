@@ -7,11 +7,7 @@
 
 FROM python:3.8
 ENV PYTHONUNBUFFERED 1
-RUN apt-get update && \
-    apt-get upgrade -yy
-RUN python -m pip install -r requirements.txt --no-cache-dir
 RUN mkdir /noiz
-
 WORKDIR /noiz
 COPY ./ /noiz/
 
