@@ -10,7 +10,11 @@ from noiz.routes import simple_page
 from noiz.database import db, migrate
 
 
-def create_app(config_object="noiz.settings", mode="app", external_logger=False):
+def create_app(
+        config_object: str = "noiz.settings",
+        mode: str = "app",
+        external_logger: bool = False
+):
     app = Flask(__name__)
     app.config.from_object(config_object)
 
@@ -27,7 +31,7 @@ def create_app(config_object="noiz.settings", mode="app", external_logger=False)
         return app
 
 
-def load_noiz_config(app):
+def load_noiz_config(app: Flask):
     app.noiz_config = {}
     processed_data_dir = os.environ.get("PROCESSED_DATA_DIR")
     if processed_data_dir is None:
@@ -37,7 +41,7 @@ def load_noiz_config(app):
     return None
 
 
-def register_extensions(app):
+def register_extensions(app: Flask):
     db.init_app(app)
     import noiz.models
 
@@ -45,12 +49,12 @@ def register_extensions(app):
     return None
 
 
-def register_blueprints(app):
+def register_blueprints(app: Flask):
     app.register_blueprint(simple_page)
     return None
 
 
-def configure_logger(app):
+def configure_logger(app: Flask):
     """Configure loggers."""
 
     logging.config.dictConfig(logger_config)
