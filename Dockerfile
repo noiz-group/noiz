@@ -15,6 +15,6 @@ RUN mkdir /noiz
 WORKDIR /noiz
 COPY ./ /noiz/
 
-RUN python -m pip install -r requirements.txt --no-cache-dir && \
+RUN cd /noiz/ && \
+ python -m pip install -r requirements.txt --no-cache-dir && \
  pip install -e .
-
