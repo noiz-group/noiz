@@ -14,8 +14,7 @@ from noiz.processing.inventory import read_inventory
 
 cli = AppGroup("Main")
 init_group = AppGroup("init")  # type: ignore
-proc = AppGroup("proc")  # type: ignore
-gggg = AppGroup("noizfff")  # type: ignore
+processing_group = AppGroup("processing")  # type: ignore
 
 
 def _register_subgroups_to_cli(cli: AppGroup, custom_groups: Iterable[AppGroup]):
@@ -69,13 +68,13 @@ def add_inventory(filepath, filetype):
     return
 
 
-@proc.group("proc")
-def proc():  # type: ignore
-    """This is short explanation?"""
+@processing_group.group("processing")
+def processing_group():  # type: ignore
+    """Processing subcommands"""
     pass
 
 
-@proc.command("prepare_datachunks")
+@processing_group.command("prepare_datachunks")
 @with_appcontext
 @click.option("-a", "--station", multiple=True, required=True, type=str)
 @click.option("-c", "--component", multiple=True, required=True, type=str)
@@ -87,20 +86,7 @@ def prepare_datachunks(station, component, startdate, enddate):
         stations=station, components=component, startdate=startdate, enddate=enddate
     )
 
-
-@gggg.group()
-def gggg():  # type: ignore
-    """This is short explanation?"""
-    pass
-
-
-@gggg.command()
-def firstf():
-    """That's the explanation of first command of the group"""
-    click.echo("That's the first command of the group")
-
-
-_register_subgroups_to_cli(cli, (init_group, gggg, proc))
+_register_subgroups_to_cli(cli, (init_group, processing_group))
 
 
 if __name__ == "__main__":
