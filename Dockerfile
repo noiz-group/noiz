@@ -5,7 +5,7 @@
 #LABEL date="2019.12.16"
 #LABEL schema-version="1.0.0"
 
-FROM python:3.8-slim
+FROM python:3.8
 ENV PYTHONUNBUFFERED 1
 RUN apt-get update && \
     apt-get upgrade -yy
