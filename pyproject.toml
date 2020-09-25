@@ -1,2 +1,12 @@
+[build-system]
+# Minimum requirements for the build system to execute.
+# see PEP518: https://www.python.org/dev/peps/pep-0518/
+requires = [
+    'numpy>=1.19',
+    'setuptools>=47.1',
+    'wheel>=0.34.0',
+    ]
+build-backend = 'setuptools.build_meta'
+
 [tool.black]
 target-version = ['py37']
