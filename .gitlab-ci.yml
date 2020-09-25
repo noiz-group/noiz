@@ -1,4 +1,4 @@
-image: continuumio/miniconda3:latest
+image: python:3.8-slim
 
 stages:
   - testing
@@ -9,9 +9,8 @@ stages:
   - downstream
 
 .install_noiz: &install_noiz
-  - conda create -c conda-forge -c heavelock -n noiz-test python=3.7 --file=requirements.txt --yes
-  - source activate noiz-test
-  - pip install sqlalchemy-stubs
+  - python -m pip install -f requirements.txt --no-cache-dir
+  - python -m pip install sqlalchemy-stubs
 
 test-noiz:
   before_script:
@@ -22,33 +21,34 @@ test-noiz:
     - source activate noiz-test
     - pytest --cov=noiz
 
-black-check:
-  before_script:
-    - conda install black
-  stage: linting
-  script:
-    - black --verbose --check noiz
+#black-check:
+#  before_script:
+#    - conda install black
+#  stage: linting
+#  script:
+#    - black --verbose --check noiz
 
 type-check:
   before_script:
     - *install_noiz
   stage: linting
   script:
-    - source activate noiz-test
     - mypy noiz
 
 build-docs:
   stage: documentation
   script:
   - apt-get update && apt-get install build-essential -yy
-  - pip install -r requirements.txt
-  - pip install -r requirements-docs.txt
+  - python -m pip install -r requirements.txt
+  - python -m pip pip install -r requirements-docs.txt
   - sphinx-apidoc -f -o docs noiz
   - cd docs
   - make html
   artifacts:
     paths:
     - docs/_build/html/
+  only:
+    - master
 
 pages:
   stage: documentation-deployment
