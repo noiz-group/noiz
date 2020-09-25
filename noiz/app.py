@@ -16,7 +16,6 @@ def create_app(config_object="noiz.settings", mode="app", external_logger=False)
 
     register_extensions(app)
     register_blueprints(app)
-    register_cli_extensions(app)
 
     if not external_logger:
         logger = configure_logger(app)
@@ -77,12 +76,6 @@ def register_extensions(app):
 
 def register_blueprints(app):
     app.register_blueprint(simple_page)
-    return None
-
-
-def register_cli_extensions(app):
-    # app.cli.add_command(cli)
-
     return None
 
 

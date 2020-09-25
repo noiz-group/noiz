@@ -5,14 +5,18 @@ from typing import Iterable
 import click
 from flask.cli import AppGroup, with_appcontext
 from flask import current_app
+from flask.cli import FlaskGroup
+
 
 from noiz.api.inventory import parse_inventory_insert_stations_and_components_into_db
 from noiz.api.processing_config import upsert_default_params
 from noiz.processing.datachunk_preparation import run_paralel_chunk_preparation
 from noiz.processing.inventory import read_inventory
 
+from noiz.app import create_app
 
-cli = AppGroup("Main")
+
+cli = AppGroup("noiz")
 init_group = AppGroup("init")  # type: ignore
 processing_group = AppGroup("processing")  # type: ignore
 
@@ -21,6 +25,11 @@ def _register_subgroups_to_cli(cli: AppGroup, custom_groups: Iterable[AppGroup])
     for custom_group in custom_groups:
         cli.add_command(custom_group)
     return
+
+@cli.group("noiz", cls=FlaskGroup, create_app=create_app)
+def cli():  # type: ignore
+    "Perform operations with noiz package"
+    pass
 
 
 @init_group.group("init")
