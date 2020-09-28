@@ -36,16 +36,32 @@ class Datachunk(db.Model):
 
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
     component = db.relationship("Component", foreign_keys=[component_id])
+    datachunk_file_id = db.Column(
+        "datachunk_file_id",
+        db.BigInteger,
+        db.ForeignKey("datachunk_file.id"),
+    )
     processing_params = db.relationship(
-        "ProcessingParams", foreign_keys=[processing_params_id]
+        "ProcessingParams", foreign_keys=[processing_params_id],
     )
     processed_datachunks = db.relationship("ProcessedDatachunk")
+
+    datachunk_file = db.relationship(
+        "DatachunkFile", foreign_keys=[datachunk_file_id]
+    )
 
     def load_data(self):
         if Path(self.filepath).exists:
             return obspy.read(self.filepath, "MSEED")
         else:
             raise MissingDataFileException(f"Data file for chunk {self} is missing")
+
+class DatachunkFile(db.Model):
+    __tablename__ = "datachunk_file"
+
+    id = db.Column("id", db.BigInteger, primary_key=True)
+    filepath = db.Column("filepath", db.UnicodeText, nullable=False)
+
 
 
 class ProcessedDatachunk(db.Model):
