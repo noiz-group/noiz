@@ -17,7 +17,8 @@ from noiz.api.timespan import fetch_timespans_for_doy
 from noiz.api.timeseries import fetch_raw_timeseries
 from noiz.database import db
 from noiz.exceptions import NoDataException
-from noiz.models import Component, Datachunk, Timespan, ProcessingParams
+from noiz.models import Component, Datachunk, DatachunkFile, Timespan,\
+    ProcessingParams
 
 
 def expected_npts(timespan_length: float, sampling_rate: float) -> int:
@@ -34,13 +35,22 @@ def expected_npts(timespan_length: float, sampling_rate: float) -> int:
     return int(timespan_length * sampling_rate)
 
 
-def assembly_preprocessing_filename(component, timespan):
+def assembly_preprocessing_filename(
+        component: Component,
+        timespan: Timespan,
+        count: int = 0
+) -> str:
     year = str(timespan.starttime.year)
     doy_time = timespan.starttime.strftime("%j.%H%M")
 
-    fname = ".".join(
-        [component.network, component.station, component.component, year, doy_time]
-    )
+    fname = ".".join([
+        component.network,
+        component.station,
+        component.component,
+        year,
+        doy_time,
+        count
+    ])
 
     return fname
 
@@ -359,12 +369,20 @@ def create_datachunks_for_component(
         filepath = assembly_filepath(
             processed_data_dir,
             "datachunk",
-            assembly_sds_like_dir(component, timespan).joinpath(
-                assembly_preprocessing_filename(component, timespan)
+            assembly_sds_like_dir(component, timespan)\
+                .joinpath(
+                    assembly_preprocessing_filename(
+                        component=component,
+                        timespan=timespan,
+                        count=0
+                    )
             ),
         )
         logging.info(f"Chunk will be written to {str(filepath)}")
         directory_exists_or_create(filepath)
+
+        datachunk_file = DatachunkFile(filepath=str(filepath))
+        trimed_st.write(datachunk_file.filepath, format="mseed")
 
         datachunk = Datachunk(
             processing_params_id=processing_params.id,
@@ -372,7 +390,7 @@ def create_datachunks_for_component(
             timespan_id=timespan.id,
             sampling_rate=trimed_st[0].stats.sampling_rate,
             npts=trimed_st[0].stats.npts,
-            filepath=str(filepath),
+            datachunk_file=datachunk_file,
             padded_npts=deficit,
         )
         logging.info(
@@ -391,14 +409,13 @@ def create_datachunks_for_component(
         )
         if len(existing_chunks) == 0:
             logging.info("Writing file to disc and adding entry to db")
-            trimed_st.write(datachunk.filepath, format="mseed")
             db.session.add(datachunk)
         else:
-            if not Path(datachunk.filepath).exists():
+            if not Path(datachunk_file.filepath).exists():
                 logging.info(
                     "There is some chunk in the db so I will update it and write/overwrite file to the disc."
                 )
-                trimed_st.write(datachunk.filepath, format="mseed")
+                trimed_st.write(datachunk_file.filepath, format="mseed")
                 insert_command = (
                     insert(Datachunk)
                     .values(
@@ -407,12 +424,12 @@ def create_datachunks_for_component(
                         timespan_id=datachunk.timespan_id,
                         sampling_rate=datachunk.sampling_rate,
                         npts=datachunk.npts,
-                        filepath=datachunk.filepath,
+                        datachunk_file=datachunk_file,
                         padded_npts=deficit,
                     )
                     .on_conflict_do_update(
                         constraint="unique_datachunk_per_timespan_per_station_per_processing",
-                        set_=dict(filepath=datachunk.filepath, padded_npts=deficit),
+                        set_=dict(datachunk_file_id=datachunk_file.id, padded_npts=deficit),
                     )
                 )
                 db.session.execute(insert_command)
