@@ -37,6 +37,10 @@ def init_group():  # type: ignore
     "Initiate operation in noiz"
     pass
 
+@init_group.command("load_processing_params")
+def load_processing_params():
+    """Replaces current processing config with default one"""
+    click.echo("This is a placeholder of an option")
 
 @init_group.command("reset_config")
 def reset_config():
