@@ -63,8 +63,6 @@ class DatachunkFile(db.Model):
     id = db.Column("id", db.BigInteger, primary_key=True)
     filepath = db.Column("filepath", db.UnicodeText, nullable=False)
 
-
-
 class ProcessedDatachunk(db.Model):
     __tablename__ = "processeddatachunk"
     __table_args__ = (
@@ -83,14 +81,34 @@ class ProcessedDatachunk(db.Model):
         nullable=False,
     )
     datachunk_id = db.Column(
-        "datachunk_id", db.Integer, db.ForeignKey("datachunk.id"), nullable=False
+        "datachunk_id",
+        db.Integer,
+        db.ForeignKey("datachunk.id"),
+        nullable=False
     )
-    filepath = db.Column("filepath", db.UnicodeText, nullable=False)
+    processed_datachunk_file_id = db.Column(
+        "processed_datachunk_file_id",
+        db.BigInteger,
+        db.ForeignKey("processed_datachunk_file.id"),
+        nullable=True,
+    )
 
     datachunk = db.relationship("Datachunk", foreign_keys=[datachunk_id])
+    processed_datachunk_file = db.relationship(
+        "ProcessedDatachunkFile",
+        foreign_keys = [processed_datachunk_file_id],
+        uselist = False,
+    )
 
     def load_data(self):
         if Path(self.filepath).exists:
             return obspy.read(self.filepath, "MSEED")
         else:
             raise MissingDataFileException(f"Data file for chunk {self} is missing")
+
+class ProcessedDatachunkFile(db.Model):
+    __tablename__ = "processed_datachunk_file"
+
+    id = db.Column("id", db.BigInteger, primary_key=True)
+    filepath = db.Column("filepath", db.UnicodeText, nullable=False)
+
