@@ -48,20 +48,26 @@ class Datachunk(db.Model):
     processed_datachunks = db.relationship("ProcessedDatachunk")
 
     datachunk_file = db.relationship(
-        "DatachunkFile", foreign_keys = [datachunk_file_id], uselist = False,
+        "DatachunkFile",
+        foreign_keys = [datachunk_file_id],
+        uselist = False,
+        lazy="joined",
     )
 
     def load_data(self):
-        if Path(self.filepath).exists:
-            return obspy.read(self.filepath, "MSEED")
+        filepath = Path(self.datachunk_file.filepath)
+        if filepath.exists:
+            return obspy.read(filepath, "MSEED")
         else:
             raise MissingDataFileException(f"Data file for chunk {self} is missing")
+
 
 class DatachunkFile(db.Model):
     __tablename__ = "datachunk_file"
 
     id = db.Column("id", db.BigInteger, primary_key=True)
     filepath = db.Column("filepath", db.UnicodeText, nullable=False)
+
 
 class ProcessedDatachunk(db.Model):
     __tablename__ = "processeddatachunk"
@@ -98,11 +104,13 @@ class ProcessedDatachunk(db.Model):
         "ProcessedDatachunkFile",
         foreign_keys = [processed_datachunk_file_id],
         uselist = False,
+        lazy="joined",
     )
 
     def load_data(self):
-        if Path(self.filepath).exists:
-            return obspy.read(self.filepath, "MSEED")
+        filepath = Path(self.processed_datachunk_file.filepath)
+        if filepath.exists:
+            return obspy.read(filepath, "MSEED")
         else:
             raise MissingDataFileException(f"Data file for chunk {self} is missing")
 
