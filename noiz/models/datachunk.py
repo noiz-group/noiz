@@ -31,23 +31,24 @@ class Datachunk(db.Model):
     )
     sampling_rate = db.Column("sampling_rate", db.Float, nullable=False)
     npts = db.Column("npts", db.Integer, nullable=False)
-    filepath = db.Column("filepath", db.UnicodeText, nullable=False)
     padded_npts = db.Column("padded_npts", db.Integer, nullable=True)
-
-    timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
-    component = db.relationship("Component", foreign_keys=[component_id])
     datachunk_file_id = db.Column(
         "datachunk_file_id",
         db.BigInteger,
         db.ForeignKey("datachunk_file.id"),
+        nullable=True,
     )
+
+    timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
+    component = db.relationship("Component", foreign_keys=[component_id])
     processing_params = db.relationship(
         "ProcessingParams", foreign_keys=[processing_params_id],
+        # uselist = False, # just for the future left, here, dont want to test that now
     )
     processed_datachunks = db.relationship("ProcessedDatachunk")
 
     datachunk_file = db.relationship(
-        "DatachunkFile", foreign_keys=[datachunk_file_id]
+        "DatachunkFile", foreign_keys = [datachunk_file_id], uselist = False,
     )
 
     def load_data(self):
