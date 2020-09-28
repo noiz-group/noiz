@@ -49,7 +49,7 @@ def assembly_preprocessing_filename(
         component.component,
         year,
         doy_time,
-        count
+        str(count)
     ])
 
     return fname
@@ -308,8 +308,7 @@ def preprocess_timespan(
     logging.info("Finished preprocessing with success")
     return trimed_st
 
-
-def create_datachunks_for_component(
+def create_datachunks_add_to_db(
     execution_date: datetime.datetime,
     component: Component,
     timespans: Collection[Timespan],
@@ -329,7 +328,7 @@ def create_datachunks_for_component(
         )
         return
 
-    logging.info("Fetching timeseries")
+    logging.info(f"Fetching timeseries for {execution_date} {component}")
     try:
         time_series = fetch_raw_timeseries(
             component=component, execution_date=execution_date
@@ -338,6 +337,23 @@ def create_datachunks_for_component(
         logging.error(e)
         raise e
 
+    finished_datachunks = create_datachunks_for_component(component=component,
+                                                          timespans=timespans,
+                                                          time_series=time_series,
+                                                          processing_params=processing_params,
+                                                          processed_data_dir=processed_data_dir)
+    add_or_upsert_datachunks_in_db(finished_datachunks)
+
+    return
+
+def create_datachunks_for_component(
+        component: Component,
+        timespans: Collection[Timespan],
+        time_series,
+        processing_params: ProcessingParams,
+        processed_data_dir: Path,
+)-> Iterable[Datachunk]:
+
     logging.info("Reading timeseries and inventory")
     st = time_series.read_file()
     inventory = component.read_inventory()
@@ -345,19 +361,24 @@ def create_datachunks_for_component(
     # logging.info("Preprocessing initially full day timeseries")
     # st = preprocess_whole_day(st, processing_params)
 
+    finished_datachunks = []
+
     logging.info("Splitting full day into timespans")
     for i, timespan in enumerate(timespans):
 
-        logging.info(f"Slicing timespan {i}/{timespans_count}")
+        logging.info(f"Slicing timespan {i}")
         trimed_st = st.slice(
             starttime=timespan.starttime_obspy(),
             endtime=timespan.remove_last_microsecond(),
             nearest_sample=False,
         )
 
-        trimed_st, deficit = validate_slice(
-            trimed_st, timespan, processing_params, float(time_series.samplerate)
-        )
+        try:
+            trimed_st, padded_npts = validate_slice(
+                trimed_st, timespan, processing_params, float(time_series.samplerate)
+            )
+        except ValueError:
+            continue
 
         logging.info("Preprocessing timespan")
         trimed_st = preprocess_timespan(
@@ -391,18 +412,29 @@ def create_datachunks_for_component(
             sampling_rate=trimed_st[0].stats.sampling_rate,
             npts=trimed_st[0].stats.npts,
             datachunk_file=datachunk_file,
-            padded_npts=deficit,
+            padded_npts=padded_npts,
         )
         logging.info(
             "Checking if there are some chunks fot tht timespan and component in db"
         )
+
+        finished_datachunks.append(datachunk)
+
+
+    return finished_datachunks
+
+
+
+def add_or_upsert_datachunks_in_db(datachunks):
+    for datachunk in datachunks:
+
         existing_chunks = (
             db.session.query(Datachunk)
-            .filter(
+                .filter(
                 Datachunk.component_id == datachunk.component_id,
                 Datachunk.timespan_id == datachunk.timespan_id,
             )
-            .all()
+                .all()
         )
         logging.info(
             "Checking if there are some timeseries files  for tht timespan and component on the disc"
@@ -411,29 +443,30 @@ def create_datachunks_for_component(
             logging.info("Writing file to disc and adding entry to db")
             db.session.add(datachunk)
         else:
-            if not Path(datachunk_file.filepath).exists():
+            if not Path(datachunk.datachunk_file.filepath).exists():
                 logging.info(
                     "There is some chunk in the db so I will update it and write/overwrite file to the disc."
                 )
-                trimed_st.write(datachunk_file.filepath, format="mseed")
                 insert_command = (
                     insert(Datachunk)
-                    .values(
+                        .values(
                         processing_config_id=datachunk.processing_params_id,
                         component_id=datachunk.component_id,
                         timespan_id=datachunk.timespan_id,
                         sampling_rate=datachunk.sampling_rate,
                         npts=datachunk.npts,
-                        datachunk_file=datachunk_file,
-                        padded_npts=deficit,
+                        datachunk_file=datachunk.datachunk_file,
+                        padded_npts=datachunk.padded_npts,
                     )
-                    .on_conflict_do_update(
+                        .on_conflict_do_update(
                         constraint="unique_datachunk_per_timespan_per_station_per_processing",
-                        set_=dict(datachunk_file_id=datachunk_file.id, padded_npts=deficit),
+                        set_=dict(
+                            datachunk_file_id=datachunk.datachunk_file.id,
+                            padded_npts=datachunk.padded_npts),
                     )
                 )
                 db.session.execute(insert_command)
-        db.session.commit()
+    db.session.commit()
     return
 
 
@@ -514,13 +547,10 @@ def run_chunk_preparation(
     logging.info(f"Invoking chunc creation itself")
     for component in components:
         with app.app_context() as ctx:
-            create_datachunks_for_component(
-                execution_date=execution_date,
-                component=component,
-                timespans=timespans,
-                processing_params=processing_config,
-                processed_data_dir=processed_data_dir,
-            )
+            create_datachunks_for_component(component=component,
+                                            timespans=timespans,
+                                            processing_params=processing_config,
+                                            processed_data_dir=processed_data_dir)
     return
 
 
