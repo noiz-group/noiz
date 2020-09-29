@@ -168,7 +168,7 @@ def resample_with_padding(
     endtime = tr.stats.endtime
     npts = tr.stats.npts
 
-    log.info("Finding deficit of sampls up to next power of 2")
+    log.info("Finding sample deficit up to next power of 2")
     deficit = 2 ** next_pow_2(npts) - npts
 
     log.info("Padding with zeros up to the next power of 2")
@@ -181,6 +181,7 @@ def resample_with_padding(
         f"Slicing data to fit them between starttime {starttime} and endtime {endtime}"
     )
     st = obspy.Stream(tr.slice(starttime=starttime, endtime=endtime))
+
 
     log.info("Resampling done!")
     return st
@@ -290,9 +291,13 @@ def preprocess_timespan(
     log.info(
         f"Resampling stream to {processing_params.sampling_rate} Hz with padding to next power of 2"
     )
-    trimed_st = resample_with_padding(
+    trimed_st: obspy.Stream = resample_with_padding(
         st=trimed_st, sampling_rate=processing_params.sampling_rate
     )
+
+    expected_samples = processing_params.get_expected_no_samples()
+    if trimed_st[0].stats.npts > expected_samples:
+        trimed_st[0].data = trimed_st[0].data[:expected_samples]
 
     log.info(
         f"Tapering stream with type: {processing_params.preprocessing_taper_type}; "
