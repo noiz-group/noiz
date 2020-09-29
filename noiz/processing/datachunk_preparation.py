@@ -8,7 +8,7 @@ from typing import Union, Iterable, Sized, Optional, Tuple, Collection
 
 import numpy as np
 import obspy
-import pandas as pd
+import pendulum
 
 from sqlalchemy.dialects.postgresql import insert
 
@@ -21,7 +21,7 @@ from noiz.models import Component, Datachunk, DatachunkFile, Timespan,\
     ProcessingParams
 
 
-def expected_npts(timespan_length: float, sampling_rate: float) -> int:
+def expected_npts(timespan_length: object, sampling_rate: object) -> object:
     """
     Calculates expected number of npts in a trace based on timespan length and sampling rate.
     Casted to int with floor rounding.
@@ -191,7 +191,7 @@ def preprocess_whole_day(
 
 def merge_traces_fill_zeros(st: obspy.Stream) -> obspy.Stream:
     """
-    TODO Fill the docstring
+    Merges Traces inside of Stream with use of zeros.
 
     :param st: stream to be trimmed
     :type st: obspy.Stream
@@ -534,10 +534,10 @@ def validate_slice(
     if len(trimed_st) > 1:
         logging.warning(
             f"There are {len(trimed_st)} traces in that stream. "
-            f"Trying to merge with Stream.merge() because its has enough of "
+            f"Trying to merge with Stream.merge(fill_value=0) because its has enough of "
             f"samples to pass minimum_no_samples criterium."
         )
-        trimed_st.merge()
+        trimed_st = merge_traces_fill_zeros(trimed_st)
         if len(trimed_st) > 1:
             raise ValueError(f"Merging not successfull. "
                              f"There are still {len(trimed_st)} traces in the "
@@ -548,22 +548,18 @@ def validate_slice(
         return trimed_st, deficit
 
     if samples_in_stream < expected_no_samples:
-        deficit = expected_no_samples - trimed_st[0].stats.npts
+        deficit = expected_no_samples - samples_in_stream
         logging.warning(
             f"Datachunk has less samples than expected but enough to be accepted."
             f"It will be padded with {deficit} zeros to match exact length."
         )
-
-        trimed_st = merge_traces_fill_zeros(trimed_st)
-
-        if trimed_st[0].stats.npts < expected_no_samples:
-            try:
-                trimed_st = pad_zeros_to_exact_time_bounds(
-                    trimed_st, timespan, expected_no_samples
-                )
-            except ValueError as e:
-                logging.error(f"Padding was not successful.")
-                raise ValueError(f"Datachunk padding unsuccessful.")
+        try:
+            trimed_st = pad_zeros_to_exact_time_bounds(
+                trimed_st, timespan, expected_no_samples
+            )
+        except ValueError as e:
+            logging.error(f"Padding was not successful.")
+            raise ValueError(f"Datachunk padding unsuccessful.")
 
     return trimed_st, deficit
 
@@ -598,7 +594,11 @@ def run_chunk_preparation(
 
 
 def run_paralel_chunk_preparation(
-    stations, components, startdate, enddate, processing_config_id=1
+        stations,
+        components,
+        startdate,
+        enddate,
+        processing_config_id=1
 ):
     date_range = pd.date_range(start=startdate, end=enddate, freq="D")
 
