@@ -364,7 +364,7 @@ def create_datachunks_for_component(
 
     finished_datachunks = []
 
-    logging.info("Splitting full day into timespans")
+    logging.info(f"Splitting full day into timespans for {component}")
     for timespan in timespans:
 
         logging.info(f"Slicing timespan {timespan}")
@@ -376,13 +376,16 @@ def create_datachunks_for_component(
 
         try:
             trimed_st, padded_npts = validate_slice(
-                trimed_st, timespan, processing_params, float(time_series.samplerate)
+                trimed_st=trimed_st,
+                timespan=timespan,
+                processing_params=processing_params,
+                raw_sps=float(time_series.samplerate)
             )
         except ValueError:
             continue
 
         logging.info("Preprocessing timespan")
-        trimed_st = preprocess_timespan(
+        trimed_st: obspy.Stream = preprocess_timespan(
             trimed_st=trimed_st,
             inventory=inventory,
             processing_params=processing_params,
