@@ -67,7 +67,7 @@ logger_config = dict(
             "file": {
                 "class": "logging.handlers.RotatingFileHandler",
                 "level": "DEBUG",
-                "filename": "/var/log/noiz.log",
+                "filename": "noiz.log",
                 "maxBytes":209715200,
                 "backupCount": 20,
                 "formatter": "myFormatter",
