@@ -356,8 +356,8 @@ def create_datachunks_for_component(
 )-> Iterable[Datachunk]:
 
     logging.info("Reading timeseries and inventory")
-    st = time_series.read_file()
-    inventory = component.read_inventory()
+    st: obspy.Stream = time_series.read_file()
+    inventory: obspy.Inventory = component.read_inventory()
 
     # logging.info("Preprocessing initially full day timeseries")
     # st = preprocess_whole_day(st, processing_params)
@@ -365,16 +365,14 @@ def create_datachunks_for_component(
     finished_datachunks = []
 
     logging.info("Splitting full day into timespans")
-    for i, timespan in enumerate(timespans):
+    for timespan in timespans:
 
-        logging.info(f"Slicing timespan {i}")
-        trimed_st = st.slice(
+        logging.info(f"Slicing timespan {timespan}")
+        trimed_st: obspy.Trace = st.slice(
             starttime=timespan.starttime_obspy(),
             endtime=timespan.remove_last_microsecond(),
             nearest_sample=False,
         )
-
-        trimed_st.merge()
 
         try:
             trimed_st, padded_npts = validate_slice(
@@ -485,14 +483,6 @@ def validate_slice(
     if len(trimed_st) == 0:
         ValueError(f"There was no data to be cut for that timespan")
 
-    if len(trimed_st) > 1:
-        logging.error(
-            f"There are {len(trimed_st)} traces in that stream. "
-            f"Trying to proceed anyway."
-        )
-        raise ValueError(f"There are {len(trimed_st)} traces in the stream!")
-
-
     samples_in_stream = sum([x.stats.npts for x in trimed_st])
 
     minimum_no_samples = processing_params.get_raw_minimum_no_samples(raw_sps)
@@ -505,6 +495,18 @@ def validate_slice(
             f"Skipping this chunk."
         )
         raise ValueError(f"Not enough data in a chunk.")
+
+    if len(trimed_st) > 1:
+        logging.warning(
+            f"There are {len(trimed_st)} traces in that stream. "
+            f"Trying to merge with Stream.merge() because its has enough of "
+            f"samples to pass minimum_no_samples criterium."
+        )
+        trimed_st.merge()
+        if len(trimed_st) > 1:
+            raise ValueError(f"Merging not successfull. "
+                             f"There are still {len(trimed_st)} traces in the "
+                             f"stream!")
 
     if samples_in_stream == expected_no_samples + 1:
         trimed_st[0].data = trimed_st[0].data[:-1]
@@ -525,7 +527,7 @@ def validate_slice(
                     trimed_st, timespan, expected_no_samples
                 )
             except ValueError as e:
-                logging.error(f"Padding was not successful. Skipping chunk.")
+                logging.error(f"Padding was not successful.")
                 raise ValueError(f"Datachunk padding unsuccessful.")
 
     return trimed_st, deficit
