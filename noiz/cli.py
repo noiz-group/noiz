@@ -7,6 +7,7 @@ from flask.cli import AppGroup, with_appcontext
 from flask import current_app
 from flask.cli import FlaskGroup
 
+import pendulum
 
 from noiz.api.inventory import parse_inventory_insert_stations_and_components_into_db
 from noiz.api.processing_config import upsert_default_params
@@ -89,14 +90,37 @@ def processing_group():  # type: ignore
 
 @processing_group.command("prepare_datachunks")
 @with_appcontext
-@click.option("-a", "--station", multiple=True, required=True, type=str)
-@click.option("-c", "--component", multiple=True, required=True, type=str)
-@click.option("-s", "--startdate", nargs=1, required=True, type=str)
-@click.option("-e", "--enddate", nargs=1, required=True, type=str)
-def prepare_datachunks(station, component, startdate, enddate):
+@click.option("-a", "--station", multiple=True, type=str)
+@click.option("-c", "--component", multiple=True, type=str)
+@click.option("-s", "--startdate", nargs=1, type=str,
+              default=pendulum.Pendulum(2000,1,1).date, show_default=True)
+@click.option("-e", "--enddate", nargs=1, type=str,
+              default=pendulum.today().date, show_default=True)
+@click.option("-p", "--processing_config_id", nargs=1, type=int,
+              default=1, show_default=True)
+def prepare_datachunks(
+        station,
+        component,
+        startdate,
+        enddate,
+        processing_config_id
+):
     """That's the explanation of second command of the group"""
+
+    startdate = pendulum.parse(startdate)
+    enddate = pendulum.parse(enddate)
+
+    if len(station) == 0:
+        station = None
+    if len(component) == 0:
+        component = None
+
     run_paralel_chunk_preparation(
-        stations=station, components=component, startdate=startdate, enddate=enddate
+        stations=station,
+        components=component,
+        startdate=startdate,
+        enddate=enddate,
+        processing_config_id=processing_config_id
     )
 
 _register_subgroups_to_cli(cli, (init_group, processing_group))
