@@ -4,7 +4,7 @@ import os
 
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Union, Iterable, Sized, Optional, Tuple, Collection
+from typing import Union, Iterable, Sized, Optional, Tuple, Collection, Dict
 
 import numpy as np
 import obspy
@@ -12,13 +12,15 @@ import pendulum
 
 from sqlalchemy.dialects.postgresql import insert
 
+from noiz.api.component import fetch_components
 from noiz.api.datachunk import count_datachunks_for_timespans
 from noiz.api.timespan import fetch_timespans_for_doy
 from noiz.api.timeseries import fetch_raw_timeseries
 from noiz.database import db
 from noiz.exceptions import NoDataException
-from noiz.models import Component, Datachunk, DatachunkFile, Timespan,\
-    ProcessingParams
+from noiz.globals import PROCESSED_DATA_DIR
+from noiz.models import Component, Datachunk, DatachunkFile, Timespan, \
+    Tsindex, ProcessingParams
 
 
 def expected_npts(timespan_length: object, sampling_rate: object) -> object:
@@ -365,19 +367,15 @@ def create_datachunks_add_to_db(
     finished_datachunks = create_datachunks_for_component(component=component,
                                                           timespans=timespans,
                                                           time_series=time_series,
-                                                          processing_params=processing_params,
-                                                          processed_data_dir=processed_data_dir)
+                                                          processing_params=processing_params)
     add_or_upsert_datachunks_in_db(finished_datachunks)
 
     return
 
-def create_datachunks_for_component(
-        component: Component,
-        timespans: Collection[Timespan],
-        time_series,
-        processing_params: ProcessingParams,
-        processed_data_dir: Path,
-)-> Iterable[Datachunk]:
+def create_datachunks_for_component(component: Component,
+                                    timespans: Collection[Timespan],
+                                    time_series: Tsindex,
+                                    processing_params: ProcessingParams) -> Iterable[Datachunk]:
 
     logging.info("Reading timeseries and inventory")
     st: obspy.Stream = time_series.read_file()
@@ -416,7 +414,7 @@ def create_datachunks_for_component(
         )
 
         filepath = assembly_filepath(
-            processed_data_dir,
+            PROCESSED_DATA_DIR,
             "datachunk",
             assembly_sds_like_dir(component, timespan)\
                 .joinpath(
@@ -588,55 +586,88 @@ def run_chunk_preparation(
         with app.app_context() as ctx:
             create_datachunks_for_component(component=component,
                                             timespans=timespans,
-                                            processing_params=processing_config,
-                                            processed_data_dir=processed_data_dir)
+                                            time_series=None,
+                                            processing_params=processing_config)
     return
 
 
 def run_paralel_chunk_preparation(
-        stations,
-        components,
-        startdate,
-        enddate,
-        processing_config_id=1
+        stations: Collection[str],
+        components: Collection[str],
+        startdate: pendulum.Pendulum,
+        enddate: pendulum.Pendulum,
+        processing_config_id: int,
+        
 ):
-    date_range = pd.date_range(start=startdate, end=enddate, freq="D")
+    logging.info(f"Preparing jobs for execution")
+    joblist = prepare_datachunk_preparation_parameter_lists(stations,
+                                                            components,
+                                                            startdate, enddate,
+                                                            processing_config_id)
 
-    logging.info(f"Fetching processing config, timespans and componsents from db")
-    processing_config = (
+    from dask.distributed import Client, as_completed
+    client = Client(threads_per_worker=4, n_workers=3)
+
+    logging.info(f'Dask client started succesfully. '
+                 f'You can monitor execution on {client.dashboard_link}')
+
+    logging.info("Submitting tasks to Dask client")
+    futures = []
+    for params in joblist:
+        future = client.submit(create_datachunks_for_component, **params)
+        futures.append(future)
+
+    logging.info(f"There are {len(futures)} tasks to be executed")
+
+    logging.info("Starting execution. "
+                 "Results will be saved to database on the fly. ")
+    # results = client.gather(futures)
+
+    # for future, result in as_completed(futures, with_results=True):
+    #     add_or_upsert_datachunks_in_db(result)
+
+    client.close()
+    # TODO Add summary printout.
+
+
+def prepare_datachunk_preparation_parameter_lists(
+        stations: Optional[Collection[str]],
+        components: Optional[Collection[str]],
+        startdate: pendulum.Pendulum,
+        enddate: pendulum.Pendulum,
+        processing_config_id: int,
+) -> Iterable[Dict]:
+
+    date_period = pendulum.period(startdate, enddate)
+    logging.info(
+        f"Fetching processing config, timespans and componsents from db")
+    processing_params = (
         db.session.query(ProcessingParams)
-        .filter(ProcessingParams.id == processing_config_id)
-        .first()
+            .filter(ProcessingParams.id == processing_config_id)
+            .first()
     )
-
     all_timespans = {}
-    for date in date_range:
+    for date in date_period.range('days'):
         all_timespans[date] = fetch_timespans_for_doy(
-            year=date.year, doy=date.timetuple().tm_yday
+            year=date.year, doy=date.day_of_year
         )
-    processed_data_dir = os.environ.get("PROCESSED_DATA_DIR")
+    fetched_components = fetch_components(networks=None,
+                                  stations=stations,
+                                  components=components)
 
-    components = Component.query.filter(
-        Component.station.in_(stations), Component.component.in_(components)
-    ).all()
-
-    def generate_tasks_for_chunk_preparation(
-        components, all_timespans, processing_config, processed_data_dir
-    ):
-        for component in components:
-            for date, timespans in all_timespans.items():
-                yield (
-                    date,
-                    component,
-                    timespans,
-                    processing_config,
-                    processed_data_dir,
+    for component in fetched_components:
+        for date, timespans in all_timespans.items():
+            try:
+                time_series = fetch_raw_timeseries(
+                    component=component, execution_date=date
                 )
+            except NoDataException as e:
+                logging.warning(f"{e} Skipping.")
+                continue
+            yield  {
+                'component': component,
+                'timespans': timespans,
+                'time_series': time_series,
+                'processing_params': processing_params,
+            }
 
-    joblist = generate_tasks_for_chunk_preparation(
-        components, all_timespans, processing_config, processed_data_dir
-    )
-
-    logging.info(f"Invoking chunk creation itself")
-    with Pool(10) as p:
-        p.starmap(create_datachunks_for_component, joblist)
