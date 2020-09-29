@@ -17,6 +17,8 @@ tqdm~=4.50.0
 utm~=0.6.0
 beautifulsoup4~=4.9.2
 dask[complete]~=2.28.0
+pendulum==1.4.4 # Outdated but compatible with Airflow 1.10.x.
+# TODO update when migrating to Airflow 2.0
 
 #test
 # black
