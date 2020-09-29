@@ -22,9 +22,6 @@ from noiz.models import Component, Datachunk, DatachunkFile, Timespan, \
 
 log = logging.getLogger(__name__)
 
-def wut():
-    logging.error('sssssssssssssssss')
-    print(__name__)
 
 def expected_npts(timespan_length: object, sampling_rate: object) -> object:
     """
@@ -256,6 +253,9 @@ def pad_zeros_to_exact_time_bounds(
         pad=True,
         fill_value=0,
     )
+
+    if st[0].stats.npts == expected_no_samples+1:
+        st[0].data = st[0].data[:-1]
 
     if st[0].stats.npts != expected_no_samples:
         raise ValueError(
@@ -559,7 +559,7 @@ def validate_slice(
                 trimed_st, timespan, expected_no_samples
             )
         except ValueError as e:
-            log.error(f"Padding was not successful.")
+            log.error(f"Padding was not successful. {e}")
             raise ValueError(f"Datachunk padding unsuccessful.")
 
     return trimed_st, deficit
@@ -610,36 +610,25 @@ def run_paralel_chunk_preparation(
 
     import dask
     from dask.distributed import Client, as_completed
-    client = Client(threads_per_worker=4, n_workers=3)
+    client = Client()
 
     log.info(f'Dask client started succesfully. '
                  f'You can monitor execution on {client.dashboard_link}')
 
     log.info("Submitting tasks to Dask client")
-    # lazy_results = []
-    # for params in joblist:
-    #     future = client.submit(create_datachunks_for_component, **params)
-    #     lazy_results.append(future)
-
-    lazy_results = []
-
+    futures = []
     for params in joblist:
-        lazy_result = dask.delayed(create_datachunks_for_component)(**params)
-        lazy_results.append(lazy_result)
+        future = client.submit(create_datachunks_for_component, **params)
+        futures.append(future)
 
-    futures = dask.persist(*lazy_results)
-    dask.compute(*futures)
 
-    log.info(f"There are {len(lazy_results)} tasks to be executed")
+    log.info(f"There are {len(futures)} tasks to be executed")
 
     log.info("Starting execution. "
                  "Results will be saved to database on the fly. ")
 
     for future, result in as_completed(futures, with_results=True):
-        print(result)
-
-    # for future, result in as_completed(futures, with_results=True):
-    #     add_or_upsert_datachunks_in_db(result)
+        add_or_upsert_datachunks_in_db(result)
 
     client.close()
     # TODO Add summary printout.
