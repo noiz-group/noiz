@@ -324,7 +324,8 @@ def create_datachunks_add_to_db(
 
     if no_datachunks == timespans_count:
         logging.info(
-            f"There is enough of datachunks in the db (no_datahcunks == no_timespans)"
+            f"There is enough of datachunks in the db "
+            f"(no_datahcunks == no_timespans)"
         )
         return
 
@@ -494,7 +495,7 @@ def validate_slice(
 
     if samples_in_stream < minimum_no_samples:
         logging.error(
-            f"There were {samples_in_stream} in the trace"
+            f"There were {samples_in_stream} samples in the trace"
             f" while {minimum_no_samples} were expected. "
             f"Skipping this chunk."
         )
