@@ -400,6 +400,14 @@ def create_datachunks_for_component(
                     )
             ),
         )
+
+        if filepath.exists():
+            logging.info(f'Filepath {filepath} exists. '
+                         f'Trying to find next free one.')
+            filepath = increment_filename_counter(filepath=filepath)
+            logging.info(f"Free filepath found. "
+                         f"Datachunk will be saved to {filepath}")
+
         logging.info(f"Chunk will be written to {str(filepath)}")
         directory_exists_or_create(filepath)
 
@@ -423,6 +431,30 @@ def create_datachunks_for_component(
 
 
     return finished_datachunks
+
+def increment_filename_counter(filepath: Path) -> Path:
+    """
+    Takes a filepath with int as suffix and returns a non existing filepath
+     that has next free int value as suffix.
+    :param filepath: Filepath to find next free path for
+    :type filepath: Path
+    :return: Free filepath
+    :rtype: Path
+    :raises: ValueError
+    """
+
+
+    while True:
+        if not filepath.exists():
+            return filepath
+
+        suffix = filepath.suffix[1:]
+        try:
+            suffix = int(suffix)
+        except ValueError:
+            raise ValueError(f"The filepath's {filepath} suffix {suffix} "
+                             f"cannot be casted to int")
+        filepath = filepath.with_suffix(f".{suffix+1}")
 
 
 
