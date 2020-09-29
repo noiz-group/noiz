@@ -60,14 +60,16 @@ logger_config = dict(
         "handlers": {
             "console": {
                 "class": "logging.StreamHandler",
-                "level": "DEBUG",
+                "level": "WARN",
                 "stream": "ext://sys.stdout",
                 "formatter": "myFormatter",
             },
             "file": {
-                "class": "logging.FileHandler",
+                "class": "logging.handlers.RotatingFileHandler",
                 "level": "DEBUG",
-                "filename": "noiz.log",
+                "filename": "/var/log/noiz.log",
+                "maxBytes":209715200,
+                "backupCount": 20,
                 "formatter": "myFormatter",
             },
             "wsgi": {
@@ -77,14 +79,22 @@ logger_config = dict(
             },
         },
         "loggers": {
-            "app": {"level": "DEBUG", "handlers": [], "propagate": True},
+            "app": {
+                "level": "DEBUG",
+                "handlers": [],
+                "propagate": True
+            },
             "processing": {
                 "level": "DEBUG",
-                "handlers": ["console"],
+                "handlers": [],
                 "propagate": False,
             },
-            "cli": {"level": "DEBUG", "handlers": [], "propagate": True},
+            "cli": {
+                "level": "DEBUG",
+                "handlers": [],
+                "propagate": True
+            },
         },
-        "root": {"level": "DEBUG", "handlers": ["console"]},
+        "root": {"level": "DEBUG", "handlers": ["console", "file"]},
     }
 )
