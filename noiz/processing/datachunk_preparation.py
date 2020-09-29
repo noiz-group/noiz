@@ -111,6 +111,31 @@ def directory_exists_or_create(filepath: Path) -> bool:
     return directory.exists()
 
 
+def increment_filename_counter(filepath: Path) -> Path:
+    """
+    Takes a filepath with int as suffix and returns a non existing filepath
+     that has next free int value as suffix.
+    :param filepath: Filepath to find next free path for
+    :type filepath: Path
+    :return: Free filepath
+    :rtype: Path
+    :raises: ValueError
+    """
+
+
+    while True:
+        if not filepath.exists():
+            return filepath
+
+        suffix = filepath.suffix[1:]
+        try:
+            suffix = int(suffix)
+        except ValueError:
+            raise ValueError(f"The filepath's {filepath} suffix {suffix} "
+                             f"cannot be casted to int")
+        filepath = filepath.with_suffix(f".{suffix+1}")
+
+
 def next_pow_2(number: int) -> int:
     """
        Finds a number that is a power of two that is next after value provided to that method
@@ -232,7 +257,6 @@ def pad_zeros_to_exact_time_bounds(
             f"The try of padding with zeros to {expected_no_samples} was not successful. Current length of data is {st[0].stats.npts}"
         )
     return st
-
 
 def preprocess_timespan(
     trimed_st: obspy.Stream,
@@ -434,30 +458,6 @@ def create_datachunks_for_component(
 
 
     return finished_datachunks
-
-def increment_filename_counter(filepath: Path) -> Path:
-    """
-    Takes a filepath with int as suffix and returns a non existing filepath
-     that has next free int value as suffix.
-    :param filepath: Filepath to find next free path for
-    :type filepath: Path
-    :return: Free filepath
-    :rtype: Path
-    :raises: ValueError
-    """
-
-
-    while True:
-        if not filepath.exists():
-            return filepath
-
-        suffix = filepath.suffix[1:]
-        try:
-            suffix = int(suffix)
-        except ValueError:
-            raise ValueError(f"The filepath's {filepath} suffix {suffix} "
-                             f"cannot be casted to int")
-        filepath = filepath.with_suffix(f".{suffix+1}")
 
 
 
