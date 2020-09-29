@@ -24,7 +24,7 @@ def test_assembly_filepath():
 def test_directory_exists_or_create():
     assert False
 
-
+@pytest.mark.xfail
 def test_increment_filename_counter():
     assert False
 
