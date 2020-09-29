@@ -1,19 +1,15 @@
 from flask import Flask
-from flask.helpers import get_root_path
 import os
+import logging
 
-import dash
-import logging.config
-
-from noiz.logg import logger_config
 from noiz.routes import simple_page
 from noiz.database import db, migrate
 
+log = logging.getLogger(__name__)
 
 def create_app(
         config_object: str = "noiz.settings",
         mode: str = "app",
-        external_logger: bool = False
 ):
     app = Flask(__name__)
     app.config.from_object(config_object)
@@ -21,11 +17,9 @@ def create_app(
     register_extensions(app)
     register_blueprints(app)
 
-    if not external_logger:
-        logger = configure_logger(app)
-        logger.info("App initialization successful")
-
     load_noiz_config(app)
+
+    log.info("App initialization successful")
 
     if mode == "app":
         return app
@@ -43,7 +37,6 @@ def load_noiz_config(app: Flask):
 
 def register_extensions(app: Flask):
     db.init_app(app)
-    import noiz.models
 
     migrate.init_app(app, db)
     return None
@@ -54,10 +47,3 @@ def register_blueprints(app: Flask):
     return None
 
 
-def configure_logger(app: Flask):
-    """Configure loggers."""
-
-    logging.config.dictConfig(logger_config)
-    logger = logging.getLogger("app")
-    logger.debug("Initializing logger")
-    return logger
