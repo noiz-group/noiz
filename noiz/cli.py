@@ -8,6 +8,7 @@ from flask import current_app
 from flask.cli import FlaskGroup
 
 import pendulum
+from pendulum.date import Date
 
 from noiz.api.inventory import parse_inventory_insert_stations_and_components_into_db
 from noiz.api.processing_config import upsert_default_params
@@ -107,8 +108,10 @@ def prepare_datachunks(
 ):
     """That's the explanation of second command of the group"""
 
-    startdate = pendulum.parse(startdate)
-    enddate = pendulum.parse(enddate)
+    if not isinstance(startdate, Date):
+        startdate = pendulum.parse(startdate)
+    if not isinstance(enddate, Date):
+        enddate = pendulum.parse(enddate)
 
     if len(station) == 0:
         station = None
