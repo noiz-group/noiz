@@ -29,8 +29,8 @@ test-noiz:
 #    - black --verbose --check noiz
 
 type-check:
-  before_script:
-    - *install_noiz
+#  before_script:
+#    - *install_noiz
   stage: linting
   script:
     - mypy noiz
