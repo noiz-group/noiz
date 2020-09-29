@@ -374,6 +374,8 @@ def create_datachunks_for_component(
             nearest_sample=False,
         )
 
+        trimed_st.merge()
+
         try:
             trimed_st, padded_npts = validate_slice(
                 trimed_st, timespan, processing_params, float(time_series.samplerate)
@@ -484,9 +486,12 @@ def validate_slice(
         ValueError(f"There was no data to be cut for that timespan")
 
     if len(trimed_st) > 1:
-        logging.warning(
-            f"There are {len(trimed_st)} traces in that stream. Trying to proceed anyway."
+        logging.error(
+            f"There are {len(trimed_st)} traces in that stream. "
+            f"Trying to proceed anyway."
         )
+        raise ValueError(f"There are {len(trimed_st)} traces in the stream!")
+
 
     samples_in_stream = sum([x.stats.npts for x in trimed_st])
 
@@ -520,7 +525,7 @@ def validate_slice(
                     trimed_st, timespan, expected_no_samples
                 )
             except ValueError as e:
-                logging.warning(f"Padding was not successful. SKipping chunk.")
+                logging.error(f"Padding was not successful. Skipping chunk.")
                 raise ValueError(f"Datachunk padding unsuccessful.")
 
     return trimed_st, deficit
