@@ -1,23 +1,15 @@
-import datetime
 import logging
-import os
 
-from multiprocessing import Pool
 from pathlib import Path
-from typing import Union, Iterable, Sized, Optional, Tuple, Collection
+from typing import Union, Optional, Tuple
 
 import numpy as np
 import obspy
-import pandas as pd
 
-from sqlalchemy.dialects.postgresql import insert
+from noiz.models import Component, Timespan, \
+    ProcessingParams
 
-from noiz.api.datachunk import count_datachunks_for_timespans
-from noiz.api.timespan import fetch_timespans_for_doy
-from noiz.api.timeseries import fetch_raw_timeseries
-from noiz.database import db
-from noiz.exceptions import NoDataException
-from noiz.models import Component, Datachunk, Timespan, ProcessingParams
+log = logging.getLogger("noiz.processing")
 
 
 def expected_npts(timespan_length: float, sampling_rate: float) -> int:
@@ -34,13 +26,22 @@ def expected_npts(timespan_length: float, sampling_rate: float) -> int:
     return int(timespan_length * sampling_rate)
 
 
-def assembly_preprocessing_filename(component, timespan):
+def assembly_preprocessing_filename(
+        component: Component,
+        timespan: Timespan,
+        count: int = 0
+) -> str:
     year = str(timespan.starttime.year)
     doy_time = timespan.starttime.strftime("%j.%H%M")
 
-    fname = ".".join(
-        [component.network, component.station, component.component, year, doy_time]
-    )
+    fname = ".".join([
+        component.network,
+        component.station,
+        component.component,
+        year,
+        doy_time,
+        str(count)
+    ])
 
     return fname
 
@@ -94,11 +95,36 @@ def directory_exists_or_create(filepath: Path) -> bool:
     :rtype: bool
     """
     directory = filepath.parent
-    logging.info(f"Checking if directory {directory} exists")
+    log.info(f"Checking if directory {directory} exists")
     if not directory.exists():
-        logging.info(f"Directory {directory} does not exists, trying to create.")
+        log.info(f"Directory {directory} does not exists, trying to create.")
         directory.mkdir(parents=True)
     return directory.exists()
+
+
+def increment_filename_counter(filepath: Path) -> Path:
+    """
+    Takes a filepath with int as suffix and returns a non existing filepath
+     that has next free int value as suffix.
+    :param filepath: Filepath to find next free path for
+    :type filepath: Path
+    :return: Free filepath
+    :rtype: Path
+    :raises: ValueError
+    """
+
+
+    while True:
+        if not filepath.exists():
+            return filepath
+
+        suffix: str = filepath.suffix[1:]
+        try:
+            suffix_int: int = int(suffix)
+        except ValueError:
+            raise ValueError(f"The filepath's {filepath} suffix {suffix} "
+                             f"cannot be casted to int")
+        filepath = filepath.with_suffix(f".{suffix_int+1}")
 
 
 def next_pow_2(number: int) -> int:
@@ -131,39 +157,40 @@ def resample_with_padding(
     endtime = tr.stats.endtime
     npts = tr.stats.npts
 
-    logging.info("Finding deficit of sampls up to next power of 2")
+    log.info("Finding sample deficit up to next power of 2")
     deficit = 2 ** next_pow_2(npts) - npts
 
-    logging.info("Padding with zeros up to the next power of 2")
+    log.info("Padding with zeros up to the next power of 2")
     tr.data = np.concatenate((tr.data, np.zeros(deficit)))
 
-    logging.info("Resampling")
+    log.info("Resampling")
     tr.resample(sampling_rate)
 
-    logging.info(
+    log.info(
         f"Slicing data to fit them between starttime {starttime} and endtime {endtime}"
     )
     st = obspy.Stream(tr.slice(starttime=starttime, endtime=endtime))
 
-    logging.info("Resampling done!")
+
+    log.info("Resampling done!")
     return st
 
 
 def preprocess_whole_day(
     st: obspy.Stream, preprocessing_config: ProcessingParams
 ) -> obspy.Stream:
-    logging.info(f"Trying to merge traces if more than 1")
+    log.info(f"Trying to merge traces if more than 1")
     st.merge()
 
     if len(st) > 1:
-        logging.error("There are more than one trace in the stream, raising error.")
+        log.error("There are more than one trace in the stream, raising error.")
         raise ValueError(f"There are {len(st)} traces in the stream!")
 
-    logging.info(
+    log.info(
         f"Resampling stream to {preprocessing_config.sampling_rate} Hz with padding to next power of 2"
     )
     st = resample_with_padding(st=st, sampling_rate=preprocessing_config.sampling_rate)
-    logging.info(
+    log.info(
         f"Filtering with bandpass to "
         f"low: {preprocessing_config.prefiltering_low};"
         f"high: {preprocessing_config.prefiltering_high};"
@@ -175,20 +202,23 @@ def preprocess_whole_day(
         freqmax=preprocessing_config.prefiltering_high,
         corners=preprocessing_config.prefiltering_order,
     )
-    logging.info("Finished processing whole day")
+    log.info("Finished processing whole day")
     return st
 
 
 def merge_traces_fill_zeros(st: obspy.Stream) -> obspy.Stream:
     """
-    TODO Fill the docstring
+    Merges Traces inside of Stream with use of zeros.
 
     :param st: stream to be trimmed
     :type st: obspy.Stream
     :return: Trimmed stream
     :rtype: obspy.Stream
     """
-    st.merge(fill_value=0)
+    try:
+        st.merge(fill_value=0)
+    except Exception as e:
+        raise ValueError(f"Cannot merge traces. {e}")
     return st
 
 
@@ -217,12 +247,14 @@ def pad_zeros_to_exact_time_bounds(
         fill_value=0,
     )
 
+    if st[0].stats.npts == expected_no_samples+1:
+        st[0].data = st[0].data[:-1]
+
     if st[0].stats.npts != expected_no_samples:
         raise ValueError(
             f"The try of padding with zeros to {expected_no_samples} was not successful. Current length of data is {st[0].stats.npts}"
         )
     return st
-
 
 def preprocess_timespan(
     trimed_st: obspy.Stream,
@@ -242,20 +274,24 @@ def preprocess_timespan(
     :rtype: obspy.Stream
     """
 
-    logging.info(f"Detrending")
+    log.info(f"Detrending")
     trimed_st.detrend(type="polynomial", order=3)
 
-    logging.info(f"Demeaning")
+    log.info(f"Demeaning")
     trimed_st.detrend(type="demean")
 
-    logging.info(
+    log.info(
         f"Resampling stream to {processing_params.sampling_rate} Hz with padding to next power of 2"
     )
     trimed_st = resample_with_padding(
         st=trimed_st, sampling_rate=processing_params.sampling_rate
-    )
+    ) # type: ignore
 
-    logging.info(
+    expected_samples = processing_params.get_expected_no_samples()
+    if trimed_st[0].stats.npts > expected_samples:
+        trimed_st[0].data = trimed_st[0].data[:expected_samples]
+
+    log.info(
         f"Tapering stream with type: {processing_params.preprocessing_taper_type}; "
         f"width: {processing_params.preprocessing_taper_width}; "
         f"side: {processing_params.preprocessing_taper_side}"
@@ -266,7 +302,7 @@ def preprocess_timespan(
         side=processing_params.preprocessing_taper_side,
     )
 
-    logging.info(
+    log.info(
         f"Filtering with bandpass to "
         f"low: {processing_params.prefiltering_low};"
         f"high: {processing_params.prefiltering_high};"
@@ -279,9 +315,9 @@ def preprocess_timespan(
         corners=processing_params.prefiltering_order,
     )
 
-    logging.info("Removing response")
+    log.info("Removing response")
     trimed_st.remove_response(inventory)
-    logging.info(
+    log.info(
         f"Filtering with bandpass;"
         f"low: {processing_params.prefiltering_low}; "
         f"high: {processing_params.prefiltering_high}; "
@@ -295,129 +331,8 @@ def preprocess_timespan(
         zerophase=True,
     )
 
-    logging.info("Finished preprocessing with success")
+    log.info("Finished preprocessing with success")
     return trimed_st
-
-
-def create_datachunks_for_component(
-    execution_date: datetime.datetime,
-    component: Component,
-    timespans: Collection[Timespan],
-    processing_params: ProcessingParams,
-    processed_data_dir: Path,
-) -> None:
-
-    no_datachunks = count_datachunks_for_timespans((component,), timespans)
-
-    timespans_count = len(timespans)
-
-    logging.info(f"There are {no_datachunks} datachunks for {execution_date} in db")
-
-    if no_datachunks == timespans_count:
-        logging.info(
-            f"There is enough of datachunks in the db (no_datahcunks == no_timespans)"
-        )
-        return
-
-    logging.info("Fetching timeseries")
-    try:
-        time_series = fetch_raw_timeseries(
-            component=component, execution_date=execution_date
-        )
-    except NoDataException as e:
-        logging.error(e)
-        raise e
-
-    logging.info("Reading timeseries and inventory")
-    st = time_series.read_file()
-    inventory = component.read_inventory()
-
-    # logging.info("Preprocessing initially full day timeseries")
-    # st = preprocess_whole_day(st, processing_params)
-
-    logging.info("Splitting full day into timespans")
-    for i, timespan in enumerate(timespans):
-
-        logging.info(f"Slicing timespan {i}/{timespans_count}")
-        trimed_st = st.slice(
-            starttime=timespan.starttime_obspy(),
-            endtime=timespan.remove_last_microsecond(),
-            nearest_sample=False,
-        )
-
-        trimed_st, deficit = validate_slice(
-            trimed_st, timespan, processing_params, float(time_series.samplerate)
-        )
-
-        logging.info("Preprocessing timespan")
-        trimed_st = preprocess_timespan(
-            trimed_st=trimed_st,
-            inventory=inventory,
-            processing_params=processing_params,
-        )
-
-        filepath = assembly_filepath(
-            processed_data_dir,
-            "datachunk",
-            assembly_sds_like_dir(component, timespan).joinpath(
-                assembly_preprocessing_filename(component, timespan)
-            ),
-        )
-        logging.info(f"Chunk will be written to {str(filepath)}")
-        directory_exists_or_create(filepath)
-
-        datachunk = Datachunk(
-            processing_params_id=processing_params.id,
-            component_id=component.id,
-            timespan_id=timespan.id,
-            sampling_rate=trimed_st[0].stats.sampling_rate,
-            npts=trimed_st[0].stats.npts,
-            filepath=str(filepath),
-            padded_npts=deficit,
-        )
-        logging.info(
-            "Checking if there are some chunks fot tht timespan and component in db"
-        )
-        existing_chunks = (
-            db.session.query(Datachunk)
-            .filter(
-                Datachunk.component_id == datachunk.component_id,
-                Datachunk.timespan_id == datachunk.timespan_id,
-            )
-            .all()
-        )
-        logging.info(
-            "Checking if there are some timeseries files  for tht timespan and component on the disc"
-        )
-        if len(existing_chunks) == 0:
-            logging.info("Writing file to disc and adding entry to db")
-            trimed_st.write(datachunk.filepath, format="mseed")
-            db.session.add(datachunk)
-        else:
-            if not Path(datachunk.filepath).exists():
-                logging.info(
-                    "There is some chunk in the db so I will update it and write/overwrite file to the disc."
-                )
-                trimed_st.write(datachunk.filepath, format="mseed")
-                insert_command = (
-                    insert(Datachunk)
-                    .values(
-                        processing_config_id=datachunk.processing_params_id,
-                        component_id=datachunk.component_id,
-                        timespan_id=datachunk.timespan_id,
-                        sampling_rate=datachunk.sampling_rate,
-                        npts=datachunk.npts,
-                        filepath=datachunk.filepath,
-                        padded_npts=deficit,
-                    )
-                    .on_conflict_do_update(
-                        constraint="unique_datachunk_per_timespan_per_station_per_processing",
-                        set_=dict(filepath=datachunk.filepath, padded_npts=deficit),
-                    )
-                )
-                db.session.execute(insert_command)
-        db.session.commit()
-    return
 
 
 def validate_slice(
@@ -432,121 +347,54 @@ def validate_slice(
     if len(trimed_st) == 0:
         ValueError(f"There was no data to be cut for that timespan")
 
-    if len(trimed_st) > 1:
-        logging.warning(
-            f"There are {len(trimed_st)} traces in that stream. Trying to proceed anyway."
-        )
-
     samples_in_stream = sum([x.stats.npts for x in trimed_st])
 
     minimum_no_samples = processing_params.get_raw_minimum_no_samples(raw_sps)
     expected_no_samples = processing_params.get_raw_expected_no_samples(raw_sps)
 
     if samples_in_stream < minimum_no_samples:
-        logging.error(
-            f"There were {samples_in_stream} in the trace"
+        log.error(
+            f"There were {samples_in_stream} samples in the trace"
             f" while {minimum_no_samples} were expected. "
             f"Skipping this chunk."
         )
         raise ValueError(f"Not enough data in a chunk.")
+
+    if len(trimed_st) > 1:
+        log.warning(
+            f"There are {len(trimed_st)} traces in that stream. "
+            f"Trying to merge with Stream.merge(fill_value=0) because its has enough of "
+            f"samples to pass minimum_no_samples criterium."
+        )
+
+        try:
+            trimed_st = merge_traces_fill_zeros(trimed_st)
+        except ValueError as e:
+            raise ValueError(e)
+
+        if len(trimed_st) > 1:
+            raise ValueError(f"Merging not successfull. "
+                             f"There are still {len(trimed_st)} traces in the "
+                             f"stream!")
 
     if samples_in_stream == expected_no_samples + 1:
         trimed_st[0].data = trimed_st[0].data[:-1]
         return trimed_st, deficit
 
     if samples_in_stream < expected_no_samples:
-        deficit = expected_no_samples - trimed_st[0].stats.npts
-        logging.warning(
+        deficit = expected_no_samples - samples_in_stream
+        log.warning(
             f"Datachunk has less samples than expected but enough to be accepted."
             f"It will be padded with {deficit} zeros to match exact length."
         )
-
-        trimed_st = merge_traces_fill_zeros(trimed_st)
-
-        if trimed_st[0].stats.npts < expected_no_samples:
-            try:
-                trimed_st = pad_zeros_to_exact_time_bounds(
-                    trimed_st, timespan, expected_no_samples
-                )
-            except ValueError as e:
-                logging.warning(f"Padding was not successful. SKipping chunk.")
-                raise ValueError(f"Datachunk padding unsuccessful.")
+        try:
+            trimed_st = pad_zeros_to_exact_time_bounds(
+                trimed_st, timespan, expected_no_samples
+            )
+        except ValueError as e:
+            log.error(f"Padding was not successful. {e}")
+            raise ValueError(f"Datachunk padding unsuccessful.")
 
     return trimed_st, deficit
 
 
-def run_chunk_preparation(
-    app, station, component, execution_date, processed_data_dir, processing_config_id=1
-):
-    year = execution_date.year
-    day_of_year = execution_date.timetuple().tm_yday
-
-    logging.info(f"Fetching processing config, timespans and componsents from db")
-    with app.app_context() as ctx:
-        processing_config = (
-            db.session.query(ProcessingParams)
-            .filter(ProcessingParams.id == processing_config_id)
-            .first()
-        )
-        timespans = fetch_timespans_for_doy(year=year, doy=day_of_year)
-
-        components = Component.query.filter(
-            Component.station == station, Component.component == component
-        ).all()
-
-    logging.info(f"Invoking chunc creation itself")
-    for component in components:
-        with app.app_context() as ctx:
-            create_datachunks_for_component(
-                execution_date=execution_date,
-                component=component,
-                timespans=timespans,
-                processing_params=processing_config,
-                processed_data_dir=processed_data_dir,
-            )
-    return
-
-
-def run_paralel_chunk_preparation(
-    stations, components, startdate, enddate, processing_config_id=1
-):
-    date_range = pd.date_range(start=startdate, end=enddate, freq="D")
-
-    logging.info(f"Fetching processing config, timespans and componsents from db")
-    processing_config = (
-        db.session.query(ProcessingParams)
-        .filter(ProcessingParams.id == processing_config_id)
-        .first()
-    )
-
-    all_timespans = {}
-    for date in date_range:
-        all_timespans[date] = fetch_timespans_for_doy(
-            year=date.year, doy=date.timetuple().tm_yday
-        )
-    processed_data_dir = os.environ.get("PROCESSED_DATA_DIR")
-
-    components = Component.query.filter(
-        Component.station.in_(stations), Component.component.in_(components)
-    ).all()
-
-    def generate_tasks_for_chunk_preparation(
-        components, all_timespans, processing_config, processed_data_dir
-    ):
-        for component in components:
-            for date, timespans in all_timespans.items():
-                yield (
-                    date,
-                    component,
-                    timespans,
-                    processing_config,
-                    processed_data_dir,
-                )
-
-    joblist = generate_tasks_for_chunk_preparation(
-        components, all_timespans, processing_config, processed_data_dir
-    )
-
-    logging.info(f"Invoking chunk creation itself")
-    with Pool(10) as p:
-        p.starmap(create_datachunks_for_component, joblist)

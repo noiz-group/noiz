@@ -1,10 +1,10 @@
-sphinx
-sphinx-autobuild
+sphinx~=3.2.1
+sphinx-autobuild~=2020.9.1
 
 # if using typehints
-sphinx-autodoc-typehints
+sphinx-autodoc-typehints~=1.10.0
 
-mock
-autodoc
+mock~=4.0.2
+autodoc~=0.5.0
 
-groundwork-sphinx-theme
+pydata-sphinx-theme~=0.4.0

@@ -31,21 +31,42 @@ class Datachunk(db.Model):
     )
     sampling_rate = db.Column("sampling_rate", db.Float, nullable=False)
     npts = db.Column("npts", db.Integer, nullable=False)
-    filepath = db.Column("filepath", db.UnicodeText, nullable=False)
     padded_npts = db.Column("padded_npts", db.Integer, nullable=True)
+    datachunk_file_id = db.Column(
+        "datachunk_file_id",
+        db.BigInteger,
+        db.ForeignKey("datachunk_file.id"),
+        nullable=True,
+    )
 
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
     component = db.relationship("Component", foreign_keys=[component_id])
     processing_params = db.relationship(
-        "ProcessingParams", foreign_keys=[processing_params_id]
+        "ProcessingParams", foreign_keys=[processing_params_id],
+        # uselist = False, # just for the future left, here, dont want to test that now
     )
     processed_datachunks = db.relationship("ProcessedDatachunk")
 
+    datachunk_file = db.relationship(
+        "DatachunkFile",
+        foreign_keys = [datachunk_file_id],
+        uselist = False,
+        lazy="joined",
+    )
+
     def load_data(self):
-        if Path(self.filepath).exists:
-            return obspy.read(self.filepath, "MSEED")
+        filepath = Path(self.datachunk_file.filepath)
+        if filepath.exists:
+            return obspy.read(filepath, "MSEED")
         else:
             raise MissingDataFileException(f"Data file for chunk {self} is missing")
+
+
+class DatachunkFile(db.Model):
+    __tablename__ = "datachunk_file"
+
+    id = db.Column("id", db.BigInteger, primary_key=True)
+    filepath = db.Column("filepath", db.UnicodeText, nullable=False)
 
 
 class ProcessedDatachunk(db.Model):
@@ -66,14 +87,36 @@ class ProcessedDatachunk(db.Model):
         nullable=False,
     )
     datachunk_id = db.Column(
-        "datachunk_id", db.Integer, db.ForeignKey("datachunk.id"), nullable=False
+        "datachunk_id",
+        db.Integer,
+        db.ForeignKey("datachunk.id"),
+        nullable=False
     )
-    filepath = db.Column("filepath", db.UnicodeText, nullable=False)
+    processed_datachunk_file_id = db.Column(
+        "processed_datachunk_file_id",
+        db.BigInteger,
+        db.ForeignKey("processed_datachunk_file.id"),
+        nullable=True,
+    )
 
     datachunk = db.relationship("Datachunk", foreign_keys=[datachunk_id])
+    processed_datachunk_file = db.relationship(
+        "ProcessedDatachunkFile",
+        foreign_keys = [processed_datachunk_file_id],
+        uselist = False,
+        lazy="joined",
+    )
 
     def load_data(self):
-        if Path(self.filepath).exists:
-            return obspy.read(self.filepath, "MSEED")
+        filepath = Path(self.processed_datachunk_file.filepath)
+        if filepath.exists:
+            return obspy.read(filepath, "MSEED")
         else:
             raise MissingDataFileException(f"Data file for chunk {self} is missing")
+
+class ProcessedDatachunkFile(db.Model):
+    __tablename__ = "processed_datachunk_file"
+
+    id = db.Column("id", db.BigInteger, primary_key=True)
+    filepath = db.Column("filepath", db.UnicodeText, nullable=False)
+
