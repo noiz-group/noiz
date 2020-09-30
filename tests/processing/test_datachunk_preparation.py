@@ -59,7 +59,6 @@ def test_merge_traces_fill_zeros():
 
     st_merged = merge_traces_fill_zeros(st)
 
-    assert len(st) == 2
     assert len(st_merged) == 1
     assert np.count_nonzero(st[0].data == 0) == 20
 
