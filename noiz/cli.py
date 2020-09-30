@@ -5,17 +5,24 @@ from typing import Iterable
 import click
 from flask.cli import AppGroup, with_appcontext
 from flask import current_app
+from flask.cli import FlaskGroup
+
+import logging
+import pendulum
+from pendulum.date import Date
 
 from noiz.api.inventory import parse_inventory_insert_stations_and_components_into_db
 from noiz.api.processing_config import upsert_default_params
-from noiz.processing.datachunk_preparation import run_paralel_chunk_preparation
+from noiz.api.datachunk import run_paralel_chunk_preparation
 from noiz.processing.inventory import read_inventory
 
+from noiz.app import create_app
 
-cli = AppGroup("Main")
+log = logging.getLogger(__name__)
+
+cli = AppGroup("noiz")
 init_group = AppGroup("init")  # type: ignore
-proc = AppGroup("proc")  # type: ignore
-gggg = AppGroup("noizfff")  # type: ignore
+processing_group = AppGroup("processing")  # type: ignore
 
 
 def _register_subgroups_to_cli(cli: AppGroup, custom_groups: Iterable[AppGroup]):
@@ -23,12 +30,21 @@ def _register_subgroups_to_cli(cli: AppGroup, custom_groups: Iterable[AppGroup])
         cli.add_command(custom_group)
     return
 
+@cli.group("noiz", cls=FlaskGroup, create_app=create_app)
+def cli():  # type: ignore
+    "Perform operations with noiz package"
+    pass
+
 
 @init_group.group("init")
 def init_group():  # type: ignore
     "Initiate operation in noiz"
     pass
 
+@init_group.command("load_processing_params")
+def load_processing_params():
+    """Replaces current processing config with default one"""
+    click.echo("This is a placeholder of an option")
 
 @init_group.command("reset_config")
 def reset_config():
@@ -69,38 +85,50 @@ def add_inventory(filepath, filetype):
     return
 
 
-@proc.group("proc")
-def proc():  # type: ignore
-    """This is short explanation?"""
+@processing_group.group("processing")
+def processing_group():  # type: ignore
+    """Processing subcommands"""
     pass
 
 
-@proc.command("prepare_datachunks")
+@processing_group.command("prepare_datachunks")
 @with_appcontext
-@click.option("-a", "--station", multiple=True, required=True, type=str)
-@click.option("-c", "--component", multiple=True, required=True, type=str)
-@click.option("-s", "--startdate", nargs=1, required=True, type=str)
-@click.option("-e", "--enddate", nargs=1, required=True, type=str)
-def prepare_datachunks(station, component, startdate, enddate):
+@click.option("-a", "--station", multiple=True, type=str)
+@click.option("-c", "--component", multiple=True, type=str)
+@click.option("-s", "--startdate", nargs=1, type=str,
+              default=pendulum.Pendulum(2000,1,1).date, show_default=True)
+@click.option("-e", "--enddate", nargs=1, type=str,
+              default=pendulum.today().date, show_default=True)
+@click.option("-p", "--processing_config_id", nargs=1, type=int,
+              default=1, show_default=True)
+def prepare_datachunks(
+        station,
+        component,
+        startdate,
+        enddate,
+        processing_config_id
+):
     """That's the explanation of second command of the group"""
+
+    if not isinstance(startdate, Date):
+        startdate = pendulum.parse(startdate)
+    if not isinstance(enddate, Date):
+        enddate = pendulum.parse(enddate)
+
+    if len(station) == 0:
+        station = None
+    if len(component) == 0:
+        component = None
+
     run_paralel_chunk_preparation(
-        stations=station, components=component, startdate=startdate, enddate=enddate
+        stations=station,
+        components=component,
+        startdate=startdate,
+        enddate=enddate,
+        processing_config_id=processing_config_id
     )
 
-
-@gggg.group()
-def gggg():  # type: ignore
-    """This is short explanation?"""
-    pass
-
-
-@gggg.command()
-def firstf():
-    """That's the explanation of first command of the group"""
-    click.echo("That's the first command of the group")
-
-
-_register_subgroups_to_cli(cli, (init_group, gggg, proc))
+_register_subgroups_to_cli(cli, (init_group, processing_group))
 
 
 if __name__ == "__main__":

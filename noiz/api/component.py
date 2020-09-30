@@ -55,7 +55,7 @@ def fetch_components(
         filters.append(Component.component.in_(validate_tuple_str(components)))
 
     if len(filters) == 0:
-        raise ValueError("At least one argument has to be provided.")
+        return Component.query.all()
+    else:
+        return Component.query.filter(*filters).all()
 
-    ret = Component.query.filter(*filters).all()
-    return ret
