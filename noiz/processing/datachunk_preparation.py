@@ -23,7 +23,7 @@ from noiz.models import Component, Datachunk, DatachunkFile, Timespan, \
 log = logging.getLogger(__name__)
 
 
-def expected_npts(timespan_length: object, sampling_rate: object) -> object:
+def expected_npts(timespan_length: float, sampling_rate: float) -> int:
     """
     Calculates expected number of npts in a trace based on timespan length and sampling rate.
     Casted to int with floor rounding.
@@ -129,9 +129,9 @@ def increment_filename_counter(filepath: Path) -> Path:
         if not filepath.exists():
             return filepath
 
-        suffix = filepath.suffix[1:]
+        suffix: str = filepath.suffix[1:]
         try:
-            suffix = int(suffix)
+            suffix: int = int(suffix)
         except ValueError:
             raise ValueError(f"The filepath's {filepath} suffix {suffix} "
                              f"cannot be casted to int")
