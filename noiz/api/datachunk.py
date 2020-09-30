@@ -167,22 +167,23 @@ def run_paralel_chunk_preparation(
     log.info(f'Dask client started succesfully. '
              f'You can monitor execution on {client.dashboard_link}')
 
-    log.info("Submitting tasks to Dask client")
-    futures = []
-    for params in joblist:
-        future = client.submit(create_datachunks_for_component, **params)
-        futures.append(future)
+    with client.get_task_stream(plot='save', filename='dask_summary.html') as ts:
+        log.info("Submitting tasks to Dask client")
+        futures = []
+        for params in joblist:
+            future = client.submit(create_datachunks_for_component, **params)
+            futures.append(future)
 
-    log.info(f"There are {len(futures)} tasks to be executed")
+        log.info(f"There are {len(futures)} tasks to be executed")
 
-    log.info("Starting execution. "
-             "Results will be saved to database on the fly. ")
+        log.info("Starting execution. "
+                 "Results will be saved to database on the fly. ")
 
-    for future, result in as_completed(futures, with_results=True):
-        add_or_upsert_datachunks_in_db(result)
+        for future, result in as_completed(futures, with_results=True):
+            add_or_upsert_datachunks_in_db(result)
 
-    client.close()
-    # TODO Add summary printout.
+        client.close()
+        # TODO Add summary printout.
 
 
 def create_datachunks_add_to_db(
