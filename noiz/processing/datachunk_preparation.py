@@ -120,11 +120,11 @@ def increment_filename_counter(filepath: Path) -> Path:
 
         suffix: str = filepath.suffix[1:]
         try:
-            suffix: int = int(suffix)
+            suffix_int: int = int(suffix)
         except ValueError:
             raise ValueError(f"The filepath's {filepath} suffix {suffix} "
                              f"cannot be casted to int")
-        filepath = filepath.with_suffix(f".{suffix+1}")
+        filepath = filepath.with_suffix(f".{suffix_int+1}")
 
 
 def next_pow_2(number: int) -> int:
@@ -283,9 +283,9 @@ def preprocess_timespan(
     log.info(
         f"Resampling stream to {processing_params.sampling_rate} Hz with padding to next power of 2"
     )
-    trimed_st: obspy.Stream = resample_with_padding(
+    trimed_st = resample_with_padding(
         st=trimed_st, sampling_rate=processing_params.sampling_rate
-    )
+    ) # type: ignore
 
     expected_samples = processing_params.get_expected_no_samples()
     if trimed_st[0].stats.npts > expected_samples:

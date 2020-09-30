@@ -4,7 +4,7 @@ import obspy
 import pendulum
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
-from typing import List, Iterable, Union, Sized, Collection, Optional, Dict
+from typing import List, Iterable, Union, Tuple, Collection, Optional, Dict
 
 import itertools
 
@@ -147,8 +147,8 @@ def add_or_upsert_datachunks_in_db(datachunks):
 
 
 def run_paralel_chunk_preparation(
-        stations: Collection[str],
-        components: Collection[str],
+        stations: Tuple[str],
+        components: Tuple[str],
         startdate: pendulum.Pendulum,
         enddate: pendulum.Pendulum,
         processing_config_id: int,
@@ -284,14 +284,14 @@ def create_datachunks_for_component(
             continue
 
         log.info("Preprocessing timespan")
-        trimed_st: obspy.Stream = preprocess_timespan(
+        trimed_st = preprocess_timespan(
             trimed_st=trimed_st,
             inventory=inventory,
             processing_params=processing_params,
         )
 
         filepath = assembly_filepath(
-            PROCESSED_DATA_DIR,
+            PROCESSED_DATA_DIR, # type: ignore
             "datachunk",
             assembly_sds_like_dir(component, timespan) \
                 .joinpath(
@@ -335,8 +335,8 @@ def create_datachunks_for_component(
 
 
 def prepare_datachunk_preparation_parameter_lists(
-        stations: Optional[Collection[str]],
-        components: Optional[Collection[str]],
+        stations: Optional[Tuple[str]],
+        components: Optional[Tuple[str]],
         startdate: pendulum.Pendulum,
         enddate: pendulum.Pendulum,
         processing_config_id: int,
@@ -421,6 +421,6 @@ def run_chunk_preparation(
         with app.app_context() as ctx:
             create_datachunks_for_component(component=component,
                                             timespans=timespans,
-                                            time_series=None,
+                                            time_series=None, # type: ignore
                                             processing_params=processing_config)
     return
