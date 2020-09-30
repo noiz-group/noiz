@@ -60,7 +60,7 @@ logger_config = dict(
         "handlers": {
             "console": {
                 "class": "logging.StreamHandler",
-                "level": "WARN",
+                "level": "WARNING",
                 "stream": "ext://sys.stdout",
                 "formatter": "myFormatter",
             },
@@ -79,17 +79,22 @@ logger_config = dict(
             },
         },
         "loggers": {
-            "app": {
+            "noiz.app": {
                 "level": "DEBUG",
                 "handlers": [],
                 "propagate": True
             },
-            "processing": {
+            "noiz.processing": {
                 "level": "DEBUG",
                 "handlers": [],
                 "propagate": False,
             },
-            "cli": {
+            "noiz.cli": {
+                "level": "DEBUG",
+                "handlers": [],
+                "propagate": True
+            },
+            "noiz.api": {
                 "level": "DEBUG",
                 "handlers": [],
                 "propagate": True

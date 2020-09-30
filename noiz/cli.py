@@ -7,16 +7,18 @@ from flask.cli import AppGroup, with_appcontext
 from flask import current_app
 from flask.cli import FlaskGroup
 
+import logging
 import pendulum
 from pendulum.date import Date
 
 from noiz.api.inventory import parse_inventory_insert_stations_and_components_into_db
 from noiz.api.processing_config import upsert_default_params
-from noiz.processing.datachunk_preparation import run_paralel_chunk_preparation
+from noiz.api.datachunk import run_paralel_chunk_preparation
 from noiz.processing.inventory import read_inventory
 
 from noiz.app import create_app
 
+log = logging.getLogger(__name__)
 
 cli = AppGroup("noiz")
 init_group = AppGroup("init")  # type: ignore

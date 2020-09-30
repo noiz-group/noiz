@@ -4,8 +4,8 @@ import logging
 
 from noiz.routes import simple_page
 from noiz.database import db, migrate
+from noiz.logg import logger_config
 
-log = logging.getLogger(__name__)
 
 def create_app(
         config_object: str = "noiz.settings",
@@ -19,6 +19,8 @@ def create_app(
 
     load_noiz_config(app)
 
+    logging.config.dictConfig(logger_config)
+    log = logging.getLogger("app")
     log.info("App initialization successful")
 
     if mode == "app":
