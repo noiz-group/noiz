@@ -8,14 +8,14 @@ stages:
   - image-building
   - downstream
 
-.install_noiz: &install_noiz
+.install_noiz_complete: &install_noiz_complete
   - python -m pip install --upgrade pip setuptools wheel
   - python -m pip install --no-cache-dir -r requirements.txt
   - python -m pip install sqlalchemy-stubs
 
 test-noiz:
   before_script:
-    - *install_noiz
+    - *install_noiz_complete
 
   stage: testing
   script:
@@ -33,14 +33,15 @@ type-check:
 #    - *install_noiz
   stage: linting
   script:
+    - python -m pip install -r requirements-test.txt
     - mypy noiz
 
 build-docs:
   stage: documentation
+  before_script:
+    - *install_noiz_complete
   script:
   - apt-get update && apt-get install build-essential -yy
-  - python -m pip install -r requirements.txt
-  - python -m pip install -r requirements-docs.txt
   - sphinx-apidoc -f -o docs noiz
   - cd docs
   - make html
