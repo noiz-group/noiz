@@ -1,4 +1,11 @@
+import os
 import pytest
+
+import numpy as np
+
+from obspy import Stream
+
+from noiz.processing.datachunk_preparation import merge_traces_fill_zeros
 
 @pytest.mark.xfail
 def test_assembly_sds_like_dir():
@@ -39,9 +46,37 @@ def test_resample_with_padding():
     assert False
 
 
-@pytest.mark.xfail 
 def test_merge_traces_fill_zeros():
-    assert False
+    s = ['', '', '2 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         '2016-01-07T00:00:09.900000Z | 10.0 Hz, 100 samples',
+         'AA.XXX..HH2 | 2016-01-07T00:00:12.000000Z - '
+         '2016-01-07T00:00:21.900000Z | 10.0 Hz, 100 samples',
+         '', '']
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+
+    st_merged = merge_traces_fill_zeros(st)
+
+    assert len(st) == 2
+    assert len(st_merged) == 1
+    assert np.count_nonzero(st[0].data == 0) == 20
+
+
+def test_merge_traces_fill_zeros_different_sampling_rates_of_traces():
+    s = ['', '', '2 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         '2016-01-07T00:00:09.900000Z | 10.0 Hz, 100 samples',
+         'AA.XXX..HH2 | 2016-01-07T00:00:12.000000Z - '
+         '2016-01-07T00:00:21.900000Z | 25.0 Hz, 100 samples',
+         '', '']
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+
+    with pytest.raises(ValueError):
+        merge_traces_fill_zeros(st)
 
 
 @pytest.mark.xfail 

@@ -226,7 +226,10 @@ def merge_traces_fill_zeros(st: obspy.Stream) -> obspy.Stream:
     :return: Trimmed stream
     :rtype: obspy.Stream
     """
-    st.merge(fill_value=0)
+    try:
+        st.merge(fill_value=0)
+    except Exception as e:
+        raise ValueError(f"Cannot merge traces. {e}")
     return st
 
 
@@ -543,7 +546,12 @@ def validate_slice(
             f"Trying to merge with Stream.merge(fill_value=0) because its has enough of "
             f"samples to pass minimum_no_samples criterium."
         )
-        trimed_st = merge_traces_fill_zeros(trimed_st)
+
+        try:
+            trimed_st = merge_traces_fill_zeros(trimed_st)
+        except ValueError as e:
+            raise ValueError(e)
+
         if len(trimed_st) > 1:
             raise ValueError(f"Merging not successfull. "
                              f"There are still {len(trimed_st)} traces in the "
