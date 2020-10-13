@@ -13,7 +13,7 @@ from noiz.api.timeseries import fetch_raw_timeseries
 from noiz.api.timespan import fetch_timespans_for_doy
 from noiz.api.processing_config import fetch_processing_config_by_id
 from noiz.database import db
-from noiz.exceptions import NoDataException
+from noiz.exceptions import NoDataException, MissingDataFileException
 from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models import Datachunk, Component, Timespan, ProcessingParams,\
     Tsindex, DatachunkFile
@@ -258,7 +258,17 @@ def create_datachunks_for_component(
     """
 
     log.info("Reading timeseries and inventory")
-    st: obspy.Stream = time_series.read_file()
+    try:
+        st: obspy.Stream = time_series.read_file()
+    except MissingDataFileException as e:
+        log.warning(f"Data file is missing. Skipping. {e}")
+        return []
+    except Exception as e:
+        log.warning(f"There was some general exception from "
+                    f"obspy.Stream.read function. Here it is: {e} ")
+        return []
+
+
     inventory: obspy.Inventory = component.read_inventory()
 
     # log.info("Preprocessing initially full day timeseries")
