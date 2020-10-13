@@ -160,6 +160,9 @@ def run_paralel_chunk_preparation(
                                                             startdate, enddate,
                                                             processing_config_id)
 
+    # TODO add more checks for bad seed files because they are crashing.
+    # And instead of datachunk id there was something weird produced. It was found on SI26 in 2019.04.~10-15
+
     import dask
     from dask.distributed import Client, as_completed
     client = Client()
@@ -167,22 +170,21 @@ def run_paralel_chunk_preparation(
     log.info(f'Dask client started succesfully. '
              f'You can monitor execution on {client.dashboard_link}')
 
-    with client.get_task_stream(plot='save', filename='dask_summary.html') as ts:
-        log.info("Submitting tasks to Dask client")
-        futures = []
-        for params in joblist:
-            future = client.submit(create_datachunks_for_component, **params)
-            futures.append(future)
+    log.info("Submitting tasks to Dask client")
+    futures = []
+    for params in joblist:
+        future = client.submit(create_datachunks_for_component, **params)
+        futures.append(future)
 
-        log.info(f"There are {len(futures)} tasks to be executed")
+    log.info(f"There are {len(futures)} tasks to be executed")
 
-        log.info("Starting execution. "
-                 "Results will be saved to database on the fly. ")
+    log.info("Starting execution. "
+             "Results will be saved to database on the fly. ")
 
-        for future, result in as_completed(futures, with_results=True):
-            add_or_upsert_datachunks_in_db(result)
+    for future, result in as_completed(futures, with_results=True, raise_errors=False):
+        add_or_upsert_datachunks_in_db(result)
 
-        client.close()
+    client.close()
         # TODO Add summary printout.
 
 
