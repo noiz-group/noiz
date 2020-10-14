@@ -113,6 +113,11 @@ def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
     """
     for datachunk in datachunks:
 
+        if not isinstance(datachunk, Datachunk):
+            log.warning(f'Provided object is not an instance of Datachunk. '
+                        f'Provided object was an {type(datachunk)}. '
+                        f'Skipping.')
+
         log.info("Querrying db if the datachunk already exists.")
         existing_chunks = (
             db.session.query(Datachunk)
