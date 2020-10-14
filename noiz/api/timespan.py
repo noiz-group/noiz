@@ -60,7 +60,8 @@ def insert_timespans_into_db(timespans: Iterable[Timespan], bulk_insert: bool) -
 
 def fetch_timespans_for_doy(year: int, doy: int) -> List[Timespan]:
     """
-    Fetches all timespans for a given day of year. It's based on timespan's Midtime
+    Fetches all timespans for a given day of year.
+    It's based on timespan's midtime.
 
     Warning: It has to be executed withing application context.
 
