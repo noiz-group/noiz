@@ -293,7 +293,9 @@ def create_datachunks_for_component(
                 processing_params=processing_params,
                 raw_sps=float(time_series.samplerate)
             )
-        except ValueError:
+        except ValueError as e:
+            log.warning(f"There was a problem with trace validation. "
+                        f"There was raised exception {e}")
             continue
 
         log.info("Preprocessing timespan")
