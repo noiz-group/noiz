@@ -1,5 +1,8 @@
 from sqlalchemy.dialects.postgresql import insert
-from typing import Iterable, List
+from typing import Iterable, List, Union
+
+from datetime import date, datetime
+from obspy import UTCDateTime
 
 from noiz.database import db
 from noiz.models import Timespan
@@ -75,4 +78,44 @@ def fetch_timespans_for_doy(year: int, doy: int) -> List[Timespan]:
     timespans = Timespan.query.filter(
         Timespan.midtime_year == year, Timespan.midtime_doy == doy
     ).all()
+    return timespans
+
+
+def fetch_timespans_between_dates(
+        starttime: Union[date, datetime, UTCDateTime],
+        endtime: Union[date, datetime, UTCDateTime],
+) -> List[Timespan]:
+    """
+    Fetches all timespans between two times.
+    It looks for Timespans that start after or at starttime
+    and end before or at endtime.
+
+    Warning: It has to be executed withing application context.
+
+    :param starttime: Time after which to look for timespans
+    :type starttime: Union[date, datetime, UTCDateTime]
+    :param endtime: Time before which to look for timespans
+    :type endtime: Union[date, datetime, UTCDateTime],
+    :return: List of all timespans on given day
+    :rtype: List[Timespan]
+    """
+
+    if isinstance(starttime, UTCDateTime):
+        starttime = starttime.datetime
+    elif not isinstance(starttime, (date, datetime)):
+        raise ValueError(f"And starttime was expecting either "
+                         f"date, datetime or UTCDateTime objects."
+                         f"Got instance of {type(starttime)}")
+
+    if isinstance(endtime, UTCDateTime):
+        endtime = endtime.datetime
+    elif not isinstance(endtime, (date, datetime)):
+        raise ValueError(f"And endtime was expecting either "
+                         f"date, datetime or UTCDateTime objects."
+                         f"Got instance of {type(endtime)}")
+
+    timespans = Timespan.query.filter(
+        Timespan.starttime >= starttime,
+        Timespan.endtime <= endtime,
+        ).all()
     return timespans
