@@ -8,6 +8,7 @@ from typing import List, Iterable, Union, Tuple, Collection, Optional, Dict
 
 import itertools
 
+from noiz.api.helpers import extract_object_ids
 from noiz.api.component import fetch_components
 from noiz.api.timeseries import fetch_raw_timeseries
 from noiz.api.timespan import fetch_timespans_for_doy
@@ -84,21 +85,6 @@ def fetch_datachunks_for_timespans_and_components(
         Datachunk.timespan_id.in_(timespan_ids),
     ).all()
     return datachunks
-
-
-def extract_object_ids(instances: Iterable[Union[Timespan, Component]]) -> \
-        List[int]:
-    """
-    Extracts parameter .id from all provided instances of objects. It can either be a single object or iterbale of them.
-    :param instances: instances of objects to be checked
-    :type instances:
-    :return: ids of objects
-    :rtype: List[int]
-    """
-    if not isinstance(instances, Iterable):
-        instances = list(instances)
-    ids = [x.id for x in instances]
-    return ids
 
 
 def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
@@ -401,7 +387,6 @@ def run_paralel_chunk_preparation(
     # TODO add more checks for bad seed files because they are crashing.
     # And instead of datachunk id there was something weird produced. It was found on SI26 in 2019.04.~10-15
 
-    import dask
     from dask.distributed import Client, as_completed
     client = Client()
 
