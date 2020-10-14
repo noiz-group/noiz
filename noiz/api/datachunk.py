@@ -101,9 +101,19 @@ def extract_object_ids(instances: Iterable[Union[Timespan, Component]]) -> \
     return ids
 
 
-def add_or_upsert_datachunks_in_db(datachunks):
+def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
+    """
+    Adds or upserts provided iterable of Datachunks to DB.
+    Must be executed within AppContext.
+
+    :param datachunks:
+    :type datachunks: Iterable[Datachunk]
+    :return:
+    :rtype:
+    """
     for datachunk in datachunks:
 
+        log.info("Querrying db if the datachunk already exists.")
         existing_chunks = (
             db.session.query(Datachunk)
                 .filter(
@@ -112,80 +122,36 @@ def add_or_upsert_datachunks_in_db(datachunks):
             )
                 .all()
         )
-        log.info(
-            "Checking if there are some timeseries files  for tht timespan and component on the disc"
-        )
+
         if len(existing_chunks) == 0:
-            log.info("Writing file to disc and adding entry to db")
+            log.info("No existing chunks found. "
+                     "Adding Datachunk to DB.")
             db.session.add(datachunk)
         else:
-            if not Path(datachunk.datachunk_file.filepath).exists():
-                log.info(
-                    "There is some chunk in the db so I will update it and write/overwrite file to the disc."
+            log.info("The datachunk already exists in db. Updating.")
+            insert_command = (
+                insert(Datachunk)
+                    .values(
+                    processing_config_id=datachunk.processing_params_id,
+                    component_id=datachunk.component_id,
+                    timespan_id=datachunk.timespan_id,
+                    sampling_rate=datachunk.sampling_rate,
+                    npts=datachunk.npts,
+                    datachunk_file=datachunk.datachunk_file,
+                    padded_npts=datachunk.padded_npts,
                 )
-                insert_command = (
-                    insert(Datachunk)
-                        .values(
-                        processing_config_id=datachunk.processing_params_id,
-                        component_id=datachunk.component_id,
-                        timespan_id=datachunk.timespan_id,
-                        sampling_rate=datachunk.sampling_rate,
-                        npts=datachunk.npts,
-                        datachunk_file=datachunk.datachunk_file,
-                        padded_npts=datachunk.padded_npts,
-                    )
-                        .on_conflict_do_update(
-                        constraint="unique_datachunk_per_timespan_per_station_per_processing",
-                        set_=dict(
-                            datachunk_file_id=datachunk.datachunk_file.id,
-                            padded_npts=datachunk.padded_npts),
-                    )
+                    .on_conflict_do_update(
+                    constraint="unique_datachunk_per_timespan_per_station_per_processing",
+                    set_=dict(
+                        datachunk_file_id=datachunk.datachunk_file.id,
+                        padded_npts=datachunk.padded_npts),
                 )
-                db.session.execute(insert_command)
+            )
+            db.session.execute(insert_command)
+
+    log.debug('Commiting session.')
     db.session.commit()
     return
-
-
-def run_paralel_chunk_preparation(
-        stations: Tuple[str],
-        components: Tuple[str],
-        startdate: pendulum.Pendulum,
-        enddate: pendulum.Pendulum,
-        processing_config_id: int,
-
-):
-    log.info(f"Preparing jobs for execution")
-    joblist = prepare_datachunk_preparation_parameter_lists(stations,
-                                                            components,
-                                                            startdate, enddate,
-                                                            processing_config_id)
-
-    # TODO add more checks for bad seed files because they are crashing.
-    # And instead of datachunk id there was something weird produced. It was found on SI26 in 2019.04.~10-15
-
-    import dask
-    from dask.distributed import Client, as_completed
-    client = Client()
-
-    log.info(f'Dask client started succesfully. '
-             f'You can monitor execution on {client.dashboard_link}')
-
-    log.info("Submitting tasks to Dask client")
-    futures = []
-    for params in joblist:
-        future = client.submit(create_datachunks_for_component, **params)
-        futures.append(future)
-
-    log.info(f"There are {len(futures)} tasks to be executed")
-
-    log.info("Starting execution. "
-             "Results will be saved to database on the fly. ")
-
-    for future, result in as_completed(futures, with_results=True, raise_errors=False):
-        add_or_upsert_datachunks_in_db(result)
-
-    client.close()
-        # TODO Add summary printout.
 
 
 def create_datachunks_add_to_db(
@@ -410,6 +376,48 @@ def prepare_datachunk_preparation_parameter_lists(
             'time_series': time_series,
             'processing_params': processing_params,
         }
+
+
+def run_paralel_chunk_preparation(
+        stations: Tuple[str],
+        components: Tuple[str],
+        startdate: pendulum.Pendulum,
+        enddate: pendulum.Pendulum,
+        processing_config_id: int,
+
+):
+    log.info(f"Preparing jobs for execution")
+    joblist = prepare_datachunk_preparation_parameter_lists(stations,
+                                                            components,
+                                                            startdate, enddate,
+                                                            processing_config_id)
+
+    # TODO add more checks for bad seed files because they are crashing.
+    # And instead of datachunk id there was something weird produced. It was found on SI26 in 2019.04.~10-15
+
+    import dask
+    from dask.distributed import Client, as_completed
+    client = Client()
+
+    log.info(f'Dask client started succesfully. '
+             f'You can monitor execution on {client.dashboard_link}')
+
+    log.info("Submitting tasks to Dask client")
+    futures = []
+    for params in joblist:
+        future = client.submit(create_datachunks_for_component, **params)
+        futures.append(future)
+
+    log.info(f"There are {len(futures)} tasks to be executed")
+
+    log.info("Starting execution. "
+             "Results will be saved to database on the fly. ")
+
+    for future, result in as_completed(futures, with_results=True, raise_errors=False):
+        add_or_upsert_datachunks_in_db(result)
+
+    client.close()
+        # TODO Add summary printout.
 
 
 def run_chunk_preparation(
