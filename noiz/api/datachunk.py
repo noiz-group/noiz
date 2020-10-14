@@ -56,6 +56,7 @@ def count_datachunks_for_timespans_and_components(
     :return: Count fo datachunks
     :rtype: int
     """
+    #TODO Add processing params to filter
     timespan_ids = extract_object_ids(timespans)
     component_ids = extract_object_ids(components)
     count = Datachunk.query.filter(
@@ -66,23 +67,30 @@ def count_datachunks_for_timespans_and_components(
 
 
 def fetch_datachunks_for_timespans_and_components(
-        components: Collection[Component], timespans: Collection[Timespan]
+        components: Collection[Component],
+        timespans: Collection[Timespan],
+        processing_params: Collection[ProcessingParams]
 ) -> Collection[Datachunk]:
     """
     Fetches datachunks for all provided components associated with all provided timespans.
 
     :param components: Components to be checked
-    :type components: Iterable[Component]
+    :type components: Collection[Component]
     :param timespans: Timespans to be checked
-    :type timespans: Iterable[Timespan]
+    :type timespans: Collection[Timespan]
+    :param processing_params: ProcessingParams to be checked
+    :type processing_params: Collection[ProcessingParams]
     :return: Collection of Datachunks
     :rtype: Collection[Datachunk]
     """
     timespan_ids = extract_object_ids(timespans)
     component_ids = extract_object_ids(components)
+    processing_params_ids = extract_object_ids(processing_params)
+
     datachunks = Datachunk.query.filter(
         Datachunk.component_id.in_(component_ids),
         Datachunk.timespan_id.in_(timespan_ids),
+        Datachunk.processing_params_id.in_(processing_params_ids)
     ).all()
     return datachunks
 
