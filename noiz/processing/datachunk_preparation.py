@@ -252,7 +252,8 @@ def pad_zeros_to_exact_time_bounds(
 
     if st[0].stats.npts != expected_no_samples:
         raise ValueError(
-            f"The try of padding with zeros to {expected_no_samples} was not successful. Current length of data is {st[0].stats.npts}"
+            f"The try of padding with zeros to {expected_no_samples} was "
+            f"not successful. Current length of data is {st[0].stats.npts}. "
         )
     return st
 
