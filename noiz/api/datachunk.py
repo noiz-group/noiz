@@ -30,23 +30,20 @@ log = logging.getLogger("noiz.api")
 
 
 def fetch_datachunks_for_timespan(
-        timespans: Union[Timespan, Iterable[Timespan]]
+        timespans: Collection[Timespan]
 ) -> List[Datachunk]:
     """
+    DEPRECATED. Use noiz.api.datachunkfetch_datachunks instead
+
     Fetches all datachunks associated with provided timespans. Timespan can be a single one or Iterable of timespans.
     :param timespans: Instances of timespans to be checked
-    :type timespans: Union[Timespan, Iterable[Timespan]]
+    :type timespans: Collection[Timespan]
     :return: List of Datachunks
     :rtype: List[Datachunk]
     """
     log.warning(f"Method deprected. "
                 f"Use noiz.api.datachunkfetch_datachunks instead")
-    # FIXME deprecated. Change it to be using the fetch_datachunks method. noiz-group/noiz#44
-
-
-    timespan_ids = extract_object_ids(timespans)
-    ret = Datachunk.query.filter(Datachunk.timespan_id.in_(timespan_ids)).all()
-    return ret
+    return fetch_datachunks(timespans=timespans)
 
 
 def count_datachunks(
@@ -87,7 +84,7 @@ def fetch_datachunks(
         load_timespan: bool = False,
         load_processing_params: bool = False,
 
-) -> Collection[Datachunk]:
+) -> List[Datachunk]:
     """
     Fetches datachunks based on provided filters.
 
@@ -116,8 +113,8 @@ def fetch_datachunks(
     :param load_processing_params: Loads also the associated ProcessingParams
     object so it is available for usage without context
     :type load_processing_params: bool
-    :return: Collection of Datachunks
-    :rtype: Collection[Datachunk]
+    :return: List of Datachunks loaded from DB/
+    :rtype: List[Datachunk]
     """
 
     filters = []
