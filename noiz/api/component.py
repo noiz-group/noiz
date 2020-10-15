@@ -2,20 +2,10 @@ import logging
 
 from typing import List, Iterable, Optional, Collection
 
+from noiz.api.helpers import validate_tuple_str
 from noiz.models import Component
 
 log = logging.getLogger("noiz.api")
-
-
-def validate_tuple_str(val):
-    if isinstance(val, str):
-        return (val,)
-    if isinstance(val, tuple):
-        return val
-    else:
-        raise ValueError(
-            f"Expecting a tuple of strings or a string. Provided value was {type(val)}"
-        )
 
 
 def fetch_components_by_id(component_ids: Collection[int]) -> List[Component]:
