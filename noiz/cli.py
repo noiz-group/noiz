@@ -16,7 +16,7 @@ from pendulum.date import Date
 import noiz
 from noiz.api.inventory import parse_inventory_insert_stations_and_components_into_db
 from noiz.api.processing_config import upsert_default_params
-from noiz.api.datachunk.datachunk import run_paralel_chunk_preparation
+from noiz.api.datachunk import run_paralel_chunk_preparation
 from noiz.processing.inventory import read_inventory
 
 from noiz.app import create_app
@@ -115,9 +115,9 @@ def prepare_datachunks(
     """This command starts parallel processing of datachunks"""
 
     if not isinstance(startdate, Date):
-        startdate = pendulum.parse(startdate)
+        startdate = pendulum.parse(startdate).date()
     if not isinstance(enddate, Date):
-        enddate = pendulum.parse(enddate)
+        enddate = pendulum.parse(enddate).date()
 
     if len(station) == 0:
         station = None
@@ -155,9 +155,9 @@ def plotting_group():  # type: ignore
 def plot_datachunk_availability(network, station, component, startdate, enddate, processing_config_id, savefig, plotpath, showfig):
 
     if not isinstance(startdate, Date):
-        startdate = pendulum.parse(startdate)
+        startdate = pendulum.parse(startdate).date()
     if not isinstance(enddate, Date):
-        enddate = pendulum.parse(enddate)
+        enddate = pendulum.parse(enddate).date()
 
     if len(network) == 0:
         network = None
@@ -180,7 +180,7 @@ def plot_datachunk_availability(network, station, component, startdate, enddate,
     elif not isinstance(plotpath, Path):
         plotpath = Path(plotpath)
 
-    noiz.api.datachunk.plot_datachunk_availability(
+    noiz.api.datachunk_plotting.plot_datachunk_availability(
         networks=network,
         stations=station,
         components=component,
