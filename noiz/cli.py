@@ -152,8 +152,20 @@ def plotting_group():  # type: ignore
 @click.option('--savefig/--no-savefig', default=True)
 @click.option('-pp', '--plotpath', type=click.Path())
 @click.option('--showfig', is_flag=True)
-def plot_datachunk_availability(network, station, component, startdate, enddate, processing_config_id, savefig, plotpath, showfig):
-
+def plot_datachunk_availability(
+        network,
+        station,
+        component,
+        startdate,
+        enddate,
+        processing_config_id,
+        savefig,
+        plotpath,
+        showfig
+):
+    """
+    Method to plot datachunk availability based on passed arguments.
+    """
     if not isinstance(startdate, Date):
         startdate = pendulum.parse(startdate).date()
     if not isinstance(enddate, Date):
