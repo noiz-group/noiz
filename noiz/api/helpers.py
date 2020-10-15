@@ -19,6 +19,14 @@ def extract_object_ids(instances: Iterable[Union[Timespan, Component]]) -> \
 
 
 def validate_tuple_str(val):
+    """
+    Method that checks if provided argument is a string or a tuple and returnes
+    the same thing but converted to tuple of str
+    :param val:
+    :type val:
+    :return:
+    :rtype:
+    """
     if isinstance(val, str):
         return (val,)
     if isinstance(val, tuple):
