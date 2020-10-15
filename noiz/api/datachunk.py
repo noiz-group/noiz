@@ -44,7 +44,7 @@ def fetch_datachunks_for_timespan(
     return ret
 
 
-def count_datachunks_for_timespans_and_components(
+def count_datachunks(
         components: Collection[Component],
         timespans: Collection[Timespan],
         processing_params: ProcessingParams,
@@ -72,7 +72,7 @@ def count_datachunks_for_timespans_and_components(
     return count
 
 
-def fetch_datachunks_for_timespans_and_components(
+def fetch_datachunks(
         components: Collection[Component],
         timespans: Collection[Timespan],
         processing_params: ProcessingParams,
@@ -191,8 +191,8 @@ def create_datachunks_add_to_db(
         processing_params: ProcessingParams,
         processed_data_dir: Path,
 ) -> None:
-    no_datachunks = count_datachunks_for_timespans_and_components((component,),
-                                                                  timespans)
+    no_datachunks = count_datachunks((component,),
+                                     timespans)
 
     timespans_count = len(timespans)
 
@@ -382,7 +382,7 @@ def prepare_datachunk_preparation_parameter_lists(
 
         if not skip_existing:
             log.info(f"Checking if some timespans already exists")
-            existing_count = count_datachunks_for_timespans_and_components(
+            existing_count = count_datachunks(
                 components=(component,),
                 timespans=timespans
             )
@@ -394,7 +394,7 @@ def prepare_datachunk_preparation_parameter_lists(
             log.info(f"There are only {existing_count} existing Datachunks. "
                      f"Looking for those that are missing one by one.")
             new_timespans = [timespan for timespan in timespans if
-                             count_datachunks_for_timespans_and_components(
+                             count_datachunks(
                                  components=(component,),
                                  timespans=(timespan,)
                              ) == 0]
