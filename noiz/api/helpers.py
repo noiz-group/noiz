@@ -16,3 +16,14 @@ def extract_object_ids(instances: Iterable[Union[Timespan, Component]]) -> \
         instances = list(instances)
     ids = [x.id for x in instances]
     return ids
+
+
+def validate_tuple_str(val):
+    if isinstance(val, str):
+        return (val,)
+    if isinstance(val, tuple):
+        return val
+    else:
+        raise ValueError(
+            f"Expecting a tuple of strings or a string. Provided value was {type(val)}"
+        )
