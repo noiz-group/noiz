@@ -77,7 +77,8 @@ def fetch_datachunks_for_timespans_and_components(
 
 ) -> Collection[Datachunk]:
     """
-    Fetches datachunks for all provided components associated with all provided timespans.
+
+        Fetches datachunks for all provided components associated with all provided timespans.
 
     :param components: Components to be checked
     :type components: Collection[Component]
@@ -86,6 +87,15 @@ def fetch_datachunks_for_timespans_and_components(
     :param processing_params: ProcessingParams to be checked.
     This have to be a single object.
     :type processing_params: ProcessingParams
+    :param load_component: Loads also the associated Component
+    object so it is available for usage without context
+    :type load_component: bold
+    :param load_timespan: Loads also the associated Timespan
+    object so it is available for usage without context
+    :type load_timespan: bool
+    :param load_processing_params: Loads also the associated ProcessingParams
+    object so it is available for usage without context
+    :type load_processing_params: bool
     :return: Collection of Datachunks
     :rtype: Collection[Datachunk]
     """
