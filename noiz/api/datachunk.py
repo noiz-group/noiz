@@ -41,7 +41,8 @@ def fetch_datachunks_for_timespan(
     """
     log.warning(f"Method deprected. "
                 f"Use noiz.api.datachunkfetch_datachunks instead")
-    # FIXME deprecated. Change it to be using the fetch_datachunks method.
+    # FIXME deprecated. Change it to be using the fetch_datachunks method. noiz-group/noiz#44
+
 
     timespan_ids = extract_object_ids(timespans)
     ret = Datachunk.query.filter(Datachunk.timespan_id.in_(timespan_ids)).all()
@@ -66,6 +67,7 @@ def count_datachunks(
     :return: Count fo datachunks
     :rtype: int
     """
+    #FIXME noiz-group/noiz#45
     timespan_ids = extract_object_ids(timespans)
     component_ids = extract_object_ids(components)
     count = Datachunk.query.filter(
