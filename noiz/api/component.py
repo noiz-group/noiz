@@ -55,7 +55,7 @@ def fetch_components(
         filters.append(Component.component.in_(validate_tuple_str(components)))
 
     if len(filters) == 0:
-        return Component.query.all()
-    else:
-        return Component.query.filter(*filters).all()
+        filters.append(True)
+
+    return Component.query.filter(*filters).all()
 
