@@ -39,6 +39,10 @@ def fetch_datachunks_for_timespan(
     :return: List of Datachunks
     :rtype: List[Datachunk]
     """
+    log.warning(f"Method deprected. "
+                f"Use noiz.api.datachunkfetch_datachunks instead")
+    # FIXME deprecated. Change it to be using the fetch_datachunks method.
+
     timespan_ids = extract_object_ids(timespans)
     ret = Datachunk.query.filter(Datachunk.timespan_id.in_(timespan_ids)).all()
     return ret
