@@ -18,7 +18,7 @@ def plot_datachunk_availability(
         processing_params_id: int = 1,
         starttime: datetime = datetime(2000,1,1),
         endtime: datetime = datetime(2030,1,1),
-        filepath: Path = None,
+        filepath: Optional[Path] = None,
         showfig: bool = False
 
 ):
