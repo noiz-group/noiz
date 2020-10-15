@@ -79,10 +79,10 @@ def count_datachunks(
 
 
 def fetch_datachunks(
-        components: Optional[Collection[Component]],
-        timespans: Optional[Collection[Timespan]],
-        processing_params: Optional[ProcessingParams],
-        datachunk_ids: Optional[Collection[int]],
+        components: Optional[Collection[Component]] = None,
+        timespans: Optional[Collection[Timespan]] = None,
+        processing_params: Optional[ProcessingParams] = None,
+        datachunk_ids: Optional[Collection[int]] = None,
         load_component: bool = False,
         load_timespan: bool = False,
         load_processing_params: bool = False,
