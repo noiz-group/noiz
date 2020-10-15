@@ -17,7 +17,7 @@ def upsert_default_params() -> None:
     return
 
 
-def fetch_processing_config_by_id(id: int) -> Optional[ProcessingParams]:
+def fetch_processing_config_by_id(id: int) -> ProcessingParams:
     """
     Fetches a ProcessingParams objects by its ID.
     :param id: ID of processing params to be fetched
@@ -25,4 +25,8 @@ def fetch_processing_config_by_id(id: int) -> Optional[ProcessingParams]:
     :return: fetched ProcessingParams object
     :rtype: Optional[ProcessingPrams]
     """
-    return ProcessingParams.query.filter_by(id=id).first()
+    fetched_params = ProcessingParams.query.filter_by(id=id).first()
+    if fetched_params is None:
+        raise ValueError(f"ProcessingParams object of id {id} does not exist.")
+
+    return fetched_params
