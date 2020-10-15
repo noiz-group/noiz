@@ -13,6 +13,7 @@ def fetch_components_by_id(component_ids: Collection[int]) -> List[Component]:
     DEPRECATED. Use noiz.api.component.fetch_components instead
 
     Fetches components based on their ids
+
     :param component_ids: IDs of components to be fetched
     :type component_ids: Iterable[int]
     :return: List of all fetched components
@@ -32,6 +33,7 @@ def fetch_components(
     """
     Fetches components based on provided network codes, station codes and component codes.
     If none of the arguments are provided, will raise ValueError.
+
     :param networks: Networks of components to be fetched
     :type networks: Optional[Collection[str]]
     :param stations: Stations of components to be fetched
