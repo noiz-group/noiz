@@ -191,8 +191,11 @@ def create_datachunks_add_to_db(
         processing_params: ProcessingParams,
         processed_data_dir: Path,
 ) -> None:
-    no_datachunks = count_datachunks((component,),
-                                     timespans)
+    no_datachunks = count_datachunks(
+        components=(component,),
+        timespans=timespans,
+        processing_params=processing_params
+    )
 
     timespans_count = len(timespans)
 
@@ -384,7 +387,8 @@ def prepare_datachunk_preparation_parameter_lists(
             log.info(f"Checking if some timespans already exists")
             existing_count = count_datachunks(
                 components=(component,),
-                timespans=timespans
+                timespans=timespans,
+                processing_params=processing_params,
             )
             if existing_count == len(timespans):
                 log.info('Number of existing timespans is sufficient. '
@@ -396,7 +400,8 @@ def prepare_datachunk_preparation_parameter_lists(
             new_timespans = [timespan for timespan in timespans if
                              count_datachunks(
                                  components=(component,),
-                                 timespans=(timespan,)
+                                 timespans=(timespan,),
+                                 processing_params=processing_params
                              ) == 0]
             timespans = new_timespans
 
