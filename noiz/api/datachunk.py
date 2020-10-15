@@ -35,7 +35,9 @@ def fetch_datachunks_for_timespan(
     """
     DEPRECATED. Use noiz.api.datachunkfetch_datachunks instead
 
-    Fetches all datachunks associated with provided timespans. Timespan can be a single one or Iterable of timespans.
+    Fetches all datachunks associated with provided timespans.
+    Timespan can be a single one or Iterable of timespans.
+
     :param timespans: Instances of timespans to be checked
     :type timespans: Collection[Timespan]
     :return: List of Datachunks
@@ -52,7 +54,8 @@ def count_datachunks(
         processing_params: ProcessingParams,
 ) -> int:
     """
-    Counts number of datachunks for all provided components associated with all provided timespans.
+    Counts number of datachunks for all provided components associated with
+    all provided timespans.
 
     :param components: Components to be checked
     :type components: Iterable[Component]
@@ -99,18 +102,18 @@ def fetch_datachunks(
     :type components: Optional[Collection[Component]]
     :param timespans: Timespans to be checked
     :type timespans: Optional[Collection[Timespan]]
-    :param processing_params: ProcessingParams to be checked.
+    :param processing_params: ProcessingParams to be checked. \
     This have to be a single object.
     :type processing_params: Optional[ProcessingParams]
     :param components: Ids of Datachunk objects to be fetched
     :type components: Optional[Collection[int]]
-    :param load_component: Loads also the associated Component
+    :param load_component: Loads also the associated Component \
     object so it is available for usage without context
     :type load_component: bold
-    :param load_timespan: Loads also the associated Timespan
+    :param load_timespan: Loads also the associated Timespan \
     object so it is available for usage without context
     :type load_timespan: bool
-    :param load_processing_params: Loads also the associated ProcessingParams
+    :param load_processing_params: Loads also the associated ProcessingParams \
     object so it is available for usage without context
     :type load_processing_params: bool
     :return: List of Datachunks loaded from DB/
