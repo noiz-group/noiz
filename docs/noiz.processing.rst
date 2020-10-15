@@ -5,6 +5,7 @@ Subpackages
 -----------
 
 .. toctree::
+   :maxdepth: 4
 
    noiz.processing.soh
 
@@ -82,7 +83,6 @@ noiz.processing.trace module
    :members:
    :undoc-members:
    :show-inheritance:
-
 
 Module contents
 ---------------

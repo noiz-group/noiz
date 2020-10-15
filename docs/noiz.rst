@@ -5,6 +5,7 @@ Subpackages
 -----------
 
 .. toctree::
+   :maxdepth: 4
 
    noiz.api
    noiz.models
@@ -45,6 +46,14 @@ noiz.exceptions module
    :undoc-members:
    :show-inheritance:
 
+noiz.globals module
+-------------------
+
+.. automodule:: noiz.globals
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 noiz.logg module
 ----------------
 
@@ -68,7 +77,6 @@ noiz.settings module
    :members:
    :undoc-members:
    :show-inheritance:
-
 
 Module contents
 ---------------
