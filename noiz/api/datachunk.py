@@ -45,7 +45,9 @@ def fetch_datachunks_for_timespan(
 
 
 def count_datachunks_for_timespans_and_components(
-        components: Collection[Component], timespans: Collection[Timespan]
+        components: Collection[Component],
+        timespans: Collection[Timespan],
+        processing_params: ProcessingParams,
 ) -> int:
     """
     Counts number of datachunks for all provided components associated with all provided timespans.
@@ -54,15 +56,18 @@ def count_datachunks_for_timespans_and_components(
     :type components: Iterable[Component]
     :param timespans: Timespans to be checked
     :type timespans: Iterable[Timespan]
+    :param processing_params: ProcessingParams to be checked.
+    This have to be a single object.
+    :type processing_params: ProcessingParams
     :return: Count fo datachunks
     :rtype: int
     """
-    #TODO Add processing params to filter
     timespan_ids = extract_object_ids(timespans)
     component_ids = extract_object_ids(components)
     count = Datachunk.query.filter(
         Datachunk.component_id.in_(component_ids),
         Datachunk.timespan_id.in_(timespan_ids),
+        Datachunk.processing_params_id == processing_params.id
     ).count()
     return count
 
