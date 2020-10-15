@@ -15,7 +15,7 @@ def plot_datachunk_availability(
         networks: Optional[Collection[str]] = None,
         stations: Optional[Collection[str]] = None,
         components: Optional[Collection[str]] = None,
-        processing_params_id: int = 1,
+        processingparams_id: int = 1,
         starttime: datetime = datetime(2000,1,1),
         endtime: datetime = datetime(2030,1,1),
         filepath: Optional[Path] = None,
@@ -28,7 +28,7 @@ def plot_datachunk_availability(
                                           stations=stations,
                                           components=components)
 
-    processing_params = fetch_processing_config_by_id(id=processing_params_id)
+    processing_params = fetch_processing_config_by_id(id=processingparams_id)
     datachunks = fetch_datachunks(components=fetched_components,
                                   timespans=fetched_timespans,
                                   processing_params=processing_params,
@@ -54,7 +54,7 @@ def plot_datachunk_availability(
     if showfig is True:
         fig.show()
 
-    return
+    return fig
 
 
 def plot_availability(
