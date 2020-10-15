@@ -4,6 +4,7 @@ import obspy
 import pendulum
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import subqueryload
 from typing import List, Iterable, Union, Tuple, Collection, Optional, Dict
 
 import itertools
@@ -69,7 +70,11 @@ def count_datachunks_for_timespans_and_components(
 def fetch_datachunks_for_timespans_and_components(
         components: Collection[Component],
         timespans: Collection[Timespan],
-        processing_params: Collection[ProcessingParams]
+        processing_params: ProcessingParams,
+        load_component: bool = False,
+        load_timespan: bool = False,
+        load_processing_params: bool = False,
+
 ) -> Collection[Datachunk]:
     """
     Fetches datachunks for all provided components associated with all provided timespans.
@@ -78,20 +83,30 @@ def fetch_datachunks_for_timespans_and_components(
     :type components: Collection[Component]
     :param timespans: Timespans to be checked
     :type timespans: Collection[Timespan]
-    :param processing_params: ProcessingParams to be checked
-    :type processing_params: Collection[ProcessingParams]
+    :param processing_params: ProcessingParams to be checked.
+    This have to be a single object.
+    :type processing_params: ProcessingParams
     :return: Collection of Datachunks
     :rtype: Collection[Datachunk]
     """
     timespan_ids = extract_object_ids(timespans)
     component_ids = extract_object_ids(components)
-    processing_params_ids = extract_object_ids(processing_params)
+
+    opts = []
+
+    if load_timespan:
+        opts.append(subqueryload(Datachunk.timespan))
+    if load_component:
+        opts.append(subqueryload(Datachunk.component))
+    if load_processing_params:
+        opts.append(subqueryload(Datachunk.processing_params))
+
 
     datachunks = Datachunk.query.filter(
         Datachunk.component_id.in_(component_ids),
         Datachunk.timespan_id.in_(timespan_ids),
-        Datachunk.processing_params_id.in_(processing_params_ids)
-    ).all()
+        Datachunk.processing_params_id == processing_params.id
+    ).options(opts).all()
     return datachunks
 
 
