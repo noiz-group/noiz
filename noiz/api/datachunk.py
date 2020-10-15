@@ -73,9 +73,9 @@ def count_datachunks(
 
 
 def fetch_datachunks(
-        components: Collection[Component],
-        timespans: Collection[Timespan],
-        processing_params: ProcessingParams,
+        components: Optional[Collection[Component]],
+        timespans: Optional[Collection[Timespan]],
+        processing_params: Optional[ProcessingParams],
         load_component: bool = False,
         load_timespan: bool = False,
         load_processing_params: bool = False,
@@ -86,12 +86,12 @@ def fetch_datachunks(
         Fetches datachunks for all provided components associated with all provided timespans.
 
     :param components: Components to be checked
-    :type components: Collection[Component]
+    :type components: Optional[Collection[Component]]
     :param timespans: Timespans to be checked
-    :type timespans: Collection[Timespan]
+    :type timespans: Optional[Collection[Timespan]]
     :param processing_params: ProcessingParams to be checked.
     This have to be a single object.
-    :type processing_params: ProcessingParams
+    :type processing_params: Optional[ProcessingParams]
     :param load_component: Loads also the associated Component
     object so it is available for usage without context
     :type load_component: bold
@@ -104,8 +104,19 @@ def fetch_datachunks(
     :return: Collection of Datachunks
     :rtype: Collection[Datachunk]
     """
-    timespan_ids = extract_object_ids(timespans)
-    component_ids = extract_object_ids(components)
+
+    filters = []
+
+    if components is not None:
+        component_ids = extract_object_ids(components)
+        filters.append(Datachunk.component_id.in_(component_ids))
+    if timespans is not None:
+        timespan_ids = extract_object_ids(timespans)
+        filters.append(Datachunk.timespan_id.in_(timespan_ids))
+    if processing_params is not None:
+        filters.append(Datachunk.processing_params_id == processing_params.id)
+    if len(filters) == 0:
+        filters.append(True)
 
     opts = []
 
@@ -116,13 +127,7 @@ def fetch_datachunks(
     if load_processing_params:
         opts.append(subqueryload(Datachunk.processing_params))
 
-
-    datachunks = Datachunk.query.filter(
-        Datachunk.component_id.in_(component_ids),
-        Datachunk.timespan_id.in_(timespan_ids),
-        Datachunk.processing_params_id == processing_params.id
-    ).options(opts).all()
-    return datachunks
+    return Datachunk.query.filter(*filters).options(opts).all()
 
 
 def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
