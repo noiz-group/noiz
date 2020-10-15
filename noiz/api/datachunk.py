@@ -82,8 +82,14 @@ def fetch_datachunks(
 
 ) -> Collection[Datachunk]:
     """
+    Fetches datachunks based on provided filters.
 
-        Fetches datachunks for all provided components associated with all provided timespans.
+    You can filter your call by providing Timespans and/or components and/or
+    processing_params you want to select Datachunk based on.
+
+    None of The filters is obligatory. If none of the filters will be provided,
+    it will return you content of the whole table Datachunk.
+    This will be unpleasant.
 
     :param components: Components to be checked
     :type components: Optional[Collection[Component]]
