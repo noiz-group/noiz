@@ -82,6 +82,7 @@ def fetch_datachunks(
         components: Optional[Collection[Component]],
         timespans: Optional[Collection[Timespan]],
         processing_params: Optional[ProcessingParams],
+        datachunk_ids: Optional[Collection[int]],
         load_component: bool = False,
         load_timespan: bool = False,
         load_processing_params: bool = False,
@@ -104,6 +105,8 @@ def fetch_datachunks(
     :param processing_params: ProcessingParams to be checked.
     This have to be a single object.
     :type processing_params: Optional[ProcessingParams]
+    :param components: Ids of Datachunk objects to be fetched
+    :type components: Optional[Collection[int]]
     :param load_component: Loads also the associated Component
     object so it is available for usage without context
     :type load_component: bold
@@ -127,6 +130,8 @@ def fetch_datachunks(
         filters.append(Datachunk.timespan_id.in_(timespan_ids))
     if processing_params is not None:
         filters.append(Datachunk.processing_params_id == processing_params.id)
+    if datachunk_ids is not None:
+        filters.append(Datachunk.id.in_(datachunk_ids))
     if len(filters) == 0:
         filters.append(True)
 
