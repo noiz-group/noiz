@@ -1,6 +1,10 @@
-from typing import List, Iterable, Tuple, Optional, Collection
+import logging
+
+from typing import List, Iterable, Optional, Collection
 
 from noiz.models import Component
+
+log = logging.getLogger("noiz.api")
 
 
 def validate_tuple_str(val):
@@ -14,16 +18,19 @@ def validate_tuple_str(val):
         )
 
 
-def fetch_components_by_id(component_ids: Iterable[int]) -> List[Component]:
+def fetch_components_by_id(component_ids: Collection[int]) -> List[Component]:
     """
+    DEPRECATED. Use noiz.api.component.fetch_components instead
+
     Fetches components based on their ids
     :param component_ids: IDs of components to be fetched
     :type component_ids: Iterable[int]
     :return: List of all fetched components
     :rtype: List[Component]
     """
-    ret = Component.query.filter(Component.id.in_(component_ids)).all()
-    return ret
+    log.warning("DEPRACATION. Method depracted. "
+                "Use noiz.api.component.fetch_components")
+    return fetch_components(component_ids=component_ids)
 
 
 def fetch_components(
