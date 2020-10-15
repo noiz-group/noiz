@@ -1,7 +1,9 @@
-import datetime
 from collections import defaultdict
+from typing import Optional, Collection, List, Dict
 
+from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 from noiz.api import fetch_components
 from noiz.api.datachunk.datachunk import fetch_datachunks
@@ -10,14 +12,16 @@ from noiz.api.timespan import fetch_timespans_between_dates
 
 
 def plot_datachunk_availability(
-        networks,
-        stations,
-        components,
-        starttime,
-        endtime,
-        processing_params_id
-):
+        networks: Optional[Collection[str]] = None,
+        stations: Optional[Collection[str]] = None,
+        components: Optional[Collection[str]] = None,
+        processing_params_id: int = 1,
+        starttime: datetime = datetime(2000,1,1),
+        endtime: datetime = datetime(2030,1,1),
+        filepath: Path = None,
+        showfig: bool = False
 
+):
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime,
                                                       endtime=endtime)
     fetched_components = fetch_components(networks=networks,
@@ -42,14 +46,24 @@ def plot_datachunk_availability(
             len(times) / len(fetched_timespans) * 100, 2)
 
     fig = plot_availability(midtimes, starttime, endtime, fig_title,
-                      availability)
+                            availability)
 
-    return fig
+    if filepath is not None:
+        fig.savefig(filepath)
+
+    if showfig is True:
+        fig.show()
+
+    return
 
 
-def plot_availability(midtimes, starttime, endtime, fig_title,
-                      availability):
-
+def plot_availability(
+        midtimes: Dict[str, List[datetime]],
+        starttime: datetime,
+        endtime: datetime,
+        fig_title: str,
+        availability: Dict[str, float]
+):
     days = (starttime - endtime).days
 
     fig, ax = plt.subplots(dpi=150)
@@ -61,8 +75,8 @@ def plot_availability(midtimes, starttime, endtime, fig_title,
         ax.scatter(midtimes[key], [key] * len(midtimes[key]), marker='x',
                    linewidth=0.1, alpha=1)
 
-    ax.set_xlim(starttime - datetime.timedelta(days=5),
-                endtime + datetime.timedelta(days=5), )
+    ax.set_xlim(starttime - timedelta(days=5),
+                endtime + timedelta(days=5))
     fig.autofmt_xdate()
 
     height = len(midtimes.keys()) * 0.75
