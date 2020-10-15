@@ -1,4 +1,4 @@
-from typing import List, Iterable, Tuple, Optional
+from typing import List, Iterable, Tuple, Optional, Collection
 
 from noiz.models import Component
 
@@ -27,19 +27,22 @@ def fetch_components_by_id(component_ids: Iterable[int]) -> List[Component]:
 
 
 def fetch_components(
-    networks: Optional[Tuple[str]] = None,
-    stations: Optional[Tuple[str]] = None,
-    components: Optional[Tuple[str]] = None,
+    networks: Optional[Collection[str]] = None,
+    stations: Optional[Collection[str]] = None,
+    components: Optional[Collection[str]] = None,
+    component_ids: Optional[Collection[int]] = None,
 ) -> List[Component]:
     """
     Fetches components based on provided network codes, station codes and component codes.
     If none of the arguments are provided, will raise ValueError.
-    :param networks: Networks of components
-    :type networks: Optional[Tuple[str]]
-    :param stations: Stations of components
-    :type stations: Optional[Tuple[str]]
-    :param components: Components to be fetched
-    :type components: Optional[Tuple[str]]
+    :param networks: Networks of components to be fetched
+    :type networks: Optional[Collection[str]]
+    :param stations: Stations of components to be fetched
+    :type stations: Optional[Collection[str]]
+    :param components: Component letters to be fetched
+    :type components: Optional[Collection[str]]
+    :param components: Ids of components objects to be fetched
+    :type components: Optional[Collection[int]]
     :return: Component fetched based on provided values.
     :rtype: List[Component]
     :raises: ValueError
@@ -53,6 +56,8 @@ def fetch_components(
         filters.append(Component.station.in_(validate_tuple_str(stations)))
     if components is not None:
         filters.append(Component.component.in_(validate_tuple_str(components)))
+    if component_ids is not None:
+        filters.append(Component.id.in_(component_ids))
 
     if len(filters) == 0:
         filters.append(True)
