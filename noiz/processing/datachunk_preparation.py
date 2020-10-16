@@ -113,7 +113,6 @@ def increment_filename_counter(filepath: Path) -> Path:
     :raises: ValueError
     """
 
-
     while True:
         if not filepath.exists():
             return filepath
@@ -171,7 +170,6 @@ def resample_with_padding(
     )
     st = obspy.Stream(tr.slice(starttime=starttime, endtime=endtime))
 
-
     log.info("Resampling done!")
     return st
 
@@ -179,7 +177,7 @@ def resample_with_padding(
 def preprocess_whole_day(
     st: obspy.Stream, preprocessing_config: ProcessingParams
 ) -> obspy.Stream:
-    log.info(f"Trying to merge traces if more than 1")
+    log.info("Trying to merge traces if more than 1")
     st.merge()
 
     if len(st) > 1:
@@ -257,6 +255,7 @@ def pad_zeros_to_exact_time_bounds(
         )
     return st
 
+
 def preprocess_timespan(
     trimed_st: obspy.Stream,
     inventory: obspy.Inventory,
@@ -275,10 +274,10 @@ def preprocess_timespan(
     :rtype: obspy.Stream
     """
 
-    log.info(f"Detrending")
+    log.info("Detrending")
     trimed_st.detrend(type="polynomial", order=3)
 
-    log.info(f"Demeaning")
+    log.info("Demeaning")
     trimed_st.detrend(type="demean")
 
     log.info(
@@ -286,7 +285,7 @@ def preprocess_timespan(
     )
     trimed_st = resample_with_padding(
         st=trimed_st, sampling_rate=processing_params.sampling_rate
-    ) # type: ignore
+    )  # type: ignore
 
     expected_samples = processing_params.get_expected_no_samples()
     if trimed_st[0].stats.npts > expected_samples:
@@ -346,7 +345,7 @@ def validate_slice(
     deficit = None
 
     if len(trimed_st) == 0:
-        ValueError(f"There was no data to be cut for that timespan")
+        ValueError("There was no data to be cut for that timespan")
 
     samples_in_stream = sum([x.stats.npts for x in trimed_st])
 
@@ -359,7 +358,7 @@ def validate_slice(
             f" while {minimum_no_samples} were expected. "
             f"Skipping this chunk."
         )
-        raise ValueError(f"Not enough data in a chunk.")
+        raise ValueError("Not enough data in a chunk.")
 
     if len(trimed_st) > 1:
         log.warning(
@@ -394,8 +393,6 @@ def validate_slice(
             )
         except ValueError as e:
             log.error(f"Padding was not successful. {e}")
-            raise ValueError(f"Datachunk padding unsuccessful.")
+            raise ValueError("Datachunk padding unsuccessful.")
 
     return trimed_st, deficit
-
-
