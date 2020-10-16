@@ -36,6 +36,11 @@ type-check:
     - python -m pip install -r requirements-test.txt
     - mypy noiz
 
+flake8:
+ stage: linting
+ script:
+   - flake8
+
 build-docs:
   stage: documentation
   before_script:
