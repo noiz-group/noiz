@@ -27,7 +27,7 @@ type-check:
   stage: linting
   script:
     - python -m pip install -r requirements-test.txt
-    - mypy noiz
+    - mypy src/noiz
 
 flake8:
  stage: linting
