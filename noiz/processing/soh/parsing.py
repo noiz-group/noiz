@@ -39,9 +39,9 @@ def read_single_soh_csv(
         except ValueError:
             raise UnparsableDateTimeException(
                 f"There was a problem with parsing the SOH file.\n"
-                + f" One of elements of UTCDateTime column could not be parsed to datetime format.\n"
-                + f" Check the file, it might contain single unparsable line.\n"
-                + f" {filepath} "
+                f" One of elements of UTCDateTime column could not be parsed to datetime format.\n"
+                f" Check the file, it might contain single unparsable line.\n"
+                f" {filepath} "
             )
 
     single_df = single_df.astype(dtypes)
@@ -65,9 +65,8 @@ def read_multiple_soh(filepaths, parsing_params):
                 used_columns=parsing_params["used_columns"],
                 dtypes=parsing_params["dtypes"],
             )
-        except UnparsableDateTimeException as e:
+        except UnparsableDateTimeException:
             raise Exception(filepath)
-            continue
 
         if single_df is None:
             continue

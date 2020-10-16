@@ -121,7 +121,7 @@ def plot_gpstime(df, station):
 
     ax0.set_title(
         f"Timing status, error and uncertainty\n"
-        + f"{station} from {starttime} to {endtime}"
+        f"{station} from {starttime} to {endtime}"
     )
 
     return fig, (ax0, ax1)
