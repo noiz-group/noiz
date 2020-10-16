@@ -43,7 +43,7 @@ def parse_inventory_for_single_component_db_entries(inventory, inventory_dir):
                 inventory_single_component.write(
                     str(inventory_filepath), format="stationxml"
                 )
-                logging.info(f"Saving of the inventory file successful!")
+                logging.info("Saving of the inventory file successful!")
 
                 db_component = Component(
                     network=network.code,

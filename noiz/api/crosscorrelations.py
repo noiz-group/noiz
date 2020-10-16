@@ -146,7 +146,7 @@ def perform_crosscorrelations_for_day_and_pairs(
         component_pairs_day
     )
 
-    logging.info(f"Looking for all processed datachunks for that day")
+    logging.info("Looking for all processed datachunks for that day")
     processed_datachunks_day = fetch_processeddatachunks_a_day(date=execution_date)
     logging.info(
         f"There are {len(processed_datachunks_day)} processed_datachunks available for {execution_date.date()}"
@@ -161,7 +161,7 @@ def perform_crosscorrelations_for_day_and_pairs(
     for i, (timespan, chunks) in enumerate(groupped_chunks.items()):
         logging.info(f"Starting to look for correlations in {i + 1}/{no_timespans}")
         timespan_corrs = find_correlations_in_chunks(chunks, groupped_componentpairs)
-        logging.info(f"Loading data for that timespan")
+        logging.info("Loading data for that timespan")
         streams = load_data_for_chunks(chunks)
 
         no_corrs = len(timespan_corrs)
@@ -200,7 +200,7 @@ def perform_crosscorrelations_for_day_and_pairs(
             logging.warning(f"There was an integrity error thrown. {e}")
             logging.warning("Rollingback session")
             db.session.rollback()
-            logging.warning(f"Retrying with upsert")
+            logging.warning("Retrying with upsert")
             upsert_crosscorrelations(xcorrs)
     else:
         logging.info(
@@ -208,7 +208,7 @@ def perform_crosscorrelations_for_day_and_pairs(
         )
         upsert_crosscorrelations(xcorrs)
 
-    logging.info(f"Success!")
+    logging.info("Success!")
     return
 
 
