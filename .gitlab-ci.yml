@@ -21,13 +21,6 @@ test-noiz:
   script:
     - pytest --cov=noiz
 
-#black-check:
-#  before_script:
-#    - conda install black
-#  stage: linting
-#  script:
-#    - black --verbose --check noiz
-
 type-check:
 #  before_script:
 #    - *install_noiz
