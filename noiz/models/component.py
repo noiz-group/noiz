@@ -52,10 +52,10 @@ class Component(db.Model):
         return f"{self.network}.{self.station}.{self.component}"
 
     def __str__(self):
-        return f"Station {self._make_station_string()}"
+        return f"{self._make_station_string()}"
 
     def __repr__(self):
-        return f"{self.id}.{self._make_station_string()}"
+        return f"Component {self.id}.{self._make_station_string()}"
 
     def _set_xy_from_latlon(self, lat, lon):
         x, y, zone, zone_letter = utm.from_latlon(lat, lon)
