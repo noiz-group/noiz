@@ -47,5 +47,3 @@ def register_extensions(app: Flask):
 def register_blueprints(app: Flask):
     app.register_blueprint(simple_page)
     return None
-
-

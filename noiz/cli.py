@@ -34,6 +34,7 @@ def _register_subgroups_to_cli(cli: AppGroup, custom_groups: Iterable[AppGroup])
         cli.add_command(custom_group)
     return
 
+
 @cli.group("noiz", cls=FlaskGroup, create_app=create_app)
 def cli():  # type: ignore
     "Perform operations with noiz package"
@@ -45,10 +46,12 @@ def init_group():  # type: ignore
     "Initiate operation in noiz"
     pass
 
+
 @init_group.command("load_processing_params")
 def load_processing_params():
     """Replaces current processing config with default one"""
     click.echo("This is a placeholder of an option")
+
 
 @init_group.command("reset_config")
 def reset_config():
@@ -61,8 +64,8 @@ def reset_config():
 def add_files_recursively(paths):
     """Globs over provided directories in search of files"""
 
-    click.echo(f"Unfortunately this option is not implemented yet.")
-    click.echo(f"You need to run this command")
+    click.echo("Unfortunately this option is not implemented yet.")
+    click.echo("You need to run this command")
     click.echo(
         f"{os.environ['MSEEDINDEX_EXECUTABLE']} -v "
         f"-pghost {os.environ['POSTGRES_HOST']}"
@@ -100,7 +103,7 @@ def processing_group():  # type: ignore
 @click.option("-s", "--station", multiple=True, type=str)
 @click.option("-c", "--component", multiple=True, type=str)
 @click.option("-sd", "--startdate", nargs=1, type=str,
-              default=pendulum.Pendulum(2000,1,1).date, show_default=True)
+              default=pendulum.Pendulum(2000, 1, 1).date, show_default=True)
 @click.option("-ed", "--enddate", nargs=1, type=str,
               default=pendulum.today().date, show_default=True)
 @click.option("-p", "--processing_config_id", nargs=1, type=int,
@@ -138,13 +141,14 @@ def plotting_group():  # type: ignore
     """Plotting routines"""
     pass
 
+
 @plotting_group.command("datachunk_availability")
 @with_appcontext
 @click.option("-n", "--network", multiple=True, type=str)
 @click.option("-s", "--station", multiple=True, type=str)
 @click.option("-c", "--component", multiple=True, type=str)
 @click.option("-sd", "--startdate", nargs=1, type=str,
-              default=pendulum.Pendulum(2000,1,1).date, show_default=True)
+              default=pendulum.Pendulum(2000, 1, 1).date, show_default=True)
 @click.option("-ed", "--enddate", nargs=1, type=str,
               default=pendulum.today().date, show_default=True)
 @click.option("-p", "--processing_config_id", nargs=1, type=int,
