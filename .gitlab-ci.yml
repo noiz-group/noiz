@@ -31,6 +31,7 @@ type-check:
 
 flake8:
  stage: linting
+ image: alpine/flake8
  script:
    - flake8
 
