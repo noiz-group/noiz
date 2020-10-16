@@ -1,11 +1,13 @@
 repos:
--   repo: https://github.com/ambv/black
-    rev: stable
+-   repo: https://gitlab.com/pycqa/flake8
+    rev: 3.8.3
     hooks:
-    - id: black
-#-   repo: git://github.com/luismayta/pre-commit-mypy
-#    sha: 'b9595c1285cd8a9a032b7f759c75e08f74974bb6'  # Use the sha you want to point at
-#    hooks:
-#    -   id: mypy
-#        args:
-#        - --ignore-missing-imports
+    - id: flake8
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v0.790
+    hooks:
+    -   id: mypy
+        additional_dependencies: [sqlalchemy-stubs~=0.3]
+        args:
+            - --ignore-missing-imports
+        exclude: tests/

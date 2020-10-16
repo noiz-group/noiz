@@ -62,4 +62,3 @@ def fetch_components(
         filters.append(True)
 
     return Component.query.filter(*filters).all()
-

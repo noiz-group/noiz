@@ -11,7 +11,6 @@ stages:
 .install_noiz_complete: &install_noiz_complete
   - python -m pip install --upgrade pip setuptools wheel
   - python -m pip install --no-cache-dir -r requirements.txt
-  - python -m pip install sqlalchemy-stubs
 
 test-noiz:
   before_script:
@@ -21,13 +20,6 @@ test-noiz:
   script:
     - pytest --cov=noiz
 
-#black-check:
-#  before_script:
-#    - conda install black
-#  stage: linting
-#  script:
-#    - black --verbose --check noiz
-
 type-check:
 #  before_script:
 #    - *install_noiz
@@ -35,6 +27,12 @@ type-check:
   script:
     - python -m pip install -r requirements-test.txt
     - mypy noiz
+
+flake8:
+ stage: linting
+ script:
+   - python -m pip install flake8
+   - flake8 .
 
 build-docs:
   stage: documentation

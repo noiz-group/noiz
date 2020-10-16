@@ -49,8 +49,8 @@ class Datachunk(db.Model):
 
     datachunk_file = db.relationship(
         "DatachunkFile",
-        foreign_keys = [datachunk_file_id],
-        uselist = False,
+        foreign_keys=[datachunk_file_id],
+        uselist=False,
         lazy="joined",
     )
 
@@ -102,8 +102,8 @@ class ProcessedDatachunk(db.Model):
     datachunk = db.relationship("Datachunk", foreign_keys=[datachunk_id])
     processed_datachunk_file = db.relationship(
         "ProcessedDatachunkFile",
-        foreign_keys = [processed_datachunk_file_id],
-        uselist = False,
+        foreign_keys=[processed_datachunk_file_id],
+        uselist=False,
         lazy="joined",
     )
 
@@ -114,9 +114,9 @@ class ProcessedDatachunk(db.Model):
         else:
             raise MissingDataFileException(f"Data file for chunk {self} is missing")
 
+
 class ProcessedDatachunkFile(db.Model):
     __tablename__ = "processed_datachunk_file"
 
     id = db.Column("id", db.BigInteger, primary_key=True)
     filepath = db.Column("filepath", db.UnicodeText, nullable=False)
-
