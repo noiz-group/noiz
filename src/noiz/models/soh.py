@@ -1,7 +1,7 @@
 from noiz.database import db
 
 
-class Soh(db.Model):
+class SohEnvironment(db.Model):
     __tablename__ = "soh"
     __table_args__ = (
         db.UniqueConstraint(

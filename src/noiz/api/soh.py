@@ -4,7 +4,7 @@ from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
 
 from noiz.database import db
-from noiz.models import Component, Soh
+from noiz.models import Component, SohEnvironment
 from noiz.processing.soh.parsing import read_multiple_soh, postprocess_soh_dataframe
 from noiz.processing.soh.soh_column_names import parsing_parameters
 
@@ -56,7 +56,7 @@ def parse_soh_insert_into_db(
         if i % int(no_rows / 10) == 0:
             logging.info(f"Prepared already {i}/{no_rows} commands")
         insert_command = (
-            insert(Soh)
+            insert(SohEnvironment)
             .values(
                 component_id=component_id,
                 datetime=timestamp,
