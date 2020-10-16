@@ -1,9 +1,14 @@
 from setuptools import setup
+from setuptools import find_packages
 
 setup(
     name="noiz",
-    packages=["noiz"],
+    packages=find_packages('src'),
+    package_dir={'': 'src'},
     include_package_data=True,
+    author="Damian Kula",
+    author_email="dkula@unistra.fr",
+    version="0.5.2020290",
     entry_points={"console_scripts": ["noiz=noiz.cli:cli"]},
     install_requires=[
         "flask",
@@ -11,7 +16,6 @@ setup(
         "obspy",
         "flask_migrate",
         "flask-sqlalchemy",
-        "dash",
         "environs",
     ],
 )
