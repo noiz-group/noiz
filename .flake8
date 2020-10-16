@@ -13,8 +13,9 @@
 # E704: multiple statements on one line (def)
 # W503: line break before binary operator
 # W504: line break after binary operator
+# W605 invalid escape sequence (does not recognize latex in matplotlib labels)
 # E741: ambiguous variable name 'l'
-ignore = E203, E266, E501,  F403, F401, E121, E123, E126, E133, E24, E226, E402, E704, W503, W504, E741
+ignore = E203, E266, E501,  F403, F401, E121, E123, E126, E133, E24, E226, E402, E704, W503, W504, W605, E741
 max-line-length = 119
 max-complexity = 18
 select = B,C,E,F,W,T4,B9
