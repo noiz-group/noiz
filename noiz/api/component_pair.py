@@ -13,7 +13,6 @@ from noiz.processing.component_pair import (
     is_east_to_west,
     calculate_distance_azimuths,
 )
-from noiz.processing.component_pair import calculate_distance_azimuths
 
 
 def prepare_componentpairs(components: List[Component]) -> List[ComponentPair]:
@@ -107,7 +106,7 @@ def upsert_component_pairs(component_pairs: List[ComponentPair]) -> None:
         )
         db.session.execute(insert_command)
         logging.info(f"Inserted {i}/{no - 1} component_pairs")
-    logging.info(f"Commiting changes")
+    logging.info("Commiting changes")
     db.session.commit()
     logging.info("Commit successfull. Returning")
     return

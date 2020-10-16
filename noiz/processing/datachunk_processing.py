@@ -84,7 +84,7 @@ def process_datachunk(datachunk, processing_params):
     st = datachunk.load_data()
     if len(st) != 1:
         logging.info(
-            f"There are more than one trace in stream, trying to merge with default params"
+            "There are more than one trace in stream, trying to merge with default params"
         )
         st.merge()
         if len(st) != 1:

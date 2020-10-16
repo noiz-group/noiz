@@ -50,7 +50,7 @@ def parse_soh_insert_into_db(
     no_rows = len(df)
 
     logging.info(f"Parsed into df {len(df)} lines long")
-    logging.info(f"Starting preparation of insert commands")
+    logging.info("Starting preparation of insert commands")
     insert_commands = []
     for i, (timestamp, row) in enumerate(df.iterrows()):
         if i % int(no_rows / 10) == 0:
@@ -75,7 +75,7 @@ def parse_soh_insert_into_db(
         )
         insert_commands.append(insert_command)
 
-    logging.info(f"Starting inserting operation")
+    logging.info("Starting inserting operation")
 
     for i, insert_command in enumerate(insert_commands):
         if i % int(no_rows / 10) == 0:

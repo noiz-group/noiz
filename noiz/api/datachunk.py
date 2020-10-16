@@ -17,15 +17,17 @@ from noiz.api.processing_config import fetch_processing_config_by_id
 from noiz.database import db
 from noiz.exceptions import NoDataException, MissingDataFileException
 from noiz.globals import PROCESSED_DATA_DIR
-from noiz.models import Datachunk, Component, Timespan, ProcessingParams,\
+from noiz.models import Datachunk, Component, Timespan, ProcessingParams, \
     Tsindex, DatachunkFile
 
-from noiz.processing.datachunk_preparation import  validate_slice, \
+from noiz.processing.datachunk_preparation import validate_slice, \
     preprocess_timespan, assembly_filepath, assembly_sds_like_dir, \
     assembly_preprocessing_filename, increment_filename_counter, \
     directory_exists_or_create
 
 log = logging.getLogger("noiz.api")
+
+
 # log = logging.getLogger(__name__)
 
 
@@ -43,8 +45,7 @@ def fetch_datachunks_for_timespan(
     :return: List of Datachunks
     :rtype: List[Datachunk]
     """
-    log.warning(f"Method deprected. "
-                f"Use noiz.api.datachunkfetch_datachunks instead")
+    log.warning("Method deprected. Use noiz.api.datachunkfetch_datachunks instead.")
     return fetch_datachunks(timespans=timespans)
 
 
@@ -67,7 +68,7 @@ def count_datachunks(
     :return: Count fo datachunks
     :rtype: int
     """
-    #FIXME noiz-group/noiz#45
+    # FIXME noiz-group/noiz#45
     timespan_ids = extract_object_ids(timespans)
     component_ids = extract_object_ids(components)
     count = Datachunk.query.filter(
@@ -102,19 +103,18 @@ def fetch_datachunks(
     :type components: Optional[Collection[Component]]
     :param timespans: Timespans to be checked
     :type timespans: Optional[Collection[Timespan]]
-    :param processing_params: ProcessingParams to be checked. \
-    This have to be a single object.
+    :param processing_params: ProcessingParams to be checked. This have to be a single object.
     :type processing_params: Optional[ProcessingParams]
     :param components: Ids of Datachunk objects to be fetched
     :type components: Optional[Collection[int]]
-    :param load_component: Loads also the associated Component \
-    object so it is available for usage without context
+    :param load_component: Loads also the associated Component object so it is available for usage \
+    without context
     :type load_component: bold
-    :param load_timespan: Loads also the associated Timespan \
-    object so it is available for usage without context
+    :param load_timespan: Loads also the associated Timespan object so it is available for usage \
+    without context
     :type load_timespan: bool
-    :param load_processing_params: Loads also the associated ProcessingParams \
-    object so it is available for usage without context
+    :param load_processing_params: Loads also the associated ProcessingParams object \
+    so it is available for usage without context
     :type load_processing_params: bool
     :return: List of Datachunks loaded from DB/
     :rtype: List[Datachunk]
@@ -161,29 +161,27 @@ def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
 
         if not isinstance(datachunk, Datachunk):
             log.warning(f'Provided object is not an instance of Datachunk. '
-                        f'Provided object was an {type(datachunk)}. '
-                        f'Skipping.')
+                        f'Provided object was an {type(datachunk)}. Skipping.')
             continue
 
         log.info("Querrying db if the datachunk already exists.")
         existing_chunks = (
             db.session.query(Datachunk)
-                .filter(
-                Datachunk.component_id == datachunk.component_id,
-                Datachunk.timespan_id == datachunk.timespan_id,
-            )
-                .all()
+                      .filter(
+                        Datachunk.component_id == datachunk.component_id,
+                        Datachunk.timespan_id == datachunk.timespan_id,
+                      )
+              .all()
         )
 
         if len(existing_chunks) == 0:
-            log.info("No existing chunks found. "
-                     "Adding Datachunk to DB.")
+            log.info("No existing chunks found. Adding Datachunk to DB.")
             db.session.add(datachunk)
         else:
             log.info("The datachunk already exists in db. Updating.")
             insert_command = (
                 insert(Datachunk)
-                    .values(
+                .values(
                     processing_config_id=datachunk.processing_params_id,
                     component_id=datachunk.component_id,
                     timespan_id=datachunk.timespan_id,
@@ -192,7 +190,7 @@ def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
                     datachunk_file=datachunk.datachunk_file,
                     padded_npts=datachunk.padded_npts,
                 )
-                    .on_conflict_do_update(
+                .on_conflict_do_update(
                     constraint="unique_datachunk_per_timespan_per_station_per_processing",
                     set_=dict(
                         datachunk_file_id=datachunk.datachunk_file.id,
@@ -225,10 +223,7 @@ def create_datachunks_add_to_db(
         f"There are {no_datachunks} datachunks for {execution_date} in db")
 
     if no_datachunks == timespans_count:
-        log.info(
-            f"There is enough of datachunks in the db "
-            f"(no_datahcunks == no_timespans)"
-        )
+        log.info("There is enough of datachunks in the db (no_datachunks == no_timespans)")
         return
 
     log.info(f"Fetching timeseries for {execution_date} {component}")
@@ -289,7 +284,6 @@ def create_datachunks_for_component(
                     f"obspy.Stream.read function. Here it is: {e} ")
         return []
 
-
     inventory: obspy.Inventory = component.read_inventory()
 
     # log.info("Preprocessing initially full day timeseries")
@@ -327,16 +321,14 @@ def create_datachunks_for_component(
         )
 
         filepath = assembly_filepath(
-            PROCESSED_DATA_DIR, # type: ignore
+            PROCESSED_DATA_DIR,  # type: ignore
             "datachunk",
             assembly_sds_like_dir(component, timespan) \
-                .joinpath(
-                assembly_preprocessing_filename(
-                    component=component,
-                    timespan=timespan,
-                    count=0
-                )
-            ),
+                                 .joinpath(assembly_preprocessing_filename(
+                                                component=component,
+                                                timespan=timespan,
+                                                count=0
+                                            )),
         )
 
         if filepath.exists():
@@ -380,13 +372,12 @@ def prepare_datachunk_preparation_parameter_lists(
 ) -> Iterable[Dict]:
     date_period = pendulum.period(startdate, enddate)
 
-    log.info(
-        f"Fetching processing config, timespans and componsents from db")
+    log.info("Fetching processing config, timespans and componsents from db. ")
     processing_params = fetch_processing_config_by_id(id=processing_config_id)
 
     all_timespans = [(date, fetch_timespans_for_doy(
-            year=date.year, doy=date.day_of_year
-        )) for date in date_period.range('days')]
+        year=date.year, doy=date.day_of_year
+    )) for date in date_period.range('days')]
 
     fetched_components = fetch_components(networks=None,
                                           stations=stations,
@@ -406,15 +397,14 @@ def prepare_datachunk_preparation_parameter_lists(
             continue
 
         if not skip_existing:
-            log.info(f"Checking if some timespans already exists")
+            log.info("Checking if some timespans already exists")
             existing_count = count_datachunks(
                 components=(component,),
                 timespans=timespans,
                 processing_params=processing_params,
             )
             if existing_count == len(timespans):
-                log.info('Number of existing timespans is sufficient. '
-                         'Skipping')
+                log.info("Number of existing timespans is sufficient. Skipping")
                 continue
 
             log.info(f"There are only {existing_count} existing Datachunks. "
@@ -443,14 +433,15 @@ def run_paralel_chunk_preparation(
         processing_config_id: int,
 
 ):
-    log.info(f"Preparing jobs for execution")
+    log.info("Preparing jobs for execution")
     joblist = prepare_datachunk_preparation_parameter_lists(stations,
                                                             components,
                                                             startdate, enddate,
                                                             processing_config_id)
 
     # TODO add more checks for bad seed files because they are crashing.
-    # And instead of datachunk id there was something weird produced. It was found on SI26 in 2019.04.~10-15
+    # And instead of datachunk id there was something weird produced. It was found on SI26 in
+    # 2019.04.~10-15
 
     from dask.distributed import Client, as_completed
     client = Client()
@@ -466,28 +457,27 @@ def run_paralel_chunk_preparation(
 
     log.info(f"There are {len(futures)} tasks to be executed")
 
-    log.info("Starting execution. "
-             "Results will be saved to database on the fly. ")
+    log.info("Starting execution. Results will be saved to database on the fly. ")
 
     for future, result in as_completed(futures, with_results=True, raise_errors=False):
         add_or_upsert_datachunks_in_db(result)
 
     client.close()
-        # TODO Add summary printout.
+    # TODO Add summary printout.
 
 
 def run_chunk_preparation(
-    app, station, component, execution_date, processed_data_dir, processing_config_id=1
+        app, station, component, execution_date, processed_data_dir, processing_config_id=1
 ):
     year = execution_date.year
     day_of_year = execution_date.timetuple().tm_yday
 
-    log.info(f"Fetching processing config, timespans and componsents from db")
-    with app.app_context() as ctx:
+    log.info("Fetching processing config, timespans and componsents from db")
+    with app.app_context():
         processing_config = (
             db.session.query(ProcessingParams)
-            .filter(ProcessingParams.id == processing_config_id)
-            .first()
+                      .filter(ProcessingParams.id == processing_config_id)
+                      .first()
         )
         timespans = fetch_timespans_for_doy(year=year, doy=day_of_year)
 
@@ -495,11 +485,11 @@ def run_chunk_preparation(
             Component.station == station, Component.component == component
         ).all()
 
-    log.info(f"Invoking chunc creation itself")
+    log.info("Invoking chunc creation itself")
     for component in components:
-        with app.app_context() as ctx:
+        with app.app_context():
             create_datachunks_for_component(component=component,
                                             timespans=timespans,
-                                            time_series=None, # type: ignore
+                                            time_series=None,  # type: ignore
                                             processing_params=processing_config)
     return
