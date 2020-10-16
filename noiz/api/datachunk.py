@@ -4,10 +4,12 @@ import obspy
 import pendulum
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import subqueryload
 from typing import List, Iterable, Union, Tuple, Collection, Optional, Dict
 
 import itertools
 
+from noiz.api.helpers import extract_object_ids
 from noiz.api.component import fetch_components
 from noiz.api.timeseries import fetch_raw_timeseries
 from noiz.api.timespan import fetch_timespans_for_doy
@@ -28,77 +30,121 @@ log = logging.getLogger("noiz.api")
 
 
 def fetch_datachunks_for_timespan(
-        timespans: Union[Timespan, Iterable[Timespan]]
+        timespans: Collection[Timespan]
 ) -> List[Datachunk]:
     """
-    Fetches all datachunks associated with provided timespans. Timespan can be a single one or Iterable of timespans.
+    DEPRECATED. Use noiz.api.datachunkfetch_datachunks instead
+
+    Fetches all datachunks associated with provided timespans.
+    Timespan can be a single one or Iterable of timespans.
+
     :param timespans: Instances of timespans to be checked
-    :type timespans: Union[Timespan, Iterable[Timespan]]
+    :type timespans: Collection[Timespan]
     :return: List of Datachunks
     :rtype: List[Datachunk]
     """
-    timespan_ids = extract_object_ids(timespans)
-    ret = Datachunk.query.filter(Datachunk.timespan_id.in_(timespan_ids)).all()
-    return ret
+    log.warning(f"Method deprected. "
+                f"Use noiz.api.datachunkfetch_datachunks instead")
+    return fetch_datachunks(timespans=timespans)
 
 
-def count_datachunks_for_timespans_and_components(
-        components: Collection[Component], timespans: Collection[Timespan]
+def count_datachunks(
+        components: Collection[Component],
+        timespans: Collection[Timespan],
+        processing_params: ProcessingParams,
 ) -> int:
     """
-    Counts number of datachunks for all provided components associated with all provided timespans.
+    Counts number of datachunks for all provided components associated with
+    all provided timespans.
 
     :param components: Components to be checked
     :type components: Iterable[Component]
     :param timespans: Timespans to be checked
     :type timespans: Iterable[Timespan]
+    :param processing_params: ProcessingParams to be checked.
+    This have to be a single object.
+    :type processing_params: ProcessingParams
     :return: Count fo datachunks
     :rtype: int
     """
+    #FIXME noiz-group/noiz#45
     timespan_ids = extract_object_ids(timespans)
     component_ids = extract_object_ids(components)
     count = Datachunk.query.filter(
         Datachunk.component_id.in_(component_ids),
         Datachunk.timespan_id.in_(timespan_ids),
+        Datachunk.processing_params_id == processing_params.id
     ).count()
     return count
 
 
-def fetch_datachunks_for_timespans_and_components(
-        components: Collection[Component], timespans: Collection[Timespan]
-) -> Collection[Datachunk]:
+def fetch_datachunks(
+        components: Optional[Collection[Component]] = None,
+        timespans: Optional[Collection[Timespan]] = None,
+        processing_params: Optional[ProcessingParams] = None,
+        datachunk_ids: Optional[Collection[int]] = None,
+        load_component: bool = False,
+        load_timespan: bool = False,
+        load_processing_params: bool = False,
+
+) -> List[Datachunk]:
     """
-    Fetches datachunks for all provided components associated with all provided timespans.
+    Fetches datachunks based on provided filters.
+
+    You can filter your call by providing Timespans and/or components and/or
+    processing_params you want to select Datachunk based on.
+
+    None of The filters is obligatory. If none of the filters will be provided,
+    it will return you content of the whole table Datachunk.
+    This will be unpleasant.
 
     :param components: Components to be checked
-    :type components: Iterable[Component]
+    :type components: Optional[Collection[Component]]
     :param timespans: Timespans to be checked
-    :type timespans: Iterable[Timespan]
-    :return: Collection of Datachunks
-    :rtype: Collection[Datachunk]
+    :type timespans: Optional[Collection[Timespan]]
+    :param processing_params: ProcessingParams to be checked. \
+    This have to be a single object.
+    :type processing_params: Optional[ProcessingParams]
+    :param components: Ids of Datachunk objects to be fetched
+    :type components: Optional[Collection[int]]
+    :param load_component: Loads also the associated Component \
+    object so it is available for usage without context
+    :type load_component: bold
+    :param load_timespan: Loads also the associated Timespan \
+    object so it is available for usage without context
+    :type load_timespan: bool
+    :param load_processing_params: Loads also the associated ProcessingParams \
+    object so it is available for usage without context
+    :type load_processing_params: bool
+    :return: List of Datachunks loaded from DB/
+    :rtype: List[Datachunk]
     """
-    timespan_ids = extract_object_ids(timespans)
-    component_ids = extract_object_ids(components)
-    datachunks = Datachunk.query.filter(
-        Datachunk.component_id.in_(component_ids),
-        Datachunk.timespan_id.in_(timespan_ids),
-    ).all()
-    return datachunks
 
+    filters = []
 
-def extract_object_ids(instances: Iterable[Union[Timespan, Component]]) -> \
-        List[int]:
-    """
-    Extracts parameter .id from all provided instances of objects. It can either be a single object or iterbale of them.
-    :param instances: instances of objects to be checked
-    :type instances:
-    :return: ids of objects
-    :rtype: List[int]
-    """
-    if not isinstance(instances, Iterable):
-        instances = list(instances)
-    ids = [x.id for x in instances]
-    return ids
+    if components is not None:
+        component_ids = extract_object_ids(components)
+        filters.append(Datachunk.component_id.in_(component_ids))
+    if timespans is not None:
+        timespan_ids = extract_object_ids(timespans)
+        filters.append(Datachunk.timespan_id.in_(timespan_ids))
+    if processing_params is not None:
+        filters.append(Datachunk.processing_params_id == processing_params.id)
+    if datachunk_ids is not None:
+        filters.append(Datachunk.id.in_(datachunk_ids))
+    if len(filters) == 0:
+        filters.append(True)
+
+    opts = []
+
+    if load_timespan:
+        opts.append(subqueryload(Datachunk.timespan))
+    if load_component:
+        opts.append(subqueryload(Datachunk.component))
+    if load_processing_params:
+        opts.append(subqueryload(Datachunk.processing_params))
+
+    return Datachunk.query.filter(*filters).options(opts).all()
 
 
 def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
@@ -167,8 +213,11 @@ def create_datachunks_add_to_db(
         processing_params: ProcessingParams,
         processed_data_dir: Path,
 ) -> None:
-    no_datachunks = count_datachunks_for_timespans_and_components((component,),
-                                                                  timespans)
+    no_datachunks = count_datachunks(
+        components=(component,),
+        timespans=timespans,
+        processing_params=processing_params
+    )
 
     timespans_count = len(timespans)
 
@@ -358,9 +407,10 @@ def prepare_datachunk_preparation_parameter_lists(
 
         if not skip_existing:
             log.info(f"Checking if some timespans already exists")
-            existing_count = count_datachunks_for_timespans_and_components(
+            existing_count = count_datachunks(
                 components=(component,),
-                timespans=timespans
+                timespans=timespans,
+                processing_params=processing_params,
             )
             if existing_count == len(timespans):
                 log.info('Number of existing timespans is sufficient. '
@@ -370,9 +420,10 @@ def prepare_datachunk_preparation_parameter_lists(
             log.info(f"There are only {existing_count} existing Datachunks. "
                      f"Looking for those that are missing one by one.")
             new_timespans = [timespan for timespan in timespans if
-                             count_datachunks_for_timespans_and_components(
+                             count_datachunks(
                                  components=(component,),
-                                 timespans=(timespan,)
+                                 timespans=(timespan,),
+                                 processing_params=processing_params
                              ) == 0]
             timespans = new_timespans
 
@@ -401,7 +452,6 @@ def run_paralel_chunk_preparation(
     # TODO add more checks for bad seed files because they are crashing.
     # And instead of datachunk id there was something weird produced. It was found on SI26 in 2019.04.~10-15
 
-    import dask
     from dask.distributed import Client, as_completed
     client = Client()
 

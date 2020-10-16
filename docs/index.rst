@@ -6,9 +6,18 @@
 Welcome to noiz's documentation!
 ================================
 
+Noiz is a app for ambient seismic noise processing.
+
+It is under heavy development and the API might change without notice.
+
+
+
+
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
+
+   content/cli/index
 
 
 
