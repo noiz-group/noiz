@@ -83,9 +83,7 @@ def stack_crosscorrelation(
             )
 
             no_ccfs = len(ccfs)
-            logging.info(
-                f"There were {no_ccfs} fetched from db for that stack and pair"
-            )
+            logging.info(f"There were {no_ccfs} fetched from db for that stack and pair")
 
             stacking_threshold = 648
             logging.warning("USING HARDCODED STACKING LIMIT THRESHOLD!")
@@ -93,11 +91,12 @@ def stack_crosscorrelation(
 
             if no_ccfs < stacking_threshold:
                 logging.info(
-                    f"There only {no_ccfs} ccfs in stack. The minimum number of ccfs for stack is {stacking_threshold}. Skipping."
+                    f"There only {no_ccfs} ccfs in stack. The minimum number of ccfs for stack is {stacking_threshold}."
+                    f" Skipping."
                 )
                 continue
 
-            logging.info(f"Calculating linear stack")
+            logging.info("Calculating linear stack")
             mean_ccf = np.array([x.ccf for x in ccfs]).mean(axis=0)
 
             stack = CCFStack(
@@ -108,13 +107,13 @@ def stack_crosscorrelation(
                 ccfs=ccfs,
             )
 
-            logging.info(f"Inserting into db")
+            logging.info("Inserting into db")
             try:
                 db.session.add(stack)
                 db.session.commit()
             except sqlalchemy.exc.IntegrityError:
                 logging.error(
-                    f"There was integrity error. Trying to update existing stack."
+                    "There was integrity error. Trying to update existing stack."
                 )
                 db.session.rollback()
 
