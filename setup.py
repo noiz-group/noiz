@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="noiz",
-    packages=["noiz"],
+    packages=["src/noiz"],
     include_package_data=True,
     entry_points={"console_scripts": ["noiz=noiz.cli:cli"]},
     install_requires=[
@@ -11,7 +11,6 @@ setup(
         "obspy",
         "flask_migrate",
         "flask-sqlalchemy",
-        "dash",
         "environs",
     ],
 )
