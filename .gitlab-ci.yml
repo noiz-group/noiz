@@ -63,9 +63,9 @@ pages:
 
 test_build:
   stage: image-building
-  image: docker:19.03.1
+  image: docker:19.03.12
   services:
-    - docker:19.03.1-dind
+    - docker:19.03.12-dind
   variables:
     # Use TLS https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#tls-enabled
     DOCKER_HOST: tcp://docker:2376
@@ -80,9 +80,9 @@ test_build:
 
 latest_build:
   stage: image-building
-  image: docker:19.03.1
+  image: docker:19.03.12
   services:
-    - docker:19.03.1-dind
+    - docker:19.03.12-dind
   variables:
     # Use TLS https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#tls-enabled
     DOCKER_HOST: tcp://docker:2376
