@@ -1,5 +1,22 @@
 import numpy as np
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Type
+
+from dataclasses import dataclass
+
+
+@dataclass
+class SohCSVParsingParams:
+    """
+    This is just here implemented for the future.
+    The SOHProcessingParams dict should be refactored to use that class
+    """
+    instrument_name: str
+    soh_type: str
+    header_names: Tuple[str]
+    header_dtypes: Tuple[type]
+    used_names: Tuple[str]
+    search_regex: str
+
 
 taurus_instrument_header_names = (
     "timestamp",
