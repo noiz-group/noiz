@@ -15,6 +15,35 @@ from noiz.processing.soh.soh_column_names import SOH_PARSING_PARAMETERS
 from noiz.api.component import fetch_components
 
 
+def parse_soh(
+        station: str,
+        station_type: str,
+        soh_type: str,
+        main_filepath: Path,
+        network: Optional[str] = None,
+):
+
+    if station_type not in SOH_PARSING_PARAMETERS.keys():
+        raise ValueError(f"Not supported station type. Supported types are: {SOH_PARSING_PARAMETERS.keys()}, "
+                         f"You provided {station_type}")
+
+    if soh_type not in SOH_PARSING_PARAMETERS[station_type].keys():
+        raise ValueError(f"Not supported soh type for this station type. "
+                         f"For this station type the supported soh types are: "
+                         f"{SOH_PARSING_PARAMETERS[station_type].keys()}, "
+                         f"You provided {soh_type}")
+
+    parsing_parameters = SOH_PARSING_PARAMETERS[station_type][soh_type]
+
+    fetched_components = fetch_components(networks=network, stations=station)
+
+    if not main_filepath.exists():
+        raise FileNotFoundError(f"Provided path does not exist. {main_filepath}")
+
+    if not main_filepath.is_dir():
+        raise NotADirectoryError(f"It is not a directory! {main_filepath}")
+
+
 def parse_soh_insert_into_db(
     station, station_type, saint_illiers_fulldir, single_day, execution_date
 ):
