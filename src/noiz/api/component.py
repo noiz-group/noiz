@@ -2,7 +2,7 @@ import logging
 
 from typing import List, Iterable, Optional, Collection, Union
 
-from noiz.api.helpers import validate_tuple_str
+from noiz.api.helpers import validate_to_tuple
 from noiz.models import Component
 
 log = logging.getLogger("noiz.api")
@@ -50,11 +50,11 @@ def fetch_components(
     filters = []
 
     if networks is not None:
-        filters.append(Component.network.in_(validate_tuple_str(networks)))
+        filters.append(Component.network.in_(validate_to_tuple(networks)))
     if stations is not None:
-        filters.append(Component.station.in_(validate_tuple_str(stations)))
+        filters.append(Component.station.in_(validate_to_tuple(stations)))
     if components is not None:
-        filters.append(Component.component.in_(validate_tuple_str(components)))
+        filters.append(Component.component.in_(validate_to_tuple(components)))
     if component_ids is not None:
         filters.append(Component.id.in_(component_ids))
 
