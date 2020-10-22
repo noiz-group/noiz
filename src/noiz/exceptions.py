@@ -4,3 +4,11 @@ class MissingDataFileException(Exception):
 
 class NoDataException(Exception):
     pass
+
+
+class UnparsableDateTimeException(Exception):
+    pass
+
+
+class NoSOHPresentException(Exception):
+    pass
