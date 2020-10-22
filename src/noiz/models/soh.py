@@ -26,6 +26,7 @@ class SohEnvironment(db.Model):
     current = db.Column("current", db.Float, nullable=True)
     temperature = db.Column("temperature", db.Float, nullable=True)
 
+    z_component = db.relationship("Component", foreign_keys=[z_component_id])
     components = db.relationship("Component", secondary=association_table_soh_env)
 
     def to_dict(self):
@@ -61,6 +62,7 @@ class SohGps(db.Model):
     time_error = db.Column("time_error", db.Integer, nullable=True)
     time_uncertainty = db.Column("time_uncertainty", db.Integer, nullable=True)
 
+    z_component = db.relationship("Component", foreign_keys=[z_component_id])
     components = db.relationship("Component", secondary=association_table_soh_gps)
 
     def to_dict(self):
