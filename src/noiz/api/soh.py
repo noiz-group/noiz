@@ -37,6 +37,12 @@ def parse_soh(
 
     fetched_components = fetch_components(networks=network, stations=station)
 
+    if not isinstance(main_filepath, Path):
+        if not isinstance(main_filepath, str):
+            raise ValueError(f"Expected a filepath to the directory. Got {main_filepath}")
+        else:
+            main_filepath = Path(main_filepath)
+
     if not main_filepath.exists():
         raise FileNotFoundError(f"Provided path does not exist. {main_filepath}")
 
