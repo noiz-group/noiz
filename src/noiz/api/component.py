@@ -50,13 +50,13 @@ def fetch_components(
     filters = []
 
     if networks is not None:
-        filters.append(Component.network.in_(validate_to_tuple(networks)))
+        filters.append(Component.network.in_(validate_to_tuple(networks, accepted_type=str)))
     if stations is not None:
-        filters.append(Component.station.in_(validate_to_tuple(stations)))
+        filters.append(Component.station.in_(validate_to_tuple(stations, accepted_type=str)))
     if components is not None:
-        filters.append(Component.component.in_(validate_to_tuple(components)))
+        filters.append(Component.component.in_(validate_to_tuple(components, accepted_type=str)))
     if component_ids is not None:
-        filters.append(Component.id.in_(component_ids))
+        filters.append(Component.id.in_(component_ids, accepted_type=int))
 
     if len(filters) == 0:
         filters.append(True)
