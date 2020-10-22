@@ -3,10 +3,7 @@ from pathlib import Path
 
 from typing import Tuple, Optional
 
-from noiz.processing.soh.exceptions import (
-    UnparsableDateTimeException,
-    NoSOHPresentException,
-)
+from noiz.exceptions import UnparsableDateTimeException, NoSOHPresentException
 
 
 def read_single_soh_csv(
