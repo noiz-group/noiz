@@ -1,16 +1,31 @@
 import pandas as pd
 from pathlib import Path
 
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict, Type, Collection
 
-from noiz.exceptions import UnparsableDateTimeException, NoSOHPresentException
+from noiz.exceptions import UnparsableDateTimeException, NoSOHPresentException, SohParsingException
 
 
 def read_single_soh_csv(
-    filepath: Path, header_columns: Tuple[str], used_columns: Tuple[str], dtypes: dict
+        filepath: Path,
+        header_columns: Tuple[str],
+        used_columns: Tuple[str],
+        dtypes: Dict[str, Type],
 ) -> Optional[pd.DataFrame]:
     """
-    TODO docstring
+    Takes a filepath to a single CSV file and parses it according to parameters passed.
+
+
+    :param filepath: File to be parsed
+    :type filepath: Path
+    :param header_columns: Header column names inside of the file
+    :type header_columns: Tuple[str]
+    :param used_columns: Header column names to be extracted
+    :type used_columns: Tuple[str]
+    :param dtypes:
+    :type dtypes:
+    :return:
+    :rtype:
     """
     try:
         single_df = pd.read_csv(
@@ -47,12 +62,22 @@ def read_single_soh_csv(
     return single_df
 
 
-def read_multiple_soh(filepaths, parsing_params):
+def read_multiple_soh(
+        filepaths: Collection[Path],
+        parsing_params: Dict
+) -> pd.DataFrame:
     """
-    TODO docstring
-    TODO typing
-    """
+    Method that takes a collection of Paths and iterates over them trying to parse each of them according
+    to the provided parsing parameters.
+    In the end it concatenates them and returns a single dataframe.
 
+    :param filepaths: Filepaths to csv files that are supposed to be parsed
+    :type filepaths: Collection[Path]
+    :param parsing_params: Parsing parameters dictionary
+    :type parsing_params: Dict
+    :return: Dataframe containing all parsed values
+    :rtype: pd.DataFrame
+    """
     all_dfs = []
     for filepath in filepaths:
         try:
@@ -62,18 +87,21 @@ def read_multiple_soh(filepaths, parsing_params):
                 used_columns=parsing_params["used_columns"],
                 dtypes=parsing_params["dtypes"],
             )
-        except UnparsableDateTimeException:
-            raise Exception(filepath)
+        except UnparsableDateTimeException as e:
+            raise UnparsableDateTimeException(f"{filepath} has raised exception {e}")
 
         if single_df is None:
             continue
 
         all_dfs.append(single_df)
 
+    if len(all_dfs) == 0:
+        raise SohParsingException('There were no parsable SOH among provided filepaths.')
+
     try:
         df = pd.concat(all_dfs)
     except ValueError as e:
-        raise NoSOHPresentException(str(e))
+        raise SohParsingException(f"There was an exception raised by pd.concat. The exception was: {e}")
     df = df.sort_index()
 
     return df
