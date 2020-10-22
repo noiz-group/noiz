@@ -1,6 +1,6 @@
 import logging
 
-from typing import List, Iterable, Optional, Collection
+from typing import List, Iterable, Optional, Collection, Union
 
 from noiz.api.helpers import validate_tuple_str
 from noiz.models import Component
@@ -25,23 +25,23 @@ def fetch_components_by_id(component_ids: Collection[int]) -> List[Component]:
 
 
 def fetch_components(
-    networks: Optional[Collection[str]] = None,
-    stations: Optional[Collection[str]] = None,
-    components: Optional[Collection[str]] = None,
-    component_ids: Optional[Collection[int]] = None,
+    networks: Optional[Union[Collection[str], str]] = None,
+    stations: Optional[Union[Collection[str], str]] = None,
+    components: Optional[Union[Collection[str], str]] = None,
+    component_ids: Optional[Union[Collection[int], int]] = None,
 ) -> List[Component]:
     """
     Fetches components based on provided network codes, station codes and component codes.
     If none of the arguments are provided, will raise ValueError.
 
     :param networks: Networks of components to be fetched
-    :type networks: Optional[Collection[str]]
+    :type networks: Optional[Union[Collection[str], str]]
     :param stations: Stations of components to be fetched
-    :type stations: Optional[Collection[str]]
+    :type stations: Optional[Union[Collection[str], str]]
     :param components: Component letters to be fetched
-    :type components: Optional[Collection[str]]
+    :type components: Optional[Union[Collection[str], str]]
     :param components: Ids of components objects to be fetched
-    :type components: Optional[Collection[int]]
+    :type components: Optional[Union[Collection[int], int]]
     :return: Component fetched based on provided values.
     :rtype: List[Component]
     :raises: ValueError
