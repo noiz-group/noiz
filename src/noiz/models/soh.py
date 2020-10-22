@@ -15,7 +15,7 @@ class SohEnvironment(db.Model):
     __tablename__ = "soh_environment"
     __table_args__ = (
         db.UniqueConstraint(
-            "datetime", "z_component_id", name="unique_timestamp_per_station"
+            "datetime", "z_component_id", name="unique_timestamp_per_station_in_sohenvironment"
         ),
     )
 
@@ -51,7 +51,7 @@ class SohGps(db.Model):
     __tablename__ = "soh_gps"
     __table_args__ = (
         db.UniqueConstraint(
-            "datetime", "z_component_id", name="unique_timestamp_per_station"
+            "datetime", "z_component_id", name="unique_timestamp_per_station_in_sohgps"
         ),
     )
 
