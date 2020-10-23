@@ -2,7 +2,7 @@ import warnings
 
 import itertools
 
-from typing import Optional
+from typing import Optional, Collection, Generator, Dict
 import pandas as pd
 import datetime
 
@@ -23,36 +23,27 @@ def ingest_soh_files(
         station: str,
         station_type: str,
         soh_type: str,
-        main_filepath: Path,
+        main_filepath: Optional[Path] = None,
+        filepaths: Optional[Collection[Path]] = None,
         network: Optional[str] = None,
 ):
-    df = parse_soh_directory(
-        station_type=station_type,
-        soh_type=soh_type,
-        main_filepath=main_filepath,
-    )
+
+    parsing_parameters = load_parsing_parameters(soh_type, station_type)
+
+    if (main_filepath is None and filepaths is None) or (main_filepath is not None and filepaths is not None):
+        raise ValueError('There has to be either main_filepath or filepaths provided.')
+
+    if main_filepath is not None:
+        filepaths: Generator[Path, None, None] = glob_soh_directory(parsing_parameters=parsing_parameters, main_filepath=main_filepath)  # type: ignore
+
+    df = read_multiple_soh(filepaths=filepaths, parsing_params=parsing_parameters)  # type: ignore
+    df = postprocess_soh_dataframe(df, station_type=station_type, soh_type=soh_type)
 
     if soh_type == "environment":
         insert_into_db_soh_environment(df=df, station=station, network=network)
 
 
-def parse_soh_directory(
-        station_type: str,
-        soh_type: str,
-        main_filepath: Path,
-):
-
-    if station_type not in SOH_PARSING_PARAMETERS.keys():
-        raise ValueError(f"Not supported station type. Supported types are: {SOH_PARSING_PARAMETERS.keys()}, "
-                         f"You provided {station_type}")
-
-    if soh_type not in SOH_PARSING_PARAMETERS[station_type].keys():
-        raise ValueError(f"Not supported soh type for this station type. "
-                         f"For this station type the supported soh types are: "
-                         f"{SOH_PARSING_PARAMETERS[station_type].keys()}, "
-                         f"You provided {soh_type}")
-
-    parsing_parameters = SOH_PARSING_PARAMETERS[station_type][soh_type]
+def glob_soh_directory(parsing_parameters: dict, main_filepath: Path) -> Generator[Path, None, None]:
 
     if not isinstance(main_filepath, Path):
         if not isinstance(main_filepath, str):
@@ -66,12 +57,26 @@ def parse_soh_directory(
     if not main_filepath.is_dir():
         raise NotADirectoryError(f"It is not a directory! {main_filepath}")
 
-    filepaths_to_parse = main_filepath.rglob(parsing_parameters['search_regex'])  # type: ignore
+    filepaths_to_parse = main_filepath.rglob(parsing_parameters['search_regex'])
 
-    df = read_multiple_soh(filepaths=filepaths_to_parse, parsing_params=parsing_parameters)
-    df = postprocess_soh_dataframe(df, station_type=station_type, soh_type=soh_type)
+    return filepaths_to_parse
 
-    return df
+
+def load_parsing_parameters(soh_type: str, station_type: str) -> Dict:
+
+    if station_type not in SOH_PARSING_PARAMETERS.keys():
+        raise ValueError(f"Not supported station type. Supported types are: {SOH_PARSING_PARAMETERS.keys()}, "
+                         f"You provided {station_type}")
+
+    if soh_type not in SOH_PARSING_PARAMETERS[station_type].keys():
+        raise ValueError(f"Not supported soh type for this station type. "
+                         f"For this station type the supported soh types are: "
+                         f"{SOH_PARSING_PARAMETERS[station_type].keys()}, "
+                         f"You provided {soh_type}")
+
+    parsing_parameters = SOH_PARSING_PARAMETERS[station_type][soh_type]
+
+    return parsing_parameters
 
 
 def insert_into_db_soh_environment(
