@@ -1,22 +1,22 @@
 from noiz.database import db
 
 
-association_table_soh_env = db.Table(
-    "soh_environment_association",
+association_table_soh_instr = db.Table(
+    "soh_instrument_association",
     db.metadata,
     db.Column(
         "component_id", db.BigInteger, db.ForeignKey("component.id")
     ),
-    db.Column("soh_environment_id", db.BigInteger, db.ForeignKey("soh_environment.id")),
-    db.UniqueConstraint("component_id", "soh_environment_id"),
+    db.Column("soh_instrument_id", db.BigInteger, db.ForeignKey("soh_instrument.id")),
+    db.UniqueConstraint("component_id", "soh_instrument_id"),
 )
 
 
-class SohEnvironment(db.Model):
-    __tablename__ = "soh_environment"
+class SohInstrument(db.Model):
+    __tablename__ = "soh_instrument"
     __table_args__ = (
         db.UniqueConstraint(
-            "datetime", "z_component_id", name="unique_timestamp_per_station_in_sohenvironment"
+            "datetime", "z_component_id", name="unique_timestamp_per_station_in_sohinstrument"
         ),
     )
 
@@ -28,7 +28,7 @@ class SohEnvironment(db.Model):
     temperature = db.Column("temperature", db.Float, nullable=True)
 
     z_component = db.relationship("Component", foreign_keys=[z_component_id])
-    components = db.relationship("Component", secondary=association_table_soh_env)
+    components = db.relationship("Component", secondary=association_table_soh_instr)
 
     def to_dict(self):
         return {

@@ -12,8 +12,8 @@ from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
 
 from noiz.database import db
-from noiz.models import Component, SohEnvironment
-from noiz.models.soh import association_table_soh_env, SohGps, association_table_soh_gps
+from noiz.models import Component, SohInstrument
+from noiz.models.soh import association_table_soh_instr, SohGps, association_table_soh_gps
 from noiz.processing.soh import SOH_PARSING_PARAMETERS, read_multiple_soh, postprocess_soh_dataframe
 
 from noiz.api.component import fetch_components
@@ -30,8 +30,9 @@ def ingest_soh_files(
 
     parsing_parameters = load_parsing_parameters(soh_type, station_type)
 
-    if (main_filepath is None and filepaths is None) or (main_filepath is not None and filepaths is not None):
-        raise ValueError('There has to be either main_filepath or filepaths provided.')
+    # TODO Fix that logic
+    # if not (main_filepath is None and filepaths is None) or (main_filepath is not None and filepaths is not None):
+    #     raise ValueError('There has to be either main_filepath or filepaths provided.')
 
     if main_filepath is not None:
         filepaths: Generator[Path, None, None] = glob_soh_directory(   # type: ignore
@@ -42,8 +43,8 @@ def ingest_soh_files(
     df = read_multiple_soh(filepaths=filepaths, parsing_params=parsing_parameters)  # type: ignore
     df = postprocess_soh_dataframe(df, station_type=station_type, soh_type=soh_type)
 
-    if soh_type == "environment":
-        insert_into_db_soh_environment(df=df, station=station, network=network)
+    if soh_type == "instrument":
+        insert_into_db_soh_instrument(df=df, station=station, network=network)
     elif soh_type in ("gpstime", "gnsstime"):
         insert_into_db_soh_gps(df=df, station=station, network=network)
     else:
@@ -89,7 +90,7 @@ def load_parsing_parameters(soh_type: str, station_type: str) -> Dict:
     return parsing_parameters
 
 
-def insert_into_db_soh_environment(
+def insert_into_db_soh_instrument(
         df: pd.DataFrame,
         station: str,
         network: Optional[str] = None,
@@ -110,7 +111,7 @@ def insert_into_db_soh_environment(
         if i % int(command_count / 10) == 0:
             logging.info(f"Prepared already {i}/{command_count} commands")
         insert_command = (
-            insert(SohEnvironment)
+            insert(SohInstrument)
             .values(
                 z_component_id=z_component_id,
                 datetime=timestamp,
@@ -119,7 +120,7 @@ def insert_into_db_soh_environment(
                 temperature=row["Temperature(C)"],
             )
             .on_conflict_do_update(
-                constraint="unique_timestamp_per_station_in_sohenvironment",
+                constraint="unique_timestamp_per_station_in_sohinstrument",
                 set_=dict(
                     voltage=row["Supply voltage(V)"],
                     current=row["Total current(A)"],
@@ -140,8 +141,8 @@ def insert_into_db_soh_environment(
 
     logging.info('Preparing to insert information about db relationship/')
 
-    soh_env_inserted = SohEnvironment.query.filter(SohEnvironment.z_component_id.in_(fetched_components_ids),
-                                                   SohEnvironment.datetime.in_(df.index.to_list())).all()
+    soh_env_inserted = SohInstrument.query.filter(SohInstrument.z_component_id.in_(fetched_components_ids),
+                                                  SohInstrument.datetime.in_(df.index.to_list())).all()
 
     command_count = len(soh_env_inserted) * len(fetched_components)
 
@@ -151,9 +152,9 @@ def insert_into_db_soh_environment(
             logging.info(f"Prepared already {i}/{command_count} commands")
 
         insert_command = (
-            insert(association_table_soh_env)
+            insert(association_table_soh_instr)
             .values(
-                soh_environment_id=inserted_soh.id,
+                soh_instrument_id=inserted_soh.id,
                 component_id=component_id
             )
             .on_conflict_do_nothing()
@@ -305,7 +306,7 @@ def parse_soh_insert_into_db(
         if i % int(no_rows / 10) == 0:
             logging.info(f"Prepared already {i}/{no_rows} commands")
         insert_command = (
-            insert(SohEnvironment)
+            insert(SohInstrument)
             .values(
                 component_id=component_id,
                 datetime=timestamp,
@@ -388,7 +389,7 @@ def parse_instrument_soh(
         if i % int(no_rows / 10) == 0:
             logging.info(f"Prepared already {i}/{no_rows} commands")
         insert_command = (
-            insert(SohEnvironment)
+            insert(SohInstrument)
             .values(
                 z_component=z_component,
                 datetime=timestamp,
