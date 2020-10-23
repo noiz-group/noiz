@@ -24,7 +24,8 @@ from noiz.app import create_app
 log = logging.getLogger(__name__)
 
 cli = AppGroup("noiz")
-init_group = AppGroup("init")  # type: ignore
+configs_group = AppGroup("configs")  # type: ignore
+data_group = AppGroup("data")  # type: ignore
 processing_group = AppGroup("processing")  # type: ignore
 plotting_group = AppGroup("plotting")  # type: ignore
 
@@ -41,25 +42,31 @@ def cli():  # type: ignore
     pass
 
 
-@init_group.group("init")
-def init_group():  # type: ignore
+@configs_group.group("configs")
+def configs_group():  # type: ignore
     "Initiate operation in noiz"
     pass
 
 
-@init_group.command("load_processing_params")
+@configs_group.command("load_processing_params")
 def load_processing_params():
     """Replaces current processing config with default one"""
     click.echo("This is a placeholder of an option")
 
 
-@init_group.command("reset_config")
+@configs_group.command("reset_config")
 def reset_config():
     """Replaces current processing config with default one"""
     upsert_default_params()
 
 
-@init_group.command("add_files_recursively")
+@data_group.group("data")
+def data_group():  # type: ignore
+    "Ingest raw data by Noiz"
+    pass
+
+
+@data_group.command("add_files_recursively")
 @click.argument("paths", nargs=-1, required=True, type=click.Path(exists=True))
 def add_files_recursively(paths):
     """Globs over provided directories in search of files"""
@@ -68,7 +75,7 @@ def add_files_recursively(paths):
     click.echo("You need to run this command")
     click.echo(
         f"{os.environ['MSEEDINDEX_EXECUTABLE']} -v "
-        f"-pghost {os.environ['POSTGRES_HOST']}"
+        f"-pghost {os.environ['POSTGRES_HOST']} "
         f"-dbuser {os.environ['POSTGRES_USER']} "
         f"-dbpass {os.environ['POSTGRES_PASSWORD']} "
         f"-dbname {os.environ['POSTGRES_DB_NOIZ']} "
@@ -77,7 +84,7 @@ def add_files_recursively(paths):
     return
 
 
-@init_group.command("add_inventory")
+@data_group.command("add_inventory")
 @with_appcontext
 @click.argument("filepath", nargs=1, required=True, type=click.Path(exists=True))
 @click.option("-t", "--filetype", default="stationxml", show_default=True)
@@ -208,7 +215,7 @@ def plot_datachunk_availability(
     )
 
 
-_register_subgroups_to_cli(cli, (init_group, processing_group, plotting_group))
+_register_subgroups_to_cli(cli, (configs_group, processing_group, plotting_group))
 
 
 if __name__ == "__main__":
