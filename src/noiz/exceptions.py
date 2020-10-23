@@ -1,6 +1,22 @@
-class MissingDataFileException(Exception):
+class NoizBaseException(Exception):
     pass
 
 
-class NoDataException(Exception):
+class MissingDataFileException(NoizBaseException):
+    pass
+
+
+class NoDataException(NoizBaseException):
+    pass
+
+
+class SohParsingException(NoizBaseException):
+    pass
+
+
+class UnparsableDateTimeException(NoizBaseException):
+    pass
+
+
+class NoSOHPresentException(NoizBaseException):
     pass
