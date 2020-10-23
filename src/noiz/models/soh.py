@@ -8,6 +8,7 @@ association_table_soh_env = db.Table(
         "component_id", db.BigInteger, db.ForeignKey("component.id")
     ),
     db.Column("soh_environment_id", db.BigInteger, db.ForeignKey("soh_environment.id")),
+    db.UniqueConstraint("component_id", "soh_environment_id"),
 )
 
 
@@ -45,6 +46,7 @@ association_table_soh_gps = db.Table(
         "component_id", db.BigInteger, db.ForeignKey("component.id")
     ),
     db.Column("soh_gps_id", db.BigInteger, db.ForeignKey("soh_gps.id")),
+    db.UniqueConstraint("component_id", "soh_gps_id"),
 )
 
 
