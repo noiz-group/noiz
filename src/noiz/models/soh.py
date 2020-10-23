@@ -61,8 +61,8 @@ class SohGps(db.Model):
     id = db.Column("id", db.BigInteger, primary_key=True)
     z_component_id = db.Column("z_component_id", db.Integer, db.ForeignKey("component.id"))
     datetime = db.Column("datetime", db.TIMESTAMP(timezone=True), nullable=False)
-    time_error = db.Column("time_error", db.Integer, nullable=True)
-    time_uncertainty = db.Column("time_uncertainty", db.Integer, nullable=True)
+    time_error = db.Column("time_error", db.Float, nullable=True)
+    time_uncertainty = db.Column("time_uncertainty", db.Float, nullable=True)
 
     z_component = db.relationship("Component", foreign_keys=[z_component_id])
     components = db.relationship("Component", secondary=association_table_soh_gps)
