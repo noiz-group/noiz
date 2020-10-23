@@ -13,7 +13,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from noiz.database import db
 from noiz.models import Component, SohEnvironment
-from noiz.models.soh import association_table_soh_env
+from noiz.models.soh import association_table_soh_env, SohGps, association_table_soh_gps
 from noiz.processing.soh import SOH_PARSING_PARAMETERS, read_multiple_soh, postprocess_soh_dataframe
 
 from noiz.api.component import fetch_components
@@ -147,6 +147,87 @@ def insert_into_db_soh_environment(
             insert(association_table_soh_env)
             .values(
                 soh_environment_id=inserted_soh.id,
+                component_id=component_id
+            )
+            .on_conflict_do_nothing()
+        )
+        insert_commands.append(insert_command)
+
+    for i, insert_command in enumerate(insert_commands):
+        if i % int(command_count / 10) == 0:
+            logging.info(f"Inserted already {i}/{command_count} rows")
+        db.session.execute(insert_command)
+
+    logging.info('Commiting to db')
+    db.session.commit()
+    logging.info('Commit succesfull')
+
+    return
+
+
+def insert_into_db_soh_gps(
+        df: pd.DataFrame,
+        station: str,
+        network: Optional[str] = None,
+) -> None:
+    fetched_components = fetch_components(networks=network, stations=station)
+
+    z_component_id = None
+    fetched_components_ids = []
+    for cmp in fetched_components:
+        fetched_components_ids.append(cmp.id)
+        if cmp.component == 'Z':
+            z_component_id = cmp.id
+
+    command_count = len(df)
+
+    insert_commands = []
+    for i, (timestamp, row) in enumerate(df.iterrows()):
+        if i % int(command_count / 10) == 0:
+            logging.info(f"Prepared already {i}/{command_count} commands")
+        insert_command = (
+            insert(SohGps)
+            .values(
+                z_component_id=z_component_id,
+                datetime=timestamp,
+                time_error=row["Time error(ms)"],
+                time_uncertainty=row["Time uncertainty(ms)"],
+            )
+            .on_conflict_do_update(
+                constraint="unique_timestamp_per_station_in_sohgps",
+                set_=dict(
+                    time_error=row["Time error(ms)"],
+                    time_uncertainty=row["Time uncertainty(ms)"],
+                ),
+            )
+        )
+        insert_commands.append(insert_command)
+
+    for i, insert_command in enumerate(insert_commands):
+        if i % int(command_count / 10) == 0:
+            logging.info(f"Inserted already {i}/{command_count} rows")
+        db.session.execute(insert_command)
+
+    logging.info('Commiting to db')
+    db.session.commit()
+    logging.info('Commit succesfull')
+
+    logging.info('Preparing to insert information about db relationship/')
+
+    fetched_soh = SohGps.query.filter(SohGps.z_component_id.in_(fetched_components_ids),
+                                      SohGps.datetime.in_(df.index.to_list())).all()
+
+    command_count = len(fetched_soh) * len(fetched_components)
+
+    insert_commands = []
+    for i, (inserted_soh, component_id) in enumerate(itertools.product(fetched_soh, fetched_components_ids)):
+        if i % int(command_count / 10) == 0:
+            logging.info(f"Prepared already {i}/{command_count} commands")
+
+        insert_command = (
+            insert(association_table_soh_gps)
+            .values(
+                soh_gps_id=inserted_soh.id,
                 component_id=component_id
             )
             .on_conflict_do_nothing()
