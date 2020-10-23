@@ -44,6 +44,13 @@ def ingest_soh_files(
 
     if soh_type == "environment":
         insert_into_db_soh_environment(df=df, station=station, network=network)
+    elif soh_type in ("gpstime", "gnsstime"):
+        insert_into_db_soh_gps(df=df, station=station, network=network)
+    else:
+        raise ValueError(f'Provided soh_type not supported for database insertion. '
+                         f'Supported types: environment, gpstime, gnsstime. '
+                         f'You provided {soh_type}')
+    return
 
 
 def glob_soh_directory(parsing_parameters: dict, main_filepath: Path) -> Generator[Path, None, None]:
