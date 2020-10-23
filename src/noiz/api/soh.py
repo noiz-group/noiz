@@ -1,3 +1,5 @@
+import warnings
+
 import itertools
 
 from typing import Optional
@@ -24,7 +26,7 @@ def ingest_soh_files(
         main_filepath: Path,
         network: Optional[str] = None,
 ):
-    df = parse_soh(
+    df = parse_soh_directory(
         station_type=station_type,
         soh_type=soh_type,
         main_filepath=main_filepath,
@@ -34,7 +36,7 @@ def ingest_soh_files(
         insert_into_db_soh_environment(df=df, station=station, network=network)
 
 
-def parse_soh(
+def parse_soh_directory(
         station_type: str,
         soh_type: str,
         main_filepath: Path,
@@ -91,7 +93,7 @@ def insert_into_db_soh_environment(
     insert_commands = []
     for i, (timestamp, row) in enumerate(df.iterrows()):
         if i % int(command_count / 10) == 0:
-            print(f"Prepared already {i}/{command_count} commands")
+            logging.info(f"Prepared already {i}/{command_count} commands")
         insert_command = (
             insert(SohEnvironment)
             .values(
@@ -114,14 +116,14 @@ def insert_into_db_soh_environment(
 
     for i, insert_command in enumerate(insert_commands):
         if i % int(command_count / 10) == 0:
-            print(f"Inserted already {i}/{command_count} rows")
+            logging.info(f"Inserted already {i}/{command_count} rows")
         db.session.execute(insert_command)
 
-    print('Commiting to db')
+    logging.info('Commiting to db')
     db.session.commit()
-    print('Commit succesfull')
+    logging.info('Commit succesfull')
 
-    print('Preparing to insert information about db relationship/')
+    logging.info('Preparing to insert information about db relationship/')
 
     soh_env_inserted = SohEnvironment.query.filter(SohEnvironment.z_component_id.in_(fetched_components_ids),
                                                    SohEnvironment.datetime.in_(df.index.to_list())).all()
@@ -131,7 +133,7 @@ def insert_into_db_soh_environment(
     insert_commands = []
     for i, (inserted_soh, component_id) in enumerate(itertools.product(soh_env_inserted, fetched_components_ids)):
         if i % int(command_count / 10) == 0:
-            print(f"Prepared already {i}/{command_count} commands")
+            logging.info(f"Prepared already {i}/{command_count} commands")
 
         insert_command = (
             insert(association_table_soh_env)
@@ -145,12 +147,12 @@ def insert_into_db_soh_environment(
 
     for i, insert_command in enumerate(insert_commands):
         if i % int(command_count / 10) == 0:
-            print(f"Inserted already {i}/{command_count} rows")
+            logging.info(f"Inserted already {i}/{command_count} rows")
         db.session.execute(insert_command)
 
-    print('Commiting to db')
+    logging.info('Commiting to db')
     db.session.commit()
-    print('Commit succesfull')
+    logging.info('Commit succesfull')
 
     return
 
@@ -158,6 +160,11 @@ def insert_into_db_soh_environment(
 def parse_soh_insert_into_db(
     station, station_type, saint_illiers_fulldir, single_day, execution_date
 ):
+    """
+    DEPRECATED. Do not use.
+    """
+
+    warnings.warn("Deprecated. Use other methods")
     soh_type = "instrument"
 
     logging.info(f"Working on {station}")
@@ -238,6 +245,11 @@ def parse_instrument_soh(
         dir_to_glob,
         date: Optional[datetime.datetime] = None,
 ):
+    """
+    DEPRECATED. Do not use.
+    """
+    warnings.warn("Deprecated. Use other methods")
+
     soh_type = "instrument"
 
     logging.info(f"Working on {station}")
