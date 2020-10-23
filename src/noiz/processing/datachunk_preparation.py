@@ -273,7 +273,7 @@ def preprocess_timespan(
     :return: Processed Stream
     :rtype: obspy.Stream
     """
-
+    # TODO add potential plotting option
     log.info("Detrending")
     trimed_st.detrend(type="polynomial", order=3)
 
