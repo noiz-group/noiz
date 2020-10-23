@@ -1,5 +1,22 @@
 import numpy as np
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Type
+
+from dataclasses import dataclass
+
+
+@dataclass
+class SohCSVParsingParams:
+    """
+    This is just here implemented for the future.
+    The SOHProcessingParams dict should be refactored to use that class
+    """
+    instrument_name: str
+    soh_type: str
+    header_names: Tuple[str]
+    header_dtypes: Tuple[type]
+    used_names: Tuple[str]
+    search_regex: str
+
 
 taurus_instrument_header_names = (
     "timestamp",
@@ -236,7 +253,7 @@ centaur_gnsstime_dtypes = {
 }
 
 
-parsing_parameters = {
+SOH_PARSING_PARAMETERS = {
     "centaur": {
         "instrument": {
             "header_columns": centaur_instrument_header_columns,
@@ -256,12 +273,12 @@ parsing_parameters = {
             "dtypes": centaur_gnsstime_dtypes,
             "search_regex": "*GNSSTime*.csv",
         },
-        # "environment": {
-        #     "header_columns": centaur_environment_header_columns,
-        #     "used_columns": centaur_environment_used_columns,
-        #     "dtypes": centaur_environment_dtypes,
-        #     'search_regex': '*EnvironmentSOH*.csv',
-        # },
+        "environment": {
+            "header_columns": centaur_environment_header_columns,
+            "used_columns": centaur_environment_used_columns,
+            "dtypes": centaur_environment_dtypes,
+            'search_regex': '*EnvironmentSOH*.csv',
+        },
     },
     "taurus": {
         "instrument": {
@@ -276,11 +293,11 @@ parsing_parameters = {
             "dtypes": taurus_gpstime_dtypes,
             "search_regex": "*GPSTime*.csv",
         },
-        # "environment": {
-        #     "header_columns": taurus_environment_header_names,
-        #     "used_columns": taurus_environment_used_names,
-        #     "dtypes": taurus_environment_dtypes,
-        #     'search_regex': '*EnvironmentSOH*.csv',
-        # },
+        "environment": {
+            "header_columns": taurus_environment_header_names,
+            "used_columns": taurus_environment_used_names,
+            "dtypes": taurus_environment_dtypes,
+            'search_regex': '*EnvironmentSOH*.csv',
+        },
     },
 }

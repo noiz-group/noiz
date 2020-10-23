@@ -14,9 +14,10 @@ import pendulum
 from pendulum.date import Date
 
 import noiz
+from noiz.api.datachunk import run_paralel_chunk_preparation
 from noiz.api.inventory import parse_inventory_insert_stations_and_components_into_db
 from noiz.api.processing_config import upsert_default_params
-from noiz.api.datachunk import run_paralel_chunk_preparation
+from noiz.api.soh import ingest_soh_files
 from noiz.processing.inventory import read_inventory
 
 from noiz.app import create_app
@@ -24,7 +25,8 @@ from noiz.app import create_app
 log = logging.getLogger(__name__)
 
 cli = AppGroup("noiz")
-init_group = AppGroup("init")  # type: ignore
+configs_group = AppGroup("configs")  # type: ignore
+data_group = AppGroup("data")  # type: ignore
 processing_group = AppGroup("processing")  # type: ignore
 plotting_group = AppGroup("plotting")  # type: ignore
 
@@ -41,25 +43,31 @@ def cli():  # type: ignore
     pass
 
 
-@init_group.group("init")
-def init_group():  # type: ignore
+@configs_group.group("configs")
+def configs_group():  # type: ignore
     "Initiate operation in noiz"
     pass
 
 
-@init_group.command("load_processing_params")
+@configs_group.command("load_processing_params")
 def load_processing_params():
     """Replaces current processing config with default one"""
     click.echo("This is a placeholder of an option")
 
 
-@init_group.command("reset_config")
+@configs_group.command("reset_config")
 def reset_config():
     """Replaces current processing config with default one"""
     upsert_default_params()
 
 
-@init_group.command("add_files_recursively")
+@data_group.group("data")
+def data_group():  # type: ignore
+    "Ingest raw data by Noiz"
+    pass
+
+
+@data_group.command("add_files_recursively")
 @click.argument("paths", nargs=-1, required=True, type=click.Path(exists=True))
 def add_files_recursively(paths):
     """Globs over provided directories in search of files"""
@@ -68,7 +76,7 @@ def add_files_recursively(paths):
     click.echo("You need to run this command")
     click.echo(
         f"{os.environ['MSEEDINDEX_EXECUTABLE']} -v "
-        f"-pghost {os.environ['POSTGRES_HOST']}"
+        f"-pghost {os.environ['POSTGRES_HOST']} "
         f"-dbuser {os.environ['POSTGRES_USER']} "
         f"-dbpass {os.environ['POSTGRES_PASSWORD']} "
         f"-dbname {os.environ['POSTGRES_DB_NOIZ']} "
@@ -77,7 +85,7 @@ def add_files_recursively(paths):
     return
 
 
-@init_group.command("add_inventory")
+@data_group.command("add_inventory")
 @with_appcontext
 @click.argument("filepath", nargs=1, required=True, type=click.Path(exists=True))
 @click.option("-t", "--filetype", default="stationxml", show_default=True)
@@ -89,6 +97,29 @@ def add_inventory(filepath, filetype):
     parse_inventory_insert_stations_and_components_into_db(
         app=current_app, inventory=inventory
     )
+    return
+
+
+@data_group.command("add_soh")
+@with_appcontext
+@click.option("-s", "--station", required=True, type=str)
+@click.option("-t", "--station_type", required=True, type=str)
+@click.option("-p", "--soh_type", required=True, type=str)
+@click.option("-n", "--network", type=str, default=None)
+@click.option("-d", "--dirpath", nargs=1, type=click.Path(exists=True))
+@click.argument("paths", nargs=-1, type=click.Path(exists=True))
+def add_soh(station, station_type, soh_type, dirpath, paths, network):
+    """Globs over provided directories in search of soh files fitting parsing requirements"""
+
+    ingest_soh_files(
+        station=station,
+        station_type=station_type,
+        soh_type=soh_type,
+        main_filepath=dirpath,
+        filepaths=paths,
+        network=network,
+    )
+
     return
 
 
@@ -144,9 +175,9 @@ def plotting_group():  # type: ignore
 
 @plotting_group.command("datachunk_availability")
 @with_appcontext
-@click.option("-n", "--network", multiple=True, type=str)
-@click.option("-s", "--station", multiple=True, type=str)
-@click.option("-c", "--component", multiple=True, type=str)
+@click.option("-n", "--network", multiple=True, type=str, default=None)
+@click.option("-s", "--station", multiple=True, type=str, default=None)
+@click.option("-c", "--component", multiple=True, type=str, default=None)
 @click.option("-sd", "--startdate", nargs=1, type=str,
               default=pendulum.Pendulum(2000, 1, 1).date, show_default=True)
 @click.option("-ed", "--enddate", nargs=1, type=str,
@@ -208,7 +239,7 @@ def plot_datachunk_availability(
     )
 
 
-_register_subgroups_to_cli(cli, (init_group, processing_group, plotting_group))
+_register_subgroups_to_cli(cli, (configs_group, data_group, processing_group, plotting_group))
 
 
 if __name__ == "__main__":
