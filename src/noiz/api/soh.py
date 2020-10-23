@@ -1,5 +1,7 @@
-from typing import Optional
+import itertools
 
+from typing import Optional
+import pandas as pd
 import datetime
 
 import logging
@@ -9,17 +11,33 @@ from sqlalchemy.dialects.postgresql import insert
 
 from noiz.database import db
 from noiz.models import Component, SohEnvironment
+from noiz.models.soh import association_table_soh_env
 from noiz.processing.soh import SOH_PARSING_PARAMETERS, read_multiple_soh, postprocess_soh_dataframe
 
 from noiz.api.component import fetch_components
 
 
-def parse_soh(
+def ingest_soh_files(
         station: str,
         station_type: str,
         soh_type: str,
         main_filepath: Path,
         network: Optional[str] = None,
+):
+    df = parse_soh(
+        station_type=station_type,
+        soh_type=soh_type,
+        main_filepath=main_filepath,
+    )
+
+    if soh_type == "environment":
+        insert_into_db_soh_environment(df=df, station=station, network=network)
+
+
+def parse_soh(
+        station_type: str,
+        soh_type: str,
+        main_filepath: Path,
 ):
 
     if station_type not in SOH_PARSING_PARAMETERS.keys():
@@ -52,6 +70,89 @@ def parse_soh(
     df = postprocess_soh_dataframe(df, station_type=station_type, soh_type=soh_type)
 
     return df
+
+
+def insert_into_db_soh_environment(
+        df: pd.DataFrame,
+        station: str,
+        network: Optional[str] = None,
+) -> None:
+    fetched_components = fetch_components(networks=network, stations=station)
+
+    z_component_id = None
+    fetched_components_ids = []
+    for cmp in fetched_components:
+        fetched_components_ids.append(cmp.id)
+        if cmp.component == 'Z':
+            z_component_id = cmp.id
+
+    command_count = len(df)
+
+    insert_commands = []
+    for i, (timestamp, row) in enumerate(df.iterrows()):
+        if i % int(command_count / 10) == 0:
+            print(f"Prepared already {i}/{command_count} commands")
+        insert_command = (
+            insert(SohEnvironment)
+            .values(
+                z_component_id=z_component_id,
+                datetime=timestamp,
+                voltage=row["Supply voltage(V)"],
+                current=row["Total current(A)"],
+                temperature=row["Temperature(C)"],
+            )
+            .on_conflict_do_update(
+                constraint="unique_timestamp_per_station_in_sohenvironment",
+                set_=dict(
+                    voltage=row["Supply voltage(V)"],
+                    current=row["Total current(A)"],
+                    temperature=row["Temperature(C)"],
+                ),
+            )
+        )
+        insert_commands.append(insert_command)
+
+    for i, insert_command in enumerate(insert_commands):
+        if i % int(command_count / 10) == 0:
+            print(f"Inserted already {i}/{command_count} rows")
+        db.session.execute(insert_command)
+
+    print('Commiting to db')
+    db.session.commit()
+    print('Commit succesfull')
+
+    print('Preparing to insert information about db relationship/')
+
+    soh_env_inserted = SohEnvironment.query.filter(SohEnvironment.z_component_id.in_(fetched_components_ids),
+                                                   SohEnvironment.datetime.in_(df.index.to_list())).all()
+
+    command_count = len(soh_env_inserted) * len(fetched_components)
+
+    insert_commands = []
+    for i, (inserted_soh, component_id) in enumerate(itertools.product(soh_env_inserted, fetched_components_ids)):
+        if i % int(command_count / 10) == 0:
+            print(f"Prepared already {i}/{command_count} commands")
+
+        insert_command = (
+            insert(association_table_soh_env)
+            .values(
+                soh_environment_id=inserted_soh.id,
+                component_id=component_id
+            )
+            .on_conflict_do_nothing()
+        )
+        insert_commands.append(insert_command)
+
+    for i, insert_command in enumerate(insert_commands):
+        if i % int(command_count / 10) == 0:
+            print(f"Inserted already {i}/{command_count} rows")
+        db.session.execute(insert_command)
+
+    print('Commiting to db')
+    db.session.commit()
+    print('Commit succesfull')
+
+    return
 
 
 def parse_soh_insert_into_db(
