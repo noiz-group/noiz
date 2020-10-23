@@ -9,8 +9,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from noiz.database import db
 from noiz.models import Component, SohEnvironment
-from noiz.processing.soh.parsing import read_multiple_soh, postprocess_soh_dataframe
-from noiz.processing.soh.soh_column_names import SOH_PARSING_PARAMETERS
+from noiz.processing.soh import SOH_PARSING_PARAMETERS, read_multiple_soh, postprocess_soh_dataframe
 
 from noiz.api.component import fetch_components
 
@@ -35,8 +34,6 @@ def parse_soh(
 
     parsing_parameters = SOH_PARSING_PARAMETERS[station_type][soh_type]
 
-    fetched_components = fetch_components(networks=network, stations=station)
-
     if not isinstance(main_filepath, Path):
         if not isinstance(main_filepath, str):
             raise ValueError(f"Expected a filepath to the directory. Got {main_filepath}")
@@ -48,6 +45,13 @@ def parse_soh(
 
     if not main_filepath.is_dir():
         raise NotADirectoryError(f"It is not a directory! {main_filepath}")
+
+    filepaths_to_parse = main_filepath.rglob(parsing_parameters['search_regex'])  # type: ignore
+
+    df = read_multiple_soh(filepaths=filepaths_to_parse, parsing_params=parsing_parameters)
+    df = postprocess_soh_dataframe(df, station_type=station_type, soh_type=soh_type)
+
+    return df
 
 
 def parse_soh_insert_into_db(

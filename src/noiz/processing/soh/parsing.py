@@ -1,7 +1,7 @@
 import pandas as pd
 from pathlib import Path
 
-from typing import Tuple, Optional, Dict, Type, Collection
+from typing import Tuple, Optional, Dict, Type, Collection, Generator, Union
 
 from noiz.exceptions import UnparsableDateTimeException, NoSOHPresentException, SohParsingException
 
@@ -63,7 +63,7 @@ def read_single_soh_csv(
 
 
 def read_multiple_soh(
-        filepaths: Collection[Path],
+        filepaths: Union[Collection[Path], Generator[Path, None, None]],
         parsing_params: Dict
 ) -> pd.DataFrame:
     """
