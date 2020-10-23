@@ -14,9 +14,10 @@ import pendulum
 from pendulum.date import Date
 
 import noiz
+from noiz.api.datachunk import run_paralel_chunk_preparation
 from noiz.api.inventory import parse_inventory_insert_stations_and_components_into_db
 from noiz.api.processing_config import upsert_default_params
-from noiz.api.datachunk import run_paralel_chunk_preparation
+from noiz.api.soh import ingest_soh_files
 from noiz.processing.inventory import read_inventory
 
 from noiz.app import create_app
@@ -99,6 +100,29 @@ def add_inventory(filepath, filetype):
     return
 
 
+@data_group.command("add_soh")
+@with_appcontext
+@click.option("-s", "--station", required=True, type=str)
+@click.option("-t", "--station_type", required=True, type=str)
+@click.option("-p", "--soh_type", required=True, type=str)
+@click.option("-n", "--network", type=str, default=None)
+@click.option("-d", "--dirpath", nargs=1, type=click.Path(exists=True))
+@click.argument("paths", nargs=-1, type=click.Path(exists=True))
+def add_soh(station, station_type, soh_type, dirpath, paths, network):
+    """Globs over provided directories in search of soh files fitting parsing requirements"""
+
+    ingest_soh_files(
+        station=station,
+        station_type=station_type,
+        soh_type=soh_type,
+        main_filepath=dirpath,
+        filepaths=paths,
+        network=network,
+    )
+
+    return
+
+
 @processing_group.group("processing")
 def processing_group():  # type: ignore
     """Processing subcommands"""
@@ -151,9 +175,9 @@ def plotting_group():  # type: ignore
 
 @plotting_group.command("datachunk_availability")
 @with_appcontext
-@click.option("-n", "--network", multiple=True, type=str)
-@click.option("-s", "--station", multiple=True, type=str)
-@click.option("-c", "--component", multiple=True, type=str)
+@click.option("-n", "--network", multiple=True, type=str, default=None)
+@click.option("-s", "--station", multiple=True, type=str, default=None)
+@click.option("-c", "--component", multiple=True, type=str, default=None)
 @click.option("-sd", "--startdate", nargs=1, type=str,
               default=pendulum.Pendulum(2000, 1, 1).date, show_default=True)
 @click.option("-ed", "--enddate", nargs=1, type=str,
@@ -215,7 +239,7 @@ def plot_datachunk_availability(
     )
 
 
-_register_subgroups_to_cli(cli, (configs_group, processing_group, plotting_group))
+_register_subgroups_to_cli(cli, (configs_group, data_group, processing_group, plotting_group))
 
 
 if __name__ == "__main__":
