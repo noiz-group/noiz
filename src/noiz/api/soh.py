@@ -34,7 +34,10 @@ def ingest_soh_files(
         raise ValueError('There has to be either main_filepath or filepaths provided.')
 
     if main_filepath is not None:
-        filepaths: Generator[Path, None, None] = glob_soh_directory(parsing_parameters=parsing_parameters, main_filepath=main_filepath)  # type: ignore
+        filepaths: Generator[Path, None, None] = glob_soh_directory(   # type: ignore
+            parsing_parameters=parsing_parameters,
+            main_filepath=main_filepath
+        )
 
     df = read_multiple_soh(filepaths=filepaths, parsing_params=parsing_parameters)  # type: ignore
     df = postprocess_soh_dataframe(df, station_type=station_type, soh_type=soh_type)
