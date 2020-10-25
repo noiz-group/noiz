@@ -1,22 +1,8 @@
 import numpy as np
 from typing import Dict, Tuple, Type
+from enum import Enum
 
 from dataclasses import dataclass
-
-
-@dataclass
-class SohCSVParsingParams:
-    """
-    This is just here implemented for the future.
-    The SOHProcessingParams dict should be refactored to use that class
-    """
-    instrument_name: str
-    soh_type: str
-    header_names: Tuple[str]
-    header_dtypes: Tuple[type]
-    used_names: Tuple[str]
-    search_regex: str
-
 
 taurus_instrument_header_names = (
     "timestamp",
@@ -252,6 +238,91 @@ centaur_gnsstime_dtypes = {
     "Time error(ns)": np.int32,
 }
 
+
+class SohInstrumentNames(Enum):
+    TAURUS = "taurus"
+    CENTAUR = "centaur"
+
+
+class SohType(Enum):
+    INSTRUMENT = "instrument"
+    GPSTIME = "gpstime"
+    GNSSTIME = "gnsstime"
+    ENVIRONMENT = "environment"
+
+
+@dataclass
+class SohCSVParsingParams:
+    """
+    This is just here implemented for the future.
+    The SOHProcessingParams dict should be refactored to use that class
+    """
+    instrument_name: SohInstrumentNames
+    soh_type: SohType
+    header_names: Tuple[str, ...]
+    used_names: Tuple[str, ...]
+    header_dtypes: Dict[str, type]
+    search_regex: str
+
+
+parsing_params_list = (
+    SohCSVParsingParams(
+        instrument_name=SohInstrumentNames.CENTAUR,
+        soh_type=SohType.INSTRUMENT,
+        header_names=centaur_instrument_header_columns,
+        used_names=centaur_instrument_used_columns,
+        header_dtypes=centaur_instrument_dtypes,
+        search_regex="*Instrument*.csv",
+    ),
+    SohCSVParsingParams(
+        instrument_name=SohInstrumentNames.CENTAUR,
+        soh_type=SohType.GPSTIME,
+        header_names=centaur_gpstime_header_columns,
+        used_names=centaur_gpstime_used_columns,
+        header_dtypes=centaur_gpstime_dtypes,
+        search_regex="*GPSTime*.csv",
+    ),
+    SohCSVParsingParams(
+        instrument_name=SohInstrumentNames.CENTAUR,
+        soh_type=SohType.GNSSTIME,
+        header_names=centaur_gnsstime_header_columns,
+        used_names=centaur_gnsstime_used_columns,
+        header_dtypes=centaur_gnsstime_dtypes,
+        search_regex="*GNSSTime*.csv",
+    ),
+    SohCSVParsingParams(
+        instrument_name=SohInstrumentNames.CENTAUR,
+        soh_type=SohType.ENVIRONMENT,
+        header_names=centaur_environment_header_columns,
+        used_names=centaur_environment_used_columns,
+        header_dtypes=centaur_environment_dtypes,
+        search_regex="*EnvironmentSOH*.csv",
+    ),
+    SohCSVParsingParams(
+        instrument_name=SohInstrumentNames.TAURUS,
+        soh_type=SohType.INSTRUMENT,
+        header_names=taurus_instrument_header_names,
+        used_names=taurus_instrument_used_names,
+        header_dtypes=taurus_instrument_dtypes,
+        search_regex="*Instrument*.csv",
+    ),
+    SohCSVParsingParams(
+        instrument_name=SohInstrumentNames.TAURUS,
+        soh_type=SohType.GPSTIME,
+        header_names=taurus_gpstime_header_names,
+        used_names=taurus_gpstime_used_names,
+        header_dtypes=taurus_gpstime_dtypes,
+        search_regex="*GPSTime*.csv",
+    ),
+    SohCSVParsingParams(
+        instrument_name=SohInstrumentNames.TAURUS,
+        soh_type=SohType.ENVIRONMENT,
+        header_names=taurus_environment_header_names,
+        used_names=taurus_environment_used_names,
+        header_dtypes=taurus_environment_dtypes,
+        search_regex='*EnvironmentSOH*.csv',
+    ),
+)
 
 SOH_PARSING_PARAMETERS = {
     "centaur": {
