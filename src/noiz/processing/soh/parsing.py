@@ -4,13 +4,12 @@ from pathlib import Path
 from typing import Tuple, Optional, Dict, Type, Collection, Generator, Union
 
 from noiz.exceptions import UnparsableDateTimeException, NoSOHPresentException, SohParsingException
+from noiz.processing.soh.soh_column_names import SohCSVParsingParams
 
 
 def read_single_soh_csv(
         filepath: Path,
-        header_columns: Tuple[str],
-        used_columns: Tuple[str],
-        dtypes: Dict[str, Type],
+        parsing_params: SohCSVParsingParams,
 ) -> Optional[pd.DataFrame]:
     """
     Takes a filepath to a single CSV file and parses it according to parameters passed.
@@ -31,8 +30,8 @@ def read_single_soh_csv(
         single_df = pd.read_csv(
             filepath,
             index_col=False,
-            names=header_columns,
-            usecols=used_columns,
+            names=parsing_params.header_names,
+            usecols=parsing_params.used_names,
             parse_dates=["UTCDateTime"],
             skiprows=1,
         ).set_index("UTCDateTime")
@@ -56,7 +55,7 @@ def read_single_soh_csv(
                 f" {filepath} "
             )
 
-    single_df = single_df.astype(dtypes)
+    single_df = single_df.astype(parsing_params.header_dtypes)
     single_df.index = single_df.index.tz_localize("UTC")
 
     return single_df
@@ -64,7 +63,7 @@ def read_single_soh_csv(
 
 def read_multiple_soh(
         filepaths: Union[Collection[Path], Generator[Path, None, None]],
-        parsing_params: Dict
+        parsing_params: SohCSVParsingParams,
 ) -> pd.DataFrame:
     """
     Method that takes a collection of Paths and iterates over them trying to parse each of them according
@@ -83,9 +82,7 @@ def read_multiple_soh(
         try:
             single_df = read_single_soh_csv(
                 filepath=filepath,
-                header_columns=parsing_params["header_columns"],
-                used_columns=parsing_params["used_columns"],
-                dtypes=parsing_params["dtypes"],
+                parsing_params=parsing_params,
             )
         except UnparsableDateTimeException as e:
             raise UnparsableDateTimeException(f"{filepath} has raised exception {e}")
