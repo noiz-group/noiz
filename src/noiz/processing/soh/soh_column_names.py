@@ -240,12 +240,19 @@ centaur_gnsstime_dtypes = {
 }
 
 
-class SohInstrumentNames(Enum):
+class ExtendedEnum(Enum):
+
+    @classmethod
+    def list(cls):
+        return list(map(lambda c: c.value, cls))
+
+
+class SohInstrumentNames(ExtendedEnum):
     TAURUS = "taurus"
     CENTAUR = "centaur"
 
 
-class SohType(Enum):
+class SohType(ExtendedEnum):
     INSTRUMENT = "instrument"
     GPSTIME = "gpstime"
     GNSSTIME = "gnsstime"
