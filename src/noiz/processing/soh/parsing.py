@@ -107,10 +107,25 @@ def read_multiple_soh(
     return df
 
 
-def postprocess_soh_dataframe(df, station_type, soh_type):
+def __postprocess_soh_dataframe(
+        df: pd.DataFrame,
+        station_type: str,
+        soh_type: str
+) -> pd.DataFrame:
     """
-    TODO docstring
-    TODO typing
+    Postprocessing of the dataframes coming from Nanometrics devices.
+    It recalculates the time GPS time errors from ns to ms.
+    Also, it sums up all the current values of submodules of the Taurus in order to have one value
+    that can be compared to the Centaur.
+
+    :param df: Dataframe to be postprocessed
+    :type df: pd.DataFrame
+    :param station_type: Station type
+    :type station_type: str
+    :param soh_type: Soh type
+    :type soh_type: str
+    :return: Postprocessed dataframe
+    :rtype: pd.DataFrame
     """
 
     if soh_type.lower() in ("gpstime", "gnsstime"):

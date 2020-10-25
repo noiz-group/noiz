@@ -14,7 +14,7 @@ from sqlalchemy.dialects.postgresql import insert
 from noiz.database import db
 from noiz.models import Component, SohInstrument
 from noiz.models.soh import association_table_soh_instr, SohGps, association_table_soh_gps
-from noiz.processing.soh import SOH_PARSING_PARAMETERS, read_multiple_soh, postprocess_soh_dataframe
+from noiz.processing.soh import SOH_PARSING_PARAMETERS, read_multiple_soh, __postprocess_soh_dataframe
 
 from noiz.api.component import fetch_components
 
@@ -41,7 +41,7 @@ def ingest_soh_files(
         )
 
     df = read_multiple_soh(filepaths=filepaths, parsing_params=parsing_parameters)  # type: ignore
-    df = postprocess_soh_dataframe(df, station_type=station_type, soh_type=soh_type)
+    df = __postprocess_soh_dataframe(df, station_type=station_type, soh_type=soh_type)
 
     if soh_type == "instrument":
         insert_into_db_soh_instrument(df=df, station=station, network=network)
@@ -295,7 +295,7 @@ def parse_soh_insert_into_db(
         )
 
     df = read_multiple_soh(soh_files, instrument_parsing_params)
-    df = postprocess_soh_dataframe(df, station_type=station_type, soh_type=soh_type)
+    df = __postprocess_soh_dataframe(df, station_type=station_type, soh_type=soh_type)
 
     no_rows = len(df)
 
@@ -378,7 +378,7 @@ def parse_instrument_soh(
         )
 
     df = read_multiple_soh(soh_files, instrument_parsing_params)
-    df = postprocess_soh_dataframe(df, station_type=station_type, soh_type=soh_type)
+    df = __postprocess_soh_dataframe(df, station_type=station_type, soh_type=soh_type)
 
     no_rows = len(df)
 
