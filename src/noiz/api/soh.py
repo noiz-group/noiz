@@ -1,3 +1,4 @@
+import datetime
 import itertools
 import logging
 import pandas as pd
@@ -5,14 +6,69 @@ import warnings
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
 from typing import Optional, Collection, Generator
+from sqlalchemy.orm.query import Query
 
 from noiz.api.component import fetch_components
-from noiz.api.helpers import validate_exactly_one_argument_provided
+from noiz.api.helpers import validate_exactly_one_argument_provided, extract_object_ids
 from noiz.database import db
 from noiz.models import SohInstrument, SohGps
 from noiz.models.soh import association_table_soh_instr, association_table_soh_gps
 from noiz.processing.soh import load_parsing_parameters, read_multiple_soh, __postprocess_soh_dataframe, \
     glob_soh_directory
+
+
+def fetch_raw_soh_gps_df(
+        station: str,
+        startdate: datetime.datetime,
+        enddate: datetime.datetime,
+        network: Optional[str] = None,
+) -> pd.DataFrame:
+
+    query = __fetch_raw_soh_gps_query(
+        station=station,
+        startdate=startdate,
+        enddate=enddate,
+        network=network,
+    )
+
+    c = query.statement.compile(query.session.bind)
+    df = pd.read_sql(c.string, query.session.bind, params=c.params)
+
+    return df
+
+
+def fetch_raw_soh_gps_all(
+        station: str,
+        startdate: datetime.datetime,
+        enddate: datetime.datetime,
+        network: Optional[str] = None,
+) -> Collection[SohGps]:
+
+    query = __fetch_raw_soh_gps_query(
+        station=station,
+        startdate=startdate,
+        enddate=enddate,
+        network=network,
+    )
+
+    return query.all()
+
+
+def __fetch_raw_soh_gps_query(
+        station: str,
+        startdate: datetime.datetime,
+        enddate: datetime.datetime,
+        network: Optional[str] = None,
+) -> Query:
+    fetched_components_ids = extract_object_ids(fetch_components(networks=network, stations=station))
+
+    fetched_soh_gps_query = SohGps.query.filter(
+        SohGps.z_component_id.in_(fetched_components_ids),
+        SohGps.datetime >= startdate,
+        SohGps.datetime <= enddate,
+    )
+
+    return fetched_soh_gps_query
 
 
 def ingest_soh_files(
