@@ -2,7 +2,7 @@ import warnings
 
 import itertools
 
-from typing import Optional, Collection, Generator, Dict
+from typing import Optional, Collection, Generator
 import pandas as pd
 import datetime
 
@@ -17,7 +17,8 @@ from noiz.models.soh import association_table_soh_instr, SohGps, association_tab
 from noiz.processing.soh import SOH_PARSING_PARAMETERS, read_multiple_soh, __postprocess_soh_dataframe
 
 from noiz.api.component import fetch_components
-from noiz.processing.soh.soh_column_names import SohCSVParsingParams
+from noiz.processing.soh.parsing import glob_soh_directory
+from noiz.processing.soh.soh_column_names import load_parsing_parameters
 
 
 def ingest_soh_files(
@@ -53,64 +54,6 @@ def ingest_soh_files(
                          f'Supported types: environment, gpstime, gnsstime. '
                          f'You provided {soh_type}')
     return
-
-
-def glob_soh_directory(
-        parsing_parameters: SohCSVParsingParams,
-        main_filepath: Path
-) -> Generator[Path, None, None]:
-    """
-    Method that uses Path.rglob to find all files in main_filepath that fit a globbing string defined in
-    parsing_parameters.search_regex
-
-    :param parsing_parameters: Parsing parameters to be used
-    :type parsing_parameters: SohCSVParsingParams
-    :param main_filepath: Directory to be rglobbed
-    :type main_filepath: Path
-    :return: Paths to files fitting the search_regex
-    :rtype: Generator[Path, None, None]
-    """
-
-    if not isinstance(main_filepath, Path):
-        if not isinstance(main_filepath, str):
-            raise ValueError(f"Expected a filepath to the directory. Got {main_filepath}")
-        else:
-            main_filepath = Path(main_filepath)
-
-    if not main_filepath.exists():
-        raise FileNotFoundError(f"Provided path does not exist. {main_filepath}")
-
-    if not main_filepath.is_dir():
-        raise NotADirectoryError(f"It is not a directory! {main_filepath}")
-
-    filepaths_to_parse = main_filepath.rglob(parsing_parameters.search_regex)
-
-    return filepaths_to_parse
-
-
-def load_parsing_parameters(soh_type: str, station_type: str) -> SohCSVParsingParams:
-    from noiz.processing.soh.soh_column_names import SohInstrumentNames, SohType
-    try:
-        _station_type = SohInstrumentNames(station_type)
-    except ValueError:
-        raise ValueError(f"Not supported station type. Supported types are: {list(SohInstrumentNames)}, "
-                         f"You provided {station_type}")
-
-    try:
-        _soh_type = SohType(soh_type)
-    except ValueError:
-        raise ValueError(f"Not supported soh type. Supported types are: {list(SohType)}, "
-                         f"You provided {soh_type}")
-
-    if _soh_type not in SOH_PARSING_PARAMETERS[_station_type].keys():
-        raise ValueError(f"Not supported soh type for this station type. "
-                         f"For this station type the supported soh types are: "
-                         f"{SOH_PARSING_PARAMETERS[_station_type].keys()}, "
-                         f"You provided {_soh_type}")
-
-    parsing_parameters = SOH_PARSING_PARAMETERS[_station_type][_soh_type]
-
-    return parsing_parameters
 
 
 def insert_into_db_soh_instrument(
