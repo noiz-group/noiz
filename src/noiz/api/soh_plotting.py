@@ -15,7 +15,8 @@ def plot_raw_gps_data_availability(
         starttime: datetime = datetime(2000, 1, 1),
         endtime: datetime = datetime(2030, 1, 1),
         filepath: Optional[Path] = None,
-        showfig: bool = False
+        showfig: bool = False,
+        show_legend: bool = True,
 ):
 
     fetched_components = fetch_components(networks=networks, stations=stations)
@@ -32,6 +33,7 @@ def plot_raw_gps_data_availability(
         starttime=starttime,
         endtime=endtime,
         fig_title=fig_title,
+        show_legend=show_legend,
     )
 
     if filepath is not None:
@@ -47,6 +49,7 @@ def plot_gps_data_soh(
         starttime: datetime,
         endtime: datetime,
         fig_title: str,
+        show_legend: bool = True,
 ):
     df.index = df['datetime']
 
@@ -81,7 +84,8 @@ def plot_gps_data_soh(
 
     axes[-1].set_xlim(starttime - timedelta(days=1),
                       endtime + timedelta(days=1))
-    axes[-1].legend(loc='lower center', ncol=2)
+    if show_legend:
+        axes[-1].legend(loc='lower center', ncol=2)
 
     fig.autofmt_xdate()
     return fig
