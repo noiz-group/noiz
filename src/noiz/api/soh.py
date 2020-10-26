@@ -1,3 +1,4 @@
+import datetime
 import itertools
 import logging
 import pandas as pd
@@ -5,14 +6,78 @@ import warnings
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
 from typing import Optional, Collection, Generator
+from sqlalchemy.orm.query import Query
 
 from noiz.api.component import fetch_components
-from noiz.api.helpers import validate_exactly_one_argument_provided
+from noiz.api.helpers import validate_exactly_one_argument_provided, extract_object_ids
 from noiz.database import db
-from noiz.models import SohInstrument, SohGps
+from noiz.models import SohInstrument, SohGps, Component
 from noiz.models.soh import association_table_soh_instr, association_table_soh_gps
 from noiz.processing.soh import load_parsing_parameters, read_multiple_soh, __postprocess_soh_dataframe, \
     glob_soh_directory
+
+
+def fetch_raw_soh_gps_df(
+        components: Collection[Component],
+        startdate: datetime.datetime,
+        enddate: datetime.datetime,
+) -> pd.DataFrame:
+    query = __fetch_raw_soh_gps_query(
+        components=components,
+        startdate=startdate,
+        enddate=enddate,
+    )
+
+    c = query.statement.compile(query.session.bind)
+    df = pd.read_sql(c.string, query.session.bind, params=c.params)
+
+    return df
+
+
+def fetch_raw_soh_gps_all(
+        components: Collection[Component],
+        startdate: datetime.datetime,
+        enddate: datetime.datetime,
+) -> Collection[SohGps]:
+
+    query = __fetch_raw_soh_gps_query(
+        components=components,
+        startdate=startdate,
+        enddate=enddate,
+    )
+
+    return query.all()
+
+
+def count_raw_soh_gps(
+        components: Collection[Component],
+        startdate: datetime.datetime,
+        enddate: datetime.datetime,
+) -> int:
+
+    query = __fetch_raw_soh_gps_query(
+        components=components,
+        startdate=startdate,
+        enddate=enddate,
+    )
+
+    return query.count()
+
+
+def __fetch_raw_soh_gps_query(
+        components: Collection[Component],
+        startdate: datetime.datetime,
+        enddate: datetime.datetime,
+) -> Query:
+    components_ids = extract_object_ids(components)
+
+    fetched_soh_gps_query = SohGps.query.filter(
+        SohGps.z_component_id.in_(components_ids),
+        SohGps.datetime >= startdate,
+        SohGps.datetime <= enddate,
+    )
+
+    return fetched_soh_gps_query
 
 
 def ingest_soh_files(
