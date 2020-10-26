@@ -50,16 +50,33 @@ def validate_uniformity_of_tuple(
         accepted_type: Type,
         raise_errors: bool = True,
 ) -> bool:
+    """
+    Checks if all elements of provided tuple are of the same type.
+    It can raise error or return False in case of negative validation.
+    Returns true if tuple is uniform.
+
+    :param val: Tuple to be checked for uniformity
+    :type val: Tuple[Any, ...]
+    :param accepted_type: Accepted type
+    :type accepted_type: Type
+    :param raise_errors: If errors should be raised
+    :type raise_errors: bool
+    :return: If provided tuple is uniform.
+    :rtype: bool
+    :raises: ValueError
+    """
 
     types: List[Type] = []
 
-    for i in val:
-        if not isinstance(i, (str, int, float)):
+    for item in val:
+        types.append(type(item))
+        if not isinstance(item, accepted_type):
             if raise_errors:
-                raise ValueError(f'Values inside of provided tuple should be of type: str, int, float. '
-                                 f'Value {i} is of type {accepted_type(i)}. ')
+                raise ValueError(f'Values inside of provided tuple should be of type: {accepted_type}. '
+                                 f'Value {item} is of type {type(item)}. ')
             else:
                 return False
+
     if not len(list(set(types))) == 1:
         if raise_errors:
             raise ValueError(f"Type of values inside of tuple should be uniform. "
