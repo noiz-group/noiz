@@ -4,10 +4,12 @@ from noiz.models import Timespan, Component
 
 
 def extract_object_ids(
-        instances: Iterable[Union[Timespan, Component]],
+        instances: Iterable[Any],
 ) -> List[int]:
     """
-    Extracts parameter .id from all provided instances of objects. It can either be a single object or iterbale of them.
+    Extracts parameter .id from all provided instances of objects.
+    It can either be a single object or iterable of them.
+
     :param instances: instances of objects to be checked
     :type instances:
     :return: ids of objects
