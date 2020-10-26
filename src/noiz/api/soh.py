@@ -11,24 +11,21 @@ from sqlalchemy.orm.query import Query
 from noiz.api.component import fetch_components
 from noiz.api.helpers import validate_exactly_one_argument_provided, extract_object_ids
 from noiz.database import db
-from noiz.models import SohInstrument, SohGps
+from noiz.models import SohInstrument, SohGps, Component
 from noiz.models.soh import association_table_soh_instr, association_table_soh_gps
 from noiz.processing.soh import load_parsing_parameters, read_multiple_soh, __postprocess_soh_dataframe, \
     glob_soh_directory
 
 
 def fetch_raw_soh_gps_df(
-        station: str,
+        components: Collection[Component],
         startdate: datetime.datetime,
         enddate: datetime.datetime,
-        network: Optional[str] = None,
 ) -> pd.DataFrame:
-
     query = __fetch_raw_soh_gps_query(
-        station=station,
+        components=components,
         startdate=startdate,
         enddate=enddate,
-        network=network,
     )
 
     c = query.statement.compile(query.session.bind)
@@ -38,32 +35,44 @@ def fetch_raw_soh_gps_df(
 
 
 def fetch_raw_soh_gps_all(
-        station: str,
+        components: Collection[Component],
         startdate: datetime.datetime,
         enddate: datetime.datetime,
-        network: Optional[str] = None,
 ) -> Collection[SohGps]:
 
     query = __fetch_raw_soh_gps_query(
-        station=station,
+        components=components,
         startdate=startdate,
         enddate=enddate,
-        network=network,
     )
 
     return query.all()
 
 
-def __fetch_raw_soh_gps_query(
-        station: str,
+def count_raw_soh_gps(
+        components: Collection[Component],
         startdate: datetime.datetime,
         enddate: datetime.datetime,
-        network: Optional[str] = None,
+) -> int:
+
+    query = __fetch_raw_soh_gps_query(
+        components=components,
+        startdate=startdate,
+        enddate=enddate,
+    )
+
+    return query.count()
+
+
+def __fetch_raw_soh_gps_query(
+        components: Collection[Component],
+        startdate: datetime.datetime,
+        enddate: datetime.datetime,
 ) -> Query:
-    fetched_components_ids = extract_object_ids(fetch_components(networks=network, stations=station))
+    components_ids = extract_object_ids(components)
 
     fetched_soh_gps_query = SohGps.query.filter(
-        SohGps.z_component_id.in_(fetched_components_ids),
+        SohGps.z_component_id.in_(components_ids),
         SohGps.datetime >= startdate,
         SohGps.datetime <= enddate,
     )
