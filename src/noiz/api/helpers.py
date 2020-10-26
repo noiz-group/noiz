@@ -4,10 +4,12 @@ from noiz.models import Timespan, Component
 
 
 def extract_object_ids(
-        instances: Iterable[Union[Timespan, Component]],
+        instances: Iterable[Any],
 ) -> List[int]:
     """
-    Extracts parameter .id from all provided instances of objects. It can either be a single object or iterbale of them.
+    Extracts parameter .id from all provided instances of objects.
+    It can either be a single object or iterable of them.
+
     :param instances: instances of objects to be checked
     :type instances:
     :return: ids of objects
@@ -29,8 +31,8 @@ def validate_to_tuple(
 
     :param val: Value to be validated
     :type val: Union[Tuple, str, int, float]
-    :param accepted_type:
-    :type accepted_type:
+    :param accepted_type: Type to validate val against
+    :type accepted_type: Type
     :return: Input tuple or a single element tuple with input val
     :rtype: Tuple
     """
@@ -41,7 +43,7 @@ def validate_to_tuple(
         return val
     else:
         raise ValueError(
-            f"Expecting a tuple of values or a str, int or float. Provided value was {accepted_type(val)}"
+            f"Expecting a tuple or a single value of type {accepted_type}. Provided value was {type(val)}"
         )
 
 
@@ -50,16 +52,33 @@ def validate_uniformity_of_tuple(
         accepted_type: Type,
         raise_errors: bool = True,
 ) -> bool:
+    """
+    Checks if all elements of provided tuple are of the same type.
+    It can raise error or return False in case of negative validation.
+    Returns true if tuple is uniform.
+
+    :param val: Tuple to be checked for uniformity
+    :type val: Tuple[Any, ...]
+    :param accepted_type: Accepted type
+    :type accepted_type: Type
+    :param raise_errors: If errors should be raised
+    :type raise_errors: bool
+    :return: If provided tuple is uniform.
+    :rtype: bool
+    :raises: ValueError
+    """
 
     types: List[Type] = []
 
-    for i in val:
-        if not isinstance(i, (str, int, float)):
+    for item in val:
+        types.append(type(item))
+        if not isinstance(item, accepted_type):
             if raise_errors:
-                raise ValueError(f'Values inside of provided tuple should be of type: str, int, float. '
-                                 f'Value {i} is of type {accepted_type(i)}. ')
+                raise ValueError(f'Values inside of provided tuple should be of type: {accepted_type}. '
+                                 f'Value {item} is of type {type(item)}. ')
             else:
                 return False
+
     if not len(list(set(types))) == 1:
         if raise_errors:
             raise ValueError(f"Type of values inside of tuple should be uniform. "
