@@ -390,6 +390,18 @@ SOH_PARSING_PARAMETERS = dict(__soh_parsing_params)
 
 
 def load_parsing_parameters(soh_type: str, station_type: str) -> SohCSVParsingParams:
+    """
+    Checks if provided soh_type and station_type are valid names and then checks if a given combination
+    of station_type and soh_type have SohCSVParsingParams associated with them.
+
+    :param soh_type: Type of soh to be queried
+    :type soh_type: str
+    :param station_type: Type of station to be queried
+    :type station_type: str
+    :return: Valid SohCSVParsingParams
+    :rtype: SohCSVParsingParams
+    raises: ValueError
+    """
 
     _station_type = validate_soh_instrument_name(station_type)
 
