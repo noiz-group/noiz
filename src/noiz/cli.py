@@ -251,6 +251,7 @@ def plot_datachunk_availability(
 @click.option('--savefig/--no-savefig', default=True)
 @click.option('-pp', '--plotpath', type=click.Path())
 @click.option('--showfig', is_flag=True)
+@click.option('--legend/--no-legend', default=True)
 def plot_raw_gps_soh(
         network,
         station,
@@ -258,7 +259,8 @@ def plot_raw_gps_soh(
         endtime,
         savefig,
         plotpath,
-        showfig
+        showfig,
+        legend
 ):
     """
     Method to plot raw GPS SOH based on passed arguments.
@@ -292,7 +294,8 @@ def plot_raw_gps_soh(
         starttime=starttime,
         endtime=endtime,
         filepath=plotpath,
-        showfig=showfig
+        showfig=showfig,
+        showlegned=legend,
     )
     return
 
