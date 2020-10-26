@@ -22,7 +22,28 @@ def ingest_soh_files(
         main_filepath: Optional[Path] = None,
         filepaths: Optional[Collection[Path]] = None,
         network: Optional[str] = None,
-):
+) -> None:
+    """
+    Method that take either a directory or collection of paths and parses it according to predefined rules for
+    containing the StateOfHealth (SOH) information from compatible station types and soh types.
+    It upserts it into DB and makes a connection between each SOH datapoint and all Components on the station you
+    provided in the arguments.
+
+    :param station: Station to associate SOH with
+    :type station: str
+    :param station_type: Type of station. Available types are defined in noiz.processing.soh.SohInstrumentNames
+    :type station_type: str
+    :param soh_type: Type of soh. Available types are defined in noiz.processing.soh.SohType
+    :type soh_type: str
+    :param main_filepath: Filepath to be globbed.
+    :type main_filepath: Optional[Path] = None
+    :param filepaths: Selected filepaths to be parsed
+    :type filepaths: Optional[Collection[Path]] = None
+    :param network: Network that the station belongs to, optional
+    :type network: Optional[str] = None
+    :return: None
+    :rtype: NoneType
+    """
 
     parsing_parameters = load_parsing_parameters(soh_type, station_type)
 
@@ -44,7 +65,7 @@ def ingest_soh_files(
         insert_into_db_soh_gps(df=df, station=station, network=network)
     else:
         raise ValueError(f'Provided soh_type not supported for database insertion. '
-                         f'Supported types: environment, gpstime, gnsstime. '
+                         f'Supported types: instrument, gpstime, gnsstime. '
                          f'You provided {soh_type}')
     return
 
