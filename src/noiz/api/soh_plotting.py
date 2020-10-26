@@ -10,15 +10,15 @@ from noiz.models import Component
 
 
 def plot_raw_gps_data_availability(
-        network: Optional[str] = None,
-        station: Optional[str] = None,
+        networks: Optional[Collection[str]] = None,
+        stations: Optional[Collection[str]] = None,
         starttime: datetime = datetime(2000, 1, 1),
         endtime: datetime = datetime(2030, 1, 1),
         filepath: Optional[Path] = None,
         showfig: bool = False
 ):
 
-    fetched_components = fetch_components(networks=network, stations=station)
+    fetched_components = fetch_components(networks=networks, stations=stations)
 
     z_components = [cmp for cmp in fetched_components if cmp.component == 'Z']
 
