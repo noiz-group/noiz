@@ -52,6 +52,9 @@ def plot_gps_data_soh(
 
     fig, axes = plt.subplots(nrows=len(components), sharex=True, sharey=True, dpi=150)
 
+    if len(components) == 1:
+        axes = (axes,)
+
     for ax, cmp in zip(axes, components):
         subdf = df.loc[df.loc[:, 'z_component_id'] == cmp.id, :]
         ax.plot(subdf.index, subdf.loc[:, ['time_uncertainty']], label='Uncertainty')
