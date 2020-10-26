@@ -29,8 +29,8 @@ def validate_to_tuple(
 
     :param val: Value to be validated
     :type val: Union[Tuple, str, int, float]
-    :param accepted_type:
-    :type accepted_type:
+    :param accepted_type: Type to validate val against
+    :type accepted_type: Type
     :return: Input tuple or a single element tuple with input val
     :rtype: Tuple
     """
@@ -41,7 +41,7 @@ def validate_to_tuple(
         return val
     else:
         raise ValueError(
-            f"Expecting a tuple of values or a str, int or float. Provided value was {accepted_type(val)}"
+            f"Expecting a tuple or a single value of type {accepted_type}. Provided value was {type(val)}"
         )
 
 
