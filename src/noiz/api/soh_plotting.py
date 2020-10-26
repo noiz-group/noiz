@@ -81,6 +81,7 @@ def plot_gps_data_soh(
 
     axes[-1].set_xlim(starttime - timedelta(days=1),
                       endtime + timedelta(days=1))
+    axes[-1].legend(loc='lower center', ncol=2)
 
     fig.autofmt_xdate()
     return fig
