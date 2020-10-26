@@ -1,3 +1,4 @@
+import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 from datetime import datetime, timedelta
@@ -17,7 +18,28 @@ def plot_raw_gps_data_availability(
         filepath: Optional[Path] = None,
         showfig: bool = False,
         show_legend: bool = True,
-):
+) -> matplotlib.pyplot.Figure:
+    """
+    Method that allows for selection and plotting of raw GPS SOH data that are stored in the DB for given set of
+    requirements.
+
+    :param networks: Networks to be fetched
+    :type networks: Optional[Collection[str]]
+    :param stations: Stations to be fetched
+    :type stations: Optional[Collection[str]]
+    :param starttime: Starttime of the query
+    :type starttime: datetime
+    :param endtime: Endtime of the query
+    :type endtime: datetime
+    :param filepath: Filepath where plot should be saved
+    :type filepath: Optional[Path]
+    :param showfig: If the figure should be showed
+    :type showfig: bool
+    :param show_legend: If legend should be added to the bottom subplot
+    :type show_legend: bool
+    :return: Figure object with the plot for further manipulation
+    :rtype: matplotlib.pyplot.Figure:rtype:
+    """
 
     fetched_components = fetch_components(networks=networks, stations=stations)
 
@@ -42,6 +64,8 @@ def plot_raw_gps_data_availability(
     if showfig is True:
         fig.show()
 
+    return fig
+
 
 def plot_gps_data_soh(
         df: pd.DataFrame,
@@ -50,7 +74,25 @@ def plot_gps_data_soh(
         endtime: datetime,
         fig_title: str,
         show_legend: bool = True,
-):
+) -> matplotlib.pyplot.Figure:
+    """
+
+    :param df: Dataframe containing data
+    :type df: pd.DataFrame
+    :param components: Components to be plotted
+    :type components: Collection[Component]
+    :param starttime: Starttime of the query
+    :type starttime: datetime
+    :param endtime: Endtime of the query
+    :type endtime: datetime
+    :param fig_title: Title of the whole plot, shown on the very top
+    :type fig_title: str
+    :param show_legend: If legend should be added to the bottom subplot
+    :type show_legend: bool
+    :return:
+    :rtype:
+    """
+
     df.index = df['datetime']
 
     fig, axes = plt.subplots(nrows=len(components), sharex=True, sharey=True, dpi=150)
