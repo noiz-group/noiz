@@ -1,4 +1,3 @@
-import datetime
 import itertools
 import logging
 import pandas as pd
@@ -60,9 +59,9 @@ def ingest_soh_files(
     df = __postprocess_soh_dataframe(df, station_type=station_type, soh_type=soh_type)
 
     if soh_type == "instrument":
-        insert_into_db_soh_instrument(df=df, station=station, network=network)
+        __insert_into_db_soh_instrument(df=df, station=station, network=network)
     elif soh_type in ("gpstime", "gnsstime"):
-        insert_into_db_soh_gps(df=df, station=station, network=network)
+        __insert_into_db_soh_gps(df=df, station=station, network=network)
     else:
         raise ValueError(f'Provided soh_type not supported for database insertion. '
                          f'Supported types: instrument, gpstime, gnsstime. '
@@ -70,11 +69,26 @@ def ingest_soh_files(
     return
 
 
-def insert_into_db_soh_instrument(
+def __insert_into_db_soh_instrument(
         df: pd.DataFrame,
         station: str,
         network: Optional[str] = None,
 ) -> None:
+    """
+    Internal method that is used for upserting instrument SOH data into the DB.
+    The passed pd.DataFrame has to be indexed with datetime index, and contain columns named as:
+    "Supply voltage(V)", "Total current(A)", "Temperature(C)"
+
+    :param df: Dataframe containing SOH information that should be upserted into DB.
+    :type df: pd.DataFrame
+    :param station: Station to associate all SOH with.
+    :type station: str
+    :param network: Network that station belongs to
+    :type network: str
+    :return: None
+    :rtype: NoneType
+    """
+
     fetched_components = fetch_components(networks=network, stations=station)
 
     z_component_id = None
@@ -153,11 +167,26 @@ def insert_into_db_soh_instrument(
     return
 
 
-def insert_into_db_soh_gps(
+def __insert_into_db_soh_gps(
         df: pd.DataFrame,
         station: str,
         network: Optional[str] = None,
 ) -> None:
+    """
+        Internal method that is used for upserting GPS SOH data into the DB.
+        The passed pd.DataFrame has to be indexed with datetime index, and contain columns named as:
+        "Time error(ms)" and "Time uncertainty(ms)"
+
+        :param df: Dataframe containing SOH information that should be upserted into DB.
+        :type df: pd.DataFrame
+        :param station: Station to associate all SOH with.
+        :type station: str
+        :param network: Network that station belongs to
+        :type network: str
+        :return: None
+        :rtype: NoneType
+        """
+
     fetched_components = fetch_components(networks=network, stations=station)
 
     z_component_id = None
@@ -239,6 +268,7 @@ def parse_soh_insert_into_db(
 ):
     """
     DEPRECATED. Do not use.
+    It's a wrapped just to preserve compatibility with current code.
     """
 
     warnings.warn("Deprecated. Use other methods")
