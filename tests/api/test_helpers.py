@@ -1,6 +1,6 @@
 import pytest
 
-from noiz.api.helpers import validate_exactly_one_argument_provided, validate_uniformity_of_tuple
+from noiz.api.helpers import validate_exactly_one_argument_provided, validate_uniformity_of_tuple, validate_to_tuple
 
 
 @pytest.mark.parametrize("first, second", [(1, None), ('test_string', None), (None, 2), [None, 'test_string']])
@@ -64,4 +64,4 @@ def test_validate_uniformity_of_tuple_mixed_types_non_raising(tup, typ):
 ])
 def test_validate_uniformity_of_tuple_mixed_types_raising(tup, typ):
     with pytest.raises(ValueError):
-        validate_uniformity_of_tuple(val=tup, accepted_type=typ, raise_errors=False)
+        validate_uniformity_of_tuple(val=tup, accepted_type=typ, raise_errors=True)
