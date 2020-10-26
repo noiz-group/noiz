@@ -1,9 +1,9 @@
 import pandas as pd
 from pathlib import Path
 
-from typing import Tuple, Optional, Dict, Type, Collection, Generator, Union
+from typing import Tuple, Optional, Dict, Collection, Generator, Union
 
-from noiz.exceptions import UnparsableDateTimeException, NoSOHPresentException, SohParsingException
+from noiz.exceptions import UnparsableDateTimeException, SohParsingException
 from noiz.processing.soh.soh_column_names import SohCSVParsingParams
 
 
@@ -164,3 +164,36 @@ def __postprocess_soh_dataframe(
         )
 
     return df
+
+
+def glob_soh_directory(
+        parsing_parameters: SohCSVParsingParams,
+        main_filepath: Path
+) -> Generator[Path, None, None]:
+    """
+    Method that uses Path.rglob to find all files in main_filepath that fit a globbing string defined in
+    parsing_parameters.search_regex
+
+    :param parsing_parameters: Parsing parameters to be used
+    :type parsing_parameters: SohCSVParsingParams
+    :param main_filepath: Directory to be rglobbed
+    :type main_filepath: Path
+    :return: Paths to files fitting the search_regex
+    :rtype: Generator[Path, None, None]
+    """
+
+    if not isinstance(main_filepath, Path):
+        if not isinstance(main_filepath, str):
+            raise ValueError(f"Expected a filepath to the directory. Got {main_filepath}")
+        else:
+            main_filepath = Path(main_filepath)
+
+    if not main_filepath.exists():
+        raise FileNotFoundError(f"Provided path does not exist. {main_filepath}")
+
+    if not main_filepath.is_dir():
+        raise NotADirectoryError(f"It is not a directory! {main_filepath}")
+
+    filepaths_to_parse = main_filepath.rglob(parsing_parameters.search_regex)
+
+    return filepaths_to_parse

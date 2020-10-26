@@ -387,3 +387,38 @@ for item in __parsing_params_list:
     __soh_parsing_params[item.instrument_name][item.soh_type] = item
 
 SOH_PARSING_PARAMETERS = dict(__soh_parsing_params)
+
+
+def load_parsing_parameters(soh_type: str, station_type: str) -> SohCSVParsingParams:
+
+    _station_type = validate_soh_instrument_name(station_type)
+
+    _soh_type = validate_soh_type(soh_type)
+
+    if _soh_type not in SOH_PARSING_PARAMETERS[_station_type].keys():
+        raise ValueError(f"Not supported soh type for this station type. "
+                         f"For this station type the supported soh types are: "
+                         f"{SOH_PARSING_PARAMETERS[_station_type].keys()}, "
+                         f"You provided {_soh_type}")
+
+    parsing_parameters = SOH_PARSING_PARAMETERS[_station_type][_soh_type]
+
+    return parsing_parameters
+
+
+def validate_soh_type(soh_type: str) -> SohType:
+    try:
+        _soh_type = SohType(soh_type)
+    except ValueError:
+        raise ValueError(f"Not supported soh type. Supported types are: {list(SohType)}, "
+                         f"You provided {soh_type}")
+    return _soh_type
+
+
+def validate_soh_instrument_name(station_type: str) -> SohInstrumentNames:
+    try:
+        _station_type = SohInstrumentNames(station_type)
+    except ValueError:
+        raise ValueError(f"Not supported station type. Supported types are: {list(SohInstrumentNames)}, "
+                         f"You provided {station_type}")
+    return _station_type
