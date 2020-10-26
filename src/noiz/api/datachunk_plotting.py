@@ -67,8 +67,8 @@ def plot_datachunk_availability(
         availability[key] = round(
             len(times) / len(fetched_timespans) * 100, 2)
 
-    fig = plot_availability(midtimes, starttime, endtime, fig_title,
-                            availability)
+    fig = __plot_availability(midtimes, starttime, endtime, fig_title,
+                              availability)
 
     if filepath is not None:
         fig.savefig(filepath)
@@ -79,7 +79,7 @@ def plot_datachunk_availability(
     return fig
 
 
-def plot_availability(
+def __plot_availability(
         midtimes: Dict[str, List[datetime]],
         starttime: datetime,
         endtime: datetime,
