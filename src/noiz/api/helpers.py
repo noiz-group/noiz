@@ -1,4 +1,4 @@
-from typing import Iterable, Union, List, Tuple, Type, Collection, Any
+from typing import Iterable, Union, List, Tuple, Type, Collection, Any, Optional
 
 from noiz.models import Timespan, Component
 
@@ -68,3 +68,25 @@ def validate_uniformity_of_tuple(
             return False
 
     return True
+
+
+def validate_exactly_one_argument_provided(
+        first: Optional[Any],
+        second: Optional[Any],
+) -> bool:
+    """
+    Method that checks if exactly one of provided arguments is not None.
+
+    :param first: First value to check
+    :type first: Optional[Any]
+    :param second: Second value to check
+    :type second: Optional[Any]
+    :return: True if only one value is not None
+    :rtype: bool
+    :raises: ValueError
+    """
+
+    if (second is None and first is None) or (second is not None and first is not None):
+        raise ValueError('There has to be either main_filepath or filepaths provided.')
+    else:
+        return True

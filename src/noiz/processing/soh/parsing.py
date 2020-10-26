@@ -1,16 +1,15 @@
 import pandas as pd
 from pathlib import Path
 
-from typing import Tuple, Optional, Dict, Type, Collection, Generator, Union
+from typing import Tuple, Optional, Dict, Collection, Generator, Union
 
-from noiz.exceptions import UnparsableDateTimeException, NoSOHPresentException, SohParsingException
+from noiz.exceptions import UnparsableDateTimeException, SohParsingException
+from noiz.processing.soh.soh_column_names import SohCSVParsingParams
 
 
 def read_single_soh_csv(
         filepath: Path,
-        header_columns: Tuple[str],
-        used_columns: Tuple[str],
-        dtypes: Dict[str, Type],
+        parsing_params: SohCSVParsingParams,
 ) -> Optional[pd.DataFrame]:
     """
     Takes a filepath to a single CSV file and parses it according to parameters passed.
@@ -31,8 +30,8 @@ def read_single_soh_csv(
         single_df = pd.read_csv(
             filepath,
             index_col=False,
-            names=header_columns,
-            usecols=used_columns,
+            names=parsing_params.header_names,
+            usecols=parsing_params.used_names,
             parse_dates=["UTCDateTime"],
             skiprows=1,
         ).set_index("UTCDateTime")
@@ -56,7 +55,7 @@ def read_single_soh_csv(
                 f" {filepath} "
             )
 
-    single_df = single_df.astype(dtypes)
+    single_df = single_df.astype(parsing_params.header_dtypes)
     single_df.index = single_df.index.tz_localize("UTC")
 
     return single_df
@@ -64,7 +63,7 @@ def read_single_soh_csv(
 
 def read_multiple_soh(
         filepaths: Union[Collection[Path], Generator[Path, None, None]],
-        parsing_params: Dict
+        parsing_params: SohCSVParsingParams,
 ) -> pd.DataFrame:
     """
     Method that takes a collection of Paths and iterates over them trying to parse each of them according
@@ -83,9 +82,7 @@ def read_multiple_soh(
         try:
             single_df = read_single_soh_csv(
                 filepath=filepath,
-                header_columns=parsing_params["header_columns"],
-                used_columns=parsing_params["used_columns"],
-                dtypes=parsing_params["dtypes"],
+                parsing_params=parsing_params,
             )
         except UnparsableDateTimeException as e:
             raise UnparsableDateTimeException(f"{filepath} has raised exception {e}")
@@ -107,10 +104,25 @@ def read_multiple_soh(
     return df
 
 
-def postprocess_soh_dataframe(df, station_type, soh_type):
+def __postprocess_soh_dataframe(
+        df: pd.DataFrame,
+        station_type: str,
+        soh_type: str
+) -> pd.DataFrame:
     """
-    TODO docstring
-    TODO typing
+    Postprocessing of the dataframes coming from Nanometrics devices.
+    It recalculates the time GPS time errors from ns to ms.
+    Also, it sums up all the current values of submodules of the Taurus in order to have one value
+    that can be compared to the Centaur.
+
+    :param df: Dataframe to be postprocessed
+    :type df: pd.DataFrame
+    :param station_type: Station type
+    :type station_type: str
+    :param soh_type: Soh type
+    :type soh_type: str
+    :return: Postprocessed dataframe
+    :rtype: pd.DataFrame
     """
 
     if soh_type.lower() in ("gpstime", "gnsstime"):
@@ -152,3 +164,36 @@ def postprocess_soh_dataframe(df, station_type, soh_type):
         )
 
     return df
+
+
+def glob_soh_directory(
+        parsing_parameters: SohCSVParsingParams,
+        main_filepath: Path
+) -> Generator[Path, None, None]:
+    """
+    Method that uses Path.rglob to find all files in main_filepath that fit a globbing string defined in
+    parsing_parameters.search_regex
+
+    :param parsing_parameters: Parsing parameters to be used
+    :type parsing_parameters: SohCSVParsingParams
+    :param main_filepath: Directory to be rglobbed
+    :type main_filepath: Path
+    :return: Paths to files fitting the search_regex
+    :rtype: Generator[Path, None, None]
+    """
+
+    if not isinstance(main_filepath, Path):
+        if not isinstance(main_filepath, str):
+            raise ValueError(f"Expected a filepath to the directory. Got {main_filepath}")
+        else:
+            main_filepath = Path(main_filepath)
+
+    if not main_filepath.exists():
+        raise FileNotFoundError(f"Provided path does not exist. {main_filepath}")
+
+    if not main_filepath.is_dir():
+        raise NotADirectoryError(f"It is not a directory! {main_filepath}")
+
+    filepaths_to_parse = main_filepath.rglob(parsing_parameters.search_regex)
+
+    return filepaths_to_parse

@@ -1,22 +1,18 @@
-import warnings
-
 import itertools
-
-from typing import Optional, Collection, Generator, Dict
-import pandas as pd
-import datetime
-
 import logging
+import pandas as pd
+import warnings
 from pathlib import Path
-
 from sqlalchemy.dialects.postgresql import insert
-
-from noiz.database import db
-from noiz.models import Component, SohInstrument
-from noiz.models.soh import association_table_soh_instr, SohGps, association_table_soh_gps
-from noiz.processing.soh import SOH_PARSING_PARAMETERS, read_multiple_soh, postprocess_soh_dataframe
+from typing import Optional, Collection, Generator
 
 from noiz.api.component import fetch_components
+from noiz.api.helpers import validate_exactly_one_argument_provided
+from noiz.database import db
+from noiz.models import SohInstrument, SohGps
+from noiz.models.soh import association_table_soh_instr, association_table_soh_gps
+from noiz.processing.soh import load_parsing_parameters, read_multiple_soh, __postprocess_soh_dataframe, \
+    glob_soh_directory
 
 
 def ingest_soh_files(
@@ -26,13 +22,35 @@ def ingest_soh_files(
         main_filepath: Optional[Path] = None,
         filepaths: Optional[Collection[Path]] = None,
         network: Optional[str] = None,
-):
+) -> None:
+    """
+    Method that take either a directory or collection of paths and parses it according to predefined rules for
+    containing the StateOfHealth (SOH) information from compatible station types and soh types.
+    It upserts it into DB and makes a connection between each SOH datapoint and all Components on the station you
+    provided in the arguments.
+
+    :param station: Station to associate SOH with
+    :type station: str
+    :param station_type: Type of station. Available types are defined in noiz.processing.soh.SohInstrumentNames
+    :type station_type: str
+    :param soh_type: Type of soh. Available types are defined in noiz.processing.soh.SohType
+    :type soh_type: str
+    :param main_filepath: Filepath to be globbed.
+    :type main_filepath: Optional[Path] = None
+    :param filepaths: Selected filepaths to be parsed
+    :type filepaths: Optional[Collection[Path]] = None
+    :param network: Network that the station belongs to, optional
+    :type network: Optional[str] = None
+    :return: None
+    :rtype: NoneType
+    """
 
     parsing_parameters = load_parsing_parameters(soh_type, station_type)
 
-    # TODO Fix that logic
-    # if not (main_filepath is None and filepaths is None) or (main_filepath is not None and filepaths is not None):
-    #     raise ValueError('There has to be either main_filepath or filepaths provided.')
+    try:
+        validate_exactly_one_argument_provided(filepaths, main_filepath)
+    except ValueError:
+        raise ValueError("Exactly one of filepath or main_filepath arguments has to be provided.")
 
     if main_filepath is not None:
         filepaths: Generator[Path, None, None] = glob_soh_directory(   # type: ignore
@@ -41,60 +59,39 @@ def ingest_soh_files(
         )
 
     df = read_multiple_soh(filepaths=filepaths, parsing_params=parsing_parameters)  # type: ignore
-    df = postprocess_soh_dataframe(df, station_type=station_type, soh_type=soh_type)
+    df = __postprocess_soh_dataframe(df, station_type=station_type, soh_type=soh_type)
 
     if soh_type == "instrument":
-        insert_into_db_soh_instrument(df=df, station=station, network=network)
+        __insert_into_db_soh_instrument(df=df, station=station, network=network)
     elif soh_type in ("gpstime", "gnsstime"):
-        insert_into_db_soh_gps(df=df, station=station, network=network)
+        __insert_into_db_soh_gps(df=df, station=station, network=network)
     else:
         raise ValueError(f'Provided soh_type not supported for database insertion. '
-                         f'Supported types: environment, gpstime, gnsstime. '
+                         f'Supported types: instrument, gpstime, gnsstime. '
                          f'You provided {soh_type}')
     return
 
 
-def glob_soh_directory(parsing_parameters: dict, main_filepath: Path) -> Generator[Path, None, None]:
-
-    if not isinstance(main_filepath, Path):
-        if not isinstance(main_filepath, str):
-            raise ValueError(f"Expected a filepath to the directory. Got {main_filepath}")
-        else:
-            main_filepath = Path(main_filepath)
-
-    if not main_filepath.exists():
-        raise FileNotFoundError(f"Provided path does not exist. {main_filepath}")
-
-    if not main_filepath.is_dir():
-        raise NotADirectoryError(f"It is not a directory! {main_filepath}")
-
-    filepaths_to_parse = main_filepath.rglob(parsing_parameters['search_regex'])
-
-    return filepaths_to_parse
-
-
-def load_parsing_parameters(soh_type: str, station_type: str) -> Dict:
-
-    if station_type not in SOH_PARSING_PARAMETERS.keys():
-        raise ValueError(f"Not supported station type. Supported types are: {SOH_PARSING_PARAMETERS.keys()}, "
-                         f"You provided {station_type}")
-
-    if soh_type not in SOH_PARSING_PARAMETERS[station_type].keys():
-        raise ValueError(f"Not supported soh type for this station type. "
-                         f"For this station type the supported soh types are: "
-                         f"{SOH_PARSING_PARAMETERS[station_type].keys()}, "
-                         f"You provided {soh_type}")
-
-    parsing_parameters = SOH_PARSING_PARAMETERS[station_type][soh_type]
-
-    return parsing_parameters
-
-
-def insert_into_db_soh_instrument(
+def __insert_into_db_soh_instrument(
         df: pd.DataFrame,
         station: str,
         network: Optional[str] = None,
 ) -> None:
+    """
+    Internal method that is used for upserting instrument SOH data into the DB.
+    The passed pd.DataFrame has to be indexed with datetime index, and contain columns named as:
+    "Supply voltage(V)", "Total current(A)", "Temperature(C)"
+
+    :param df: Dataframe containing SOH information that should be upserted into DB.
+    :type df: pd.DataFrame
+    :param station: Station to associate all SOH with.
+    :type station: str
+    :param network: Network that station belongs to
+    :type network: str
+    :return: None
+    :rtype: NoneType
+    """
+
     fetched_components = fetch_components(networks=network, stations=station)
 
     z_component_id = None
@@ -173,11 +170,26 @@ def insert_into_db_soh_instrument(
     return
 
 
-def insert_into_db_soh_gps(
+def __insert_into_db_soh_gps(
         df: pd.DataFrame,
         station: str,
         network: Optional[str] = None,
 ) -> None:
+    """
+        Internal method that is used for upserting GPS SOH data into the DB.
+        The passed pd.DataFrame has to be indexed with datetime index, and contain columns named as:
+        "Time error(ms)" and "Time uncertainty(ms)"
+
+        :param df: Dataframe containing SOH information that should be upserted into DB.
+        :type df: pd.DataFrame
+        :param station: Station to associate all SOH with.
+        :type station: str
+        :param network: Network that station belongs to
+        :type network: str
+        :return: None
+        :rtype: NoneType
+        """
+
     fetched_components = fetch_components(networks=network, stations=station)
 
     z_component_id = None
@@ -259,19 +271,10 @@ def parse_soh_insert_into_db(
 ):
     """
     DEPRECATED. Do not use.
+    It's a wrapped just to preserve compatibility with current code.
     """
 
     warnings.warn("Deprecated. Use other methods")
-    soh_type = "instrument"
-
-    logging.info(f"Working on {station}")
-
-    component = (
-        db.session.query(Component)
-        .filter(Component.component == "Z", Component.station == station)
-        .first()
-    )
-    component_id = component.id
 
     soh_path = (
         Path(saint_illiers_fulldir)
@@ -281,140 +284,19 @@ def parse_soh_insert_into_db(
     )
     if single_day:
         glob_instrument_soh = f"*Instrument*{execution_date.strftime('%Y%m%d')}*.csv"
+        soh_files = list(soh_path.rglob(glob_instrument_soh))
+
+        ingest_soh_files(
+            station=station,
+            station_type=station_type,
+            filepaths=soh_files,
+            soh_type='instrument'
+        )
     else:
-        glob_instrument_soh = f"*Instrument*{execution_date.strftime('%Y%m')}*.csv"
-
-    instrument_parsing_params = SOH_PARSING_PARAMETERS[station_type][soh_type]
-
-    soh_files = list(soh_path.rglob(glob_instrument_soh))
-    logging.info(f"found {len(soh_files)} files")
-
-    if len(soh_files) == 0:
-        raise ValueError(
-            "There are no soh files to be parsed. Maybe those are in miniseed format?"
+        ingest_soh_files(
+            station=station,
+            station_type=station_type,
+            main_filepath=soh_path,
+            soh_type='instrument'
         )
-
-    df = read_multiple_soh(soh_files, instrument_parsing_params)
-    df = postprocess_soh_dataframe(df, station_type=station_type, soh_type=soh_type)
-
-    no_rows = len(df)
-
-    logging.info(f"Parsed into df {len(df)} lines long")
-    logging.info("Starting preparation of insert commands")
-    insert_commands = []
-    for i, (timestamp, row) in enumerate(df.iterrows()):
-        if i % int(no_rows / 10) == 0:
-            logging.info(f"Prepared already {i}/{no_rows} commands")
-        insert_command = (
-            insert(SohInstrument)
-            .values(
-                component_id=component_id,
-                datetime=timestamp,
-                voltage=row["Supply voltage(V)"],
-                current=row["Total current(A)"],
-                temperature=row["Temperature(C)"],
-            )
-            .on_conflict_do_update(
-                constraint="unique_timestamp_per_station",
-                set_=dict(
-                    voltage=row["Supply voltage(V)"],
-                    current=row["Total current(A)"],
-                    temperature=row["Temperature(C)"],
-                ),
-            )
-        )
-        insert_commands.append(insert_command)
-
-    logging.info("Starting inserting operation")
-
-    for i, insert_command in enumerate(insert_commands):
-        if i % int(no_rows / 10) == 0:
-            logging.info(f"Inserted already {i}/{no_rows} rows")
-        db.session.execute(insert_command)
-    db.session.commit()
-
-    return
-
-
-def parse_instrument_soh(
-        station: str,
-        station_type: str,
-        dir_to_glob,
-        date: Optional[datetime.datetime] = None,
-):
-    """
-    DEPRECATED. Do not use.
-    """
-    warnings.warn("Deprecated. Use other methods")
-
-    soh_type = "instrument"
-
-    logging.info(f"Working on {station}")
-
-    components = fetch_components(stations=(station,))
-
-    z_component = None
-    for cmp in components:
-        if cmp.component == 'Z':
-            z_component = cmp
-            break
-
-    if z_component is None:
-        raise ValueError(f'There is no Z component for station {station}')
-
-    if date is not None:
-        globbing_command = f"*Instrument*{date.strftime('%Y%m%d')}*.csv"
-    else:
-        globbing_command = "*Instrument*.csv"
-
-    instrument_parsing_params = SOH_PARSING_PARAMETERS[station_type][soh_type]
-
-    soh_files = list(dir_to_glob.rglob(globbing_command))
-    logging.info(f"found {len(soh_files)} files")
-
-    if len(soh_files) == 0:
-        raise ValueError(
-            "There are no soh files to be parsed. Maybe those are in miniseed format?"
-        )
-
-    df = read_multiple_soh(soh_files, instrument_parsing_params)
-    df = postprocess_soh_dataframe(df, station_type=station_type, soh_type=soh_type)
-
-    no_rows = len(df)
-
-    logging.info(f"Parsed into df {len(df)} lines long")
-    logging.info("Starting preparation of insert commands")
-    insert_commands = []
-    for i, (timestamp, row) in enumerate(df.iterrows()):
-        if i % int(no_rows / 10) == 0:
-            logging.info(f"Prepared already {i}/{no_rows} commands")
-        insert_command = (
-            insert(SohInstrument)
-            .values(
-                z_component=z_component,
-                datetime=timestamp,
-                voltage=row["Supply voltage(V)"],
-                current=row["Total current(A)"],
-                temperature=row["Temperature(C)"],
-                components=components
-            )
-            .on_conflict_do_update(
-                constraint="unique_timestamp_per_station",
-                set_=dict(
-                    voltage=row["Supply voltage(V)"],
-                    current=row["Total current(A)"],
-                    temperature=row["Temperature(C)"],
-                ),
-            )
-        )
-        insert_commands.append(insert_command)
-
-    logging.info("Starting inserting operation")
-
-    for i, insert_command in enumerate(insert_commands):
-        if i % int(no_rows / 10) == 0:
-            logging.info(f"Inserted already {i}/{no_rows} rows")
-        db.session.execute(insert_command)
-    db.session.commit()
-
     return
