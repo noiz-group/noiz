@@ -18,8 +18,7 @@ def plot_datachunk_availability(
         starttime: datetime = datetime(2000, 1, 1),
         endtime: datetime = datetime(2030, 1, 1),
         filepath: Optional[Path] = None,
-        showfig: bool = False
-
+        showfig: bool = False,
 ):
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime,
                                                       endtime=endtime)
@@ -65,7 +64,7 @@ def plot_availability(
 ):
     days = (starttime - endtime).days
 
-    fig, ax = plt.subplots(dpi=150)
+    fig, ax = plt.subplots(dpi=80)
 
     keys = list(midtimes.keys())
     keys.sort(reverse=True)
