@@ -21,7 +21,7 @@ def plot_datachunk_availability(
         endtime: datetime = datetime(2030, 1, 1),
         filepath: Optional[Path] = None,
         showfig: bool = False,
-) -> matplotlib.pyplot.Figure :
+) -> matplotlib.pyplot.Figure:
     """
     Method that allows for selection and plotting of which datachunks are available for given set of requirements.
 
