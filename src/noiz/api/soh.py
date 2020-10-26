@@ -9,7 +9,7 @@ from typing import Optional, Collection, Generator
 
 from noiz.api.component import fetch_components
 from noiz.database import db
-from noiz.models import Component, SohInstrument, SohGps
+from noiz.models import SohInstrument, SohGps
 from noiz.models.soh import association_table_soh_instr, association_table_soh_gps
 from noiz.processing.soh import load_parsing_parameters, read_multiple_soh, __postprocess_soh_dataframe, \
     glob_soh_directory
@@ -26,9 +26,8 @@ def ingest_soh_files(
 
     parsing_parameters = load_parsing_parameters(soh_type, station_type)
 
-    # TODO Fix that logic
-    # if not (main_filepath is None and filepaths is None) or (main_filepath is not None and filepaths is not None):
-    #     raise ValueError('There has to be either main_filepath or filepaths provided.')
+    if (main_filepath is None and filepaths is None) or (main_filepath is not None and filepaths is not None):
+        raise ValueError('There has to be either main_filepath or filepaths provided.')
 
     if main_filepath is not None:
         filepaths: Generator[Path, None, None] = glob_soh_directory(   # type: ignore
