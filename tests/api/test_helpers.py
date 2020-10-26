@@ -1,6 +1,9 @@
+from dataclasses import dataclass
+
 import pytest
 
-from noiz.api.helpers import validate_exactly_one_argument_provided, validate_uniformity_of_tuple, validate_to_tuple
+from noiz.api.helpers import extract_object_ids, validate_exactly_one_argument_provided, validate_to_tuple, \
+    validate_uniformity_of_tuple
 
 
 @pytest.mark.parametrize("first, second", [(1, None), ('test_string', None), (None, 2), [None, 'test_string']])
@@ -98,3 +101,14 @@ def test_validate_to_tuple(tup, typ, expected):
 def test_validate_to_tuple_wrong_type(tup, typ):
     with pytest.raises(ValueError):
         validate_to_tuple(val=tup, accepted_type=typ)
+
+
+def test_extract_object_ids():
+    @dataclass
+    class TestingClassWithID():
+        id: int
+
+    expected_ids = [1, 2, 3, 4, 5, 6, 15, 20, 77]
+    input = [TestingClassWithID(id=i) for i in expected_ids]
+
+    assert expected_ids == extract_object_ids(instances=input)
