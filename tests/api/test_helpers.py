@@ -78,3 +78,23 @@ def test_validate_uniformity_of_tuple_mixed_types_raising(tup, typ):
 ])
 def test_validate_to_tuple(tup, typ, expected):
     assert expected == validate_to_tuple(val=tup, accepted_type=typ)
+
+
+@pytest.mark.parametrize("tup, typ", [
+    ((1, 2, 3, 4, 5), float),
+    (1, float),
+    ((1, 2, 3, 4, 5), str),
+    ((1, 2, 3, 4, 5), str),
+    ((1.0, 2.0, 3.0, .3, 4.0), str),
+    ((1.0, 2.0, 3.0, .3, 4.0), int),
+    (('aa', 'bb', 'cc', 'dd'), int),
+    (('aa', 'bb', 'cc', 'dd'), dict),
+    (5, str),
+    (2.0, str),
+    (3.0, int),
+    ('dd', int),
+    ('bb', dict),
+])
+def test_validate_to_tuple_wrong_type(tup, typ):
+    with pytest.raises(ValueError):
+        validate_to_tuple(val=tup, accepted_type=typ)
