@@ -1,4 +1,6 @@
 from collections import defaultdict
+
+import matplotlib
 from typing import Optional, Collection, List, Dict
 
 from datetime import datetime, timedelta
@@ -19,7 +21,29 @@ def plot_datachunk_availability(
         endtime: datetime = datetime(2030, 1, 1),
         filepath: Optional[Path] = None,
         showfig: bool = False,
-):
+) -> matplotlib.pyplot.Figure :
+    """
+    Method that allows for selection and plotting of which datachunks are available for given set of requirements.
+
+    :param networks: Networks to be fetched
+    :type networks: Optional[Collection[str]]
+    :param stations: Stations to be fetched
+    :type stations: Optional[Collection[str]]
+    :param components: Components to be fetched
+    :type components: Optional[Collection[str]]
+    :param processingparams_id: Id of a ProcessingParams object
+    :type processingparams_id: int
+    :param starttime: Starttime of the query
+    :type starttime: datetime
+    :param endtime: Endtime of the query
+    :type endtime: datetime
+    :param filepath: Filepath where plot should be saved
+    :type filepath: Optional[Path]
+    :param showfig: If the figure should be showed
+    :type showfig: bool
+    :return: Figure object with the plot for further manipulation
+    :rtype: matplotlib.pyplot.Figure
+    """
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime,
                                                       endtime=endtime)
     fetched_components = fetch_components(networks=networks,
@@ -61,7 +85,25 @@ def plot_availability(
         endtime: datetime,
         fig_title: str,
         availability: Dict[str, float]
-):
+) -> matplotlib.pyplot.Figure:
+    """
+    Internam method that creates plots of data availability type, based on the midtimes of Timespans.
+
+    :param midtimes: Midtimes of available datachunks
+    :type midtimes: Dict[str, List[datetime]],
+    :param starttime: Starttime of the query
+    :type starttime: datetime,
+    :param endtime: Endtime of the query
+    :type endtime: datetime,
+    :param fig_title: Title of the figure
+    :type fig_title: str,
+    :param availability: Dictionary containing a percentage values of\
+    availability of data in requested time period.
+    :type availability: Dict[str, float]
+    :return: Plotted figure
+    :rtype: matplotlib.pyplot.Figure
+    """
+
     days = (starttime - endtime).days
 
     fig, ax = plt.subplots(dpi=80)
