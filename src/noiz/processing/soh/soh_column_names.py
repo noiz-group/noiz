@@ -407,6 +407,15 @@ def load_parsing_parameters(soh_type: str, station_type: str) -> SohCSVParsingPa
 
 
 def validate_soh_type(soh_type: str) -> SohType:
+    """
+    Validates if provided soh_name is a valid SohType
+
+    :param soh_type: Name to be validated
+    :type soh_type: str
+    :return: Valid SohType
+    :rtype: SohType
+    :raises: ValueError
+    """
     try:
         _soh_type = SohType(soh_type)
     except ValueError:
@@ -416,6 +425,15 @@ def validate_soh_type(soh_type: str) -> SohType:
 
 
 def validate_soh_instrument_name(station_type: str) -> SohInstrumentNames:
+    """
+    Validates if provided station_type is a valid SohInstrumentNames
+
+    :param station_type: Name to be validated
+    :type station_type:
+    :return: Valid SohInstrumentNames
+    :rtype: SohInstrumentNames
+    :raises: ValueError
+    """
     try:
         _station_type = SohInstrumentNames(station_type)
     except ValueError:
