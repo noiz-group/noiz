@@ -55,7 +55,21 @@ def ingest_soh_files(
     return
 
 
-def glob_soh_directory(parsing_parameters: dict, main_filepath: Path) -> Generator[Path, None, None]:
+def glob_soh_directory(
+        parsing_parameters: SohCSVParsingParams,
+        main_filepath: Path
+) -> Generator[Path, None, None]:
+    """
+    Method that uses Path.rglob to find all files in main_filepath that fit a globbing string defined in
+    parsing_parameters.search_regex
+
+    :param parsing_parameters: Parsing parameters to be used
+    :type parsing_parameters: SohCSVParsingParams
+    :param main_filepath: Directory to be rglobbed
+    :type main_filepath: Path
+    :return: Paths to files fitting the search_regex
+    :rtype: Generator[Path, None, None]
+    """
 
     if not isinstance(main_filepath, Path):
         if not isinstance(main_filepath, str):
@@ -69,7 +83,7 @@ def glob_soh_directory(parsing_parameters: dict, main_filepath: Path) -> Generat
     if not main_filepath.is_dir():
         raise NotADirectoryError(f"It is not a directory! {main_filepath}")
 
-    filepaths_to_parse = main_filepath.rglob(parsing_parameters['search_regex'])
+    filepaths_to_parse = main_filepath.rglob(parsing_parameters.search_regex)
 
     return filepaths_to_parse
 
