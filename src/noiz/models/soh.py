@@ -75,16 +75,6 @@ class SohGps(db.Model):
         }
 
 
-association_table_averaged_soh_gps = db.Table(
-    "averaged_soh_gps_association",
-    db.metadata,
-    db.Column(
-        "averaged_soh_gps_id", db.BigInteger, db.ForeignKey("averaged_soh_gps.id")
-    ),
-    db.Column("soh_gps_id", db.BigInteger, db.ForeignKey("soh_gps.id")),
-    db.UniqueConstraint("averaged_soh_gps_id", "soh_gps_id"),
-)
-
 association_table_averaged_soh_gps_components = db.Table(
     "averaged_soh_gps_association_components",
     db.metadata,
@@ -115,4 +105,3 @@ class AveragedSohGps(db.Model):
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
     z_component = db.relationship("Component", foreign_keys=[z_component_id])
     components = db.relationship("Component", secondary=association_table_averaged_soh_gps_components)
-    raw_soh_gps = db.relationship("SohGps", secondary=association_table_averaged_soh_gps)
