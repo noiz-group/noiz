@@ -7,7 +7,7 @@ import pandas as pd
 import warnings
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
-from typing import Optional, Collection, Generator
+from typing import Optional, Collection, Generator, Union
 from sqlalchemy.orm.query import Query
 
 import numpy as np
@@ -16,7 +16,7 @@ from noiz.api import fetch_timespans_between_dates
 from noiz.api.component import fetch_components
 from noiz.api.helpers import validate_exactly_one_argument_provided, extract_object_ids
 from noiz.database import db
-from noiz.models import SohInstrument, SohGps, Component
+from noiz.models import SohInstrument, SohGps, Component, Timespan
 from noiz.models.soh import association_table_soh_instr, association_table_soh_gps, AveragedSohGps, \
     association_table_averaged_soh_gps_components
 from noiz.processing.soh import load_parsing_parameters, read_multiple_soh, __postprocess_soh_dataframe, \
@@ -325,7 +325,27 @@ def __insert_into_db_soh_gps(
     return
 
 
-def average_raw_gps_soh(stations, networks, starttime, endtime):
+def average_raw_gps_soh(
+        starttime: datetime.datetime,
+        endtime: datetime.datetime,
+        stations: Optional[Union[Collection[str], str]] = None,
+        networks: Optional[Union[Collection[str], str]] = None,
+) -> None:
+    """
+    Method that averages the data from SohGps according between starttime and endtime along with
+    Timespans and their starttimes and endtimes.
+
+    :param starttime: The earliest time when the Timespans will be searched for
+    :type starttime: datetime.datetime
+    :param endtime: The latest time when the Timespans will be searched for
+    :type endtime: datetime.datetime
+    :param stations: Stations to limit the averaging
+    :type stations: Optional[Union[Collection[str], str]]
+    :param networks: Networks to limit the averaging
+    :type networks: Optional[Union[Collection[str], str]]
+    :return: None
+    :rtype: NoneType
+    """
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
     fetched_components = fetch_components(stations=stations, networks=networks)
 
@@ -339,7 +359,21 @@ def average_raw_gps_soh(stations, networks, starttime, endtime):
     return averaged_results
 
 
-def __calculate_averages_of_gps_soh(fetched_timespans, fetched_components):
+def __calculate_averages_of_gps_soh(
+        fetched_timespans: Collection[Timespan],
+        fetched_components: Collection[Component],
+) -> pd.DataFrame:
+    """
+    Private method that fetched raw SohGps data and calculates average of it for each of the Timespans.
+
+    :param fetched_timespans: Timespans to average SOH data on
+    :type fetched_timespans: Collection[Timespan]
+    :param fetched_components: Components to average SOH data for
+    :type fetched_components: Collection[Component]
+    :return: Averaged GPS data as well as all auxiliary information that it's necessary to insert them into db
+    :rtype: pd.DataFrame
+    """
+
     component_ids = extract_object_ids(fetched_components)
 
     @dataclass
@@ -367,6 +401,10 @@ def __calculate_averages_of_gps_soh(fetched_timespans, fetched_components):
         c = query.statement.compile(query.session.bind)
         df = pd.read_sql(c.string, query.session.bind, params=c.params)
 
+        if len(df) == 0:
+            logging.info(f'There was no data for timespan {timespan}. Skipping')
+            continue
+
         averaged = df.drop(['component_id', 'id'], axis=1).groupby('z_component_id').mean()
 
         for z_component_id, row in averaged.iterrows():
@@ -384,7 +422,16 @@ def __calculate_averages_of_gps_soh(fetched_timespans, fetched_components):
     return pd.DataFrame(averaged_results)
 
 
-def __insert_averaged_gps_soh_into_db(avg_results):
+def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
+    """
+    Private method that upserts averaged GPS SOH data into the DB.
+    It also inserts data to the association table so the Many-To-Many relation is possible.
+
+    :param avg_results: Data to be inserted into the DB
+    :type avg_results: pd.DataFrame
+    :return: None
+    :rtype: NoneType
+    """
 
     command_count = len(avg_results)
     avg_results = avg_results
