@@ -19,14 +19,10 @@ from noiz.processing.soh import load_parsing_parameters, read_multiple_soh, __po
 
 def fetch_raw_soh_gps_df(
         components: Collection[Component],
-        startdate: datetime.datetime,
-        enddate: datetime.datetime,
+        starttime: datetime.datetime,
+        endtime: datetime.datetime
 ) -> pd.DataFrame:
-    query = __fetch_raw_soh_gps_query(
-        components=components,
-        startdate=startdate,
-        enddate=enddate,
-    )
+    query = __fetch_raw_soh_gps_query(components=components, starttime=starttime, endtime=endtime)
 
     c = query.statement.compile(query.session.bind)
     df = pd.read_sql(c.string, query.session.bind, params=c.params)
@@ -36,45 +32,37 @@ def fetch_raw_soh_gps_df(
 
 def fetch_raw_soh_gps_all(
         components: Collection[Component],
-        startdate: datetime.datetime,
-        enddate: datetime.datetime,
+        starttime: datetime.datetime,
+        endtime: datetime.datetime
 ) -> Collection[SohGps]:
 
-    query = __fetch_raw_soh_gps_query(
-        components=components,
-        startdate=startdate,
-        enddate=enddate,
-    )
+    query = __fetch_raw_soh_gps_query(components=components, starttime=starttime, endtime=endtime)
 
     return query.all()
 
 
 def count_raw_soh_gps(
         components: Collection[Component],
-        startdate: datetime.datetime,
-        enddate: datetime.datetime,
+        starttime: datetime.datetime,
+        endtime: datetime.datetime
 ) -> int:
 
-    query = __fetch_raw_soh_gps_query(
-        components=components,
-        startdate=startdate,
-        enddate=enddate,
-    )
+    query = __fetch_raw_soh_gps_query(components=components, starttime=starttime, endtime=endtime)
 
     return query.count()
 
 
 def __fetch_raw_soh_gps_query(
         components: Collection[Component],
-        startdate: datetime.datetime,
-        enddate: datetime.datetime,
+        starttime: datetime.datetime,
+        endtime: datetime.datetime
 ) -> Query:
     components_ids = extract_object_ids(components)
 
     fetched_soh_gps_query = SohGps.query.filter(
         SohGps.z_component_id.in_(components_ids),
-        SohGps.datetime >= startdate,
-        SohGps.datetime <= enddate,
+        SohGps.datetime >= starttime,
+        SohGps.datetime <= endtime,
     )
 
     return fetched_soh_gps_query
