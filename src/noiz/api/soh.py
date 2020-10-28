@@ -5,12 +5,13 @@ import pandas as pd
 import warnings
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import joinedload
 from typing import Optional, Collection, Generator, Union
 from sqlalchemy.orm.query import Query
 
 import numpy as np
 
-from noiz.api import fetch_timespans_between_dates
+from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.api.component import fetch_components
 from noiz.api.helpers import validate_exactly_one_argument_provided, extract_object_ids
 from noiz.database import db
@@ -24,9 +25,17 @@ from noiz.processing.soh import load_parsing_parameters, read_multiple_soh, __po
 def fetch_raw_soh_gps_df(
         components: Collection[Component],
         starttime: datetime.datetime,
-        endtime: datetime.datetime
+        endtime: datetime.datetime,
+        load_z_component: bool = False,
+        load_components: bool = False,
 ) -> pd.DataFrame:
-    query = __fetch_raw_soh_gps_query(components=components, starttime=starttime, endtime=endtime)
+    query = __fetch_raw_soh_gps_query(
+        components=components,
+        starttime=starttime,
+        endtime=endtime,
+        load_z_component=load_z_component,
+        load_components=load_components,
+    )
 
     c = query.statement.compile(query.session.bind)
     df = pd.read_sql(c.string, query.session.bind, params=c.params)
@@ -57,19 +66,102 @@ def count_raw_soh_gps(
 
 
 def __fetch_raw_soh_gps_query(
-        components: Collection[Component],
-        starttime: datetime.datetime,
-        endtime: datetime.datetime
+        components: Optional[Collection[Component]] = None,
+        starttime: Optional[datetime.datetime] = None,
+        endtime: Optional[datetime.datetime] = None,
+        load_z_component: bool = False,
+        load_components: bool = False,
 ) -> Query:
-    components_ids = extract_object_ids(components)
 
-    fetched_soh_gps_query = SohGps.query.filter(
-        SohGps.z_component_id.in_(components_ids),
-        SohGps.datetime >= starttime,
-        SohGps.datetime <= endtime,
+    filters = []
+
+    if components is not None:
+        component_ids = extract_object_ids(components)
+        filters.append(SohGps.z_component_id.in_(component_ids))
+    if starttime is not None:
+        filters.append(SohGps.datetime >= starttime)
+    if endtime is not None:
+        filters.append(SohGps.datetime <= endtime)
+    if len(filters) == 0:
+        filters.append(True)
+
+    opts = []
+
+    if load_z_component:
+        opts.append(joinedload(SohGps.z_component))
+    if load_components:
+        opts.append(joinedload(SohGps.components))
+
+    return SohGps.query.filter(*filters).options(opts)
+
+
+def fetch_averaged_soh_gps_df(
+        timespans: Optional[Collection[Timespan]] = None,
+        components: Optional[Collection[Component]] = None,
+        load_timespan: bool = True,
+) -> pd.DataFrame:
+
+    query = __fetch_averaged_soh_gps_query(
+        timespans=timespans,
+        components=components,
+        load_timespan=load_timespan,
     )
 
-    return fetched_soh_gps_query
+    c = query.statement.compile(query.session.bind)
+    df = pd.read_sql(c.string, query.session.bind, params=c.params)
+
+    return df
+
+
+def fetch_averaged_soh_gps_all(
+        timespans: Collection[Timespan],
+        components: Collection[Component],
+) -> Collection[AveragedSohGps]:
+
+    query = __fetch_averaged_soh_gps_query(timespans=timespans, components=components)
+
+    return query.all()
+
+
+def count_averaged_soh_gps(
+        timespans: Collection[Timespan],
+        components: Collection[Component],
+) -> int:
+
+    query = __fetch_averaged_soh_gps_query(timespans=timespans, components=components)
+
+    return query.count()
+
+
+def __fetch_averaged_soh_gps_query(
+        timespans: Optional[Collection[Timespan]],
+        components: Optional[Collection[Component]],
+        load_z_component: bool = False,
+        load_timespan: bool = False,
+        load_components: bool = False,
+) -> Query:
+
+    filters = []
+
+    if components is not None:
+        component_ids = extract_object_ids(components)
+        filters.append(AveragedSohGps.z_component_id.in_(component_ids))
+    if timespans is not None:
+        timespan_ids = extract_object_ids(timespans)
+        filters.append(AveragedSohGps.timespan_id.in_(timespan_ids))
+    if len(filters) == 0:
+        filters.append(True)
+
+    opts = []
+
+    if load_timespan:
+        opts.append(joinedload(AveragedSohGps.timespan))
+    if load_z_component:
+        opts.append(joinedload(AveragedSohGps.z_component))
+    if load_components:
+        opts.append(joinedload(AveragedSohGps.components))
+
+    return AveragedSohGps.query.filter(*filters).options(opts)
 
 
 def ingest_soh_files(
@@ -119,9 +211,9 @@ def ingest_soh_files(
     df = __postprocess_soh_dataframe(df, station_type=station_type, soh_type=soh_type)
 
     if soh_type == "instrument":
-        __insert_into_db_soh_instrument(df=df, station=station, network=network)
+        __upsert_into_db_soh_instrument(df=df, station=station, network=network)
     elif soh_type in ("gpstime", "gnsstime"):
-        __insert_into_db_soh_gps(df=df, station=station, network=network)
+        __upsert_into_db_soh_gps(df=df, station=station, network=network)
     else:
         raise ValueError(f'Provided soh_type not supported for database insertion. '
                          f'Supported types: instrument, gpstime, gnsstime. '
@@ -129,7 +221,7 @@ def ingest_soh_files(
     return
 
 
-def __insert_into_db_soh_instrument(
+def __upsert_into_db_soh_instrument(
         df: pd.DataFrame,
         station: str,
         network: Optional[str] = None,
@@ -227,7 +319,7 @@ def __insert_into_db_soh_instrument(
     return
 
 
-def __insert_into_db_soh_gps(
+def __upsert_into_db_soh_gps(
         df: pd.DataFrame,
         station: str,
         network: Optional[str] = None,
