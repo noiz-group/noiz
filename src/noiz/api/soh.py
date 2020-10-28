@@ -72,6 +72,54 @@ def __fetch_raw_soh_gps_query(
     return fetched_soh_gps_query
 
 
+def fetch_averaged_soh_gps_df(
+        timespans: Collection[Timespan],
+        components: Collection[Component],
+) -> pd.DataFrame:
+
+    query = __fetch_averaged_soh_gps_query(timespans=timespans, components=components)
+
+    c = query.statement.compile(query.session.bind)
+    df = pd.read_sql(c.string, query.session.bind, params=c.params)
+
+    return df
+
+
+def fetch_averaged_soh_gps_all(
+        timespans: Collection[Timespan],
+        components: Collection[Component],
+) -> Collection[AveragedSohGps]:
+
+    query = __fetch_averaged_soh_gps_query(timespans=timespans, components=components)
+
+    return query.all()
+
+
+def count_averaged_soh_gps(
+        timespans: Collection[Timespan],
+        components: Collection[Component],
+) -> int:
+
+    query = __fetch_averaged_soh_gps_query(timespans=timespans, components=components)
+
+    return query.count()
+
+
+def __fetch_averaged_soh_gps_query(
+        timespans: Collection[Timespan],
+        components: Collection[Component],
+) -> Query:
+    timespans_ids = extract_object_ids(timespans)
+    components_ids = extract_object_ids(components)
+
+    query = AveragedSohGps.query.filter(
+        AveragedSohGps.z_component_id.in_(components_ids),
+        AveragedSohGps.timespan_id.in_(timespans_ids),
+    )
+
+    return query
+
+
 def ingest_soh_files(
         station: str,
         station_type: str,
