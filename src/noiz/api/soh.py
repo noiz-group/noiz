@@ -5,6 +5,7 @@ import pandas as pd
 import warnings
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import subqueryload, joinedload
 from typing import Optional, Collection, Generator, Union
 from sqlalchemy.orm.query import Query
 
@@ -77,7 +78,10 @@ def fetch_averaged_soh_gps_df(
         components: Collection[Component],
 ) -> pd.DataFrame:
 
-    query = __fetch_averaged_soh_gps_query(timespans=timespans, components=components)
+    query = __fetch_averaged_soh_gps_query(
+        timespans=timespans,
+        components=components,
+    )
 
     c = query.statement.compile(query.session.bind)
     df = pd.read_sql(c.string, query.session.bind, params=c.params)
@@ -106,18 +110,34 @@ def count_averaged_soh_gps(
 
 
 def __fetch_averaged_soh_gps_query(
-        timespans: Collection[Timespan],
-        components: Collection[Component],
+        timespans: Optional[Collection[Timespan]],
+        components: Optional[Collection[Component]],
+        load_z_component: bool = False,
+        load_timespan: bool = False,
+        load_components: bool = False,
 ) -> Query:
-    timespans_ids = extract_object_ids(timespans)
-    components_ids = extract_object_ids(components)
 
-    query = AveragedSohGps.query.filter(
-        AveragedSohGps.z_component_id.in_(components_ids),
-        AveragedSohGps.timespan_id.in_(timespans_ids),
-    )
+    filters = []
 
-    return query
+    if components is not None:
+        component_ids = extract_object_ids(components)
+        filters.append(AveragedSohGps.z_component_id.in_(component_ids))
+    if timespans is not None:
+        timespan_ids = extract_object_ids(timespans)
+        filters.append(AveragedSohGps.timespan_id.in_(timespan_ids))
+    if len(filters) == 0:
+        filters.append(True)
+
+    opts = []
+
+    if load_timespan:
+        opts.append(joinedload(AveragedSohGps.timespan))
+    if load_z_component:
+        opts.append(joinedload(AveragedSohGps.z_component))
+    if load_components:
+        opts.append(joinedload(AveragedSohGps.components))
+
+    return AveragedSohGps.query.filter(*filters).options(opts)
 
 
 def ingest_soh_files(
