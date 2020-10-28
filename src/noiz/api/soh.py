@@ -7,7 +7,7 @@ import pandas as pd
 import warnings
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
-from typing import Optional, Collection, Generator, Union
+from typing import Optional, Collection, Generator, Union, List
 from sqlalchemy.orm.query import Query
 
 import numpy as np
@@ -356,7 +356,16 @@ def average_raw_gps_soh(
 
     __insert_averaged_gps_soh_into_db(avg_results=averaged_results)
 
-    return averaged_results
+    return
+
+
+@dataclass
+class TempAverageGpsSoh:
+    z_component_id: int
+    all_components: set
+    time_error: float
+    time_uncertainty: float
+    timespan_id: int
 
 
 def __calculate_averages_of_gps_soh(
@@ -376,14 +385,6 @@ def __calculate_averages_of_gps_soh(
 
     component_ids = extract_object_ids(fetched_components)
 
-    @dataclass
-    class AveragedResults:
-        z_component_id: int
-        all_components: set
-        time_error: float
-        time_uncertainty: float
-        timespan_id: int
-
     averaged_results = []
     for timespan in fetched_timespans:
 
@@ -401,25 +402,50 @@ def __calculate_averages_of_gps_soh(
         c = query.statement.compile(query.session.bind)
         df = pd.read_sql(c.string, query.session.bind, params=c.params)
 
-        if len(df) == 0:
-            logging.info(f'There was no data for timespan {timespan}. Skipping')
+        try:
+            res = __calculate_mean_gps_soh(df, timespan_id=timespan.id)
+        except ValueError:
             continue
 
-        averaged = df.drop(['component_id', 'id'], axis=1).groupby('z_component_id').mean()
-
-        for z_component_id, row in averaged.iterrows():
-            all_components = df.loc[df.loc[:, "z_component_id"] == z_component_id, "component_id"].drop_duplicates()
-            averaged_results.append(
-                AveragedResults(
-                    z_component_id=z_component_id,
-                    all_components=all_components.values,
-                    timespan_id=timespan.id,
-                    time_error=row['time_error'],
-                    time_uncertainty=row['time_uncertainty']
-                )
-            )
+        averaged_results.extend(res)
 
     return pd.DataFrame(averaged_results)
+
+
+def __calculate_mean_gps_soh(df: pd.DataFrame, timespan_id: int) -> List[TempAverageGpsSoh]:
+    """
+    Method that calculates mean of the DataFrame groupped by column z_component_id.
+    It accepts DataFrames structured according a special query including column of
+    component_id.
+
+    :param df: DataFrame with results to be averaged
+    :type df: pd.DataFrame
+    :param timespan_id: Id of Timespan that those values are averaged for
+    :type timespan_id: int
+    :return: Returns a list of averaged data in structured with TempAverageGpsSoh
+    :rtype: List[TempAverageGpsSoh]
+    :raises: ValueError
+    """
+    if len(df) == 0:
+        raise ValueError('Provided DataFrame was empty')
+
+    averaged = df.drop(['component_id', 'id'], axis=1).groupby('z_component_id').mean()
+
+    res = []
+    for z_component_id, row in averaged.iterrows():
+        all_components = df.loc[df.loc[:, "z_component_id"] == z_component_id, "component_id"].drop_duplicates()
+
+        res.append(
+            TempAverageGpsSoh(
+                z_component_id=z_component_id,
+                all_components=all_components.values,
+                timespan_id=timespan_id,
+                time_error=row['time_error'],
+                time_uncertainty=row['time_uncertainty']
+            )
+        )
+
+    return res
 
 
 def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
