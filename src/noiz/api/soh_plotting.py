@@ -52,7 +52,7 @@ def plot_raw_gps_data_availability(
 
     df.index = df['datetime']
 
-    fig = plot_gps_data_soh(
+    fig = __plot_gps_data_soh(
         df=df,
         components=z_components,
         starttime=starttime,
@@ -112,7 +112,7 @@ def plot_averaged_gps_data_availability(
 
     df.index = df['midtime']
 
-    fig = plot_gps_data_soh(
+    fig = __plot_gps_data_soh(
         df=df,
         components=z_components,
         starttime=starttime,
@@ -130,7 +130,7 @@ def plot_averaged_gps_data_availability(
     return fig
 
 
-def plot_gps_data_soh(
+def __plot_gps_data_soh(
         df: pd.DataFrame,
         components: Collection[Component],
         starttime: datetime,
