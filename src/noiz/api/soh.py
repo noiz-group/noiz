@@ -5,13 +5,13 @@ import pandas as pd
 import warnings
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import subqueryload, joinedload
+from sqlalchemy.orm import joinedload
 from typing import Optional, Collection, Generator, Union
 from sqlalchemy.orm.query import Query
 
 import numpy as np
 
-from noiz.api import fetch_timespans_between_dates
+from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.api.component import fetch_components
 from noiz.api.helpers import validate_exactly_one_argument_provided, extract_object_ids
 from noiz.database import db
