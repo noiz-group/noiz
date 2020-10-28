@@ -208,16 +208,10 @@ def plot_datachunk_availability(
 
     if len(network) == 0:
         network = None
-    elif len(network) == 1:
-        network = tuple(network)
     if len(station) == 0:
         station = None
-    elif len(station) == 1:
-        station = tuple(station)
     if len(component) == 0:
         component = None
-    elif len(component) == 1:
-        component = tuple(component)
 
     if savefig is True and plotpath is None:
         plotpath = Path('.')\
@@ -273,12 +267,8 @@ def plot_raw_gps_soh(
 
     if len(network) == 0:
         network = None
-    elif len(network) == 1:
-        network = tuple(network)
     if len(station) == 0:
         station = None
-    elif len(station) == 1:
-        station = tuple(station)
 
     if savefig is True and plotpath is None:
         plotpath = Path('.')\
