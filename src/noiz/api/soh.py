@@ -119,9 +119,9 @@ def ingest_soh_files(
     df = __postprocess_soh_dataframe(df, station_type=station_type, soh_type=soh_type)
 
     if soh_type == "instrument":
-        __insert_into_db_soh_instrument(df=df, station=station, network=network)
+        __upsert_into_db_soh_instrument(df=df, station=station, network=network)
     elif soh_type in ("gpstime", "gnsstime"):
-        __insert_into_db_soh_gps(df=df, station=station, network=network)
+        __upsert_into_db_soh_gps(df=df, station=station, network=network)
     else:
         raise ValueError(f'Provided soh_type not supported for database insertion. '
                          f'Supported types: instrument, gpstime, gnsstime. '
@@ -129,7 +129,7 @@ def ingest_soh_files(
     return
 
 
-def __insert_into_db_soh_instrument(
+def __upsert_into_db_soh_instrument(
         df: pd.DataFrame,
         station: str,
         network: Optional[str] = None,
@@ -227,7 +227,7 @@ def __insert_into_db_soh_instrument(
     return
 
 
-def __insert_into_db_soh_gps(
+def __upsert_into_db_soh_gps(
         df: pd.DataFrame,
         station: str,
         network: Optional[str] = None,
