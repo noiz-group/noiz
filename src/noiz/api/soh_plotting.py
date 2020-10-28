@@ -45,7 +45,7 @@ def plot_raw_gps_data_availability(
 
     z_components = [cmp for cmp in fetched_components if cmp.component == 'Z']
 
-    df = fetch_raw_soh_gps_df(components=fetched_components, startdate=starttime, enddate=endtime)
+    df = fetch_raw_soh_gps_df(components=fetched_components, starttime=starttime, endtime=endtime)
 
     fig_title = "Raw GPS SOH data"
 

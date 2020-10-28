@@ -5,28 +5,28 @@ import pandas as pd
 import warnings
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
-from typing import Optional, Collection, Generator
+from typing import Optional, Collection, Generator, Union
 from sqlalchemy.orm.query import Query
 
+import numpy as np
+
+from noiz.api import fetch_timespans_between_dates
 from noiz.api.component import fetch_components
 from noiz.api.helpers import validate_exactly_one_argument_provided, extract_object_ids
 from noiz.database import db
-from noiz.models import SohInstrument, SohGps, Component
-from noiz.models.soh import association_table_soh_instr, association_table_soh_gps
+from noiz.models import SohInstrument, SohGps, Component, Timespan
+from noiz.models.soh import association_table_soh_instr, association_table_soh_gps, AveragedSohGps, \
+    association_table_averaged_soh_gps_components
 from noiz.processing.soh import load_parsing_parameters, read_multiple_soh, __postprocess_soh_dataframe, \
-    glob_soh_directory
+    glob_soh_directory, __calculate_mean_gps_soh
 
 
 def fetch_raw_soh_gps_df(
         components: Collection[Component],
-        startdate: datetime.datetime,
-        enddate: datetime.datetime,
+        starttime: datetime.datetime,
+        endtime: datetime.datetime
 ) -> pd.DataFrame:
-    query = __fetch_raw_soh_gps_query(
-        components=components,
-        startdate=startdate,
-        enddate=enddate,
-    )
+    query = __fetch_raw_soh_gps_query(components=components, starttime=starttime, endtime=endtime)
 
     c = query.statement.compile(query.session.bind)
     df = pd.read_sql(c.string, query.session.bind, params=c.params)
@@ -36,45 +36,37 @@ def fetch_raw_soh_gps_df(
 
 def fetch_raw_soh_gps_all(
         components: Collection[Component],
-        startdate: datetime.datetime,
-        enddate: datetime.datetime,
+        starttime: datetime.datetime,
+        endtime: datetime.datetime
 ) -> Collection[SohGps]:
 
-    query = __fetch_raw_soh_gps_query(
-        components=components,
-        startdate=startdate,
-        enddate=enddate,
-    )
+    query = __fetch_raw_soh_gps_query(components=components, starttime=starttime, endtime=endtime)
 
     return query.all()
 
 
 def count_raw_soh_gps(
         components: Collection[Component],
-        startdate: datetime.datetime,
-        enddate: datetime.datetime,
+        starttime: datetime.datetime,
+        endtime: datetime.datetime
 ) -> int:
 
-    query = __fetch_raw_soh_gps_query(
-        components=components,
-        startdate=startdate,
-        enddate=enddate,
-    )
+    query = __fetch_raw_soh_gps_query(components=components, starttime=starttime, endtime=endtime)
 
     return query.count()
 
 
 def __fetch_raw_soh_gps_query(
         components: Collection[Component],
-        startdate: datetime.datetime,
-        enddate: datetime.datetime,
+        starttime: datetime.datetime,
+        endtime: datetime.datetime
 ) -> Query:
     components_ids = extract_object_ids(components)
 
     fetched_soh_gps_query = SohGps.query.filter(
         SohGps.z_component_id.in_(components_ids),
-        SohGps.datetime >= startdate,
-        SohGps.datetime <= enddate,
+        SohGps.datetime >= starttime,
+        SohGps.datetime <= endtime,
     )
 
     return fetched_soh_gps_query
@@ -318,6 +310,181 @@ def __insert_into_db_soh_gps(
             .on_conflict_do_nothing()
         )
         insert_commands.append(insert_command)
+
+    for i, insert_command in enumerate(insert_commands):
+        if i % int(command_count / 10) == 0:
+            logging.info(f"Inserted already {i}/{command_count} rows")
+        db.session.execute(insert_command)
+
+    logging.info('Commiting to db')
+    db.session.commit()
+    logging.info('Commit succesfull')
+
+    return
+
+
+def average_raw_gps_soh(
+        starttime: datetime.datetime,
+        endtime: datetime.datetime,
+        stations: Optional[Union[Collection[str], str]] = None,
+        networks: Optional[Union[Collection[str], str]] = None,
+) -> None:
+    """
+    Method that averages the data from SohGps according between starttime and endtime along with
+    Timespans and their starttimes and endtimes.
+
+    :param starttime: The earliest time when the Timespans will be searched for
+    :type starttime: datetime.datetime
+    :param endtime: The latest time when the Timespans will be searched for
+    :type endtime: datetime.datetime
+    :param stations: Stations to limit the averaging
+    :type stations: Optional[Union[Collection[str], str]]
+    :param networks: Networks to limit the averaging
+    :type networks: Optional[Union[Collection[str], str]]
+    :return: None
+    :rtype: NoneType
+    """
+    fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
+    fetched_components = fetch_components(stations=stations, networks=networks)
+
+    averaged_results = __calculate_averages_of_gps_soh(
+        fetched_timespans=fetched_timespans,
+        fetched_components=fetched_components
+    )
+
+    __insert_averaged_gps_soh_into_db(avg_results=averaged_results)
+
+    return
+
+
+def __calculate_averages_of_gps_soh(
+        fetched_timespans: Collection[Timespan],
+        fetched_components: Collection[Component],
+) -> pd.DataFrame:
+    """
+    Private method that fetched raw SohGps data and calculates average of it for each of the Timespans.
+
+    :param fetched_timespans: Timespans to average SOH data on
+    :type fetched_timespans: Collection[Timespan]
+    :param fetched_components: Components to average SOH data for
+    :type fetched_components: Collection[Component]
+    :return: Averaged GPS data as well as all auxiliary information that it's necessary to insert them into db
+    :rtype: pd.DataFrame
+    """
+
+    component_ids = extract_object_ids(fetched_components)
+
+    averaged_results = []
+    for timespan in fetched_timespans:
+
+        query = (
+            db.session
+            .query(SohGps, (Component.id).label('component_id'))
+            .join((SohGps.components, Component))
+            .filter(
+                SohGps.datetime >= timespan.starttime,
+                SohGps.datetime <= timespan.endtime,
+                Component.id.in_(component_ids)
+            )
+        )
+
+        c = query.statement.compile(query.session.bind)
+        df = pd.read_sql(c.string, query.session.bind, params=c.params)
+
+        try:
+            res = __calculate_mean_gps_soh(df, timespan_id=timespan.id)
+        except ValueError:
+            continue
+
+        averaged_results.extend(res)
+
+    return pd.DataFrame(averaged_results)
+
+
+def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
+    """
+    Private method that upserts averaged GPS SOH data into the DB.
+    It also inserts data to the association table so the Many-To-Many relation is possible.
+
+    :param avg_results: Data to be inserted into the DB
+    :type avg_results: pd.DataFrame
+    :return: None
+    :rtype: NoneType
+    """
+
+    command_count = len(avg_results)
+    avg_results = avg_results
+
+    insert_commands = []
+    for i, (timestamp, row) in enumerate(avg_results.iterrows()):
+        if i % int(command_count / 10) == 0:
+            logging.info(f"Prepared already {i}/{command_count} commands")
+        insert_command = (
+            insert(AveragedSohGps)
+            .values(
+                z_component_id=row["z_component_id"],
+                timespan_id=row["timespan_id"],
+                time_error=row["time_error"],
+                time_uncertainty=row["time_uncertainty"],
+            )
+            .on_conflict_do_update(
+                constraint="unique_tispan_per_station_in_avgsohgps",
+                set_=dict(
+                    time_error=row["time_error"],
+                    time_uncertainty=row["time_uncertainty"],
+                ),
+            )
+        )
+        insert_commands.append(insert_command)
+
+    for i, insert_command in enumerate(insert_commands):
+        if i % int(command_count / 10) == 0:
+            logging.info(f"Inserted already {i}/{command_count} rows")
+        db.session.execute(insert_command)
+
+    logging.info('Commiting to db')
+    db.session.commit()
+    logging.info('Commit succesfull')
+
+    logging.info('Preparing to insert information about db relationship/')
+
+    unique_z_cmp_ids = avg_results.loc[:, "z_component_id"].drop_duplicates().values.astype(pd.Int64Dtype)
+
+    insert_commands = []
+
+    command_count = len(avg_results) * 3
+
+    for z_cmp in unique_z_cmp_ids:
+        all_components = np.unique(
+            np.vstack(
+                avg_results.loc[avg_results.loc[:, 'z_component_id'] == z_cmp, "all_components"].values)
+            .flatten()
+            .astype(pd.Int64Dtype)
+        )
+        used_timespan_ids = np.unique(
+            np.vstack(
+                avg_results.loc[avg_results.loc[:, 'z_component_id'] == z_cmp, "timespan_id"].values)
+            .flatten()
+            .astype(pd.Int64Dtype)
+        )
+
+        fetched_soh = AveragedSohGps.query.filter(
+            AveragedSohGps.z_component_id.in_(unique_z_cmp_ids),
+            AveragedSohGps.timespan_id.in_(used_timespan_ids)).all()
+
+        for i, (inserted_soh, component_id) in enumerate(itertools.product(fetched_soh, all_components)):
+            if i % int(command_count / 10) == 0:
+                logging.info(f"Prepared already {i}/{command_count} commands")
+
+            insert_command = (
+                insert(association_table_averaged_soh_gps_components)
+                .values(
+                    averaged_soh_gps_id=inserted_soh.id,
+                    component_id=component_id
+                )
+                .on_conflict_do_nothing()
+            )
+            insert_commands.append(insert_command)
 
     for i, insert_command in enumerate(insert_commands):
         if i % int(command_count / 10) == 0:
