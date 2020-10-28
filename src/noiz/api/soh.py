@@ -25,9 +25,17 @@ from noiz.processing.soh import load_parsing_parameters, read_multiple_soh, __po
 def fetch_raw_soh_gps_df(
         components: Collection[Component],
         starttime: datetime.datetime,
-        endtime: datetime.datetime
+        endtime: datetime.datetime,
+        load_z_component: bool = False,
+        load_components: bool = False,
 ) -> pd.DataFrame:
-    query = __fetch_raw_soh_gps_query(components=components, starttime=starttime, endtime=endtime)
+    query = __fetch_raw_soh_gps_query(
+        components=components,
+        starttime=starttime,
+        endtime=endtime,
+        load_z_component=load_z_component,
+        load_components=load_components,
+    )
 
     c = query.statement.compile(query.session.bind)
     df = pd.read_sql(c.string, query.session.bind, params=c.params)
@@ -80,21 +88,23 @@ def __fetch_raw_soh_gps_query(
     opts = []
 
     if load_z_component:
-        opts.append(joinedload(AveragedSohGps.z_component))
+        opts.append(joinedload(SohGps.z_component))
     if load_components:
-        opts.append(joinedload(AveragedSohGps.components))
+        opts.append(joinedload(SohGps.components))
 
     return SohGps.query.filter(*filters).options(opts)
 
 
 def fetch_averaged_soh_gps_df(
-        timespans: Collection[Timespan],
-        components: Collection[Component],
+        timespans: Optional[Collection[Timespan]] = None,
+        components: Optional[Collection[Component]] = None,
+        load_timespan: bool = True,
 ) -> pd.DataFrame:
 
     query = __fetch_averaged_soh_gps_query(
         timespans=timespans,
         components=components,
+        load_timespan=load_timespan,
     )
 
     c = query.statement.compile(query.session.bind)
