@@ -49,6 +49,8 @@ def plot_raw_gps_data_availability(
 
     fig_title = "Raw GPS SOH data"
 
+    df.index = df['datetime']
+
     fig = plot_gps_data_soh(
         df=df,
         components=z_components,
@@ -77,6 +79,7 @@ def plot_gps_data_soh(
 ) -> matplotlib.pyplot.Figure:
     """
 
+
     :param df: Dataframe containing data
     :type df: pd.DataFrame
     :param components: Components to be plotted
@@ -92,8 +95,6 @@ def plot_gps_data_soh(
     :return:
     :rtype:
     """
-
-    df.index = df['datetime']
 
     fig, axes = plt.subplots(nrows=len(components), sharex=True, sharey=True, dpi=150)
 
