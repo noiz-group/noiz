@@ -14,10 +14,8 @@ import pendulum
 from pendulum.date import Date
 
 import noiz
-from noiz.api.datachunk import run_paralel_chunk_preparation
 from noiz.api.inventory import parse_inventory_insert_stations_and_components_into_db
 from noiz.api.processing_config import upsert_default_params
-from noiz.api.soh import ingest_soh_files
 from noiz.processing.inventory import read_inventory
 
 from noiz.app import create_app
@@ -111,6 +109,8 @@ def add_inventory(filepath, filetype):
 def add_soh(station, station_type, soh_type, dirpath, paths, network):
     """Globs over provided directories in search of soh files fitting parsing requirements"""
 
+    from noiz.api.soh import ingest_soh_files
+
     ingest_soh_files(
         station=station,
         station_type=station_type,
@@ -157,6 +157,8 @@ def prepare_datachunks(
         station = None
     if len(component) == 0:
         component = None
+
+    from noiz.api.datachunk import run_paralel_chunk_preparation
 
     run_paralel_chunk_preparation(
         stations=station,
@@ -221,7 +223,9 @@ def plot_datachunk_availability(
     elif not isinstance(plotpath, Path):
         plotpath = Path(plotpath)
 
-    noiz.api.datachunk_plotting.plot_datachunk_availability(
+    from noiz.api.datachunk_plotting import plot_datachunk_availability
+
+    plot_datachunk_availability(
         networks=network,
         stations=station,
         components=component,
