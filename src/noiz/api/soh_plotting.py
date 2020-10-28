@@ -54,7 +54,7 @@ def plot_raw_gps_data_availability(
 
     fig = __plot_gps_data_soh(
         df=df,
-        components=z_components,
+        z_components=z_components,
         starttime=starttime,
         endtime=endtime,
         fig_title=fig_title,
@@ -114,7 +114,7 @@ def plot_averaged_gps_data_availability(
 
     fig = __plot_gps_data_soh(
         df=df,
-        components=z_components,
+        z_components=z_components,
         starttime=starttime,
         endtime=endtime,
         fig_title=fig_title,
@@ -132,19 +132,20 @@ def plot_averaged_gps_data_availability(
 
 def __plot_gps_data_soh(
         df: pd.DataFrame,
-        components: Collection[Component],
+        z_components: Collection[Component],
         starttime: datetime,
         endtime: datetime,
         fig_title: str,
         show_legend: bool = True,
 ) -> matplotlib.pyplot.Figure:
     """
-
+     Plots content provided DataFrame on a plot with n subplots where n = len(z_components)
+     Each of the subplots shows data that have the same z_component_id as members of z_components collection.
 
     :param df: Dataframe containing data
     :type df: pd.DataFrame
-    :param components: Components to be plotted
-    :type components: Collection[Component]
+    :param z_components: Components to be plotted
+    :type z_components: Collection[Component]
     :param starttime: Starttime of the query
     :type starttime: datetime
     :param endtime: Endtime of the query
@@ -157,12 +158,12 @@ def __plot_gps_data_soh(
     :rtype:
     """
 
-    fig, axes = plt.subplots(nrows=len(components), sharex=True, sharey=True, dpi=150)
+    fig, axes = plt.subplots(nrows=len(z_components), sharex=True, sharey=True, dpi=150)
 
-    if len(components) == 1:
+    if len(z_components) == 1:
         axes = (axes,)
 
-    for ax, cmp in zip(axes, components):
+    for ax, cmp in zip(axes, z_components):
         subdf = df.loc[df.loc[:, 'z_component_id'] == cmp.id, :].sort_index()
         ax.plot(subdf.index, subdf.loc[:, ['time_uncertainty']], label='Uncertainty')
         ax.plot(subdf.index, subdf.loc[:, ['time_error']], label='Error')
@@ -178,7 +179,7 @@ def __plot_gps_data_soh(
 
     days = (starttime - endtime).days
 
-    height = len(components) * 1.2
+    height = len(z_components) * 1.2
     height = max(4, height)
     fig.set_figheight(height)
 
