@@ -58,19 +58,33 @@ def count_raw_soh_gps(
 
 
 def __fetch_raw_soh_gps_query(
-        components: Collection[Component],
-        starttime: datetime.datetime,
-        endtime: datetime.datetime
+        components: Optional[Collection[Component]] = None,
+        starttime: Optional[datetime.datetime] = None,
+        endtime: Optional[datetime.datetime] = None,
+        load_z_component: bool = False,
+        load_components: bool = False,
 ) -> Query:
-    components_ids = extract_object_ids(components)
 
-    fetched_soh_gps_query = SohGps.query.filter(
-        SohGps.z_component_id.in_(components_ids),
-        SohGps.datetime >= starttime,
-        SohGps.datetime <= endtime,
-    )
+    filters = []
 
-    return fetched_soh_gps_query
+    if components is not None:
+        component_ids = extract_object_ids(components)
+        filters.append(SohGps.z_component_id.in_(component_ids))
+    if starttime is not None:
+        filters.append(SohGps.datetime >= starttime)
+    if endtime is not None:
+        filters.append(SohGps.datetime <= endtime)
+    if len(filters) == 0:
+        filters.append(True)
+
+    opts = []
+
+    if load_z_component:
+        opts.append(joinedload(AveragedSohGps.z_component))
+    if load_components:
+        opts.append(joinedload(AveragedSohGps.components))
+
+    return SohGps.query.filter(*filters).options(opts)
 
 
 def fetch_averaged_soh_gps_df(
