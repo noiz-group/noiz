@@ -14,10 +14,8 @@ import pendulum
 from pendulum.date import Date
 
 import noiz
-from noiz.api.datachunk import run_paralel_chunk_preparation
 from noiz.api.inventory import parse_inventory_insert_stations_and_components_into_db
 from noiz.api.processing_config import upsert_default_params
-from noiz.api.soh import ingest_soh_files
 from noiz.processing.inventory import read_inventory
 
 from noiz.app import create_app
@@ -111,6 +109,8 @@ def add_inventory(filepath, filetype):
 def add_soh(station, station_type, soh_type, dirpath, paths, network):
     """Globs over provided directories in search of soh files fitting parsing requirements"""
 
+    from noiz.api.soh import ingest_soh_files
+
     ingest_soh_files(
         station=station,
         station_type=station_type,
@@ -157,6 +157,8 @@ def prepare_datachunks(
         station = None
     if len(component) == 0:
         component = None
+
+    from noiz.api.datachunk import run_paralel_chunk_preparation
 
     run_paralel_chunk_preparation(
         stations=station,
@@ -243,16 +245,10 @@ def plot_datachunk_availability(
 
     if len(network) == 0:
         network = None
-    elif len(network) == 1:
-        network = tuple(network)
     if len(station) == 0:
         station = None
-    elif len(station) == 1:
-        station = tuple(station)
     if len(component) == 0:
         component = None
-    elif len(component) == 1:
-        component = tuple(component)
 
     if savefig is True and plotpath is None:
         plotpath = Path('.')\
@@ -262,7 +258,9 @@ def plot_datachunk_availability(
     elif not isinstance(plotpath, Path):
         plotpath = Path(plotpath)
 
-    noiz.api.datachunk_plotting.plot_datachunk_availability(
+    from noiz.api.datachunk_plotting import plot_datachunk_availability
+
+    plot_datachunk_availability(
         networks=network,
         stations=station,
         components=component,
@@ -308,12 +306,8 @@ def plot_raw_gps_soh(
 
     if len(network) == 0:
         network = None
-    elif len(network) == 1:
-        network = tuple(network)
     if len(station) == 0:
         station = None
-    elif len(station) == 1:
-        station = tuple(station)
 
     if savefig is True and plotpath is None:
         plotpath = Path('.')\
@@ -323,14 +317,74 @@ def plot_raw_gps_soh(
     elif not isinstance(plotpath, Path):
         plotpath = Path(plotpath)
 
-    noiz.api.soh_plotting.plot_raw_gps_data_availability(
+    from noiz.api.soh_plotting import plot_raw_gps_data_availability
+
+    plot_raw_gps_data_availability(
         networks=network,
         stations=station,
         starttime=starttime,
         endtime=endtime,
         filepath=plotpath,
         showfig=showfig,
-        showlegned=legend,
+        show_legend=legend,
+    )
+    return
+
+
+@plotting_group.command("averaged_gps_soh")
+@with_appcontext
+@click.option("-n", "--network", multiple=True, type=str, default=None)
+@click.option("-s", "--station", multiple=True, type=str, default=None)
+@click.option("-sd", "--starttime", nargs=1, type=str,
+              default=pendulum.Pendulum(2010, 1, 1), show_default=True)
+@click.option("-ed", "--endtime", nargs=1, type=str,
+              default=pendulum.now(), show_default=True)
+@click.option('--savefig/--no-savefig', default=True)
+@click.option('-pp', '--plotpath', type=click.Path())
+@click.option('--showfig', is_flag=True)
+@click.option('--legend/--no-legend', default=True)
+def averaged_gps_soh(
+        network,
+        station,
+        starttime,
+        endtime,
+        savefig,
+        plotpath,
+        showfig,
+        legend
+):
+    """
+    Method to plot Averaged GPS SOH based on passed arguments.
+    """
+
+    if not isinstance(starttime, Date):
+        starttime = pendulum.parse(starttime)
+    if not isinstance(endtime, Date):
+        endtime = pendulum.parse(endtime)
+
+    if len(network) == 0:
+        network = None
+    if len(station) == 0:
+        station = None
+
+    if savefig is True and plotpath is None:
+        plotpath = Path('.')\
+            .joinpath(f'raw_gps_soh_{starttime.date()}_{endtime.date()}.png')
+        click.echo(f"The --plotpath argument was not provided."
+                   f"plot will be saved to {plotpath}")
+    elif not isinstance(plotpath, Path):
+        plotpath = Path(plotpath)
+
+    from noiz.api.soh_plotting import plot_averaged_gps_data_availability
+
+    plot_averaged_gps_data_availability(
+        networks=network,
+        stations=station,
+        starttime=starttime,
+        endtime=endtime,
+        filepath=plotpath,
+        showfig=showfig,
+        show_legend=legend,
     )
     return
 
