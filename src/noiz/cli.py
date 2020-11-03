@@ -192,6 +192,41 @@ def prepare_datachunks(
     )
 
 
+@processing_group.command("average_soh_gps")
+@with_appcontext
+@click.option("-n", "--network", multiple=True, type=str, default=None)
+@click.option("-s", "--station", multiple=True, type=str, default=None)
+@click.option("-sd", "--startdate", nargs=1, type=str,
+              default=pendulum.Pendulum(2010, 1, 1).date, show_default=True)
+@click.option("-ed", "--enddate", nargs=1, type=str,
+              default=pendulum.today().date, show_default=True)
+def average_soh_gps(
+        network,
+        station,
+        startdate,
+        enddate,
+):
+    """This command averages the GPS Soh data for timespans between starttime and endtime"""
+
+    if not isinstance(startdate, Date):
+        startdate = pendulum.parse(startdate).date()
+    if not isinstance(enddate, Date):
+        enddate = pendulum.parse(enddate).date()
+
+    if len(station) == 0:
+        station = None
+    if len(network) == 0:
+        network = None
+
+    from noiz.api.soh import average_raw_gps_soh
+    average_raw_gps_soh(
+        stations=station,
+        networks=network,
+        starttime=startdate,
+        endtime=enddate,
+    )
+
+
 @plotting_group.group("plotting")
 def plotting_group():  # type: ignore
     """Plotting routines"""
