@@ -98,15 +98,14 @@ def add_inventory(filepath, filetype):
     return
 
 
-@data_group.command("add_soh")
+@data_group.command("add_soh_dir")
 @with_appcontext
 @click.option("-s", "--station", required=True, type=str)
 @click.option("-t", "--station_type", required=True, type=str)
 @click.option("-p", "--soh_type", required=True, type=str)
 @click.option("-n", "--network", type=str, default=None)
 @click.option("-d", "--dirpath", nargs=1, type=click.Path(exists=True))
-@click.argument("paths", nargs=-1, type=click.Path(exists=True))
-def add_soh(station, station_type, soh_type, dirpath, paths, network):
+def add_soh_dir(station, station_type, soh_type, dirpath, network):
     """Globs over provided directories in search of soh files fitting parsing requirements"""
 
     from noiz.api.soh import ingest_soh_files
@@ -116,7 +115,7 @@ def add_soh(station, station_type, soh_type, dirpath, paths, network):
         station_type=station_type,
         soh_type=soh_type,
         main_filepath=dirpath,
-        filepaths=paths,
+        filepaths=None,
         network=network,
     )
 
