@@ -122,6 +122,30 @@ def add_soh_dir(station, station_type, soh_type, dirpath, network):
     return
 
 
+@data_group.command("add_soh_files")
+@with_appcontext
+@click.option("-s", "--station", required=True, type=str)
+@click.option("-t", "--station_type", required=True, type=str)
+@click.option("-p", "--soh_type", required=True, type=str)
+@click.option("-n", "--network", type=str, default=None)
+@click.argument("paths", nargs=-1, type=click.Path(exists=True))
+def add_soh_files(station, station_type, soh_type, paths, network):
+    """Globs over provided directories in search of soh files fitting parsing requirements"""
+
+    from noiz.api.soh import ingest_soh_files
+
+    ingest_soh_files(
+        station=station,
+        station_type=station_type,
+        soh_type=soh_type,
+        main_filepath=None,
+        filepaths=paths,
+        network=network,
+    )
+
+    return
+
+
 @processing_group.group("processing")
 def processing_group():  # type: ignore
     """Processing subcommands"""
