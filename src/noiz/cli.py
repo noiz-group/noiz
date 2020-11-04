@@ -398,7 +398,7 @@ def averaged_gps_soh(
             .joinpath(f'raw_gps_soh_{starttime.date()}_{endtime.date()}.png')
         click.echo(f"The --plotpath argument was not provided."
                    f"plot will be saved to {plotpath}")
-    elif not isinstance(plotpath, Path):
+    elif savefig is True and not isinstance(plotpath, Path):
         plotpath = Path(plotpath)
 
     from noiz.api.soh_plotting import plot_averaged_gps_data_availability
