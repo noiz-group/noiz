@@ -196,17 +196,19 @@ def prepare_datachunks(
 @with_appcontext
 @click.option("-n", "--network", multiple=True, type=str, default=None)
 @click.option("-s", "--station", multiple=True, type=str, default=None)
-@click.option("-sd", "--startdate", nargs=1, type=str,
-              default=pendulum.Pendulum(2010, 1, 1).date, show_default=True)
-@click.option("-ed", "--enddate", nargs=1, type=str,
-              default=pendulum.today().date, show_default=True)
+@click.option("-sd", "--startdate", nargs=1, type=str, required=True)
+@click.option("-ed", "--enddate", nargs=1, type=str, required=True)
 def average_soh_gps(
         network,
         station,
         startdate,
         enddate,
 ):
-    """This command averages the GPS Soh data for timespans between starttime and endtime"""
+    """
+    This command averages the GPS Soh data for timespans between starttime and endtime.
+    The starttime and endtime are required because it could take too much time for processing everything at
+    once by default.
+    """
 
     if not isinstance(startdate, Date):
         startdate = pendulum.parse(startdate).date()
