@@ -28,6 +28,9 @@ data_group = AppGroup("data")  # type: ignore
 processing_group = AppGroup("processing")  # type: ignore
 plotting_group = AppGroup("plotting")  # type: ignore
 
+DEFAULT_STARTDATE = pendulum.Pendulum(2010, 1, 1).date()
+DEFAULT_ENDDATE = pendulum.today().date()
+
 
 def _register_subgroups_to_cli(cli: AppGroup, custom_groups: Iterable[AppGroup]):
     for custom_group in custom_groups:
@@ -156,10 +159,8 @@ def processing_group():  # type: ignore
 @with_appcontext
 @click.option("-s", "--station", multiple=True, type=str)
 @click.option("-c", "--component", multiple=True, type=str)
-@click.option("-sd", "--startdate", nargs=1, type=str,
-              default=pendulum.Pendulum(2010, 1, 1).date, show_default=True)
-@click.option("-ed", "--enddate", nargs=1, type=str,
-              default=pendulum.today().date, show_default=True)
+@click.option("-sd", "--startdate", nargs=1, type=str, required=True)
+@click.option("-ed", "--enddate", nargs=1, type=str, required=True)
 @click.option("-p", "--processing_config_id", nargs=1, type=int,
               default=1, show_default=True)
 def prepare_datachunks(
@@ -241,9 +242,9 @@ def plotting_group():  # type: ignore
 @click.option("-s", "--station", multiple=True, type=str, default=None)
 @click.option("-c", "--component", multiple=True, type=str, default=None)
 @click.option("-sd", "--startdate", nargs=1, type=str,
-              default=pendulum.Pendulum(2010, 1, 1).date(), show_default=True)
+              default=DEFAULT_STARTDATE, show_default=True)
 @click.option("-ed", "--enddate", nargs=1, type=str,
-              default=pendulum.today().date(), show_default=True)
+              default=DEFAULT_ENDDATE, show_default=True)
 @click.option("-p", "--processing_config_id", nargs=1, type=int,
               default=1, show_default=True)
 @click.option('--savefig/--no-savefig', default=True)
@@ -303,9 +304,9 @@ def plot_datachunk_availability(
 @click.option("-n", "--network", multiple=True, type=str, default=None)
 @click.option("-s", "--station", multiple=True, type=str, default=None)
 @click.option("-sd", "--starttime", nargs=1, type=str,
-              default=pendulum.Pendulum(2010, 1, 1).date(), show_default=True)
+              default=DEFAULT_STARTDATE, show_default=True)
 @click.option("-ed", "--endtime", nargs=1, type=str,
-              default=pendulum.now().date(), show_default=True)
+              default=DEFAULT_ENDDATE, show_default=True)
 @click.option('--savefig/--no-savefig', default=True)
 @click.option('-pp', '--plotpath', type=click.Path())
 @click.option('--showfig', is_flag=True)
@@ -361,9 +362,9 @@ def plot_raw_gps_soh(
 @click.option("-n", "--network", multiple=True, type=str, default=None)
 @click.option("-s", "--station", multiple=True, type=str, default=None)
 @click.option("-sd", "--starttime", nargs=1, type=str,
-              default=pendulum.Pendulum(2010, 1, 1).date(), show_default=True)
+              default=DEFAULT_STARTDATE, show_default=True)
 @click.option("-ed", "--endtime", nargs=1, type=str,
-              default=pendulum.now().date(), show_default=True)
+              default=DEFAULT_ENDDATE, show_default=True)
 @click.option('--savefig/--no-savefig', default=True)
 @click.option('-pp', '--plotpath', type=click.Path())
 @click.option('--showfig', is_flag=True)
