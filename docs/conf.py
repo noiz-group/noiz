@@ -45,13 +45,10 @@ extensions = [
 ]
 
 autodoc_default_options = {
-    'members': 'var1, var2',
-    'member-order': 'bysource',
-    'special-members': '__init__',
-    'undoc-members': True,
-    'exclude-members': '__weakref__',
     'private-members': True,
 }
+autodoc_typehints = "description"
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -80,7 +77,13 @@ html_static_path = ["_static"]
 # -- Options for intersphinx extension ---------------------------------------
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {"https://docs.python.org/3/": None}
+intersphinx_mapping = {
+    "matplotlib": ("https://matplotlib.org/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "python": ("https://docs.python.org/3/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
+    "obspy": ("https://docs.obspy.org/", None)
+}
 
 # -- Options for todo extension ----------------------------------------------
 
