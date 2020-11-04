@@ -5,6 +5,7 @@ from noiz.models.datachunk import Datachunk, \
     DatachunkFile, ProcessedDatachunk, ProcessedDatachunkFile
 from noiz.models.datachunk import Datachunk as DataChunk
 from noiz.models.processing_params import ProcessingParams
+from noiz.models.qc import QCOne, QCOneRejectedTime, QCOneResults
 from noiz.models.soh import SohInstrument, SohGps
 from noiz.models.stacking import CCFStack, StackingSchema, StackingTimespan
 from noiz.models.time_series_index import Tsindex
