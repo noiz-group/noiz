@@ -39,11 +39,10 @@ class QCOneResults(db.Model):
 
     starttime = db.Column("starttime", db.Boolean, nullable=False)
     endtime = db.Column("endtime", db.Boolean, nullable=False)
-    avg_gps_time_error_min = db.Column("avg_gps_time_error_min", db.Boolean, nullable=False)
-    avg_gps_time_error_max = db.Column("avg_gps_time_error_max", db.Boolean, nullable=False)
-    avg_gps_time_uncertainty_min = db.Column("avg_gps_time_uncertainty_min", db.Boolean, nullable=False)
-    avg_gps_time_uncertainty_max = db.Column("avg_gps_time_uncertainty_max", db.Boolean, nullable=False)
-    components_rejected = db.Column("components_rejected", db.Boolean, nullable=False)
+    avg_gps_time_error_min = db.Column("avg_gps_time_error_min", db.Boolean, nullable=True)
+    avg_gps_time_error_max = db.Column("avg_gps_time_error_max", db.Boolean, nullable=True)
+    avg_gps_time_uncertainty_min = db.Column("avg_gps_time_uncertainty_min", db.Boolean, nullable=True)
+    avg_gps_time_uncertainty_max = db.Column("avg_gps_time_uncertainty_max", db.Boolean, nullable=True)
     time_periods_rejected = db.Column("time_periods_rejected", db.Boolean, nullable=False)
 
     qc_one = db.relationship("QCOne", foreign_keys=[qc_one_id])
