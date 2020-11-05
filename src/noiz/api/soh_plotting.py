@@ -28,6 +28,8 @@ def plot_raw_gps_data_availability(
         filepath: Optional[Path] = None,
         showfig: bool = False,
         show_legend: bool = True,
+        minticks: int = 5,
+        maxticks: int = 8,
 ) -> matplotlib.pyplot.Figure:
     """
     Method that allows for selection and plotting of raw GPS SOH data that are stored in the DB for given set of
@@ -47,6 +49,10 @@ def plot_raw_gps_data_availability(
     :type showfig: bool
     :param show_legend: If legend should be added to the bottom subplot
     :type show_legend: bool
+    :param minticks: Value of minticks passed to ConciseDateFormatter
+    :type minticks: int
+    :param maxticks: Value of maxticks passed to ConciseDateFormatter
+    :type maxticks: int
     :return: Figure object with the plot for further manipulation
     :rtype: matplotlib.pyplot.Figure:rtype:
     """
@@ -68,6 +74,8 @@ def plot_raw_gps_data_availability(
         endtime=endtime,
         fig_title=fig_title,
         show_legend=show_legend,
+        minticks=minticks,
+        maxticks=maxticks,
     )
 
     if filepath is not None:
@@ -87,6 +95,8 @@ def plot_averaged_gps_data_availability(
         filepath: Optional[Path] = None,
         showfig: bool = False,
         show_legend: bool = True,
+        minticks: int = 5,
+        maxticks: int = 8,
 ) -> matplotlib.pyplot.Figure:
     """
     Method that allows for selection and plotting of raw GPS SOH data that are stored in the DB for given set of
@@ -106,6 +116,10 @@ def plot_averaged_gps_data_availability(
     :type showfig: bool
     :param show_legend: If legend should be added to the bottom subplot
     :type show_legend: bool
+    :param minticks: Value of minticks passed to ConciseDateFormatter
+    :type minticks: int
+    :param maxticks: Value of maxticks passed to ConciseDateFormatter
+    :type maxticks: int
     :return: Figure object with the plot for further manipulation
     :rtype: matplotlib.pyplot.Figure:rtype:
     """
@@ -128,6 +142,8 @@ def plot_averaged_gps_data_availability(
         endtime=endtime,
         fig_title=fig_title,
         show_legend=show_legend,
+        minticks=minticks,
+        maxticks=maxticks,
     )
 
     if filepath is not None:
@@ -150,7 +166,7 @@ def __plot_gps_data_soh(
         maxticks: int = 8,
 ) -> matplotlib.pyplot.Figure:
     """
-     Plots content provided DataFrame on a plot with n subplots where n = len(z_components)
+     Plots content provided pd.DataFrame on a plot with n subplots where n = len(z_components)
      Each of the subplots shows data that have the same z_component_id as members of z_components collection.
 
     :param df: Dataframe containing data
@@ -165,6 +181,10 @@ def __plot_gps_data_soh(
     :type fig_title: str
     :param show_legend: If legend should be added to the bottom subplot
     :type show_legend: bool
+    :param minticks: Value of minticks passed to ConciseDateFormatter
+    :type minticks: int
+    :param maxticks: Value of maxticks passed to ConciseDateFormatter
+    :type maxticks: int
     :return:
     :rtype:
     """
