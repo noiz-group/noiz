@@ -1,17 +1,6 @@
 from noiz.database import db
 
 
-association_qc_one_component_rejected = db.Table(
-    "association_qc_one_component_rejected",
-    db.metadata,
-    db.Column(
-        "component_id", db.BigInteger, db.ForeignKey("component.id")
-    ),
-    db.Column("qc_one_id", db.BigInteger, db.ForeignKey("qc_one.id")),
-    db.UniqueConstraint("component_id", "qc_one_id"),
-)
-
-
 class QCOne(db.Model):
     __tablename__ = "qc_one"
 
@@ -24,7 +13,6 @@ class QCOne(db.Model):
     avg_gps_time_uncertainty_min = db.Column("avg_gps_time_uncertainty_min", db.Float, nullable=False)
     avg_gps_time_uncertainty_max = db.Column("avg_gps_time_uncertainty_max", db.Float, nullable=False)
 
-    components_rejected = db.relationship("Component", secondary=association_qc_one_component_rejected, lazy="joined")
     time_periods_rejected = db.relationship("QCOneRejectedTime", back_populates="qc_one", lazy="joined")
 
 
