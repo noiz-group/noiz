@@ -36,7 +36,7 @@ class Crosscorrelation(db.Model):
     componentpair = db.relationship("ComponentPair", foreign_keys=[componentpair_id])
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
     processing_params = db.relationship(
-        "ProcessingParams", foreign_keys=[processing_params_id]
+        "DatachunkPreprocessingConfig", foreign_keys=[processing_params_id]
     )
     stacks = db.relationship(
         "CCFStack", secondary=association_table, back_populates="ccfs"

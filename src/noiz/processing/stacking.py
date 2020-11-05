@@ -1,7 +1,7 @@
 from noiz.database import db
 from noiz.models import (
     StackingTimespan,
-    ProcessingParams,
+    DatachunkPreprocessingConfig,
     Crosscorrelation,
     Timespan,
     ComponentPair,
@@ -20,8 +20,8 @@ def stack_crosscorrelation(
 ):
     logging.info(f"Fetching processing params no {processing_params_id}")
     processing_params = (
-        db.session.query(ProcessingParams)
-        .filter(ProcessingParams.id == processing_params_id)
+        db.session.query(DatachunkPreprocessingConfig)
+        .filter(DatachunkPreprocessingConfig.id == processing_params_id)
         .first()
     )
 

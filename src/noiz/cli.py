@@ -284,7 +284,7 @@ def plot_datachunk_availability(
         component,
         startdate,
         enddate,
-        processing_config_id,
+        datachunk_processing_params_id,
         savefig,
         plotpath,
         showfig
@@ -307,7 +307,7 @@ def plot_datachunk_availability(
         networks=network,
         stations=station,
         components=component,
-        processingparams_id=processing_config_id,
+        datachunk_processing_params_id=datachunk_processing_params_id,
         starttime=startdate,
         endtime=enddate,
         filepath=plotpath,
