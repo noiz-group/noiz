@@ -1,39 +1,9 @@
-import datetime
 import toml
 
-from dataclasses import dataclass
-from typing import Optional, List, Any, MutableMapping, Dict, Union
+from typing import Any, MutableMapping, Dict, Union
 from pathlib import Path
 
-from noiz.models import QCOne, QCOneRejectedTime
-
-
-@dataclass
-class QCOneRejectedTimeHolder:
-    """
-        This simple dataclass is just helping to validate :class:`~noiz.models.QCOneRejectedTime` values loaded
-        from the TOML file
-    """
-    network: str
-    station: str
-    component: str
-    starttime: datetime.datetime
-    endtime: datetime.datetime
-
-
-@dataclass
-class QCOneHolder:
-    """
-    This simple dataclass is just helping to validate :class:`~noiz.models.QCOne` values loaded from the TOML file
-    """
-
-    starttime: datetime.datetime
-    endtime: datetime.datetime
-    avg_gps_time_error_min: float
-    avg_gps_time_error_max: float
-    avg_gps_time_uncertainty_min: float
-    avg_gps_time_uncertainty_max: float
-    forbidden_channels: List[QCOneRejectedTimeHolder]
+from noiz.models.qc import QCOneRejectedTimeHolder, QCOneHolder
 
 
 def load_qc_one_config_toml(filepath: Path) -> QCOneHolder:
