@@ -8,8 +8,8 @@ from noiz.models.qc import QCOneRejectedTimeHolder, QCOneHolder
 
 def load_qc_one_config_toml(filepath: Path) -> QCOneHolder:
     """
-    This method loads the TOML config file, validates it and returns a QCOneHolder that is compatible with
-    constructor of :class:`~noiz.models.QCOne`
+    This method loads the TOML config file, validates it and returns a :class:`~noiz.models.QCOneHolder` that is
+    compatible with constructor of :class:`~noiz.models.QCOne`
 
     :param filepath: Path to existing QCOne config TOML file
     :type filepath: Path
@@ -26,9 +26,17 @@ def load_qc_one_config_toml(filepath: Path) -> QCOneHolder:
     return validate_dict_as_qcone_holder(loaded_config)
 
 
-def validate_dict_as_qcone_holder(loaded_config: Union[Dict, MutableMapping[str, Any]]) -> QCOneHolder:
+def validate_dict_as_qcone_holder(loaded_dict: Union[Dict, MutableMapping[str, Any]]) -> QCOneHolder:
+    """
+    Takes a dict, or an output from TOML parser and tries to convert it into a :class:`~noiz.models.QCOneHolder` object
+
+    :param loaded_dict: Dictionary to be parsed and validated as QCOneHolder
+    :type loaded_dict: Union[Dict, MutableMapping[str, Any]]
+    :return: Valid QCOneHolder object
+    :rtype: QCOneHolder
+    """
     validated_forbidden_channels = []
-    for forb_chn in loaded_config['forbidden_channels']:
+    for forb_chn in loaded_dict['forbidden_channels']:
         validated_forbidden_channels.append(QCOneRejectedTimeHolder(**forb_chn))
-    loaded_config['forbidden_channels'] = validated_forbidden_channels
-    return QCOneHolder(**loaded_config)
+    loaded_dict['forbidden_channels'] = validated_forbidden_channels
+    return QCOneHolder(**loaded_dict)
