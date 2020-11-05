@@ -3,25 +3,25 @@ from typing import List, Collection, Union, Optional
 from noiz.api import fetch_components
 from noiz.api.helpers import validate_to_tuple
 from noiz.database import db
-from noiz.models import QCOne, QCOneRejectedTime
+from noiz.models import QCOneConfig, QCOneRejectedTime
 from noiz.processing.qc import validate_dict_as_qcone_holder
 from noiz.models.qc import QCOneRejectedTimeHolder, QCOneHolder
 
 
-def fetch_qc_one(ids: Union[int, Collection[int]]) -> List[QCOne]:
+def fetch_qc_one(ids: Union[int, Collection[int]]) -> List[QCOneConfig]:
     """
     Fetches the QCOne from db based on id.
 
     :param ids: IDs to be fetched
     :type ids: Union[int, Collection[int]]
     :return: Fetched QCones
-    :rtype: List[QCOne]
+    :rtype: List[QCOneConfig]
     """
 
     ids = validate_to_tuple(val=ids, accepted_type=int)
 
-    fetched = db.session.query(QCOne).filter(
-        QCOne.id.in_(ids),
+    fetched = db.session.query(QCOneConfig).filter(
+        QCOneConfig.id.in_(ids),
     ).all()
 
     return fetched
@@ -60,7 +60,7 @@ def create_qcone_rejected_time(
 def create_qcone(
         qcone_holder: Optional[QCOneHolder] = None,
         **kwargs,
-) -> QCOne:
+) -> QCOneConfig:
     """
     This method takes a :class:`~noiz.processing.qc.QCOneHolder` instance and based on it creates an instance
     of database model :class:`~noiz.models.QCOne`.
@@ -72,17 +72,17 @@ def create_qcone(
     :type qcone_holder: QCOneHolder
     :param kwargs: Optional kwargs to create QCOneHolder
     :return: Working QCOne model that needs to be inserted into db
-    :rtype: QCOne
+    :rtype: QCOneConfig
     """
 
     if qcone_holder is None:
         qcone_holder = validate_dict_as_qcone_holder(kwargs)
 
     qc_one_rejected_times = []
-    for rej_time in qcone_holder.forbidden_channels:
+    for rej_time in qcone_holder.rejected_times:
         qc_one_rejected_times.extend(create_qcone_rejected_time(holder=rej_time))
 
-    qcone = QCOne(
+    qcone = QCOneConfig(
         starttime=qcone_holder.starttime,
         endtime=qcone_holder.endtime,
         avg_gps_time_error_min=qcone_holder.avg_gps_time_error_min,
@@ -93,12 +93,12 @@ def create_qcone(
     return qcone
 
 
-def insert_qc_one_into_db(qcone: QCOne):
+def insert_qc_one_into_db(qcone: QCOneConfig):
     """
     This is method simply adding an instance of :class:`~noiz.models.QCOne` to DB and committing changes.
 
     :param qcone: Instance of QCOne to be added to db
-    :type qcone: QCOne
+    :type qcone: QCOneConfig
     :return: None
     :rtype: NoneType
     """
