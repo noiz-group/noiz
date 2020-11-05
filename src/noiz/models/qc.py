@@ -1,6 +1,7 @@
 from noiz.database import db
 
 
+# TODO Add null treatment policy field
 class QCOne(db.Model):
     __tablename__ = "qc_one"
 
