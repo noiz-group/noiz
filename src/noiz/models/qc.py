@@ -1,3 +1,8 @@
+from typing import List
+
+import datetime
+from dataclasses import dataclass
+
 from noiz.database import db
 
 
@@ -48,3 +53,31 @@ class QCOneResults(db.Model):
 
     qc_one = db.relationship("QCOne", foreign_keys=[qc_one_id])
     datachunk = db.relationship("Datachunk", foreign_keys=[datachunk_id])
+
+
+@dataclass
+class QCOneRejectedTimeHolder:
+    """
+        This simple dataclass is just helping to validate :class:`~noiz.models.QCOneRejectedTime` values loaded
+        from the TOML file
+    """
+    network: str
+    station: str
+    component: str
+    starttime: datetime.datetime
+    endtime: datetime.datetime
+
+
+@dataclass
+class QCOneHolder:
+    """
+    This simple dataclass is just helping to validate :class:`~noiz.models.QCOne` values loaded from the TOML file
+    """
+
+    starttime: datetime.datetime
+    endtime: datetime.datetime
+    avg_gps_time_error_min: float
+    avg_gps_time_error_max: float
+    avg_gps_time_uncertainty_min: float
+    avg_gps_time_uncertainty_max: float
+    forbidden_channels: List[QCOneRejectedTimeHolder]

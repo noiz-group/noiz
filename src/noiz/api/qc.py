@@ -4,7 +4,8 @@ from noiz.api import fetch_components
 from noiz.api.helpers import validate_to_tuple
 from noiz.database import db
 from noiz.models import QCOne, QCOneRejectedTime
-from noiz.processing.qc import QCOneRejectedTimeHolder, QCOneHolder, validate_dict_as_qcone_holder
+from noiz.processing.qc import validate_dict_as_qcone_holder
+from noiz.models.qc import QCOneRejectedTimeHolder, QCOneHolder
 
 
 def fetch_qc_one(ids: Union[int, Collection[int]]) -> List[QCOne]:
