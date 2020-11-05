@@ -37,7 +37,8 @@ class QCOneRejectedTime(db.Model):
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
 
-    qc_one = db.relationship("QCOne", back_populates="time_periods_rejected")
+    qc_one = db.relationship("QCOne", back_populates="time_periods_rejected", foreign_keys=[qc_one_id])
+    component = db.relationship("Component", foreign_keys=[component_id])
 
 
 class QCOneResults(db.Model):
@@ -56,3 +57,6 @@ class QCOneResults(db.Model):
     avg_gps_time_uncertainty_max = db.Column("avg_gps_time_uncertainty_max", db.Boolean, nullable=False)
     components_rejected = db.Column("components_rejected", db.Boolean, nullable=False)
     time_periods_rejected = db.Column("time_periods_rejected", db.Boolean, nullable=False)
+
+    qc_one = db.relationship("QCOne", foreign_keys=[qc_one_id])
+    datachunk = db.relationship("Datachunk", foreign_keys=[datachunk_id])
