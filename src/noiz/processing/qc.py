@@ -9,7 +9,7 @@ from noiz.models.qc import QCOneRejectedTimeHolder, QCOneHolder
 def load_qc_one_config_toml(filepath: Path) -> QCOneHolder:
     """
     This method loads the TOML config file, validates it and returns a :class:`~noiz.models.QCOneHolder` that is
-    compatible with constructor of :class:`~noiz.models.QCOne`
+    compatible with constructor of :class:`~noiz.models.QCOneConfig`
 
     :param filepath: Path to existing QCOne config TOML file
     :type filepath: Path
@@ -36,7 +36,7 @@ def validate_dict_as_qcone_holder(loaded_dict: Union[Dict, MutableMapping[str, A
     :rtype: QCOneHolder
     """
     validated_forbidden_channels = []
-    for forb_chn in loaded_dict['forbidden_channels']:
+    for forb_chn in loaded_dict['rejected_times']:
         validated_forbidden_channels.append(QCOneRejectedTimeHolder(**forb_chn))
-    loaded_dict['forbidden_channels'] = validated_forbidden_channels
+    loaded_dict['rejected_times'] = validated_forbidden_channels
     return QCOneHolder(**loaded_dict)
