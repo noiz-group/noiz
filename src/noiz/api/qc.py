@@ -10,6 +10,14 @@ from noiz.processing.qc import QCOneRejectedTimeHolder, QCOneHolder, validate_di
 
 
 def fetch_qc_one(ids: Union[int, Collection[int]]) -> List[QCOne]:
+    """
+    Fetches the QCOne from db based on id.
+
+    :param ids: IDs to be fetched
+    :type ids: Union[int, Collection[int]]
+    :return: Fetched QCones
+    :rtype: List[QCOne]
+    """
 
     ids = validate_to_tuple(val=ids, accepted_type=int)
 
@@ -23,6 +31,18 @@ def fetch_qc_one(ids: Union[int, Collection[int]]) -> List[QCOne]:
 def create_qcone_rejected_time(
         holder: QCOneRejectedTimeHolder,
 ) -> List[QCOneRejectedTime]:
+    """
+    Based on provided :class:`~noiz.processing.qc.QCOneRejectedTimeHolder` creates instances of the
+    database models :class:`~noiz.models.QCOneRejectedTime`.
+
+    Since the holder itself is focused on the single component inputs, it should never return more than a
+    single element list but for safety, it will return a list instead of single object.
+
+    :param holder: Holder to be processed
+    :type holder: QCOneRejectedTimeHolder
+    :return: Instance of a model, ready to be added to to the database
+    :rtype: QCOneRejectedTime
+    """
 
     fetched_components = fetch_components(
         networks=holder.network,
@@ -61,7 +81,7 @@ def create_qcone(
 
     qc_one_rejected_times = []
     for rej_time in qcone_holder.forbidden_channels:
-        qc_one_rejected_times.append(create_qcone_rejected_time(holder=rej_time))
+        qc_one_rejected_times.extend(create_qcone_rejected_time(holder=rej_time))
 
     qcone = QCOne(
         starttime=qcone_holder.starttime,
