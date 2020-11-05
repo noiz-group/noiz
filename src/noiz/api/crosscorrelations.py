@@ -11,7 +11,7 @@ from sqlalchemy.orm import subqueryload
 from noiz.database import db
 from noiz.models import (
     Crosscorrelation,
-    ProcessingParams,
+    DatachunkPreprocessingConfig,
     Timespan,
     Component,
     Datachunk,
@@ -91,8 +91,8 @@ def perform_crosscorrelations_for_day_and_pairs(
     year, day_of_year = get_year_doy(execution_date)
 
     processing_params = (
-        db.session.query(ProcessingParams)
-        .filter(ProcessingParams.id == processing_params_id)
+        db.session.query(DatachunkPreprocessingConfig)
+        .filter(DatachunkPreprocessingConfig.id == processing_params_id)
         .first()
     )
 

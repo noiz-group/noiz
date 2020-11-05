@@ -11,7 +11,7 @@ class Datachunk(db.Model):
         db.UniqueConstraint(
             "timespan_id",
             "component_id",
-            "processing_params_id",
+            "datachunk_processing_config_id",
             name="unique_datachunk_per_timespan_per_station_per_processing",
         ),
     )
@@ -20,10 +20,10 @@ class Datachunk(db.Model):
     component_id = db.Column(
         "component_id", db.Integer, db.ForeignKey("component.id"), nullable=False
     )
-    processing_params_id = db.Column(
-        "processing_params_id",
+    datachunk_processing_config = db.Column(
+        "datachunk_processing_config_id",
         db.Integer,
-        db.ForeignKey("processing_params.id"),
+        db.ForeignKey("datachunk_processing_config.id"),
         nullable=False,
     )
     timespan_id = db.Column(
@@ -41,8 +41,8 @@ class Datachunk(db.Model):
 
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
     component = db.relationship("Component", foreign_keys=[component_id])
-    processing_params = db.relationship(
-        "ProcessingParams", foreign_keys=[processing_params_id],
+    datachunk_processing_config = db.relationship(
+        "DatachunkPreprocessingConfig", foreign_keys=[datachunk_processing_config],
         # uselist = False, # just for the future left, here, dont want to test that now
     )
     processed_datachunks = db.relationship("ProcessedDatachunk")

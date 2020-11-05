@@ -16,7 +16,7 @@ def plot_datachunk_availability(
         networks: Optional[Collection[str]] = None,
         stations: Optional[Collection[str]] = None,
         components: Optional[Collection[str]] = None,
-        processingparams_id: int = 1,
+        datachunk_processing_params_id: int = 1,
         starttime: datetime = datetime(2000, 1, 1),
         endtime: datetime = datetime(2030, 1, 1),
         filepath: Optional[Path] = None,
@@ -31,8 +31,8 @@ def plot_datachunk_availability(
     :type stations: Optional[Collection[str]]
     :param components: Components to be fetched
     :type components: Optional[Collection[str]]
-    :param processingparams_id: Id of a ProcessingParams object
-    :type processingparams_id: int
+    :param datachunk_processing_params_id: Id of a DatachunkPreprocessingConfig object
+    :type datachunk_processing_params_id: int
     :param starttime: Starttime of the query
     :type starttime: datetime
     :param endtime: Endtime of the query
@@ -50,10 +50,10 @@ def plot_datachunk_availability(
                                           stations=stations,
                                           components=components)
 
-    processing_params = fetch_processing_config_by_id(id=processingparams_id)
+    processing_params = fetch_processing_config_by_id(id=datachunk_processing_params_id)
     datachunks = fetch_datachunks(components=fetched_components,
                                   timespans=fetched_timespans,
-                                  processing_params=processing_params,
+                                  datachunk_processing_config=processing_params,
                                   load_timespan=True, load_component=True)
 
     midtimes = defaultdict(list)
