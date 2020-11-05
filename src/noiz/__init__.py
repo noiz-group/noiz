@@ -3,6 +3,7 @@ __author__ = "Damian Kula"
 
 
 from .logg import logger_config
+from . import models
 from . import api
 from . import processing
 
