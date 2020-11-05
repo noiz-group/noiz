@@ -79,7 +79,7 @@ def plot_raw_gps_data_availability(
     )
 
     if filepath is not None:
-        fig.savefig(filepath)
+        fig.savefig(filepath, bbox_inches='tight')
 
     if showfig is True:
         fig.show()
@@ -147,7 +147,7 @@ def plot_averaged_gps_data_availability(
     )
 
     if filepath is not None:
-        fig.savefig(filepath)
+        fig.savefig(filepath, bbox_inches='tight')
 
     if showfig is True:
         fig.show()
