@@ -1,10 +1,12 @@
-from typing import List, Collection, Union, Optional
+from pathlib import Path
+
+from typing import List, Collection, Union, Optional, Tuple
 
 from noiz.api import fetch_components
 from noiz.api.helpers import validate_to_tuple
 from noiz.database import db
 from noiz.models import QCOneConfig, QCOneRejectedTime
-from noiz.processing.qc import validate_dict_as_qcone_holder
+from noiz.processing.qc import validate_dict_as_qcone_holder, load_qc_one_config_toml
 from noiz.models.qc import QCOneRejectedTimeHolder, QCOneHolder
 
 
@@ -57,16 +59,18 @@ def create_qcone_rejected_time(
     return res
 
 
-def create_qcone(
+def create_qcone_config(
         qcone_holder: Optional[QCOneHolder] = None,
         **kwargs,
 ) -> QCOneConfig:
     """
     This method takes a :class:`~noiz.processing.qc.QCOneHolder` instance and based on it creates an instance
-    of database model :class:`~noiz.models.QCOne`.
+    of database model :class:`~noiz.models.QCOneConfig`.
 
     Optionally, it can create the instance of :class:`~noiz.processing.qc.QCOneHolder` from provided kwargs, but
     why dont you do it on your own to ensure that it will get everything it needs?
+
+    Has to be executed within `app_context`
 
     :param qcone_holder: Object containing all required elements to create a QCOne instance
     :type qcone_holder: QCOneHolder
@@ -93,15 +97,46 @@ def create_qcone(
     return qcone
 
 
-def insert_qc_one_into_db(qcone: QCOneConfig):
+def insert_qc_one_config_into_db(qcone_config: QCOneConfig):
     """
-    This is method simply adding an instance of :class:`~noiz.models.QCOne` to DB and committing changes.
+    This is method simply adding an instance of :class:`~noiz.models.QCOneConfig` to DB and committing changes.
 
-    :param qcone: Instance of QCOne to be added to db
-    :type qcone: QCOneConfig
+    Has to be executed within `app_context`
+
+    :param qcone_config: Instance of QCOne to be added to db
+    :type qcone_config: QCOneConfig
     :return: None
     :rtype: NoneType
     """
-    db.session.add(qcone)
+    db.session.add(qcone_config)
     db.session.commit()
     return
+
+
+def create_and_add_qc_one_config_from_toml(
+        filepath: Path,
+        add_to_db: bool = False
+) -> Optional[Tuple[QCOneHolder, QCOneConfig]]:
+    """
+    This method takes a filepath to a TOML file with valid parameters
+    to create a :class:`~noiz.processing.qc.QCOneHolder` and subsequently :class:`~noiz.models.QCOneConfig`.
+    It can also add the created object to the database. By default it does not add it to db.
+    If chosen not to add the result to db, a tuple containing both :class:`~noiz.processing.qc.QCOneHolder`
+    and :class:`~noiz.models.QCOneConfig` will be returned for manual check.
+
+    :param filepath: Path to existing TOML file
+    :type filepath: Path
+    :param add_to_db: If the result of parsing of TOML should be added to DB
+    :type add_to_db: bool
+    :return: It can return QCOneHolder object for manual validation
+    :rtype: Optional[QCOneHolder]
+    """
+
+    qcone_holder = load_qc_one_config_toml(filepath=filepath)
+    qcone_config = create_qcone_config(qcone_holder=qcone_holder)
+
+    if add_to_db:
+        insert_qc_one_config_into_db(qcone_config=qcone_config)
+    else:
+        return (qcone_holder, qcone_config)
+    return None
