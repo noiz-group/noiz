@@ -1,6 +1,10 @@
 import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+import matplotlib.units as munits
+import numpy as np
 import pandas as pd
+
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Collection
@@ -9,6 +13,11 @@ from noiz.api.component import fetch_components
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.api.soh import fetch_raw_soh_gps_df, fetch_averaged_soh_gps_df
 from noiz.models import Component
+
+converter = mdates.ConciseDateConverter()
+munits.registry[np.datetime64] = converter
+munits.registry[datetime.date] = converter
+munits.registry[datetime] = converter
 
 
 def plot_raw_gps_data_availability(
@@ -137,6 +146,8 @@ def __plot_gps_data_soh(
         endtime: datetime,
         fig_title: str,
         show_legend: bool = True,
+        minticks: int = 5,
+        maxticks: int = 8,
 ) -> matplotlib.pyplot.Figure:
     """
      Plots content provided DataFrame on a plot with n subplots where n = len(z_components)
@@ -163,19 +174,21 @@ def __plot_gps_data_soh(
     if len(z_components) == 1:
         axes = (axes,)
 
+    locator = mdates.AutoDateLocator(minticks=minticks, maxticks=maxticks)
+    formatter = mdates.ConciseDateFormatter(locator)
+    axes[0].xaxis.set_major_locator(locator)
+    axes[0].xaxis.set_major_formatter(formatter)
+
     for ax, cmp in zip(axes, z_components):
         subdf = df.loc[df.loc[:, 'z_component_id'] == cmp.id, :].sort_index()
-        ax.plot(subdf.index, subdf.loc[:, ['time_uncertainty']], label='Uncertainty')
-        ax.plot(subdf.index, subdf.loc[:, ['time_error']], label='Error')
+        ax.plot(subdf.index, subdf.loc[:, ['time_uncertainty']], label='Uncertainty [ms]')
+        ax.plot(subdf.index, subdf.loc[:, ['time_error']], label='Error [ms]')
         ax.set_ylabel(str(cmp), rotation=0, labelpad=30)
         ax.yaxis.set_label_position("right")
 
-    # This is used to show only one common label on X and Y axes
-    common_ax = fig.add_subplot(111, frameon=False)
-    common_ax.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
-    common_ax.set_xlabel('Date', labelpad=45)
-    common_ax.set_ylabel('Time [ms]', labelpad=30)
-    common_ax.set_title(fig_title)
+    axes[0].set_title(fig_title)
+    axes[0].set_xlim(starttime - timedelta(days=1),
+                     endtime + timedelta(days=1))
 
     days = (starttime - endtime).days
 
@@ -187,10 +200,7 @@ def __plot_gps_data_soh(
     width = min(width, height * 4)
     fig.set_figwidth(width)
 
-    axes[-1].set_xlim(starttime - timedelta(days=1),
-                      endtime + timedelta(days=1))
     if show_legend:
-        axes[-1].legend(loc='lower center', ncol=2)
+        axes[-1].legend(loc='upper center', ncol=2, bbox_to_anchor=(0.5, -0.15), fancybox=True)
 
-    fig.autofmt_xdate()
     return fig
