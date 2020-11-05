@@ -2,7 +2,7 @@ import datetime
 import toml
 
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional, List, Any, MutableMapping, Dict, Union
 from pathlib import Path
 
 from noiz.models import QCOne, QCOneRejectedTime
@@ -53,10 +53,12 @@ def load_qc_one_config_toml(filepath: Path) -> QCOneHolder:
     with open(file=filepath, mode='r') as f:
         loaded_config = toml.load(f=f)
 
+    return validate_dict_as_qcone_holder(loaded_config)
+
+
+def validate_dict_as_qcone_holder(loaded_config: Union[Dict, MutableMapping[str, Any]]) -> QCOneHolder:
     validated_forbidden_channels = []
     for forb_chn in loaded_config['forbidden_channels']:
         validated_forbidden_channels.append(QCOneRejectedTimeHolder(**forb_chn))
-
     loaded_config['forbidden_channels'] = validated_forbidden_channels
-
     return QCOneHolder(**loaded_config)
