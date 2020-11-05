@@ -1,6 +1,6 @@
 import toml
 
-from typing import Any, MutableMapping, Dict, Union
+from typing import Dict
 from pathlib import Path
 
 from noiz.models.qc import QCOneRejectedTimeHolder, QCOneHolder
@@ -35,9 +35,12 @@ def validate_dict_as_qcone_holder(loaded_dict: Dict) -> QCOneHolder:
     :return: Valid QCOneHolder object
     :rtype: QCOneHolder
     """
+
     processed_dict = loaded_dict.copy()
+
     validated_forbidden_channels = []
     for forb_chn in loaded_dict['rejected_times']:
         validated_forbidden_channels.append(QCOneRejectedTimeHolder(**forb_chn))
     processed_dict['rejected_times'] = validated_forbidden_channels
+
     return QCOneHolder(**processed_dict)
