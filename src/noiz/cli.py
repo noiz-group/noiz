@@ -1,24 +1,21 @@
 # mypy: ignore-errors
-from pathlib import Path
-
-import os
-from typing import Iterable
 
 import click
+import logging
+import os
+import pendulum
+
 from flask.cli import AppGroup, with_appcontext
 from flask import current_app
 from flask.cli import FlaskGroup
-
-import logging
-import pendulum
 from pendulum.date import Date
+from pathlib import Path
+from typing import Iterable
 
-import noiz
 from noiz.api.inventory import parse_inventory_insert_stations_and_components_into_db
 from noiz.api.processing_config import upsert_default_params
-from noiz.processing.inventory import read_inventory
-
 from noiz.app import create_app
+from noiz.processing.inventory import read_inventory
 
 log = logging.getLogger(__name__)
 
@@ -41,13 +38,13 @@ def _register_subgroups_to_cli(cli: AppGroup, custom_groups: Iterable[AppGroup])
 
 @cli.group("noiz", cls=FlaskGroup, create_app=create_app)
 def cli():  # type: ignore
-    "Perform operations with noiz package"
+    """Perform operations with noiz package"""
     pass
 
 
 @configs_group.group("configs")
 def configs_group():  # type: ignore
-    "Initiate operation in noiz"
+    """Initiate operation in noiz"""
     pass
 
 
@@ -65,7 +62,7 @@ def reset_config():
 
 @data_group.group("data")
 def data_group():  # type: ignore
-    "Ingest raw data by Noiz"
+    """Ingest raw data by Noiz"""
     pass
 
 
@@ -152,7 +149,7 @@ def add_soh_files(station, station_type, soh_type, paths, network):
 
 @qc_group.group("qc")
 def qc_group():  # type: ignore
-    "Manage QCConfigs"
+    """Manage QCConfigs"""
     pass
 
 
