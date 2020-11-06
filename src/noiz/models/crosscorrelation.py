@@ -1,8 +1,10 @@
 from sqlalchemy.dialects.postgresql import ARRAY
 from noiz.database import db
-from noiz.models import DatachunkPreprocessingConfig, ComponentPair, Timespan
 
-from noiz.models.stacking import association_table
+from noiz.models.component_pair import ComponentPair
+from noiz.models.processing_params import DatachunkPreprocessingConfig
+from noiz.models.stacking import association_table, CCFStack
+from noiz.models.timespan import Timespan
 
 
 class Crosscorrelation(db.Model):
@@ -40,5 +42,5 @@ class Crosscorrelation(db.Model):
         DatachunkPreprocessingConfig, foreign_keys=[datachunk_processing_config_id]
     )
     stacks = db.relationship(
-        "CCFStack", secondary=association_table, back_populates="ccfs"
+        CCFStack, secondary=association_table, back_populates="ccfs"
     )
