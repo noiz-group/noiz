@@ -96,7 +96,7 @@ class StackingSchema(db.Model):
             )
 
 
-association_table = db.Table(
+ccf_ccfstack_association_table = db.Table(
     "stacking_association",
     db.metadata,
     db.Column(
@@ -131,5 +131,5 @@ class CCFStack(db.Model):
     no_ccfs = db.Column("no_ccfs", db.Integer, nullable=False)
 
     ccfs = db.relationship(
-        "Crosscorrelation", secondary=association_table, back_populates="stacks"
+        "Crosscorrelation", secondary=ccf_ccfstack_association_table, back_populates="stacks"
     )
