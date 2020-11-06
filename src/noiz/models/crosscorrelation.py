@@ -10,7 +10,7 @@ class Crosscorrelation(db.Model):
         db.UniqueConstraint(
             "timespan_id",
             "componentpair_id",
-            "processing_params_id",
+            "datachunk_processing_config_id",
             name="unique_ccf_per_timespan_per_componentpair_per_processing",
         ),
     )
