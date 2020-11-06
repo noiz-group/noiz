@@ -160,7 +160,7 @@ def qc_group():  # type: ignore
 @with_appcontext
 @click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
 @click.option('--add_to_db', is_flag=True, expose_value=True,
-              prompt='Are you sure you want to add QCOneConfig to DB? `N` will just preview it. \n')
+              prompt='Are you sure you want to add QCOneConfig to DB? `N` will just preview it. ')
 def read_qc_one_config(
         filepath: str,
         add_to_db: bool,
@@ -173,6 +173,7 @@ def read_qc_one_config(
         create_and_add_qc_one_config_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
     else:
         parsing_results, _ = create_and_add_qc_one_config_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
+        click.echo("\n")
         click.echo(parsing_results)
 
 
