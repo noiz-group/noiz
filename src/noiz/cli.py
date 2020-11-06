@@ -25,6 +25,7 @@ log = logging.getLogger(__name__)
 cli = AppGroup("noiz")
 configs_group = AppGroup("configs")  # type: ignore
 data_group = AppGroup("data")  # type: ignore
+qc_group = AppGroup("qc")  # type: ignore
 processing_group = AppGroup("processing")  # type: ignore
 plotting_group = AppGroup("plotting")  # type: ignore
 
@@ -147,6 +148,32 @@ def add_soh_files(station, station_type, soh_type, paths, network):
     )
 
     return
+
+
+@qc_group.group("qc")
+def qc_group():  # type: ignore
+    "Manage QCConfigs"
+    pass
+
+
+@qc_group.command("read_qc_one_config")
+@with_appcontext
+@click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
+@click.option('--yes', is_flag=True, expose_value=True,
+              prompt='Are you sure you want to add QCOneConfig to DB? `N` will just preview it.')
+def read_qc_one_config(
+        filepath: str,
+        yes: bool,
+):
+    """This command allows for reading a TOML file with QCOne config and adding it to database"""
+
+    from noiz.api.qc import create_and_add_qc_one_config_from_toml
+
+    if yes:
+        create_and_add_qc_one_config_from_toml(filepath=Path(filepath), add_to_db=False)
+    else:
+        parsing_results, _ = create_and_add_qc_one_config_from_toml(filepath=Path(filepath), add_to_db=False)
+        click.echo(parsing_results)
 
 
 @processing_group.group("processing")
@@ -415,7 +442,7 @@ def averaged_gps_soh(
     return
 
 
-_register_subgroups_to_cli(cli, (configs_group, data_group, processing_group, plotting_group))
+_register_subgroups_to_cli(cli, (configs_group, data_group, processing_group, qc_group, plotting_group))
 
 
 if __name__ == "__main__":
