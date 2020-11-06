@@ -1,30 +1,28 @@
 # mypy: ignore-errors
-from pathlib import Path
-
-import os
-from typing import Iterable
 
 import click
+import logging
+import os
+import pendulum
+
 from flask.cli import AppGroup, with_appcontext
 from flask import current_app
 from flask.cli import FlaskGroup
-
-import logging
-import pendulum
 from pendulum.date import Date
+from pathlib import Path
+from typing import Iterable
 
-import noiz
 from noiz.api.inventory import parse_inventory_insert_stations_and_components_into_db
 from noiz.api.processing_config import upsert_default_params
-from noiz.processing.inventory import read_inventory
-
 from noiz.app import create_app
+from noiz.processing.inventory import read_inventory
 
 log = logging.getLogger(__name__)
 
 cli = AppGroup("noiz")
 configs_group = AppGroup("configs")  # type: ignore
 data_group = AppGroup("data")  # type: ignore
+qc_group = AppGroup("qc")  # type: ignore
 processing_group = AppGroup("processing")  # type: ignore
 plotting_group = AppGroup("plotting")  # type: ignore
 
@@ -38,15 +36,38 @@ def _register_subgroups_to_cli(cli: AppGroup, custom_groups: Iterable[AppGroup])
     return
 
 
+def _parse_as_date(ctx, param, value) -> Date:
+    """
+    This method is used internally as a callback for date arguments to parse the input string and
+    return a :class:`pendulum.date.Date` object
+    """
+    if not isinstance(value, Date):
+        return pendulum.parse(value).date()
+    else:
+        return value
+
+
+def _validate_zero_length_as_none(ctx, param, value):
+    """
+    This method is used to check if value of option with `multiple=True` argument
+    contains something or not. If it does not contain any elements, it's converted to None,
+    if it contains anything, it is returned as-is.
+    """
+    if isinstance(value, tuple) and len(value) == 0:
+        return None
+    else:
+        return value
+
+
 @cli.group("noiz", cls=FlaskGroup, create_app=create_app)
 def cli():  # type: ignore
-    "Perform operations with noiz package"
+    """Perform operations with noiz package"""
     pass
 
 
 @configs_group.group("configs")
 def configs_group():  # type: ignore
-    "Initiate operation in noiz"
+    """Initiate operation in noiz"""
     pass
 
 
@@ -64,7 +85,7 @@ def reset_config():
 
 @data_group.group("data")
 def data_group():  # type: ignore
-    "Ingest raw data by Noiz"
+    """Ingest raw data by Noiz"""
     pass
 
 
@@ -149,6 +170,33 @@ def add_soh_files(station, station_type, soh_type, paths, network):
     return
 
 
+@qc_group.group("qc")
+def qc_group():  # type: ignore
+    """Manage QCConfigs"""
+    pass
+
+
+@qc_group.command("read_qc_one_config")
+@with_appcontext
+@click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
+@click.option('--add_to_db', is_flag=True, expose_value=True,
+              prompt='Are you sure you want to add QCOneConfig to DB? `N` will just preview it. ')
+def read_qc_one_config(
+        filepath: str,
+        add_to_db: bool,
+):
+    """This command allows for reading a TOML file with QCOne config and adding it to database"""
+
+    from noiz.api.qc import create_and_add_qc_one_config_from_toml
+
+    if add_to_db:
+        create_and_add_qc_one_config_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
+    else:
+        parsing_results, _ = create_and_add_qc_one_config_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
+        click.echo("\n")
+        click.echo(parsing_results)
+
+
 @processing_group.group("processing")
 def processing_group():  # type: ignore
     """Processing subcommands"""
@@ -157,10 +205,10 @@ def processing_group():  # type: ignore
 
 @processing_group.command("prepare_datachunks")
 @with_appcontext
-@click.option("-s", "--station", multiple=True, type=str)
-@click.option("-c", "--component", multiple=True, type=str)
-@click.option("-sd", "--startdate", nargs=1, type=str, required=True)
-@click.option("-ed", "--enddate", nargs=1, type=str, required=True)
+@click.option("-s", "--station", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-c", "--component", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
 @click.option("-p", "--processing_config_id", nargs=1, type=int,
               default=1, show_default=True)
 def prepare_datachunks(
@@ -171,16 +219,6 @@ def prepare_datachunks(
         processing_config_id
 ):
     """This command starts parallel processing of datachunks"""
-
-    if not isinstance(startdate, Date):
-        startdate = pendulum.parse(startdate).date()
-    if not isinstance(enddate, Date):
-        enddate = pendulum.parse(enddate).date()
-
-    if len(station) == 0:
-        station = None
-    if len(component) == 0:
-        component = None
 
     from noiz.api.datachunk import run_paralel_chunk_preparation
 
@@ -195,10 +233,10 @@ def prepare_datachunks(
 
 @processing_group.command("average_soh_gps")
 @with_appcontext
-@click.option("-n", "--network", multiple=True, type=str, default=None)
-@click.option("-s", "--station", multiple=True, type=str, default=None)
-@click.option("-sd", "--startdate", nargs=1, type=str, required=True)
-@click.option("-ed", "--enddate", nargs=1, type=str, required=True)
+@click.option("-n", "--network", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
+@click.option("-s", "--station", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
+@click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
 def average_soh_gps(
         network,
         station,
@@ -210,16 +248,6 @@ def average_soh_gps(
     The starttime and endtime are required because it could take too much time for processing everything at
     once by default.
     """
-
-    if not isinstance(startdate, Date):
-        startdate = pendulum.parse(startdate).date()
-    if not isinstance(enddate, Date):
-        enddate = pendulum.parse(enddate).date()
-
-    if len(station) == 0:
-        station = None
-    if len(network) == 0:
-        network = None
 
     from noiz.api.soh import average_raw_gps_soh
     average_raw_gps_soh(
@@ -238,13 +266,13 @@ def plotting_group():  # type: ignore
 
 @plotting_group.command("datachunk_availability")
 @with_appcontext
-@click.option("-n", "--network", multiple=True, type=str, default=None)
-@click.option("-s", "--station", multiple=True, type=str, default=None)
-@click.option("-c", "--component", multiple=True, type=str, default=None)
+@click.option("-n", "--network", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
+@click.option("-s", "--station", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
+@click.option("-c", "--component", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
 @click.option("-sd", "--startdate", nargs=1, type=str,
-              default=DEFAULT_STARTDATE, show_default=True)
+              default=DEFAULT_STARTDATE, show_default=True, callback=_parse_as_date)
 @click.option("-ed", "--enddate", nargs=1, type=str,
-              default=DEFAULT_ENDDATE, show_default=True)
+              default=DEFAULT_ENDDATE, show_default=True, callback=_parse_as_date)
 @click.option("-p", "--processing_config_id", nargs=1, type=int,
               default=1, show_default=True)
 @click.option('--savefig/--no-savefig', default=True)
@@ -264,17 +292,6 @@ def plot_datachunk_availability(
     """
     Method to plot datachunk availability based on passed arguments.
     """
-    if not isinstance(startdate, Date):
-        startdate = pendulum.parse(startdate).date()
-    if not isinstance(enddate, Date):
-        enddate = pendulum.parse(enddate).date()
-
-    if len(network) == 0:
-        network = None
-    if len(station) == 0:
-        station = None
-    if len(component) == 0:
-        component = None
 
     if savefig is True and plotpath is None:
         plotpath = Path('.')\
@@ -301,12 +318,12 @@ def plot_datachunk_availability(
 
 @plotting_group.command("raw_gps_soh")
 @with_appcontext
-@click.option("-n", "--network", multiple=True, type=str, default=None)
-@click.option("-s", "--station", multiple=True, type=str, default=None)
+@click.option("-n", "--network", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
+@click.option("-s", "--station", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
 @click.option("-sd", "--starttime", nargs=1, type=str,
-              default=DEFAULT_STARTDATE, show_default=True)
+              default=DEFAULT_STARTDATE, show_default=True, callback=_parse_as_date)
 @click.option("-ed", "--endtime", nargs=1, type=str,
-              default=DEFAULT_ENDDATE, show_default=True)
+              default=DEFAULT_ENDDATE, show_default=True, callback=_parse_as_date)
 @click.option('--savefig/--no-savefig', default=True)
 @click.option('-pp', '--plotpath', type=click.Path())
 @click.option('--showfig', is_flag=True)
@@ -324,16 +341,6 @@ def plot_raw_gps_soh(
     """
     Method to plot raw GPS SOH based on passed arguments.
     """
-
-    if not isinstance(starttime, Date):
-        starttime = pendulum.parse(starttime)
-    if not isinstance(endtime, Date):
-        endtime = pendulum.parse(endtime)
-
-    if len(network) == 0:
-        network = None
-    if len(station) == 0:
-        station = None
 
     if savefig is True and plotpath is None:
         plotpath = Path('.')\
@@ -359,12 +366,12 @@ def plot_raw_gps_soh(
 
 @plotting_group.command("averaged_gps_soh")
 @with_appcontext
-@click.option("-n", "--network", multiple=True, type=str, default=None)
-@click.option("-s", "--station", multiple=True, type=str, default=None)
+@click.option("-n", "--network", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
+@click.option("-s", "--station", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
 @click.option("-sd", "--starttime", nargs=1, type=str,
-              default=DEFAULT_STARTDATE, show_default=True)
+              default=DEFAULT_STARTDATE, show_default=True, callback=_parse_as_date)
 @click.option("-ed", "--endtime", nargs=1, type=str,
-              default=DEFAULT_ENDDATE, show_default=True)
+              default=DEFAULT_ENDDATE, show_default=True, callback=_parse_as_date)
 @click.option('--savefig/--no-savefig', default=True)
 @click.option('-pp', '--plotpath', type=click.Path())
 @click.option('--showfig', is_flag=True)
@@ -382,16 +389,6 @@ def averaged_gps_soh(
     """
     Method to plot Averaged GPS SOH based on passed arguments.
     """
-
-    if not isinstance(starttime, Date):
-        starttime = pendulum.parse(starttime)
-    if not isinstance(endtime, Date):
-        endtime = pendulum.parse(endtime)
-
-    if len(network) == 0:
-        network = None
-    if len(station) == 0:
-        station = None
 
     if savefig is True and plotpath is None:
         plotpath = Path('.')\
@@ -415,7 +412,7 @@ def averaged_gps_soh(
     return
 
 
-_register_subgroups_to_cli(cli, (configs_group, data_group, processing_group, plotting_group))
+_register_subgroups_to_cli(cli, (configs_group, data_group, processing_group, qc_group, plotting_group))
 
 
 if __name__ == "__main__":
