@@ -36,6 +36,17 @@ def _register_subgroups_to_cli(cli: AppGroup, custom_groups: Iterable[AppGroup])
     return
 
 
+def _parse_as_date(ctx, param, value) -> Date:
+    """
+    This method is used internally as a callback for date arguments to parse the input string and
+    return a :class:`pendulum.date.Date` object
+    """
+    if not isinstance(value, Date):
+        return pendulum.parse(value).date()
+    else:
+        return value
+
+
 @cli.group("noiz", cls=FlaskGroup, create_app=create_app)
 def cli():  # type: ignore
     """Perform operations with noiz package"""
@@ -184,8 +195,8 @@ def processing_group():  # type: ignore
 @with_appcontext
 @click.option("-s", "--station", multiple=True, type=str)
 @click.option("-c", "--component", multiple=True, type=str)
-@click.option("-sd", "--startdate", nargs=1, type=str, required=True)
-@click.option("-ed", "--enddate", nargs=1, type=str, required=True)
+@click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
 @click.option("-p", "--processing_config_id", nargs=1, type=int,
               default=1, show_default=True)
 def prepare_datachunks(
@@ -196,11 +207,6 @@ def prepare_datachunks(
         processing_config_id
 ):
     """This command starts parallel processing of datachunks"""
-
-    if not isinstance(startdate, Date):
-        startdate = pendulum.parse(startdate).date()
-    if not isinstance(enddate, Date):
-        enddate = pendulum.parse(enddate).date()
 
     if len(station) == 0:
         station = None
@@ -222,8 +228,8 @@ def prepare_datachunks(
 @with_appcontext
 @click.option("-n", "--network", multiple=True, type=str, default=None)
 @click.option("-s", "--station", multiple=True, type=str, default=None)
-@click.option("-sd", "--startdate", nargs=1, type=str, required=True)
-@click.option("-ed", "--enddate", nargs=1, type=str, required=True)
+@click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
 def average_soh_gps(
         network,
         station,
@@ -235,11 +241,6 @@ def average_soh_gps(
     The starttime and endtime are required because it could take too much time for processing everything at
     once by default.
     """
-
-    if not isinstance(startdate, Date):
-        startdate = pendulum.parse(startdate).date()
-    if not isinstance(enddate, Date):
-        enddate = pendulum.parse(enddate).date()
 
     if len(station) == 0:
         station = None
@@ -267,9 +268,9 @@ def plotting_group():  # type: ignore
 @click.option("-s", "--station", multiple=True, type=str, default=None)
 @click.option("-c", "--component", multiple=True, type=str, default=None)
 @click.option("-sd", "--startdate", nargs=1, type=str,
-              default=DEFAULT_STARTDATE, show_default=True)
+              default=DEFAULT_STARTDATE, show_default=True, callback=_parse_as_date)
 @click.option("-ed", "--enddate", nargs=1, type=str,
-              default=DEFAULT_ENDDATE, show_default=True)
+              default=DEFAULT_ENDDATE, show_default=True, callback=_parse_as_date)
 @click.option("-p", "--processing_config_id", nargs=1, type=int,
               default=1, show_default=True)
 @click.option('--savefig/--no-savefig', default=True)
@@ -289,10 +290,6 @@ def plot_datachunk_availability(
     """
     Method to plot datachunk availability based on passed arguments.
     """
-    if not isinstance(startdate, Date):
-        startdate = pendulum.parse(startdate).date()
-    if not isinstance(enddate, Date):
-        enddate = pendulum.parse(enddate).date()
 
     if len(network) == 0:
         network = None
@@ -329,9 +326,9 @@ def plot_datachunk_availability(
 @click.option("-n", "--network", multiple=True, type=str, default=None)
 @click.option("-s", "--station", multiple=True, type=str, default=None)
 @click.option("-sd", "--starttime", nargs=1, type=str,
-              default=DEFAULT_STARTDATE, show_default=True)
+              default=DEFAULT_STARTDATE, show_default=True, callback=_parse_as_date)
 @click.option("-ed", "--endtime", nargs=1, type=str,
-              default=DEFAULT_ENDDATE, show_default=True)
+              default=DEFAULT_ENDDATE, show_default=True, callback=_parse_as_date)
 @click.option('--savefig/--no-savefig', default=True)
 @click.option('-pp', '--plotpath', type=click.Path())
 @click.option('--showfig', is_flag=True)
@@ -349,11 +346,6 @@ def plot_raw_gps_soh(
     """
     Method to plot raw GPS SOH based on passed arguments.
     """
-
-    if not isinstance(starttime, Date):
-        starttime = pendulum.parse(starttime)
-    if not isinstance(endtime, Date):
-        endtime = pendulum.parse(endtime)
 
     if len(network) == 0:
         network = None
@@ -387,9 +379,9 @@ def plot_raw_gps_soh(
 @click.option("-n", "--network", multiple=True, type=str, default=None)
 @click.option("-s", "--station", multiple=True, type=str, default=None)
 @click.option("-sd", "--starttime", nargs=1, type=str,
-              default=DEFAULT_STARTDATE, show_default=True)
+              default=DEFAULT_STARTDATE, show_default=True, callback=_parse_as_date)
 @click.option("-ed", "--endtime", nargs=1, type=str,
-              default=DEFAULT_ENDDATE, show_default=True)
+              default=DEFAULT_ENDDATE, show_default=True, callback=_parse_as_date)
 @click.option('--savefig/--no-savefig', default=True)
 @click.option('-pp', '--plotpath', type=click.Path())
 @click.option('--showfig', is_flag=True)
@@ -407,11 +399,6 @@ def averaged_gps_soh(
     """
     Method to plot Averaged GPS SOH based on passed arguments.
     """
-
-    if not isinstance(starttime, Date):
-        starttime = pendulum.parse(starttime)
-    if not isinstance(endtime, Date):
-        endtime = pendulum.parse(endtime)
 
     if len(network) == 0:
         network = None
