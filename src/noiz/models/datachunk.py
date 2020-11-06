@@ -23,7 +23,7 @@ class Datachunk(db.Model):
     datachunk_processing_config_id = db.Column(
         "datachunk_processing_config_id",
         db.Integer,
-        db.ForeignKey("datachunk_processing_config.id"),
+        db.ForeignKey("datachunk_preprocessing_config.id"),
         nullable=False,
     )
     timespan_id = db.Column(
