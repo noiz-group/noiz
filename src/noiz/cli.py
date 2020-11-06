@@ -47,6 +47,18 @@ def _parse_as_date(ctx, param, value) -> Date:
         return value
 
 
+def _validate_zero_length_as_none(ctx, param, value):
+    """
+    This method is used to check if value of option with `multiple=True` argument
+    contains something or not. If it does not contain any elements, it's converted to None,
+    if it contains anything, it is returned as-is.
+    """
+    if isinstance(value, tuple) and len(value) == 0:
+        return None
+    else:
+        return value
+
+
 @cli.group("noiz", cls=FlaskGroup, create_app=create_app)
 def cli():  # type: ignore
     """Perform operations with noiz package"""
@@ -193,8 +205,8 @@ def processing_group():  # type: ignore
 
 @processing_group.command("prepare_datachunks")
 @with_appcontext
-@click.option("-s", "--station", multiple=True, type=str)
-@click.option("-c", "--component", multiple=True, type=str)
+@click.option("-s", "--station", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-c", "--component", multiple=True, type=str, callback=_validate_zero_length_as_none)
 @click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
 @click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
 @click.option("-p", "--processing_config_id", nargs=1, type=int,
@@ -207,11 +219,6 @@ def prepare_datachunks(
         processing_config_id
 ):
     """This command starts parallel processing of datachunks"""
-
-    if len(station) == 0:
-        station = None
-    if len(component) == 0:
-        component = None
 
     from noiz.api.datachunk import run_paralel_chunk_preparation
 
@@ -226,8 +233,8 @@ def prepare_datachunks(
 
 @processing_group.command("average_soh_gps")
 @with_appcontext
-@click.option("-n", "--network", multiple=True, type=str, default=None)
-@click.option("-s", "--station", multiple=True, type=str, default=None)
+@click.option("-n", "--network", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
+@click.option("-s", "--station", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
 @click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
 @click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
 def average_soh_gps(
@@ -241,11 +248,6 @@ def average_soh_gps(
     The starttime and endtime are required because it could take too much time for processing everything at
     once by default.
     """
-
-    if len(station) == 0:
-        station = None
-    if len(network) == 0:
-        network = None
 
     from noiz.api.soh import average_raw_gps_soh
     average_raw_gps_soh(
@@ -264,9 +266,9 @@ def plotting_group():  # type: ignore
 
 @plotting_group.command("datachunk_availability")
 @with_appcontext
-@click.option("-n", "--network", multiple=True, type=str, default=None)
-@click.option("-s", "--station", multiple=True, type=str, default=None)
-@click.option("-c", "--component", multiple=True, type=str, default=None)
+@click.option("-n", "--network", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
+@click.option("-s", "--station", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
+@click.option("-c", "--component", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
 @click.option("-sd", "--startdate", nargs=1, type=str,
               default=DEFAULT_STARTDATE, show_default=True, callback=_parse_as_date)
 @click.option("-ed", "--enddate", nargs=1, type=str,
@@ -290,13 +292,6 @@ def plot_datachunk_availability(
     """
     Method to plot datachunk availability based on passed arguments.
     """
-
-    if len(network) == 0:
-        network = None
-    if len(station) == 0:
-        station = None
-    if len(component) == 0:
-        component = None
 
     if savefig is True and plotpath is None:
         plotpath = Path('.')\
@@ -323,8 +318,8 @@ def plot_datachunk_availability(
 
 @plotting_group.command("raw_gps_soh")
 @with_appcontext
-@click.option("-n", "--network", multiple=True, type=str, default=None)
-@click.option("-s", "--station", multiple=True, type=str, default=None)
+@click.option("-n", "--network", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
+@click.option("-s", "--station", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
 @click.option("-sd", "--starttime", nargs=1, type=str,
               default=DEFAULT_STARTDATE, show_default=True, callback=_parse_as_date)
 @click.option("-ed", "--endtime", nargs=1, type=str,
@@ -346,11 +341,6 @@ def plot_raw_gps_soh(
     """
     Method to plot raw GPS SOH based on passed arguments.
     """
-
-    if len(network) == 0:
-        network = None
-    if len(station) == 0:
-        station = None
 
     if savefig is True and plotpath is None:
         plotpath = Path('.')\
@@ -376,8 +366,8 @@ def plot_raw_gps_soh(
 
 @plotting_group.command("averaged_gps_soh")
 @with_appcontext
-@click.option("-n", "--network", multiple=True, type=str, default=None)
-@click.option("-s", "--station", multiple=True, type=str, default=None)
+@click.option("-n", "--network", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
+@click.option("-s", "--station", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
 @click.option("-sd", "--starttime", nargs=1, type=str,
               default=DEFAULT_STARTDATE, show_default=True, callback=_parse_as_date)
 @click.option("-ed", "--endtime", nargs=1, type=str,
@@ -399,11 +389,6 @@ def averaged_gps_soh(
     """
     Method to plot Averaged GPS SOH based on passed arguments.
     """
-
-    if len(network) == 0:
-        network = None
-    if len(station) == 0:
-        station = None
 
     if savefig is True and plotpath is None:
         plotpath = Path('.')\
