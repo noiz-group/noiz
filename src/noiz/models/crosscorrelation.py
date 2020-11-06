@@ -1,6 +1,6 @@
 from sqlalchemy.dialects.postgresql import ARRAY
 from noiz.database import db
-from noiz.models import DatachunkPreprocessingConfig
+from noiz.models import DatachunkPreprocessingConfig, ComponentPair, Timespan
 
 from noiz.models.stacking import association_table
 
@@ -20,11 +20,11 @@ class Crosscorrelation(db.Model):
     componentpair_id = db.Column(
         "componentpair_id",
         db.Integer,
-        db.ForeignKey("componentpair.id"),
+        db.ForeignKey(ComponentPair.id),
         nullable=False,
     )
     timespan_id = db.Column(
-        "timespan_id", db.BigInteger, db.ForeignKey("timespan.id"), nullable=False
+        "timespan_id", db.BigInteger, db.ForeignKey(Timespan.id), nullable=False
     )
     datachunk_processing_config_id = db.Column(
         "datachunk_processing_config_id",
@@ -34,10 +34,10 @@ class Crosscorrelation(db.Model):
     )
     ccf = db.Column("ccf", ARRAY(db.Float))
 
-    componentpair = db.relationship("ComponentPair", foreign_keys=[componentpair_id])
-    timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
+    componentpair = db.relationship(ComponentPair, foreign_keys=[componentpair_id])
+    timespan = db.relationship(Timespan, foreign_keys=[timespan_id])
     datachunk_processing_config = db.relationship(
-        "DatachunkPreprocessingConfig", foreign_keys=[datachunk_processing_config_id]
+        DatachunkPreprocessingConfig, foreign_keys=[datachunk_processing_config_id]
     )
     stacks = db.relationship(
         "CCFStack", secondary=association_table, back_populates="ccfs"
