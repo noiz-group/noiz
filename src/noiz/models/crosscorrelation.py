@@ -25,18 +25,18 @@ class Crosscorrelation(db.Model):
     timespan_id = db.Column(
         "timespan_id", db.BigInteger, db.ForeignKey("timespan.id"), nullable=False
     )
-    processing_params_id = db.Column(
-        "processing_params_id",
+    datachunk_processing_config_id = db.Column(
+        "datachunk_processing_config_id",
         db.Integer,
-        db.ForeignKey("processing_params.id"),
+        db.ForeignKey("DatachunkPreprocessingConfig.id"),
         nullable=False,
     )
     ccf = db.Column("ccf", ARRAY(db.Float))
 
     componentpair = db.relationship("ComponentPair", foreign_keys=[componentpair_id])
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
-    processing_params = db.relationship(
-        "DatachunkPreprocessingConfig", foreign_keys=[processing_params_id]
+    datachunk_processing_config = db.relationship(
+        "DatachunkPreprocessingConfig", foreign_keys=[datachunk_processing_config_id]
     )
     stacks = db.relationship(
         "CCFStack", secondary=association_table, back_populates="ccfs"

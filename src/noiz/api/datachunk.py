@@ -74,7 +74,7 @@ def count_datachunks(
     count = Datachunk.query.filter(
         Datachunk.component_id.in_(component_ids),
         Datachunk.timespan_id.in_(timespan_ids),
-        Datachunk.datachunk_processing_config == datachunk_processing_params.id
+        Datachunk.datachunk_processing_config_id == datachunk_processing_params.id
     ).count()
     return count
 
@@ -129,7 +129,7 @@ def fetch_datachunks(
         timespan_ids = extract_object_ids(timespans)
         filters.append(Datachunk.timespan_id.in_(timespan_ids))
     if datachunk_processing_config is not None:
-        filters.append(Datachunk.datachunk_processing_config == datachunk_processing_config.id)
+        filters.append(Datachunk.datachunk_processing_config_id == datachunk_processing_config.id)
     if datachunk_ids is not None:
         filters.append(Datachunk.id.in_(datachunk_ids))
     if len(filters) == 0:
@@ -182,7 +182,7 @@ def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
             insert_command = (
                 insert(Datachunk)
                 .values(
-                    processing_config_id=datachunk.datachunk_processing_config,
+                    processing_config_id=datachunk.datachunk_processing_config_id,
                     component_id=datachunk.component_id,
                     timespan_id=datachunk.timespan_id,
                     sampling_rate=datachunk.sampling_rate,

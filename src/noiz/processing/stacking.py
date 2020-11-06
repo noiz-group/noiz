@@ -73,7 +73,7 @@ def stack_crosscorrelation(
                 .join(ComponentPair)
                 .filter(
                     db.and_(
-                        Crosscorrelation.processing_params_id == processing_params.id,
+                        Crosscorrelation.datachunk_processing_config_id == processing_params.id,
                         Timespan.starttime >= stacking_timespan.starttime,
                         Timespan.endtime <= stacking_timespan.endtime,
                         Crosscorrelation.componentpair_id == pair_id,

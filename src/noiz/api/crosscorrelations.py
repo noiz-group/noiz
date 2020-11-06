@@ -60,7 +60,7 @@ def upsert_crosscorrelations(crosscorrelations: Iterable[Crosscorrelation]) -> N
         insert_command = (
             insert(Crosscorrelation)
             .values(
-                processing_params_id=xcorr.processing_params_id,
+                processing_params_id=xcorr.datachunk_processing_config_id,
                 componentpair_id=xcorr.componentpair_id,
                 timespan_id=xcorr.timespan_id,
                 ccf=xcorr.ccf,
