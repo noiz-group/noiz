@@ -20,7 +20,7 @@ class Datachunk(db.Model):
     component_id = db.Column(
         "component_id", db.Integer, db.ForeignKey("component.id"), nullable=False
     )
-    datachunk_processing_config = db.Column(
+    datachunk_processing_config_id = db.Column(
         "datachunk_processing_config_id",
         db.Integer,
         db.ForeignKey("datachunk_processing_config.id"),
@@ -42,7 +42,7 @@ class Datachunk(db.Model):
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
     component = db.relationship("Component", foreign_keys=[component_id])
     datachunk_processing_config = db.relationship(
-        "DatachunkPreprocessingConfig", foreign_keys=[datachunk_processing_config],
+        "DatachunkPreprocessingConfig", foreign_keys=[datachunk_processing_config_id],
         # uselist = False, # just for the future left, here, dont want to test that now
     )
     processed_datachunks = db.relationship("ProcessedDatachunk")
