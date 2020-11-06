@@ -159,20 +159,20 @@ def qc_group():  # type: ignore
 @qc_group.command("read_qc_one_config")
 @with_appcontext
 @click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
-@click.option('--yes', is_flag=True, expose_value=True,
-              prompt='Are you sure you want to add QCOneConfig to DB? `N` will just preview it.')
+@click.option('--add_to_db', is_flag=True, expose_value=True,
+              prompt='Are you sure you want to add QCOneConfig to DB? `N` will just preview it. \n')
 def read_qc_one_config(
         filepath: str,
-        yes: bool,
+        add_to_db: bool,
 ):
     """This command allows for reading a TOML file with QCOne config and adding it to database"""
 
     from noiz.api.qc import create_and_add_qc_one_config_from_toml
 
-    if yes:
-        create_and_add_qc_one_config_from_toml(filepath=Path(filepath), add_to_db=False)
+    if add_to_db:
+        create_and_add_qc_one_config_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
     else:
-        parsing_results, _ = create_and_add_qc_one_config_from_toml(filepath=Path(filepath), add_to_db=False)
+        parsing_results, _ = create_and_add_qc_one_config_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
         click.echo(parsing_results)
 
 
