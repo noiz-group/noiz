@@ -3,8 +3,8 @@ import datetime
 import numpy as np
 
 
-class ProcessingParams(db.Model):
-    __tablename__ = "processing_params"
+class DatachunkPreprocessingConfig(db.Model):
+    __tablename__ = "datachunk_preprocessing_config"
 
     id = db.Column("id", db.Integer, primary_key=True)
     _sampling_rate = db.Column("sampling_rate", db.Float, default=24, nullable=False)
