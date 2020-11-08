@@ -33,11 +33,11 @@ class Crosscorrelation(db.Model):
     )
     ccf = db.Column("ccf", ARRAY(db.Float))
 
-    componentpair = db.relationship("componentpair", foreign_keys=[componentpair_id])
-    timespan = db.relationship("timespan", foreign_keys=[timespan_id])
+    componentpair = db.relationship("ComponentPair", foreign_keys=[componentpair_id])
+    timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
     datachunk_processing_config = db.relationship(
         "datachunk_preprocessing_config", foreign_keys=[datachunk_processing_config_id]
     )
     stacks = db.relationship(
-        "ccfstack", secondary=ccf_ccfstack_association_table, back_populates="ccfs"
+        "CCFStack", secondary=ccf_ccfstack_association_table, back_populates="ccfs"
     )
