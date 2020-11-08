@@ -1,7 +1,7 @@
 from noiz.models import (
     Datachunk,
     ProcessedDatachunk,
-    ProcessingParams,
+    DatachunkPreprocessingConfig,
     Timespan,
     Component,
 )
@@ -56,8 +56,8 @@ def run_chunk_processing(
         year = execution_date.year
         day_of_year = execution_date.timetuple().tm_yday
 
-        processing_params = ProcessingParams.query.filter(
-            ProcessingParams.id == processing_params_id
+        processing_params = DatachunkPreprocessingConfig.query.filter(
+            DatachunkPreprocessingConfig.id == processing_params_id
         ).first()
         datachunks = (
             Datachunk.query.join(Timespan)

@@ -61,22 +61,22 @@ pages:
   only:
   - master
 
-test_build:
-  stage: image-building
-  image: docker:19.03.12
-  services:
-    - docker:19.03.12-dind
-  variables:
-    # Use TLS https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#tls-enabled
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: "/certs"
-    IMAGE_TAG: $CI_REGISTRY_IMAGE/test:$CI_COMMIT_REF_SLUG
-  script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build -t $IMAGE_TAG .
-    - docker push $IMAGE_TAG
-  except:
-  - master
+#test_build:
+#  stage: image-building
+#  image: docker:19.03.12
+#  services:
+#    - docker:19.03.12-dind
+#  variables:
+#    # Use TLS https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#tls-enabled
+#    DOCKER_HOST: tcp://docker:2376
+#    DOCKER_TLS_CERTDIR: "/certs"
+#    IMAGE_TAG: $CI_REGISTRY_IMAGE/test:$CI_COMMIT_REF_SLUG
+#  script:
+#    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+#    - docker build -t $IMAGE_TAG .
+#    - docker push $IMAGE_TAG
+#  except:
+#  - master
 
 latest_build:
   stage: image-building
