@@ -16,6 +16,9 @@ variables:
   - python -m pip install --no-cache-dir -r requirements.txt
   - python -m pip install .
 
+.login_dockerhub: &login_dockerhub
+  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+
 test-noiz:
   image: $UNITTESTING_IMAGE_TAG
   stage: testing
@@ -69,8 +72,9 @@ pages:
 #    DOCKER_HOST: tcp://docker:2376
 #    DOCKER_TLS_CERTDIR: "/certs"
 #    IMAGE_TAG: $CI_REGISTRY_IMAGE/test:$CI_COMMIT_REF_SLUG
+#  before_script:
+#    - *login_dockerhub
 #  script:
-#    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
 #    - docker build -t $IMAGE_TAG .
 #    - docker push $IMAGE_TAG
 #  except:
@@ -86,8 +90,9 @@ latest_build:
     DOCKER_HOST: tcp://docker:2376
     DOCKER_TLS_CERTDIR: "/certs"
     IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
+  before_script:
+    - *login_dockerhub
   script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker build -t $IMAGE_TAG .
     - docker push $IMAGE_TAG
   only:
@@ -100,8 +105,9 @@ build_unittesting:
    - docker:19.03.12-dind
  variables:
    UNITTESTING_IMAGE_TAG: $CI_REGISTRY_IMAGE:unittesting
+ before_script:
+   - *login_dockerhub
  script:
-   - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
    - docker build -f docker/unittest-image/Dockerfile -t $UNITTESTING_IMAGE_TAG .
    - docker push $UNITTESTING_IMAGE_TAG
 # only:
