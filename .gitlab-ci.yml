@@ -19,6 +19,8 @@ variables:
 test-noiz:
   image: $UNITTESTING_IMAGE_TAG
   stage: testing
+  before_script:
+    - *install_noiz_complete
   script:
     - pytest --cov=noiz
 
