@@ -39,7 +39,6 @@ class Datachunk(db.Model):
         nullable=True,
     )
 
-    # TODO add backfill to timespan
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id], back_populates="datachunks")
     component = db.relationship("Component", foreign_keys=[component_id])
     datachunk_processing_config = db.relationship(
@@ -100,9 +99,10 @@ class ProcessedDatachunk(db.Model):
         nullable=True,
     )
 
-    # TODO add relationship to the datachunk_preprocessing_config
-    # TODO add backfill to datachunk
-    datachunk = db.relationship("Datachunk", foreign_keys=[datachunk_id])
+    datachunk = db.relationship("Datachunk", foreign_keys=[datachunk_id], back_populates="processed_datachunks")
+    datachunk_processing_config = db.relationship(
+        "DatachunkPreprocessingConfig", foreign_keys=[processing_params_id],
+    )
     processed_datachunk_file = db.relationship(
         "ProcessedDatachunkFile",
         foreign_keys=[processed_datachunk_file_id],
