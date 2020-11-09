@@ -5,7 +5,7 @@ import obspy
 import pandas as pd
 import pytest
 
-from noiz.models import Timespan
+from noiz.models.timespan import Timespan
 
 
 class TestTimespan:

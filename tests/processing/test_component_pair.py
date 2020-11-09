@@ -1,6 +1,7 @@
 import pytest
 
-from noiz.models import ComponentPair, Component
+from noiz.models.component import Component
+from noiz.models.component_pair import ComponentPair
 
 from noiz.processing.component_pair import (
     is_autocorrelation,

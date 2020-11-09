@@ -3,7 +3,7 @@ from typing import Iterable
 from sqlalchemy.dialects.postgresql import insert
 
 from noiz.database import db
-from noiz.models import StackingTimespan
+from noiz.models.stacking import StackingTimespan
 
 
 def insert_stacking_timespans_into_db(

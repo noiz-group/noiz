@@ -1,13 +1,14 @@
 import logging
-
+import numpy as np
+import obspy
 from pathlib import Path
 from typing import Union, Optional, Tuple
 
-import numpy as np
-import obspy
 
-from noiz.models import Component, Timespan, \
-    DatachunkPreprocessingConfig
+from noiz.models.component import Component
+from noiz.models.processing_params import DatachunkPreprocessingConfig
+from noiz.models.timespan import Timespan
+
 
 log = logging.getLogger("noiz.processing")
 

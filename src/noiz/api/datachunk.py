@@ -17,9 +17,11 @@ from noiz.api.processing_config import fetch_processing_config_by_id
 from noiz.database import db
 from noiz.exceptions import NoDataException, MissingDataFileException
 from noiz.globals import PROCESSED_DATA_DIR
-from noiz.models import Datachunk, Component, Timespan, DatachunkPreprocessingConfig, \
-    Tsindex, DatachunkFile
-
+from noiz.models.component import Component
+from noiz.models.datachunk import Datachunk, DatachunkFile
+from noiz.models.processing_params import DatachunkPreprocessingConfig
+from noiz.models.time_series_index import Tsindex
+from noiz.models.timespan import Timespan
 from noiz.processing.datachunk_preparation import validate_slice, \
     preprocess_timespan, assembly_filepath, assembly_sds_like_dir, \
     assembly_preprocessing_filename, increment_filename_counter, \

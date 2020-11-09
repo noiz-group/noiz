@@ -6,7 +6,8 @@ from obspy.core.inventory.network import Network
 from obspy.core.inventory.station import Station, Longitude, Latitude
 from obspy.core.inventory.channel import Channel
 
-from noiz.models import ComponentPair, Component
+from noiz.models.component import Component
+from noiz.models.component_pair import ComponentPair
 
 from noiz.processing.inventory import (
     _assembly_single_component_inventory,

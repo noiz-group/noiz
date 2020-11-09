@@ -2,7 +2,7 @@ from pathlib import Path
 import logging
 
 from noiz.database import db
-from noiz.models import Component
+from noiz.models.component import Component
 from noiz.processing.inventory import (
     divide_channels_by_component,
     _assembly_single_component_inventory,

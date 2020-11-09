@@ -1,7 +1,7 @@
 from typing import Optional
 
 from noiz.database import db
-from noiz.models import DatachunkPreprocessingConfig
+from noiz.models.processing_params import DatachunkPreprocessingConfig
 
 
 def upsert_default_params() -> None:

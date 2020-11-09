@@ -3,7 +3,7 @@ import logging
 from typing import List, Iterable, Optional, Collection, Union
 
 from noiz.api.helpers import validate_to_tuple
-from noiz.models import Component
+from noiz.models.component import Component
 
 log = logging.getLogger("noiz.api")
 
