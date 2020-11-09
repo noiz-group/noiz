@@ -42,6 +42,8 @@ type-check:
 build-docs:
   image: $UNITTESTING_IMAGE_TAG
   stage: documentation
+  before_script:
+    - *install_noiz_complete
   script:
   - cd docs
   - make html
