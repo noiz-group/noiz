@@ -5,7 +5,7 @@ from datetime import date, datetime
 from obspy import UTCDateTime
 
 from noiz.database import db
-from noiz.models import Timespan
+from noiz.models.timespan import Timespan
 
 
 def insert_timespans_into_db(timespans: Iterable[Timespan], bulk_insert: bool) -> None:

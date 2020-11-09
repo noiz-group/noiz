@@ -15,8 +15,9 @@ from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.api.component import fetch_components
 from noiz.api.helpers import validate_exactly_one_argument_provided, extract_object_ids
 from noiz.database import db
-from noiz.models import SohInstrument, SohGps, Component, Timespan
-from noiz.models.soh import association_table_soh_instr, association_table_soh_gps, AveragedSohGps, \
+from noiz.models.component import Component
+from noiz.models.timespan import Timespan
+from noiz.models.soh import SohInstrument, SohGps, association_table_soh_instr, association_table_soh_gps, AveragedSohGps, \
     association_table_averaged_soh_gps_components
 from noiz.processing.soh import load_parsing_parameters, read_multiple_soh, __postprocess_soh_dataframe, \
     glob_soh_directory, __calculate_mean_gps_soh

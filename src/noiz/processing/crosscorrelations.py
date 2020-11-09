@@ -1,10 +1,10 @@
+from collections import defaultdict
 import numpy as np
 import obspy
-
-from collections import defaultdict
 from typing import Tuple, Iterable, Dict, DefaultDict
 
-from noiz.models import ProcessedDatachunk, ComponentPair
+from noiz.models.component_pair import ComponentPair
+from noiz.models.datachunk import ProcessedDatachunk
 
 
 def get_time_vector_ccf(max_lag: float, sampling_rate: float) -> np.array:

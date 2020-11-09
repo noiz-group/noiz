@@ -6,7 +6,8 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import aliased, subqueryload
 
 from noiz.database import db
-from noiz.models import Component, ComponentPair
+from noiz.models.component import Component
+from noiz.models.component_pair import ComponentPair
 from noiz.processing.component_pair import (
     is_autocorrelation,
     is_intrastation_correlation,
