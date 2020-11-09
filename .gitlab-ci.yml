@@ -14,6 +14,7 @@ variables:
   DOCKER_TLS_CERTDIR: "/certs"
   UNITTESTING_IMAGE_TAG: $CI_REGISTRY_IMAGE:unittesting
   LATEST_IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
+  TEST_IMAGE_TAG: $CI_REGISTRY_IMAGE/test:$CI_COMMIT_REF_SLUG
 
 .install_noiz_complete: &install_noiz_complete
   - python -m pip install --upgrade pip setuptools wheel
@@ -73,8 +74,6 @@ test_build:
   image: docker:19.03.12
   services:
     - docker:19.03.12-dind
-  variables:
-    TEST_IMAGE_TAG: $CI_REGISTRY_IMAGE/test:$CI_COMMIT_REF_SLUG
   before_script:
     - *login_dockerhub
   script:
