@@ -40,7 +40,7 @@ class Datachunk(db.Model):
     )
 
     # TODO add backfill to timespan
-    timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
+    timespan = db.relationship("Timespan", foreign_keys=[timespan_id], back_populates="datachunks")
     component = db.relationship("Component", foreign_keys=[component_id])
     datachunk_processing_config = db.relationship(
         "DatachunkPreprocessingConfig", foreign_keys=[datachunk_processing_config_id],
