@@ -9,6 +9,13 @@ LABEL schema-version="1.0.0"
 
 COPY  requirements*.txt /
 
+RUN apt-get update -yqq && \
+    apt-get install -yqq --no-install-recommends \
+        build-essential \
+        gcc && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 RUN python -m pip install pip --upgrade --no-cache-dir && \
     python -m pip install --use-feature=2020-resolver -r /requirements.txt --no-cache-dir && \
     rm -rv /requirements*.txt
