@@ -32,7 +32,6 @@ flake8:
   image: $UNITTESTING_IMAGE_TAG
   stage: linting
   script:
-    - python -m pip install flake8
     - flake8 .
 
 build-docs:
