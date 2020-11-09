@@ -95,6 +95,19 @@ latest_build:
   only:
   - master
 
+build_unittesting:
+ stage: image-building
+ image: docker:19.03.12
+ services:
+   - docker:19.03.12-dind
+ variables:
+   IMAGE_TAG: $CI_REGISTRY_IMAGE:unittesting
+ script:
+   - docker build -f docker/unittest-image/Dockerfile -t $IMAGE_TAG .
+   - docker push $IMAGE_TAG
+# only:
+# - master
+
 trigger_airflow_master:
   stage: downstream
   image: alpine
