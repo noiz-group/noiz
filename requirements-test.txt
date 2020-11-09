@@ -1,6 +1,7 @@
 # black
 # pre_commit
-pytest~=6.1.0
+pytest~=6.1.2
 pytest-cov~=2.10.1
-mypy~=0.782
+mypy~=0.790
 sqlalchemy-stubs~=0.3
+flake8~=3.8.4
