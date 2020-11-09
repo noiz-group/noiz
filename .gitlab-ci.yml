@@ -36,11 +36,11 @@ type-check:
   script:
     - mypy src/noiz
 
-#flake8:
-#  image: $UNITTESTING_IMAGE_TAG
-#  stage: linting
-#  script:
-#    - flake8 .
+flake8:
+  image: $UNITTESTING_IMAGE_TAG
+  stage: linting
+  script:
+    - flake8 .
 
 build-docs:
   image: $UNITTESTING_IMAGE_TAG
