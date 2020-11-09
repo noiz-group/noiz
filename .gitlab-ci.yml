@@ -13,6 +13,7 @@ variables:
   DOCKER_HOST: tcp://docker:2376
   DOCKER_TLS_CERTDIR: "/certs"
   UNITTESTING_IMAGE_TAG: $CI_REGISTRY_IMAGE:unittesting
+  LATEST_IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
 
 .install_noiz_complete: &install_noiz_complete
   - python -m pip install --upgrade pip setuptools wheel
@@ -67,28 +68,26 @@ pages:
   only:
   - master
 
-#test_build:
-#  stage: image-building
-#  image: docker:19.03.12
-#  services:
-#    - docker:19.03.12-dind
-#  variables:
-#    TEST_IMAGE_TAG: $CI_REGISTRY_IMAGE/test:$CI_COMMIT_REF_SLUG
-#  before_script:
-#    - *login_dockerhub
-#  script:
-#    - docker build -t $TEST_IMAGE_TAG .
-#    - docker push $TEST_IMAGE_TAG
-#  except:
-#  - master
+test_build:
+  stage: image-building
+  image: docker:19.03.12
+  services:
+    - docker:19.03.12-dind
+  variables:
+    TEST_IMAGE_TAG: $CI_REGISTRY_IMAGE/test:$CI_COMMIT_REF_SLUG
+  before_script:
+    - *login_dockerhub
+  script:
+    - docker build -t $TEST_IMAGE_TAG .
+    - docker push $TEST_IMAGE_TAG
+  except:
+  - master
 
 latest_build:
   stage: image-building
   image: docker:19.03.12
   services:
     - docker:19.03.12-dind
-  variables:
-    LATEST_IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
   before_script:
     - *login_dockerhub
   script:
