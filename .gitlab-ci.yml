@@ -16,6 +16,7 @@ variables:
   LATEST_IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
   TEST_IMAGE_TAG: $CI_REGISTRY_IMAGE/test:$CI_COMMIT_REF_SLUG
   DIND_IMAGE: docker:19.03.12
+  DIND_SERVICE: docker:19.03.12-dind
 
 .install_noiz_complete: &install_noiz_complete
   - python -m pip install --upgrade pip setuptools wheel
@@ -74,7 +75,7 @@ test_build:
   stage: image-building
   image: $DIND_IMAGE
   services:
-    - docker:19.03.12-dind
+    - $DIND_SERVICE
   before_script:
     - *login_dockerhub
   script:
@@ -87,7 +88,7 @@ latest_build:
   stage: image-building
   image: $DIND_IMAGE
   services:
-    - docker:19.03.12-dind
+    - $DIND_SERVICE
   before_script:
     - *login_dockerhub
   script:
@@ -100,7 +101,7 @@ build_unittesting:
  stage: image-building
  image: $DIND_IMAGE
  services:
-   - docker:19.03.12-dind
+   - $DIND_SERVICE
  before_script:
    - *login_dockerhub
  script:
