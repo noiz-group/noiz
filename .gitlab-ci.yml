@@ -103,6 +103,7 @@ build_unittesting:
  variables:
    IMAGE_TAG: $CI_REGISTRY_IMAGE:unittesting
  script:
+   - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
    - docker build -f docker/unittest-image/Dockerfile -t $IMAGE_TAG .
    - docker push $IMAGE_TAG
 # only:
