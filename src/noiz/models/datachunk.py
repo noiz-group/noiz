@@ -81,9 +81,9 @@ class ProcessedDatachunk(db.Model):
 
     id = db.Column("id", db.BigInteger, primary_key=True)
     processing_params_id = db.Column(
-        "processing_params_id",
+        "datachunk_processing_config_id",
         db.Integer,
-        db.ForeignKey("processing_params.id"),
+        db.ForeignKey("datachunk_preprocessing_config.id"),
         nullable=False,
     )
     datachunk_id = db.Column(
