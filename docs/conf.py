@@ -42,7 +42,10 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
     "sphinx.ext.viewcode",
+    'autoapi.extension',
 ]
+
+autoapi_dirs = ['../src/noiz']
 
 autodoc_default_options = {
     'private-members': True,
