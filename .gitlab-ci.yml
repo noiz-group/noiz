@@ -9,7 +9,10 @@ stages:
   - downstream
 
 variables:
-   UNITTESTING_IMAGE_TAG: $CI_REGISTRY_IMAGE:unittesting
+  # Use TLS https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#tls-enabled
+  DOCKER_HOST: tcp://docker:2376
+  DOCKER_TLS_CERTDIR: "/certs"
+  UNITTESTING_IMAGE_TAG: $CI_REGISTRY_IMAGE:unittesting
 
 .install_noiz_complete: &install_noiz_complete
   - python -m pip install --upgrade pip setuptools wheel
@@ -70,9 +73,6 @@ pages:
 #  services:
 #    - docker:19.03.12-dind
 #  variables:
-#    # Use TLS https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#tls-enabled
-#    DOCKER_HOST: tcp://docker:2376
-#    DOCKER_TLS_CERTDIR: "/certs"
 #    IMAGE_TAG: $CI_REGISTRY_IMAGE/test:$CI_COMMIT_REF_SLUG
 #  before_script:
 #    - *login_dockerhub
@@ -88,9 +88,6 @@ latest_build:
   services:
     - docker:19.03.12-dind
   variables:
-    # Use TLS https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#tls-enabled
-    DOCKER_HOST: tcp://docker:2376
-    DOCKER_TLS_CERTDIR: "/certs"
     IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
   before_script:
     - *login_dockerhub
@@ -105,8 +102,6 @@ build_unittesting:
  image: docker:19.03.12
  services:
    - docker:19.03.12-dind
- variables:
-   UNITTESTING_IMAGE_TAG: $CI_REGISTRY_IMAGE:unittesting
  before_script:
    - *login_dockerhub
  script:
