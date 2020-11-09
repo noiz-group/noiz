@@ -8,12 +8,16 @@ stages:
   - image-building
   - downstream
 
+variables:
+   UNITTESTING_IMAGE_TAG: $CI_REGISTRY_IMAGE:unittesting
+
 .install_noiz_complete: &install_noiz_complete
   - python -m pip install --upgrade pip setuptools wheel
   - python -m pip install --no-cache-dir -r requirements.txt
   - python -m pip install .
 
 test-noiz:
+  image: $UNITTESTING_IMAGE_TAG
   before_script:
     - *install_noiz_complete
 
@@ -101,7 +105,7 @@ build_unittesting:
  services:
    - docker:19.03.12-dind
  variables:
-   IMAGE_TAG: $CI_REGISTRY_IMAGE:unittesting
+   UNITTESTING_IMAGE_TAG: $CI_REGISTRY_IMAGE:unittesting
  script:
    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
    - docker build -f docker/unittest-image/Dockerfile -t $IMAGE_TAG .
