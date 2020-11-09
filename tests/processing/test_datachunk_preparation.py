@@ -1,9 +1,7 @@
+import numpy as np
+from obspy import Stream
 import os
 import pytest
-
-import numpy as np
-
-from obspy import Stream
 
 from noiz.processing.datachunk_preparation import merge_traces_fill_zeros
 

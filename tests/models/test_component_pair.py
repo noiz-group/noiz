@@ -1,6 +1,6 @@
 import pytest
 
-from noiz.models import ComponentPair
+from noiz.models.component_pair import ComponentPair
 
 
 class TestComponentPair:
