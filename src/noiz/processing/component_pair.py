@@ -2,7 +2,7 @@ import logging
 
 import numpy as np
 
-from noiz.models import Component
+from noiz.models.component import Component
 
 
 def is_autocorrelation(cmp_a: Component, cmp_b: Component) -> bool:

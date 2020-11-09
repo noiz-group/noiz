@@ -7,7 +7,8 @@ from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-from noiz.api import fetch_components, fetch_datachunks
+from noiz.api.component import fetch_components
+from noiz.api.datachunk import fetch_datachunks
 from noiz.api.processing_config import fetch_processing_config_by_id
 from noiz.api.timespan import fetch_timespans_between_dates
 

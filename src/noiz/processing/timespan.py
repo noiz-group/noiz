@@ -1,10 +1,9 @@
 import datetime
-from typing import Union, Optional, Tuple, Iterable
-
 import numpy as np
 import pandas as pd
+from typing import Union, Optional, Tuple, Iterable
 
-from noiz.models import Timespan
+from noiz.models.timespan import Timespan
 
 
 def generate_starttimes_endtimes(
