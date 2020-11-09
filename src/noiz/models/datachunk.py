@@ -74,7 +74,7 @@ class ProcessedDatachunk(db.Model):
     __table_args__ = (
         db.UniqueConstraint(
             "datachunk_id",
-            "processing_params_id",
+            "datachunk_processing_config_id",
             name="unique_processing_per_datachunk",
         ),
     )
