@@ -18,26 +18,22 @@ variables:
 
 test-noiz:
   image: $UNITTESTING_IMAGE_TAG
-  before_script:
-    - *install_noiz_complete
-
   stage: testing
   script:
     - pytest --cov=noiz
 
 type-check:
-#  before_script:
-#    - *install_noiz
+  image: $UNITTESTING_IMAGE_TAG
   stage: linting
   script:
-    - python -m pip install -r requirements-test.txt
     - mypy src/noiz
 
 flake8:
- stage: linting
- script:
-   - python -m pip install flake8
-   - flake8 .
+  image: $UNITTESTING_IMAGE_TAG
+  stage: linting
+  script:
+    - python -m pip install flake8
+    - flake8 .
 
 build-docs:
   stage: documentation
