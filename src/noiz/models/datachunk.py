@@ -39,8 +39,7 @@ class Datachunk(db.Model):
         nullable=True,
     )
 
-    # TODO add backfill to timespan
-    timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
+    timespan = db.relationship("Timespan", foreign_keys=[timespan_id], back_populates="datachunks")
     component = db.relationship("Component", foreign_keys=[component_id])
     datachunk_processing_config = db.relationship(
         "DatachunkPreprocessingConfig", foreign_keys=[datachunk_processing_config_id],
@@ -75,16 +74,16 @@ class ProcessedDatachunk(db.Model):
     __table_args__ = (
         db.UniqueConstraint(
             "datachunk_id",
-            "processing_params_id",
+            "datachunk_processing_config_id",
             name="unique_processing_per_datachunk",
         ),
     )
 
     id = db.Column("id", db.BigInteger, primary_key=True)
     processing_params_id = db.Column(
-        "processing_params_id",
+        "datachunk_processing_config_id",
         db.Integer,
-        db.ForeignKey("processing_params.id"),
+        db.ForeignKey("datachunk_preprocessing_config.id"),
         nullable=False,
     )
     datachunk_id = db.Column(
@@ -100,9 +99,10 @@ class ProcessedDatachunk(db.Model):
         nullable=True,
     )
 
-    # TODO add relationship to the datachunk_preprocessing_config
-    # TODO add backfill to datachunk
-    datachunk = db.relationship("Datachunk", foreign_keys=[datachunk_id])
+    datachunk = db.relationship("Datachunk", foreign_keys=[datachunk_id], back_populates="processed_datachunks")
+    datachunk_processing_config = db.relationship(
+        "DatachunkPreprocessingConfig", foreign_keys=[processing_params_id],
+    )
     processed_datachunk_file = db.relationship(
         "ProcessedDatachunkFile",
         foreign_keys=[processed_datachunk_file_id],

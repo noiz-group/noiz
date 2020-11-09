@@ -1,6 +1,4 @@
-from typing import Iterable, Union, List, Tuple, Type, Collection, Any, Optional
-
-from noiz.models import Timespan, Component
+from typing import Iterable, Union, List, Tuple, Type, Any, Optional
 
 
 def extract_object_ids(

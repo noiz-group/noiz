@@ -2,12 +2,11 @@ from pathlib import Path
 
 from typing import List, Collection, Union, Optional, Tuple
 
-from noiz.api import fetch_components
+from noiz.api.component import fetch_components
 from noiz.api.helpers import validate_to_tuple
 from noiz.database import db
-from noiz.models import QCOneConfig, QCOneRejectedTime
+from noiz.models.qc import QCOneConfig, QCOneRejectedTime, QCOneRejectedTimeHolder, QCOneHolder
 from noiz.processing.qc import validate_dict_as_qcone_holder, load_qc_one_config_toml
-from noiz.models.qc import QCOneRejectedTimeHolder, QCOneHolder
 
 
 def fetch_qc_one(ids: Union[int, Collection[int]]) -> List[QCOneConfig]:

@@ -1,23 +1,19 @@
 import datetime
 import logging
-from typing import Iterable, List, Tuple
-
 from obspy.signal.cross_correlation import correlate
 from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import subqueryload
+from typing import Iterable, List, Tuple
 
 from noiz.database import db
-from noiz.models import (
-    Crosscorrelation,
-    DatachunkPreprocessingConfig,
-    Timespan,
-    Component,
-    Datachunk,
-    ProcessedDatachunk,
-    ComponentPair,
-)
+from noiz.models.component import Component
+from noiz.models.component_pair import ComponentPair
+from noiz.models.crosscorrelation import Crosscorrelation
+from noiz.models.datachunk import Datachunk, ProcessedDatachunk
+from noiz.models.processing_params import DatachunkPreprocessingConfig
+from noiz.models.timespan import Timespan
 from noiz.processing.crosscorrelations import (
     split_component_pairs_to_components,
     group_componentpairs_by_componenta_componentb,

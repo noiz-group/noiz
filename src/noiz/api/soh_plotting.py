@@ -12,7 +12,7 @@ from typing import Optional, Collection
 from noiz.api.component import fetch_components
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.api.soh import fetch_raw_soh_gps_df, fetch_averaged_soh_gps_df
-from noiz.models import Component
+from noiz.models.component import Component
 
 converter = mdates.ConciseDateConverter()
 munits.registry[np.datetime64] = converter

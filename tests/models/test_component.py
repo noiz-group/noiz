@@ -2,7 +2,7 @@ import pytest
 
 from obspy.core.util import AttribDict
 
-from noiz.models import Component
+from noiz.models.component import Component
 
 
 class TestComponent:

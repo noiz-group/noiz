@@ -1,20 +1,15 @@
-from noiz.models import (
-    Datachunk,
-    ProcessedDatachunk,
-    DatachunkPreprocessingConfig,
-    Timespan,
-    Component,
-)
-from noiz.database import db
-from noiz.processing.datachunk_preparation import directory_exists_or_create
-from pathlib import Path
-
-from sqlalchemy.dialects.postgresql import insert
-
+import logging
 import obspy
 import numpy as np
+from pathlib import Path
+from sqlalchemy.dialects.postgresql import insert
 
-import logging
+from noiz.database import db
+from noiz.models.datachunk import Datachunk, ProcessedDatachunk
+from noiz.models.processing_params import DatachunkPreprocessingConfig
+from noiz.models.timespan import Timespan
+from noiz.models.component import Component
+from noiz.processing.datachunk_preparation import directory_exists_or_create
 
 
 def whiten_trace(tr: obspy.Trace) -> obspy.Trace:
