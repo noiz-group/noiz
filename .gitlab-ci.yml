@@ -129,10 +129,11 @@ system_tests:
   stage: system-testing
   image: $LATEST_IMAGE_TAG
   services:
-    - $POSTGRES_IMAGE_TAG
+    - name: $POSTGRES_IMAGE_TAG
+      alias: postgres
   variables:
     FLASK_APP: autoapp.py
-    POSTGRES_HOST: localhost
+    POSTGRES_HOST: postgres
     POSTGRES_PORT: "5432"
     POSTGRES_USER: noiztest
     POSTGRES_PASSWORD: noiztest
