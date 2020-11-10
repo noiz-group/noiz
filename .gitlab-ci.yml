@@ -133,7 +133,7 @@ system_tests:
   variables:
     FLASK_APP: autoapp.py
     POSTGRES_HOST: postgres
-    POSTGRES_PORT: 5432
+    POSTGRES_PORT: "5432"
     POSTGRES_USER: noiztest
     POSTGRES_PASSWORD: noiztest
     POSTGRES_DB: noiztest
