@@ -140,6 +140,7 @@ system_tests:
     PROCESSED_DATA_DIR: /processed-data-dir
   script:
     - mkdir $PROCESSED_DATA_DIR
+    - python -c "from noiz.settings import *; print(f'POSTGRES_HOST {POSTGRES_HOST}\n POSTGRES_PORT {POSTGRES_PORT}\n POSTGRES_USER {POSTGRES_USER}\n POSTGRES_PASSWORD {POSTGRES_PASSWORD}\n POSTGRES_DB {POSTGRES_DB}\n   SQLALCHEMY_DATABASE_URI {SQLALCHEMY_DATABASE_URI}\n')"
     - noiz db init
     - noiz db migrate
     - noiz db upgrade
