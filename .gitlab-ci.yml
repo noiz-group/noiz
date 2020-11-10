@@ -143,12 +143,6 @@ system_tests:
     - *install_noiz_complete
   script:
     - mkdir $PROCESSED_DATA_DIR
-    - python -c "from noiz.settings import *; print(f'POSTGRES_HOST {POSTGRES_HOST}\n')"
-    - python -c "from noiz.settings import *; print(f'POSTGRES_PORT {POSTGRES_PORT}\n')"
-    - python -c "from noiz.settings import *; print(f'POSTGRES_USER {POSTGRES_USER}\n')"
-    - python -c "from noiz.settings import *; print(f'POSTGRES_PASSWORD {POSTGRES_PASSWORD}\n')"
-    - python -c "from noiz.settings import *; print(f'POSTGRES_DB {POSTGRES_DB}\n')"
-    - python -c "from noiz.settings import *; print(f'SQLALCHEMY_DATABASE_URI {SQLALCHEMY_DATABASE_URI}\n')"
     - noiz db init
     - noiz db migrate
     - noiz db upgrade
