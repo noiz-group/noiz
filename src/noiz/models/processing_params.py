@@ -4,7 +4,7 @@ import numpy as np
 
 
 class DatachunkParams(db.Model):
-    __tablename__ = "datachunk_preprocessing_config"
+    __tablename__ = "datachunk_params"
 
     id = db.Column("id", db.Integer, primary_key=True)
     _sampling_rate = db.Column("sampling_rate", db.Float, default=24, nullable=False)

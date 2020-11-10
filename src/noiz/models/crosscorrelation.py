@@ -28,7 +28,7 @@ class Crosscorrelation(db.Model):
     datachunk_processing_config_id = db.Column(
         "datachunk_processing_config_id",
         db.Integer,
-        db.ForeignKey("datachunk_preprocessing_config.id"),
+        db.ForeignKey("datachunk_params.id"),
         nullable=False,
     )
     ccf = db.Column("ccf", ARRAY(db.Float))
