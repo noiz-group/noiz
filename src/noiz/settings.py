@@ -17,11 +17,11 @@ POSTGRES_PASSWORD = env.str("POSTGRES_PASSWORD", default="")
 POSTGRES_DB = env.str("POSTGRES_DB", default="")
 SQLALCHEMY_DATABASE_URI = env.str("DATABASE_URL", default="")
 
-postgres_params_empty = all((x not in ("", None) for x in (POSTGRES_DB,
-                                                           POSTGRES_HOST,
-                                                           POSTGRES_PORT,
-                                                           POSTGRES_USER,
-                                                           POSTGRES_PASSWORD)))
+postgres_params_empty = all((x in ("", None) for x in (POSTGRES_DB,
+                                                       POSTGRES_HOST,
+                                                       POSTGRES_PORT,
+                                                       POSTGRES_USER,
+                                                       POSTGRES_PASSWORD)))
 
 db_uri_empty = SQLALCHEMY_DATABASE_URI in ("", None)
 
