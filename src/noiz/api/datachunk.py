@@ -19,7 +19,7 @@ from noiz.exceptions import NoDataException, MissingDataFileException
 from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models.component import Component
 from noiz.models.datachunk import Datachunk, DatachunkFile
-from noiz.models.processing_params import DatachunkPreprocessingConfig
+from noiz.models.processing_params import DatachunkParams
 from noiz.models.time_series_index import Tsindex
 from noiz.models.timespan import Timespan
 from noiz.processing.datachunk_preparation import validate_slice, \
@@ -54,7 +54,7 @@ def fetch_datachunks_for_timespan(
 def count_datachunks(
         components: Collection[Component],
         timespans: Collection[Timespan],
-        datachunk_processing_params: DatachunkPreprocessingConfig,
+        datachunk_processing_params: DatachunkParams,
 ) -> int:
     """
     Counts number of datachunks for all provided components associated with
@@ -66,7 +66,7 @@ def count_datachunks(
     :type timespans: Iterable[Timespan]
     :param datachunk_processing_params: DatachunkPreprocessingConfig to be checked. \
         This have to be a single object.
-    :type datachunk_processing_params: DatachunkPreprocessingConfig
+    :type datachunk_processing_params: DatachunkParams
     :return: Count fo datachunks
     :rtype: int
     """
@@ -84,7 +84,7 @@ def count_datachunks(
 def fetch_datachunks(
         components: Optional[Collection[Component]] = None,
         timespans: Optional[Collection[Timespan]] = None,
-        datachunk_processing_config: Optional[DatachunkPreprocessingConfig] = None,
+        datachunk_processing_config: Optional[DatachunkParams] = None,
         datachunk_ids: Optional[Collection[int]] = None,
         load_component: bool = False,
         load_timespan: bool = False,
@@ -106,7 +106,7 @@ def fetch_datachunks(
     :param timespans: Timespans to be checked
     :type timespans: Optional[Collection[Timespan]]
     :param datachunk_processing_config: DatachunkPreprocessingConfig to be checked. This have to be a single object.
-    :type datachunk_processing_config: Optional[DatachunkPreprocessingConfig]
+    :type datachunk_processing_config: Optional[DatachunkParams]
     :param components: Ids of Datachunk objects to be fetched
     :type components: Optional[Collection[int]]
     :param load_component: Loads also the associated Component object so it is available for usage \
@@ -210,7 +210,7 @@ def create_datachunks_add_to_db(
         execution_date: datetime.datetime,
         component: Component,
         timespans: Collection[Timespan],
-        processing_params: DatachunkPreprocessingConfig,
+        processing_params: DatachunkParams,
         processed_data_dir: Path,
 ) -> None:
     no_datachunks = count_datachunks(
@@ -250,7 +250,7 @@ def create_datachunks_for_component(
         component: Component,
         timespans: Collection[Timespan],
         time_series: Tsindex,
-        processing_params: DatachunkPreprocessingConfig
+        processing_params: DatachunkParams
 ) -> Collection[Datachunk]:
     """
     All around method that is takes prepared Component, Tsindex,
@@ -270,7 +270,7 @@ def create_datachunks_for_component(
     location of continuous seed file
     :type time_series: Tsindex
     :param processing_params:
-    :type processing_params: DatachunkPreprocessingConfig
+    :type processing_params: DatachunkParams
     :return: Datachunks ready to be sent to DB.
     :rtype: Collection[Datachunk]
     """
@@ -477,8 +477,8 @@ def run_chunk_preparation(
     log.info("Fetching processing config, timespans and componsents from db")
     with app.app_context():
         processing_config = (
-            db.session.query(DatachunkPreprocessingConfig)
-                      .filter(DatachunkPreprocessingConfig.id == processing_config_id)
+            db.session.query(DatachunkParams)
+                      .filter(DatachunkParams.id == processing_config_id)
                       .first()
         )
         timespans = fetch_timespans_for_doy(year=year, doy=day_of_year)
