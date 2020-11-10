@@ -134,9 +134,9 @@ system_tests:
     FLASK_APP: autoapp.py
     POSTGRES_HOST: postgres
     POSTGRES_PORT: 5432
-    POSTGRES_USER: airflow
-    POSTGRES_PASSWORD: airflow
-    POSTGRES_DB: noiz
+    POSTGRES_USER: noiztest
+    POSTGRES_PASSWORD: noiztest
+    POSTGRES_DB: noiztest
     PROCESSED_DATA_DIR: /processed-data-dir
   script:
     - mkdir $PROCESSED_DATA_DIR
