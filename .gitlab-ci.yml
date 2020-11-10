@@ -13,6 +13,7 @@ variables:
   DOCKER_HOST: tcp://docker:2376
   DOCKER_TLS_CERTDIR: "/certs"
   UNITTESTING_IMAGE_TAG: $CI_REGISTRY_IMAGE:unittesting
+  POSTGRES_IMAGE_TAG: $CI_REGISTRY_IMAGE:postgres
   LATEST_IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
   TEST_IMAGE_TAG: $CI_REGISTRY_IMAGE/test:$CI_COMMIT_REF_SLUG
   DIND_IMAGE: docker:19.03.12
@@ -109,6 +110,19 @@ build_unittesting:
    - docker push $UNITTESTING_IMAGE_TAG
  only:
  - master
+
+build_postgres:
+ stage: image-building
+ image: $DIND_IMAGE
+ services:
+   - $DIND_SERVICE
+ before_script:
+   - *login_dockerhub
+ script:
+   - docker build -f docker/postgres-image/Dockerfile -t $POSTGRES_IMAGE_TAG .
+   - docker push $POSTGRES_IMAGE_TAG
+# only:
+# - master
 
 trigger_airflow_master:
   stage: downstream
