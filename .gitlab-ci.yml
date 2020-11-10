@@ -132,7 +132,7 @@ system_tests:
     - $POSTGRES_IMAGE_TAG
   variables:
     FLASK_APP: autoapp.py
-    POSTGRES_HOST: postgres
+    POSTGRES_HOST: localhost
     POSTGRES_PORT: "5432"
     POSTGRES_USER: noiztest
     POSTGRES_PASSWORD: noiztest
