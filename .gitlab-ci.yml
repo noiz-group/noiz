@@ -122,8 +122,8 @@ build_postgres:
  script:
    - docker build -f docker/postgres-image/Dockerfile -t $POSTGRES_IMAGE_TAG .
    - docker push $POSTGRES_IMAGE_TAG
-# only:
-# - master
+ only:
+ - master
 
 system_tests:
   stage: system-testing
