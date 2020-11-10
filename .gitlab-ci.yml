@@ -1,12 +1,12 @@
 image: python:3.8
 
 stages:
+  - system-testing
   - testing
   - linting
   - documentation
   - documentation-deployment
   - image-building
-  - system-testing
   - downstream
 
 variables:
