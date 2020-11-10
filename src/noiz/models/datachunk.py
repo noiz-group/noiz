@@ -11,7 +11,7 @@ class Datachunk(db.Model):
         db.UniqueConstraint(
             "timespan_id",
             "component_id",
-            "datachunk_processing_config_id",
+            "datachunk_params_id",
             name="unique_datachunk_per_timespan_per_station_per_processing",
         ),
     )
@@ -21,7 +21,7 @@ class Datachunk(db.Model):
         "component_id", db.Integer, db.ForeignKey("component.id"), nullable=False
     )
     datachunk_params_id = db.Column(
-        "datachunk_processing_config_id",
+        "datachunk_params_id",
         db.Integer,
         db.ForeignKey("datachunk_params.id"),
         nullable=False,
