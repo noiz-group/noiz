@@ -6,6 +6,7 @@ stages:
   - documentation
   - documentation-deployment
   - image-building
+  - system-testing
   - downstream
 
 variables:
@@ -123,6 +124,23 @@ build_postgres:
    - docker push $POSTGRES_IMAGE_TAG
 # only:
 # - master
+
+system_tests:
+  stage: system-testing
+  image: $LATEST_IMAGE_TAG
+  services:
+    - $POSTGRES_IMAGE_TAG
+  variables:
+    FLASK_APP: autoapp.py
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: 5432
+    POSTGRES_USER: airflow
+    POSTGRES_PASSWORD: airflow
+    POSTGRES_DB: noiz
+  script:
+    - noiz db init
+    - noiz db migrate
+    - noiz db upgrade
 
 trigger_airflow_master:
   stage: downstream
