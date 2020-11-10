@@ -138,6 +138,8 @@ system_tests:
     POSTGRES_PASSWORD: noiztest
     POSTGRES_DB: noiztest
     PROCESSED_DATA_DIR: /processed-data-dir
+  before_script:
+    - *install_noiz_complete
   script:
     - mkdir $PROCESSED_DATA_DIR
     - python -c "from noiz.settings import *; print(f'POSTGRES_HOST {POSTGRES_HOST}\n')"
