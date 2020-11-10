@@ -1,11 +1,11 @@
 from typing import Optional
 
 from noiz.database import db
-from noiz.models.processing_params import DatachunkPreprocessingConfig
+from noiz.models.processing_params import DatachunkParams
 
 
 def upsert_default_params() -> None:
-    default_config = DatachunkPreprocessingConfig(id=1)
+    default_config = DatachunkParams(id=1)
     current_config = fetch_processing_config_by_id(1)
 
     if current_config is not None:
@@ -17,15 +17,15 @@ def upsert_default_params() -> None:
     return
 
 
-def fetch_processing_config_by_id(id: int) -> DatachunkPreprocessingConfig:
+def fetch_processing_config_by_id(id: int) -> DatachunkParams:
     """
     Fetches a DatachunkPreprocessingConfig objects by its ID.
     :param id: ID of processing params to be fetched
     :type id: int
     :return: fetched DatachunkPreprocessingConfig object
-    :rtype: Optional[DatachunkPreprocessingConfig]
+    :rtype: Optional[DatachunkParams]
     """
-    fetched_params = DatachunkPreprocessingConfig.query.filter_by(id=id).first()
+    fetched_params = DatachunkParams.query.filter_by(id=id).first()
     if fetched_params is None:
         raise ValueError(f"DatachunkPreprocessingConfig object of id {id} does not exist.")
 

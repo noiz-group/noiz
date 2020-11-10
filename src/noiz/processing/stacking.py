@@ -5,7 +5,7 @@ import sqlalchemy
 from noiz.database import db
 from noiz.models.component_pair import ComponentPair
 from noiz.models.crosscorrelation import Crosscorrelation
-from noiz.models.processing_params import DatachunkPreprocessingConfig
+from noiz.models.processing_params import DatachunkParams
 from noiz.models.timespan import Timespan
 from noiz.models.stacking import StackingTimespan, CCFStack
 from noiz.processing.time_utils import get_year_doy
@@ -16,8 +16,8 @@ def stack_crosscorrelation(
 ):
     logging.info(f"Fetching processing params no {processing_params_id}")
     processing_params = (
-        db.session.query(DatachunkPreprocessingConfig)
-        .filter(DatachunkPreprocessingConfig.id == processing_params_id)
+        db.session.query(DatachunkParams)
+        .filter(DatachunkParams.id == processing_params_id)
         .first()
     )
 

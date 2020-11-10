@@ -3,7 +3,7 @@ import datetime
 import numpy as np
 
 
-class DatachunkPreprocessingConfig(db.Model):
+class DatachunkParams(db.Model):
     __tablename__ = "datachunk_preprocessing_config"
 
     id = db.Column("id", db.Integer, primary_key=True)
