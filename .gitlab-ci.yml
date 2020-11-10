@@ -137,7 +137,9 @@ system_tests:
     POSTGRES_USER: airflow
     POSTGRES_PASSWORD: airflow
     POSTGRES_DB: noiz
+    PROCESSED_DATA_DIR: /processed-data-dir
   script:
+    - mkdir $PROCESSED_DATA_DIR
     - noiz db init
     - noiz db migrate
     - noiz db upgrade
