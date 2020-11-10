@@ -19,14 +19,14 @@ def upsert_default_params() -> None:
 
 def fetch_processing_config_by_id(id: int) -> DatachunkParams:
     """
-    Fetches a DatachunkPreprocessingConfig objects by its ID.
+    Fetches a DatachunkParams objects by its ID.
     :param id: ID of processing params to be fetched
     :type id: int
-    :return: fetched DatachunkPreprocessingConfig object
+    :return: fetched DatachunkParams object
     :rtype: Optional[DatachunkParams]
     """
     fetched_params = DatachunkParams.query.filter_by(id=id).first()
     if fetched_params is None:
-        raise ValueError(f"DatachunkPreprocessingConfig object of id {id} does not exist.")
+        raise ValueError(f"DatachunkParams object of id {id} does not exist.")
 
     return fetched_params

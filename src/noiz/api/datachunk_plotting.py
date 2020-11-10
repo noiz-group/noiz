@@ -32,7 +32,7 @@ def plot_datachunk_availability(
     :type stations: Optional[Collection[str]]
     :param components: Components to be fetched
     :type components: Optional[Collection[str]]
-    :param datachunk_processing_params_id: Id of a DatachunkPreprocessingConfig object
+    :param datachunk_processing_params_id: Id of a DatachunkParams object
     :type datachunk_processing_params_id: int
     :param starttime: Starttime of the query
     :type starttime: datetime
