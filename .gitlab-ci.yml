@@ -139,6 +139,7 @@ system_tests:
     POSTGRES_PASSWORD: noiztest
     POSTGRES_DB: noiztest
     PROCESSED_DATA_DIR: /processed-data-dir
+    GIT_SUBMODULE_STRATEGY: recursive
   before_script:
     - *install_noiz_complete
   script:
