@@ -9,6 +9,12 @@ stages:
   - image-building
   - downstream
 
+cache: &global_cache
+  key: dataset-cache
+  paths:
+    - tests/system_tests/dataset
+  policy: pull-push
+
 variables:
   # Use TLS https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#tls-enabled
   DOCKER_HOST: tcp://docker:2376
