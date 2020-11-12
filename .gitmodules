@@ -1,0 +1,3 @@
+[submodule "dataset-minimal"]
+	path = tests/system_tests/dataset
+	url = ../../noiz-group/noiz-system-test-dataset-minimal.git
