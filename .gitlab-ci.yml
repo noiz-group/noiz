@@ -21,8 +21,8 @@ variables:
   DOCKER_TLS_CERTDIR: "/certs"
   UNITTESTING_IMAGE_TAG: $CI_REGISTRY_IMAGE:unittesting
   POSTGRES_IMAGE_TAG: $CI_REGISTRY_IMAGE:postgres
+  STABLE_IMAGE_TAG: $CI_REGISTRY_IMAGE:stable
   LATEST_IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
-  TEST_IMAGE_TAG: $CI_REGISTRY_IMAGE/test:$CI_COMMIT_REF_SLUG
   DIND_IMAGE: docker:19.03.12
   DIND_SERVICE: docker:19.03.12-dind
 
@@ -94,12 +94,15 @@ test_build:
     - *login_dockerhub
     - *start_ssh_agent
   script:
-    - docker build --ssh default -t $TEST_IMAGE_TAG .
-    - docker push $TEST_IMAGE_TAG
-  except:
-  - master
+    - docker build --ssh default -t $STABLE_IMAGE_TAG .
+    - docker push $STABLE_IMAGE_TAG
+  only:
+    refs:
+      - branches
+    changes:
+      - Dockerfile
 
-latest_build:
+stable_build:
   stage: image-building
   image: $DIND_IMAGE
   services:
@@ -108,8 +111,8 @@ latest_build:
     - *login_dockerhub
     - *start_ssh_agent
   script:
-    - docker build --ssh default -t $LATEST_IMAGE_TAG .
-    - docker push $LATEST_IMAGE_TAG
+    - docker build --ssh default -t $LATEST_IMAGE_TAG -t $STABLE_IMAGE_TAG.
+    - docker push $LATEST_IMAGE_TAG $STABLE_IMAGE_TAG
   only:
   - master
 
