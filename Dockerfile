@@ -1,11 +1,12 @@
-#LABEL name="noiz"
-#LABEL description="Base image for Noiz app"
-#LABEL maintainer="Damian Kula, dkula@unistra.fr"
-#LABEL version="0.0.4"
-#LABEL date="2019.12.16"
-#LABEL schema-version="1.0.0"
+# syntax=docker/dockerfile:experimental
 
 FROM python:3.8
+LABEL name="noiz"
+LABEL description="Base image for Noiz"
+LABEL maintainer="Damian Kula, dkula@unistra.fr"
+LABEL version="0.7.4"
+LABEL date="2020.11.12"
+
 ENV PYTHONUNBUFFERED 1
 
 RUN apt-get update -yqq && \
