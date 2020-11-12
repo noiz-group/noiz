@@ -12,7 +12,7 @@ from noiz.models.component import Component
 from noiz.models.component_pair import ComponentPair
 from noiz.models.crosscorrelation import Crosscorrelation
 from noiz.models.datachunk import Datachunk, ProcessedDatachunk
-from noiz.models.processing_params import DatachunkPreprocessingConfig
+from noiz.models.processing_params import DatachunkParams
 from noiz.models.timespan import Timespan
 from noiz.processing.crosscorrelations import (
     split_component_pairs_to_components,
@@ -87,8 +87,8 @@ def perform_crosscorrelations_for_day_and_pairs(
     year, day_of_year = get_year_doy(execution_date)
 
     processing_params = (
-        db.session.query(DatachunkPreprocessingConfig)
-        .filter(DatachunkPreprocessingConfig.id == processing_params_id)
+        db.session.query(DatachunkParams)
+        .filter(DatachunkParams.id == processing_params_id)
         .first()
     )
 

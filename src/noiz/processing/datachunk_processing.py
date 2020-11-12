@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from noiz.database import db
 from noiz.models.datachunk import Datachunk, ProcessedDatachunk
-from noiz.models.processing_params import DatachunkPreprocessingConfig
+from noiz.models.processing_params import DatachunkParams
 from noiz.models.timespan import Timespan
 from noiz.models.component import Component
 from noiz.processing.datachunk_preparation import directory_exists_or_create
@@ -51,8 +51,8 @@ def run_chunk_processing(
         year = execution_date.year
         day_of_year = execution_date.timetuple().tm_yday
 
-        processing_params = DatachunkPreprocessingConfig.query.filter(
-            DatachunkPreprocessingConfig.id == processing_params_id
+        processing_params = DatachunkParams.query.filter(
+            DatachunkParams.id == processing_params_id
         ).first()
         datachunks = (
             Datachunk.query.join(Timespan)
