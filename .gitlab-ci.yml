@@ -94,8 +94,8 @@ test_build:
     - *login_dockerhub
     - *start_ssh_agent
   script:
-    - docker build --ssh default -t $STABLE_IMAGE_TAG .
-    - docker push $STABLE_IMAGE_TAG
+    - docker build --ssh default --cache-from $LATEST_IMAGE_TAG -t $LATEST_IMAGE_TAG .
+    - docker push $LATEST_IMAGE_TAG
   only:
     refs:
       - branches
