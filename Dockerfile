@@ -18,7 +18,7 @@ RUN apt-get update -yqq \ &&
         git \
         vim \
         curl \
-        libpq-dev \
+        libpq-dev \ &&
     apt-get autoremove -yqq --purge \ &&
     apt-get clean \ &&
     rm -rf \
