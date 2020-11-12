@@ -106,6 +106,7 @@ latest_build:
     - $DIND_SERVICE
   before_script:
     - *login_dockerhub
+    - *start_ssh_agent
   script:
     - docker build --ssh default -t $LATEST_IMAGE_TAG .
     - docker push $LATEST_IMAGE_TAG
