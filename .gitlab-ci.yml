@@ -111,7 +111,7 @@ stable_build:
     - *login_dockerhub
     - *start_ssh_agent
   script:
-    - docker build --ssh default -t $LATEST_IMAGE_TAG -t $STABLE_IMAGE_TAG.
+    - docker build --ssh default -t $LATEST_IMAGE_TAG -t $STABLE_IMAGE_TAG .
     - docker push $LATEST_IMAGE_TAG $STABLE_IMAGE_TAG
   only:
   - master
