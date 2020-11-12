@@ -8,8 +8,8 @@
 FROM python:3.8
 ENV PYTHONUNBUFFERED 1
 
-RUN apt-get update -yqq \ &&
-    apt-get upgrade -yqq \ &&
+RUN apt-get update -yqq && \
+    apt-get upgrade -yqq && \
     apt-get install -yqq --no-install-recommends \
         build-essential \
         default-libmysqlclient-dev \
@@ -18,9 +18,9 @@ RUN apt-get update -yqq \ &&
         git \
         vim \
         curl \
-        libpq-dev \ &&
-    apt-get autoremove -yqq --purge \ &&
-    apt-get clean \ &&
+        libpq-dev && \
+    apt-get autoremove -yqq --purge && \
+    apt-get clean && \
     rm -rf \
         /var/lib/apt/lists/* \
         /tmp/* \
