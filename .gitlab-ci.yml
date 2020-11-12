@@ -87,7 +87,7 @@ test_build:
   before_script:
     - *login_dockerhub
   script:
-    - docker build -t $TEST_IMAGE_TAG .
+    - docker build --ssh default -t $TEST_IMAGE_TAG .
     - docker push $TEST_IMAGE_TAG
   except:
   - master
@@ -100,7 +100,7 @@ latest_build:
   before_script:
     - *login_dockerhub
   script:
-    - docker build -t $LATEST_IMAGE_TAG .
+    - docker build --ssh default -t $LATEST_IMAGE_TAG .
     - docker push $LATEST_IMAGE_TAG
   only:
   - master
