@@ -30,10 +30,10 @@ RUN apt-get update -yqq && \
         /usr/share/doc-base
 
 RUN --mount=type=ssh git clone git@gitlab.com:noiz-group/mseedindex.git /mseedindex && \
- cd /mseedindex && \
- git checkout 2c7620f7727033c67140e430078a8130dab36ba5 && \
- make clean && \
- CFLAGS='-I/usr/include/postgresql/' make
+  cd /mseedindex && \
+  git checkout 2c7620f7727033c67140e430078a8130dab36ba5 && \
+  make clean && \
+  CFLAGS='-I/usr/include/postgresql/' make
 ENV MSEEDINDEX_EXECUTABLE="/mseedindex/mseedindex"
 
 RUN mkdir /noiz
@@ -41,5 +41,7 @@ WORKDIR /noiz
 COPY ./ /noiz/
 
 RUN cd /noiz/ && \
- python -m pip install -r requirements.txt --no-cache-dir && \
- pip install -e .
+  python -m pip install -r requirements.txt --no-cache-dir && \
+  python -m pip install jupyterlab --no-cache-dir && \
+  pip install -e .
+ENV FLASK_APP="autoapp.py"
