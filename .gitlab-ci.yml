@@ -34,6 +34,12 @@ variables:
 .login_dockerhub: &login_dockerhub
   - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
 
+.start_ssh_agent: &start_ssh_agent
+  - export DOCKER_BUILDKIT=1
+  - 'which ssh-agent || ( apk update && apk add --no-cache openssh-client )'
+  - eval $(ssh-agent -s)
+  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+
 test-noiz:
   image: $UNITTESTING_IMAGE_TAG
   stage: testing
@@ -79,18 +85,19 @@ pages:
   only:
   - master
 
-#test_build:
-#  stage: image-building
-#  image: $DIND_IMAGE
-#  services:
-#    - $DIND_SERVICE
-#  before_script:
-#    - *login_dockerhub
-#  script:
-#    - docker build -t $TEST_IMAGE_TAG .
-#    - docker push $TEST_IMAGE_TAG
-#  except:
-#  - master
+test_build:
+  stage: image-building
+  image: $DIND_IMAGE
+  services:
+    - $DIND_SERVICE
+  before_script:
+    - *login_dockerhub
+    - *start_ssh_agent
+  script:
+    - docker build --ssh default -t $TEST_IMAGE_TAG .
+    - docker push $TEST_IMAGE_TAG
+  except:
+  - master
 
 latest_build:
   stage: image-building
@@ -100,7 +107,7 @@ latest_build:
   before_script:
     - *login_dockerhub
   script:
-    - docker build -t $LATEST_IMAGE_TAG .
+    - docker build --ssh default -t $LATEST_IMAGE_TAG .
     - docker push $LATEST_IMAGE_TAG
   only:
   - master
@@ -138,7 +145,6 @@ system_tests:
     - name: $POSTGRES_IMAGE_TAG
       alias: postgres
   variables:
-    FLASK_APP: autoapp.py
     POSTGRES_HOST: postgres
     POSTGRES_PORT: "5432"
     POSTGRES_USER: noiztest
