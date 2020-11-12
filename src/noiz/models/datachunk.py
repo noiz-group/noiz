@@ -11,7 +11,7 @@ class Datachunk(db.Model):
         db.UniqueConstraint(
             "timespan_id",
             "component_id",
-            "datachunk_processing_config_id",
+            "datachunk_params_id",
             name="unique_datachunk_per_timespan_per_station_per_processing",
         ),
     )
@@ -20,10 +20,10 @@ class Datachunk(db.Model):
     component_id = db.Column(
         "component_id", db.Integer, db.ForeignKey("component.id"), nullable=False
     )
-    datachunk_processing_config_id = db.Column(
-        "datachunk_processing_config_id",
+    datachunk_params_id = db.Column(
+        "datachunk_params_id",
         db.Integer,
-        db.ForeignKey("datachunk_preprocessing_config.id"),
+        db.ForeignKey("datachunk_params.id"),
         nullable=False,
     )
     timespan_id = db.Column(
@@ -42,7 +42,7 @@ class Datachunk(db.Model):
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id], back_populates="datachunks")
     component = db.relationship("Component", foreign_keys=[component_id])
     datachunk_processing_config = db.relationship(
-        "DatachunkPreprocessingConfig", foreign_keys=[datachunk_processing_config_id],
+        "DatachunkParams", foreign_keys=[datachunk_params_id],
         # uselist = False, # just for the future left, here, dont want to test that now
     )
     processed_datachunks = db.relationship("ProcessedDatachunk")
@@ -83,7 +83,7 @@ class ProcessedDatachunk(db.Model):
     processing_params_id = db.Column(
         "datachunk_processing_config_id",
         db.Integer,
-        db.ForeignKey("datachunk_preprocessing_config.id"),
+        db.ForeignKey("datachunk_params.id"),
         nullable=False,
     )
     datachunk_id = db.Column(
@@ -101,7 +101,7 @@ class ProcessedDatachunk(db.Model):
 
     datachunk = db.relationship("Datachunk", foreign_keys=[datachunk_id], back_populates="processed_datachunks")
     datachunk_processing_config = db.relationship(
-        "DatachunkPreprocessingConfig", foreign_keys=[processing_params_id],
+        "DatachunkParams", foreign_keys=[processing_params_id],
     )
     processed_datachunk_file = db.relationship(
         "ProcessedDatachunkFile",

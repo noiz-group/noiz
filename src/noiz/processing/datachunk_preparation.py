@@ -6,7 +6,7 @@ from typing import Union, Optional, Tuple
 
 
 from noiz.models.component import Component
-from noiz.models.processing_params import DatachunkPreprocessingConfig
+from noiz.models.processing_params import DatachunkParams
 from noiz.models.timespan import Timespan
 
 
@@ -176,7 +176,7 @@ def resample_with_padding(
 
 
 def preprocess_whole_day(
-    st: obspy.Stream, preprocessing_config: DatachunkPreprocessingConfig
+    st: obspy.Stream, preprocessing_config: DatachunkParams
 ) -> obspy.Stream:
     log.info("Trying to merge traces if more than 1")
     st.merge()
@@ -260,7 +260,7 @@ def pad_zeros_to_exact_time_bounds(
 def preprocess_timespan(
     trimed_st: obspy.Stream,
     inventory: obspy.Inventory,
-    processing_params: DatachunkPreprocessingConfig,
+    processing_params: DatachunkParams,
 ) -> obspy.Stream:
     """
     Applies standard preprocessing to a obspy.Stream. It consist of tapering, detrending,
@@ -270,7 +270,7 @@ def preprocess_timespan(
     :param inventory: Inventory to have the response removed
     :type inventory: obspy.Inventory
     :param processing_params: Processing parameters object with all required info.
-    :type processing_params: DatachunkPreprocessingConfig
+    :type processing_params: DatachunkParams
     :return: Processed Stream
     :rtype: obspy.Stream
     """
@@ -339,7 +339,7 @@ def preprocess_timespan(
 def validate_slice(
     trimed_st: obspy.Stream,
     timespan: Timespan,
-    processing_params: DatachunkPreprocessingConfig,
+    processing_params: DatachunkParams,
     raw_sps: Union[float, int],
 ) -> Tuple[obspy.Stream, Optional[int]]:
 
