@@ -1,3 +1,3 @@
 [submodule "tests/system_tests/dataset"]
 	path = tests/system_tests/dataset
-	url = git@gitlab.com:noiz-group/noiz-system-test-dataset-minimal.git
+	url = https://gitlab.com/noiz-group/noiz-system-test-dataset-minimal.git
