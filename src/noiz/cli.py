@@ -101,8 +101,8 @@ def add_files_recursively(paths):
         f"-pghost {os.environ['POSTGRES_HOST']} "
         f"-dbuser {os.environ['POSTGRES_USER']} "
         f"-dbpass {os.environ['POSTGRES_PASSWORD']} "
-        f"-dbname {os.environ['POSTGRES_DB_NOIZ']} "
-        f"{' '.join(paths)}"
+        f"-dbname {os.environ['POSTGRES_DB']} "
+        f"{' '.join(paths.rglob('*'))}"
     )
     return
 
