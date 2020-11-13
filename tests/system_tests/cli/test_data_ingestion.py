@@ -5,6 +5,8 @@ from click.testing import CliRunner
 from pathlib import Path
 
 from noiz.cli import cli
+
+from noiz.app import create_app
 from noiz.api.component import fetch_components
 
 
@@ -19,7 +21,10 @@ class TestDataIngestionRoutines:
         result = runner.invoke(cli, ["data", "add_inventory", str(inventory_path)])
 
         assert result.exit_code == 0
-        fetched_components = fetch_components()
+
+        app = create_app()
+        with app.app_context():
+            fetched_components = fetch_components()
 
         assert len(fetched_components) == 9
 
