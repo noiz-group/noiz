@@ -149,6 +149,7 @@ system_tests:
     - noiz db migrate
     - noiz db upgrade
     - $MSEEDINDEX_EXECUTABLE -v -pghost $POSTGRES_HOST -dbuser $POSTGRES_USER -dbpass $POSTGRES_PASSWORD -dbname $POSTGRES_DB tests/system_tests/dataset/seismic-data
+    - pytest --cov=noiz -m system
 
 trigger_airflow_master:
   stage: downstream
