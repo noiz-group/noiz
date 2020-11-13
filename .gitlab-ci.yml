@@ -85,7 +85,7 @@ pages:
   only:
   - master
 
-test_build:
+.image_building_parent:
   stage: image-building
   image: $DIND_IMAGE
   services:
@@ -93,9 +93,13 @@ test_build:
   before_script:
     - *login_dockerhub
     - *start_ssh_agent
+  after_script:
+    - docker push $CI_REGISTRY_IMAGE
+
+test_build:
+  extends: .image_building_parent
   script:
     - docker build --ssh default --cache-from $LATEST_IMAGE_TAG -t $LATEST_IMAGE_TAG .
-    - docker push $CI_REGISTRY_IMAGE
   only:
     refs:
       - branches
@@ -103,44 +107,25 @@ test_build:
       - Dockerfile
 
 stable_build:
-  stage: image-building
-  image: $DIND_IMAGE
-  services:
-    - $DIND_SERVICE
-  before_script:
-    - *login_dockerhub
-    - *start_ssh_agent
+  extends: .image_building_parent
   script:
     - docker build --ssh default -t $LATEST_IMAGE_TAG -t $STABLE_IMAGE_TAG .
-    - docker push $CI_REGISTRY_IMAGE
   only:
-  - master
+    - master
 
 build_unittesting:
- stage: image-building
- image: $DIND_IMAGE
- services:
-   - $DIND_SERVICE
- before_script:
-   - *login_dockerhub
- script:
-   - docker build -f docker/unittest-image/Dockerfile -t $UNITTESTING_IMAGE_TAG .
-   - docker push $CI_REGISTRY_IMAGE
- only:
- - master
+  extends: .image_building_parent
+  script:
+    - docker build -f docker/unittest-image/Dockerfile -t $UNITTESTING_IMAGE_TAG .
+  only:
+    - master
 
 build_postgres:
- stage: image-building
- image: $DIND_IMAGE
- services:
-   - $DIND_SERVICE
- before_script:
-   - *login_dockerhub
- script:
-   - docker build -f docker/postgres-image/Dockerfile -t $POSTGRES_IMAGE_TAG .
-   - docker push $CI_REGISTRY_IMAGE
- only:
- - master
+  extends: .image_building_parent
+  script:
+    - docker build -f docker/postgres-image/Dockerfile -t $POSTGRES_IMAGE_TAG .
+  only:
+    - master
 
 system_tests:
   stage: system-testing
