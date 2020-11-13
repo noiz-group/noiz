@@ -5,6 +5,7 @@ from click.testing import CliRunner
 from pathlib import Path
 
 from noiz.cli import cli
+from noiz.api.component import fetch_components
 
 
 @pytest.mark.system
@@ -18,6 +19,9 @@ class TestDataIngestionRoutines:
         result = runner.invoke(cli, ["data", "add_inventory", str(inventory_path)])
 
         assert result.exit_code == 0
+        fetched_components = fetch_components()
+
+        assert len(fetched_components) == 9
 
     @pytest.mark.xfail
     def test_add_seismic_data(self):
