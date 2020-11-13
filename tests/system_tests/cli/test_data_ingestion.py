@@ -12,7 +12,7 @@ from noiz.api.component import fetch_components
 
 @pytest.fixture(scope="class")
 def workdir_with_content(tmp_path_factory) -> Path:
-    original_data_dir: Path = Path(__file__).parent.joinpath("dataset")
+    original_data_dir: Path = Path(__file__).parent.joinpath("..", "dataset")
 
     test_workdir = tmp_path_factory.mktemp("workdir")
     shutil.copytree(src=original_data_dir, dst=test_workdir, dirs_exist_ok=True)
