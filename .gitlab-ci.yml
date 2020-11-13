@@ -1,12 +1,12 @@
 image: python:3.8
 
 stages:
+  - system-testing
   - testing
   - linting
   - documentation
   - documentation-deployment
   - image-building
-  - system-testing
   - downstream
 
 cache: &global_cache
@@ -148,6 +148,8 @@ system_tests:
     - noiz db init
     - noiz db migrate
     - noiz db upgrade
+    - $MSEEDINDEX_EXECUTABLE -v -pghost $POSTGRES_HOST -dbuser $POSTGRES_USER -dbpass $POSTGRES_PASSWORD -dbname $POSTGRES_DB tests/system_tests/dataset/seismic-data/SDS/2019/SI/SI*/*/*
+    - pytest --cov=noiz -m system
 
 trigger_airflow_master:
   stage: downstream
