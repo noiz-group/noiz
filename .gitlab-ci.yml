@@ -95,7 +95,7 @@ test_build:
     - *start_ssh_agent
   script:
     - docker build --ssh default --cache-from $LATEST_IMAGE_TAG -t $LATEST_IMAGE_TAG .
-    - docker push $LATEST_IMAGE_TAG
+    - docker push $CI_REGISTRY_IMAGE
   only:
     refs:
       - branches
@@ -112,7 +112,7 @@ stable_build:
     - *start_ssh_agent
   script:
     - docker build --ssh default -t $LATEST_IMAGE_TAG -t $STABLE_IMAGE_TAG .
-    - docker push $LATEST_IMAGE_TAG $STABLE_IMAGE_TAG
+    - docker push $CI_REGISTRY_IMAGE
   only:
   - master
 
@@ -125,7 +125,7 @@ build_unittesting:
    - *login_dockerhub
  script:
    - docker build -f docker/unittest-image/Dockerfile -t $UNITTESTING_IMAGE_TAG .
-   - docker push $UNITTESTING_IMAGE_TAG
+   - docker push $CI_REGISTRY_IMAGE
  only:
  - master
 
@@ -138,7 +138,7 @@ build_postgres:
    - *login_dockerhub
  script:
    - docker build -f docker/postgres-image/Dockerfile -t $POSTGRES_IMAGE_TAG .
-   - docker push $POSTGRES_IMAGE_TAG
+   - docker push $CI_REGISTRY_IMAGE
  only:
  - master
 
