@@ -128,7 +128,7 @@ def add_inventory(filepath, filetype):
 @click.option("-t", "--station_type", required=True, type=str)
 @click.option("-p", "--soh_type", required=True, type=str)
 @click.option("-n", "--network", type=str, default=None)
-@click.option("-d", "--dirpath", nargs=1, type=click.Path(exists=True))
+@click.argument("dirpath", nargs=1, type=click.Path(exists=True))
 def add_soh_dir(station, station_type, soh_type, dirpath, network):
     """Globs over provided directories in search of soh files fitting parsing requirements"""
 
