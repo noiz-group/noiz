@@ -127,7 +127,7 @@ build_postgres:
   only:
     - master
 
-system_tests:
+.system_test_parent:
   stage: system-testing
   image: $LATEST_IMAGE_TAG
   services:
@@ -143,13 +143,21 @@ system_tests:
     GIT_SUBMODULE_STRATEGY: recursive
   before_script:
     - *install_noiz_complete
-  script:
-    - mkdir $PROCESSED_DATA_DIR
+    - mkdir -p $PROCESSED_DATA_DIR
     - noiz db init
     - noiz db migrate
     - noiz db upgrade
     - $MSEEDINDEX_EXECUTABLE -v -pghost $POSTGRES_HOST -dbuser $POSTGRES_USER -dbpass $POSTGRES_PASSWORD -dbname $POSTGRES_DB tests/system_tests/dataset/seismic-data/SDS/2019/SI/SI*/*/*
-    - pytest --cov=noiz -m system
+
+api_system_tests:
+  extends: .system_test_parent
+  script:
+    - pytest --cov=noiz --runapi
+
+cli_system_tests:
+  extends: .system_test_parent
+  script:
+    - pytest --cov=noiz --runapi
 
 trigger_airflow_master:
   stage: downstream
