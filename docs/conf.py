@@ -22,7 +22,7 @@ import noiz
 
 # -- Project information -----------------------------------------------------
 
-project = f"{noiz.__package__}"
+project = "noiz"
 copyright = f"Copyright 2019 -- {date.today().year}, {noiz.__author__}"
 author = f"{noiz.__author__}"
 
@@ -71,6 +71,14 @@ html_theme = "pydata_sphinx_theme"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
+# The suffix of source filenames.
+source_suffix = '.rst'
+
+# The encoding of source files.
+# source_encoding = 'utf-8-sig'
+
+# The master toctree document.
+master_doc = 'index'
 
 # -- Extension configuration -------------------------------------------------
 
