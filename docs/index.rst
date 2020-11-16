@@ -14,10 +14,11 @@ It is under heavy development and the API might change without notice.
 
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
    :caption: Contents:
 
-   content/cli/index
+   content/usage
+   content/cli
 
 
 

@@ -5,14 +5,14 @@ simple_page = Blueprint("simple_page", __name__, template_folder="templates")
 
 @simple_page.route("/")
 def hello():
-    return "Twoja stara tanczy na pomaranczy i twoj stary tez"
+    return "Hello world!"
 
 
 @simple_page.route("/processingconfig")
 def processingconfig():
-    return "Twoja  kreci lody"
+    return "processing config datapoint"
 
 
-@simple_page.route("/wut")
+@simple_page.route("/bum")
 def ahh():
-    return "wutwut"
+    return "bum bum"
