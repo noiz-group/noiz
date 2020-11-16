@@ -35,16 +35,3 @@ datachunk_availability
 -------------------------
 
 This command serves a purpose of
-
-
-.. include:: db.rst
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-    db.rst
-    data
-    plotting
-
-
