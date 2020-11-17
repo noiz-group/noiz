@@ -17,6 +17,7 @@ def expected_npts(timespan_length: float, sampling_rate: float) -> int:
     """
     Calculates expected number of npts in a trace based on timespan length and sampling rate.
     Casted to int with floor rounding.
+
     :param timespan_length: Length of timespan in seconds
     :type timespan_length: float
     :param sampling_rate: Sampling rate in samples per second
@@ -50,7 +51,9 @@ def assembly_preprocessing_filename(
 def assembly_sds_like_dir(component: Component, timespan: Timespan) -> Path:
     """
     Asembles a Path object in a SDS manner. Object consists of year/network/station/component codes.
+
     Warning: The component here is a single letter component!
+
     :param component: Component object containing information about used channel
     :type component: Component
     :param timespan: Timespan object containing information about time
@@ -74,6 +77,7 @@ def assembly_filepath(
     """
     Assembles a filepath for processed files.
     It assembles a root processed-data directory with processing type and a rest of a filepath.
+
     :param processed_data_dir:
     :type processed_data_dir: Path
     :param processing_type:
@@ -90,6 +94,7 @@ def directory_exists_or_create(filepath: Path) -> bool:
     """
     Checks if directory of a filepath exists. If doesnt, it creates it.
     Returns bool that indicates if the directory exists in the end. Should be always True.
+
     :param filepath: Path to the file you want to save and check it the parent directory exists.
     :type filepath: Path
     :return: If the directory exists in the end.
@@ -107,6 +112,7 @@ def increment_filename_counter(filepath: Path) -> Path:
     """
     Takes a filepath with int as suffix and returns a non existing filepath
      that has next free int value as suffix.
+
     :param filepath: Filepath to find next free path for
     :type filepath: Path
     :return: Free filepath
@@ -144,6 +150,7 @@ def resample_with_padding(
     """
     Pads data of trace (assumes that stream has only one trace) with zeros up to next power of two
     and resamples it down to provided sampling rate. Furtherwards trims it to original starttime and endtime.
+
     :param st: Stream containing one trace to be resampled
     :type st: obspy.Stream
     :param sampling_rate: Target sampling rate
@@ -265,6 +272,7 @@ def preprocess_timespan(
     """
     Applies standard preprocessing to a obspy.Stream. It consist of tapering, detrending,
     response removal and filtering.
+
     :param trimed_st: Stream to be treated
     :type trimed_st: obspy.Stream
     :param inventory: Inventory to have the response removed
