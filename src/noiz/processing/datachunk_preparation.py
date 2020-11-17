@@ -270,10 +270,14 @@ def _check_if_samples_short_enough(st: obspy.Stream, params: DatachunkParams) ->
     """
     max_gap = params.max_gap_for_merging
     st_merged = st.copy().merge(method=0)
+
     if len(st_merged) > 1:
         raise ValueError(f"Cannot marge traces, probably they have different ids. {st}")
     elif len(st_merged) == 0:
         raise ValueError("Cannot marge traces, stream is empty.")
+
+    if not isinstance(st_merged[0].data, np.ma.MaskedArray):
+        return True
 
     gaps_mask: np.array = st_merged[0].data.mask
     gap_counts = count_consecutive_trues(gaps_mask)
