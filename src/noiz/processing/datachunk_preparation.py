@@ -2,12 +2,12 @@ import logging
 import numpy as np
 import obspy
 from pathlib import Path
-from typing import Union, Optional, Tuple
-
+from typing import Union, Optional, Tuple, Iterable
 
 from noiz.models.component import Component
 from noiz.models.processing_params import DatachunkParams
 from noiz.models.timespan import Timespan
+from noiz.processing.validation_helpers import count_consecutive_trues
 
 
 log = logging.getLogger("noiz.processing")
@@ -226,6 +226,56 @@ def merge_traces_fill_zeros(st: obspy.Stream) -> obspy.Stream:
     except Exception as e:
         raise ValueError(f"Cannot merge traces. {e}")
     return st
+
+
+def merge_traces_under_conditions(st: obspy.Stream, params: DatachunkParams) -> obspy.Stream:
+    """
+    This method first checks if passed stream :class:`obspy.Stream` is mergeable and then tries to merge it into
+    single trace.
+
+    :param st: Stream to be merged
+    :type st: obspy.Stream
+    :param params: Set of DatachunkParams with which datachunk is being prepared
+    :type params: DatachunkParams
+    :return: Merged stream
+    :rtype: obspy.Stream
+    """
+    try:
+        _check_if_samples_short_enough(st, params)
+    except ValueError as e:
+        raise ValueError(f"Cannot merge traces. {e}")
+
+    try:
+        st.merge(method=1, interpolation_samples=-1, fill_value='interpolate')
+    except Exception as e:
+        raise ValueError(f"Cannot merge traces. {e}")
+    return st
+
+
+def _check_if_samples_short_enough(st: obspy.Stream, params: DatachunkParams) -> bool:
+    """
+    This method takes a stream, tries to merge it with :meth:`obspy.Stream.merge` with params of `method=0`.
+    This merging attempt, in case of both overlapping signal or gap, will produce a continuous trace with
+    :class:`numpy.MaskedArray`. This allows for easy checking if the gaps and overlaps are longer than maximum
+    that is defined in instance of :class:`noiz.models.DatachunkParams` in parameter
+    :param:`noiz.models.DatachunkParams.max_gap_for_merging`.
+
+    :param st: Stream to be checked for merging
+    :type st: obspy.Stream
+    :param params: DatachunkParams that datachunk is being processed with
+    :type params: DatachunkParams
+    :return: True if stream is okay for merging
+    :rtype: bool
+    :raises: ValueError
+    """
+    max_gap = params.max_gap_for_merging
+    gaps_mask: np.array = st.copy().merge(method=0).data.mask
+    gap_counts = count_consecutive_trues(gaps_mask)
+    # noinspection PyTypeChecker
+    if any(gap_counts >= max_gap):
+        raise ValueError(f"Some of the gaps or overlaps are longer than set maximum of {max_gap} samples")
+    else:
+        return True
 
 
 def pad_zeros_to_exact_time_bounds(
