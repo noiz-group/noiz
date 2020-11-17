@@ -17,16 +17,20 @@ from datetime import date
 file_loc = os.path.split(__file__)[0]
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(file_loc), ".")))
 
-import noiz
+try:
+    import noiz
+    author = noiz.__author__
+    version = noiz.__version__
+except ImportError:
+    author = "Damian Kula, dkula@unistra.fr"
+    version = f"0.5.{date.today().strftime('%Y%M%D')}"
 
 
 # -- Project information -----------------------------------------------------
 
 project = "noiz"
-copyright = f"Copyright 2019 -- {date.today().year}, {noiz.__author__}"
-author = f"{noiz.__author__}"
+copyright = f"Copyright 2019 -- {date.today().year}, {author}"
 
-version = f"{noiz.__version__}"
 release = version
 
 # -- General configuration ---------------------------------------------------
@@ -42,7 +46,13 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
     "sphinx.ext.viewcode",
+    'autoapi.extension',
 ]
+
+autoapi_type = 'python'
+autoapi_dirs = ['../src/noiz']
+autoapi_root = "content/autoapi"
+autoapi_keep_files = True
 
 autodoc_default_options = {
     'private-members': True,
