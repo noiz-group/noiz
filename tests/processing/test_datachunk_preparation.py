@@ -4,7 +4,11 @@ import os
 import pytest
 
 from noiz.models.processing_params import DatachunkParams
-from noiz.processing.datachunk_preparation import merge_traces_fill_zeros, _check_if_samples_short_enough
+from noiz.processing.datachunk_preparation import (
+    merge_traces_fill_zeros,
+    merge_traces_under_conditions,
+    _check_if_samples_short_enough,
+)
 
 
 @pytest.mark.xfail
@@ -97,6 +101,63 @@ def test__check_if_samples_short_enough_positive():
     assert _check_if_samples_short_enough(st=st, params=params)
 
 
+def test__check_if_samples_short_enough_positive_zero_gap_permitted():
+    s = ['', '', '3 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 100 samples',
+         'AA.XXX..HH2 | 2016-01-07T00:00:10.00000Z - '
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 100 samples',
+         'AA.XXX..HH2 | 2016-01-07T00:00:20.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 100 samples',
+         '', '']
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+
+    params = DatachunkParams(max_gap_for_merging=0)
+
+    assert _check_if_samples_short_enough(st=st, params=params)
+
+
+def test__check_if_samples_short_enough_positive_zero_gap_permitted_negative():
+    s = ['', '', '3 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 99 samples',
+         'AA.XXX..HH2 | 2016-01-07T00:00:10.00000Z - '
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 100 samples',
+         'AA.XXX..HH2 | 2016-01-07T00:00:20.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 100 samples',
+         '', '']
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+
+    params = DatachunkParams(max_gap_for_merging=0)
+
+    with pytest.raises(ValueError):
+        _check_if_samples_short_enough(st=st, params=params)
+
+
+def test__check_if_samples_short_enough_positive_zero_gap_permitted_negative_overlap():
+    s = ['', '', '3 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 101 samples',
+         'AA.XXX..HH2 | 2016-01-07T00:00:10.00000Z - '
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 100 samples',
+         'AA.XXX..HH2 | 2016-01-07T00:00:20.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 100 samples',
+         '', '']
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    st[1].data *= 3
+
+    params = DatachunkParams(max_gap_for_merging=0)
+
+    with pytest.raises(ValueError):
+        _check_if_samples_short_enough(st=st, params=params)
+
+
 def test__check_if_samples_short_enough_too_long_gap():
     s = ['', '', '3 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
@@ -142,6 +203,30 @@ def test__check_if_samples_short_enough_zero_traces():
 
     with pytest.raises(ValueError):
         _check_if_samples_short_enough(st=st, params=params)
+
+
+def test_merge_traces_under_conditions():
+    s_in = ['', '', '2 Trace(s) in Stream:',
+            'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+            '2016-01-07T03:00:00.000000Z | 10.0 Hz, 100 samples',
+            'AA.XXX..HH2 | 2016-01-07T00:00:10.00000Z - '
+            '2016-01-07T03:00:00.000000Z | 10.0 Hz, 100 samples',
+            '', '']
+    s_out = ['', '', '1 Trace(s) in Stream:',
+             'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+             '2016-01-07T03:00:00.000000Z | 10.0 Hz, 200 samples',
+             '', '']
+
+    s_in = os.linesep.join(s_in)
+    st_in = Stream._dummy_stream_from_string(s_in)
+    s_out = os.linesep.join(s_out)
+    st_expected = Stream._dummy_stream_from_string(s_out)
+
+    params = DatachunkParams(max_gap_for_merging=2)
+
+    st_merged = merge_traces_under_conditions(st=st_in, params=params)
+
+    assert st_merged == st_expected
 
 
 @pytest.mark.xfail
