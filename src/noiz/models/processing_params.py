@@ -71,6 +71,7 @@ class DatachunkParams(db.Model):
         )
 
         self._correlation_max_lag = kwargs.get("correlation_max_lag", 60)
+        self._max_gap_for_merging = kwargs.get("max_gap_for_merging", 10)
 
     @property
     def sampling_rate(self):
