@@ -60,19 +60,32 @@ flake8:
   script:
     - flake8 .
 
-build-docs:
+.build-docs-parent:
   image: $UNITTESTING_IMAGE_TAG
   stage: documentation
-  before_script:
-    - *install_noiz_complete
   script:
   - cd docs
   - make html
   artifacts:
     paths:
     - docs/_build/html/
-#  only:
-#    - master
+
+build-docs-tests:
+  extends: .build-docs-parent
+  only:
+    refs:
+      - branches
+    changes:
+      - docs/*
+      - docs/content/*
+      - docs/*/*
+
+build-docs-master:
+  extends: .build-docs-parent
+  before_script:
+    - *install_noiz_complete
+  only:
+    - master
 
 pages:
   stage: documentation-deployment
