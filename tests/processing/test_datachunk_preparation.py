@@ -229,6 +229,60 @@ def test_merge_traces_under_conditions():
     assert st_merged == st_expected
 
 
+def test_merge_traces_under_conditions_single_trace():
+    s_in = ['', '', '1 Trace(s) in Stream:',
+            'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+            '2016-01-07T03:00:00.000000Z | 10.0 Hz, 100 samples',
+            '', '']
+
+    s_in = os.linesep.join(s_in)
+    st_in = Stream._dummy_stream_from_string(s_in)
+
+    params = DatachunkParams(max_gap_for_merging=2)
+
+    st_merged = merge_traces_under_conditions(st=st_in, params=params)
+    assert st_merged == st_in
+
+
+def test_merge_traces_under_conditions_with_interpolation():
+    s = ['', '', '2 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 8 samples',
+         'AA.XXX..HH2 | 2016-01-07T00:00:10.00000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 10 samples',
+         '', '']
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    st[1].data *= 4
+    params = DatachunkParams(max_gap_for_merging=2)
+
+    st_merged = merge_traces_under_conditions(st=st, params=params)
+
+    trace_data_result = np.array([1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  2.,  3.,  4.,  4.,  4.,
+                                  4.,  4.,  4.,  4.,  4.,  4.,  4.])
+
+    assert isinstance(st_merged, Stream)
+    assert len(st_merged) == 1
+    assert np.array_equal(trace_data_result, st_merged[0].data)
+
+
+def test_merge_traces_under_conditions_failing():
+    s = ['', '', '2 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 5 samples',
+         'AA.XXX..HH2 | 2016-01-07T00:00:10.00000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 10 samples',
+         '', '']
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    params = DatachunkParams(max_gap_for_merging=2)
+
+    with pytest.raises(ValueError):
+        merge_traces_under_conditions(st=st, params=params)
+
+
 @pytest.mark.xfail
 def test_pad_zeros_to_exact_time_bounds():
     assert False
