@@ -52,6 +52,7 @@ extensions = [
 autoapi_type = 'python'
 autoapi_dirs = ['../src/noiz']
 autoapi_root = "content/autoapi"
+autoapi_keep_files = True
 
 autodoc_default_options = {
     'private-members': True,
