@@ -3,7 +3,8 @@ from obspy import Stream
 import os
 import pytest
 
-from noiz.processing.datachunk_preparation import merge_traces_fill_zeros
+from noiz.models.processing_params import DatachunkParams
+from noiz.processing.datachunk_preparation import merge_traces_fill_zeros, _check_if_samples_short_enough
 
 
 @pytest.mark.xfail
@@ -76,6 +77,71 @@ def test_merge_traces_fill_zeros_different_sampling_rates_of_traces():
 
     with pytest.raises(ValueError):
         merge_traces_fill_zeros(st)
+
+
+def test__check_if_samples_short_enough_positive():
+    s = ['', '', '3 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 98 samples',
+         'AA.XXX..HH2 | 2016-01-07T00:00:10.00000Z - '
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 103 samples',
+         'AA.XXX..HH2 | 2016-01-07T00:00:20.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 100 samples',
+         '', '']
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+
+    params = DatachunkParams(max_gap_for_merging=3)
+
+    assert _check_if_samples_short_enough(st=st, params=params)
+
+
+def test__check_if_samples_short_enough_too_long_gap():
+    s = ['', '', '3 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 98 samples',
+         'AA.XXX..HH2 | 2016-01-07T00:00:10.00000Z - '
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 103 samples',
+         'AA.XXX..HH2 | 2016-01-07T00:00:20.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 100 samples',
+         '', '']
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+
+    params = DatachunkParams(max_gap_for_merging=2)
+
+    with pytest.raises(ValueError):
+        _check_if_samples_short_enough(st=st, params=params)
+
+
+def test__check_if_samples_short_enough_different_ids():
+    s = ['', '', '3 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 98 samples',
+         'AA.XXX..HH3 | 2016-01-07T00:00:10.00000Z - '
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 103 samples',
+         'AA.XXX..HH2 | 2016-01-07T00:00:20.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 100 samples',
+         '', '']
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+
+    params = DatachunkParams(max_gap_for_merging=2)
+
+    with pytest.raises(ValueError):
+        _check_if_samples_short_enough(st=st, params=params)
+
+
+def test__check_if_samples_short_enough_zero_traces():
+    st = Stream()
+
+    params = DatachunkParams(max_gap_for_merging=2)
+
+    with pytest.raises(ValueError):
+        _check_if_samples_short_enough(st=st, params=params)
 
 
 @pytest.mark.xfail
