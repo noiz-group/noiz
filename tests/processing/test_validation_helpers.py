@@ -15,4 +15,4 @@ from noiz.processing.validation_helpers import count_consecutive_trues
                              (np.array([1, 1], dtype=bool), np.array([2])),
                          ])
 def test_count_consecutive_trues(input, output):
-    assert output == count_consecutive_trues(input)
+    assert np.array_equal(output, count_consecutive_trues(input))
