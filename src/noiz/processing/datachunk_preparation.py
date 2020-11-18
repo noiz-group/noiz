@@ -242,9 +242,18 @@ def interpolate_ends_to_zero_to_fit_timespan(
     tr_temp = obspy.Trace()
     tr_temp.stats = st[0].stats.copy()
     tr_temp.data = np.array([0], dtype=st[0].data.dtype)
-    tr_temp.stats.starttime = timespan.endtime
 
-    st_temp = obspy.Stream(traces=[st[0], tr_temp])
+    trace_list = [st[0]]
+    if st[0].stats.starttime > timespan.starttime:
+        tr_start = tr_temp.copy()
+        tr_start.stats.starttime = timespan.starttime
+        trace_list.insert(0, tr_start)
+    if st[0].stats.endtime < timespan.endtime:
+        tr_end = tr_temp.copy()
+        tr_end.stats.starttime = timespan.endtime
+        trace_list.append(tr_end)
+
+    st_temp = obspy.Stream(traces=trace_list)
     st_temp.merge(method=1, fill_value='interpolate')
 
     st_res = _check_and_remove_extra_samples_on_the_end(st=st_temp, expected_no_samples=expected_no_samples)
