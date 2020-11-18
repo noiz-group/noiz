@@ -21,7 +21,7 @@ It is under heavy development and the API might change without notice.
    content/usage
    content/cli
    content/docker
-
+   content/datachunk
 
 
 Indices and tables
