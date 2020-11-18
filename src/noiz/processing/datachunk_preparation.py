@@ -207,8 +207,7 @@ def pad_zeros_to_exact_time_bounds(
         fill_value=0,
     )
 
-    if st[0].stats.npts == expected_no_samples+1:
-        st[0].data = st[0].data[:-1]
+    st = _check_and_remove_extra_samples_on_the_end(st, expected_no_samples)
 
     if st[0].stats.npts != expected_no_samples:
         raise ValueError(
@@ -216,6 +215,32 @@ def pad_zeros_to_exact_time_bounds(
             f"not successful. Current length of data is {st[0].stats.npts}. "
         )
     return st
+
+
+def _check_and_remove_extra_samples_on_the_end(st: obspy.Stream, expected_no_samples: int):
+    """
+    Takes a stream with a single trace and checks if the number of samples is higher than parameter
+    ``expected_no_samples``. Usually used to remove the last sample, if there is any additional one.
+
+    :param st:
+    :type st:
+    :param expected_no_samples:
+    :type expected_no_samples:
+    :return:
+    :rtype:
+    """
+    if len(st) != 0:
+        raise ValueError(f"This method expects exactly one trace in the stream! There were {len(st)} traces found.")
+
+    tr = st[0]
+    if len(tr.data) > expected_no_samples:
+        tr.data = tr.data[:expected_no_samples]
+    elif len(tr.data) < expected_no_samples:
+        raise ValueError(f'Provided stream has less than expected number of samples. '
+                         f'Expected {expected_no_samples}, found {len(tr.data)}. ')
+    else:
+        return st
+    return obspy.Stream(traces=tr)
 
 
 def preprocess_timespan(
