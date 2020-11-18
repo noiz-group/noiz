@@ -199,22 +199,27 @@ def pad_zeros_to_exact_time_bounds(
     :rtype: obspy.Stream
     :raises ValueError
     """
-    st.trim(
-        starttime=obspy.UTCDateTime(timespan.starttime),
-        endtime=obspy.UTCDateTime(timespan.endtime),
-        nearest_sample=False,
-        pad=True,
-        fill_value=0,
-    )
+    # TODO add handling padding at the start
 
-    st = _check_and_remove_extra_samples_on_the_end(st=st, expected_no_samples=expected_no_samples)
+    if len(st) != 1:
+        raise ValueError(f"This method expects exactly one trace in the stream! There were {len(st)} traces found.")
 
-    if st[0].stats.npts != expected_no_samples:
+    tr_temp = obspy.Trace()
+    tr_temp.stats = st[0].stats.copy()
+    tr_temp.data = np.array([0], dtype=st[0].data.dtype)
+    tr_temp.stats.starttime = timespan.endtime
+
+    st_temp = obspy.Stream(traces=[st[0], tr_temp])
+    st_temp.merge(method=1, fill_value='interpolate')
+
+    st_res = _check_and_remove_extra_samples_on_the_end(st=st_temp, expected_no_samples=expected_no_samples)
+
+    if st_res[0].stats.npts != expected_no_samples:
         raise ValueError(
             f"The try of padding with zeros to {expected_no_samples} was "
-            f"not successful. Current length of data is {st[0].stats.npts}. "
+            f"not successful. Current length of data is {st_res[0].stats.npts}. "
         )
-    return st
+    return st_res
 
 
 def _check_and_remove_extra_samples_on_the_end(st: obspy.Stream, expected_no_samples: int):
