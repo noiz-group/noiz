@@ -347,7 +347,7 @@ def create_datachunks_for_component(
         trimed_st.write(datachunk_file.filepath, format="mseed")
 
         datachunk = Datachunk(
-            processing_params_id=processing_params.id,
+            datachunk_params_id=processing_params.id,
             component_id=component.id,
             timespan_id=timespan.id,
             sampling_rate=trimed_st[0].stats.sampling_rate,
