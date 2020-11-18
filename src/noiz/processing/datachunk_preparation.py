@@ -2,12 +2,12 @@ import logging
 import numpy as np
 import obspy
 from pathlib import Path
-from typing import Union, Optional, Tuple
-
+from typing import Union, Optional, Tuple, Iterable
 
 from noiz.models.component import Component
 from noiz.models.processing_params import DatachunkParams
 from noiz.models.timespan import Timespan
+from noiz.processing.validation_helpers import count_consecutive_trues
 
 
 log = logging.getLogger("noiz.processing")
@@ -17,6 +17,7 @@ def expected_npts(timespan_length: float, sampling_rate: float) -> int:
     """
     Calculates expected number of npts in a trace based on timespan length and sampling rate.
     Casted to int with floor rounding.
+
     :param timespan_length: Length of timespan in seconds
     :type timespan_length: float
     :param sampling_rate: Sampling rate in samples per second
@@ -50,7 +51,9 @@ def assembly_preprocessing_filename(
 def assembly_sds_like_dir(component: Component, timespan: Timespan) -> Path:
     """
     Asembles a Path object in a SDS manner. Object consists of year/network/station/component codes.
+
     Warning: The component here is a single letter component!
+
     :param component: Component object containing information about used channel
     :type component: Component
     :param timespan: Timespan object containing information about time
@@ -74,6 +77,7 @@ def assembly_filepath(
     """
     Assembles a filepath for processed files.
     It assembles a root processed-data directory with processing type and a rest of a filepath.
+
     :param processed_data_dir:
     :type processed_data_dir: Path
     :param processing_type:
@@ -90,6 +94,7 @@ def directory_exists_or_create(filepath: Path) -> bool:
     """
     Checks if directory of a filepath exists. If doesnt, it creates it.
     Returns bool that indicates if the directory exists in the end. Should be always True.
+
     :param filepath: Path to the file you want to save and check it the parent directory exists.
     :type filepath: Path
     :return: If the directory exists in the end.
@@ -107,6 +112,7 @@ def increment_filename_counter(filepath: Path) -> Path:
     """
     Takes a filepath with int as suffix and returns a non existing filepath
      that has next free int value as suffix.
+
     :param filepath: Filepath to find next free path for
     :type filepath: Path
     :return: Free filepath
@@ -144,6 +150,7 @@ def resample_with_padding(
     """
     Pads data of trace (assumes that stream has only one trace) with zeros up to next power of two
     and resamples it down to provided sampling rate. Furtherwards trims it to original starttime and endtime.
+
     :param st: Stream containing one trace to be resampled
     :type st: obspy.Stream
     :param sampling_rate: Target sampling rate
@@ -221,6 +228,67 @@ def merge_traces_fill_zeros(st: obspy.Stream) -> obspy.Stream:
     return st
 
 
+def merge_traces_under_conditions(st: obspy.Stream, params: DatachunkParams) -> obspy.Stream:
+    """
+    This method first checks if passed stream :class:`obspy.Stream` is mergeable and then tries to merge it into
+    single trace.
+
+    :param st: Stream to be merged
+    :type st: obspy.Stream
+    :param params: Set of DatachunkParams with which datachunk is being prepared
+    :type params: DatachunkParams
+    :return: Merged stream
+    :rtype: obspy.Stream
+    """
+    try:
+        _check_if_gaps_short_enough(st, params)
+    except ValueError as e:
+        raise ValueError(f"Cannot merge traces. {e}")
+
+    try:
+        st.merge(method=1, interpolation_samples=-1, fill_value='interpolate')
+    except Exception as e:
+        raise ValueError(f"Cannot merge traces. {e}")
+    return st
+
+
+def _check_if_gaps_short_enough(st: obspy.Stream, params: DatachunkParams) -> bool:
+    """
+    This method takes a stream, tries to merge it with :meth:`obspy.Stream.merge` with params of `method=0`.
+    This merging attempt, in case of both overlapping signal or gap, will produce a continuous trace with
+    :class:`numpy.MaskedArray`. This allows for easy checking if the gaps and overlaps are longer than maximum
+    that is defined in instance of :class:`noiz.models.DatachunkParams` in parameter
+    :param:`noiz.models.DatachunkParams.max_gap_for_merging`.
+
+    :param st: Stream to be checked for merging
+    :type st: obspy.Stream
+    :param params: DatachunkParams that datachunk is being processed with
+    :type params: DatachunkParams
+    :return: True if stream is okay for merging
+    :rtype: bool
+    :raises: ValueError
+    """
+    max_gap = params.max_gap_for_merging
+    st_merged = st.copy().merge(method=0)
+
+    if len(st_merged) > 1:
+        raise ValueError(f"Cannot marge traces, probably they have different ids. {st}")
+    elif len(st_merged) == 0:
+        raise ValueError("Cannot marge traces, stream is empty.")
+
+    if not isinstance(st_merged[0].data, np.ma.MaskedArray):
+        return True
+
+    gaps_mask: np.array = st_merged[0].data.mask
+    gap_counts = count_consecutive_trues(gaps_mask)
+    # noinspection PyTypeChecker
+    if any(gap_counts > max_gap):
+        raise ValueError(f"Some of the gaps or overlaps are longer than set maximum of {max_gap} samples. "
+                         f"Found gaps have {gap_counts} samples.")
+    else:
+        return True
+
+
 def pad_zeros_to_exact_time_bounds(
     st: obspy.Stream, timespan: Timespan, expected_no_samples: int
 ) -> obspy.Stream:
@@ -265,6 +333,7 @@ def preprocess_timespan(
     """
     Applies standard preprocessing to a obspy.Stream. It consist of tapering, detrending,
     response removal and filtering.
+
     :param trimed_st: Stream to be treated
     :type trimed_st: obspy.Stream
     :param inventory: Inventory to have the response removed
@@ -369,7 +438,7 @@ def validate_slice(
         )
 
         try:
-            trimed_st = merge_traces_fill_zeros(trimed_st)
+            trimed_st = merge_traces_under_conditions(st=trimed_st, params=processing_params)
         except ValueError as e:
             raise ValueError(e)
 

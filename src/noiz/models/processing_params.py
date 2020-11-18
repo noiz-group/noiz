@@ -45,6 +45,8 @@ class DatachunkParams(db.Model):
 
     _correlation_max_lag = db.Column("correlation_max_lag", db.Float, nullable=True)
 
+    _max_gap_for_merging = db.Column("max_gap_for_merging", db.Integer, default=10, nullable=False)
+
     def __init__(self, **kwargs):
         self.id = kwargs.get("id", 1)
         self._sampling_rate = kwargs.get("sampling_rate", 24)
@@ -69,6 +71,7 @@ class DatachunkParams(db.Model):
         )
 
         self._correlation_max_lag = kwargs.get("correlation_max_lag", 60)
+        self._max_gap_for_merging = kwargs.get("max_gap_for_merging", 10)
 
     @property
     def sampling_rate(self):
@@ -117,6 +120,10 @@ class DatachunkParams(db.Model):
     @property
     def datachunk_sample_threshold(self):
         return self._datachunk_sample_threshold
+
+    @property
+    def max_gap_for_merging(self):
+        return self._max_gap_for_merging
 
     @property
     def correlation_max_lag(self):
