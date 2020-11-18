@@ -161,7 +161,7 @@ def test__check_if_gaps_short_enough_positive_zero_gap_permitted_negative_overla
 def test__check_if_gaps_short_enough_too_long_gap():
     s = ['', '', '3 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
-         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 98 samples',
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 95 samples',
          'AA.XXX..HH2 | 2016-01-07T00:00:10.00000Z - '
          '2016-01-07T03:00:00.000000Z | 10.0 Hz, 103 samples',
          'AA.XXX..HH2 | 2016-01-07T00:00:20.000000Z - '
@@ -170,6 +170,26 @@ def test__check_if_gaps_short_enough_too_long_gap():
 
     s = os.linesep.join(s)
     st = Stream._dummy_stream_from_string(s)
+
+    params = DatachunkParams(max_gap_for_merging=2)
+
+    with pytest.raises(ValueError):
+        _check_if_gaps_short_enough(st=st, params=params)
+
+
+def test__check_if_gaps_short_enough_too_long_overlap():
+    s = ['', '', '3 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 100 samples',
+         'AA.XXX..HH2 | 2016-01-07T00:00:10.00000Z - '
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 103 samples',
+         'AA.XXX..HH2 | 2016-01-07T00:00:20.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 10.0 Hz, 100 samples',
+         '', '']
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    st[-1].data *= 3
 
     params = DatachunkParams(max_gap_for_merging=2)
 
