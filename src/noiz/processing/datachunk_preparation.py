@@ -282,8 +282,9 @@ def _check_if_gaps_short_enough(st: obspy.Stream, params: DatachunkParams) -> bo
     gaps_mask: np.array = st_merged[0].data.mask
     gap_counts = count_consecutive_trues(gaps_mask)
     # noinspection PyTypeChecker
-    if any(gap_counts >= max_gap):
-        raise ValueError(f"Some of the gaps or overlaps are longer than set maximum of {max_gap} samples")
+    if any(gap_counts > max_gap):
+        raise ValueError(f"Some of the gaps or overlaps are longer than set maximum of {max_gap} samples. "
+                         f"Found gaps have {gap_counts} samples.")
     else:
         return True
 
