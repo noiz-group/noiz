@@ -183,6 +183,41 @@ def _check_if_gaps_short_enough(st: obspy.Stream, params: DatachunkParams) -> bo
 
 
 def pad_zeros_to_exact_time_bounds(
+        st: obspy.Stream, timespan: Timespan, expected_no_samples: int
+) -> obspy.Stream:
+    """
+    Takes a obspy Stream and trims it with Stream.trim to starttime and endtime of provided Timespan.
+    It also verifies if resulting number of samples is as expected.
+
+    :param st: stream to be trimmed
+    :type st: obspy.Stream
+    :param timespan: Timespan to be used for trimming
+    :type timespan: Timespan
+    :param expected_no_samples: Expected number of samples to be verified
+    :type expected_no_samples: int
+    :return: Trimmed stream
+    :rtype: obspy.Stream
+    :raises ValueError
+    """
+    st.trim(
+        starttime=obspy.UTCDateTime(timespan.starttime),
+        endtime=obspy.UTCDateTime(timespan.endtime),
+        nearest_sample=False,
+        pad=True,
+        fill_value=0,
+    )
+
+    st = _check_and_remove_extra_samples_on_the_end(st, expected_no_samples)
+
+    if st[0].stats.npts != expected_no_samples:
+        raise ValueError(
+            f"The try of padding with zeros to {expected_no_samples} was "
+            f"not successful. Current length of data is {st[0].stats.npts}. "
+        )
+    return st
+
+
+def interpolate_ends_to_zero_to_fit_timespan(
     st: obspy.Stream, timespan: Timespan, expected_no_samples: int
 ) -> obspy.Stream:
     """
