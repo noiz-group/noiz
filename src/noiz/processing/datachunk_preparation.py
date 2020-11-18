@@ -7,8 +7,6 @@ from noiz.models.processing_params import DatachunkParams
 from noiz.models.timespan import Timespan
 from noiz.processing.validation_helpers import count_consecutive_trues
 
-import warnings
-
 log = logging.getLogger("noiz.processing")
 
 
@@ -221,7 +219,7 @@ def pad_zeros_to_exact_time_bounds(
 
 
 def preprocess_timespan(
-    trimed_st: obspy.Stream,
+    trimmed_st: obspy.Stream,
     inventory: obspy.Inventory,
     processing_params: DatachunkParams,
 ) -> obspy.Stream:
@@ -229,8 +227,8 @@ def preprocess_timespan(
     Applies standard preprocessing to a obspy.Stream. It consist of tapering, detrending,
     response removal and filtering.
 
-    :param trimed_st: Stream to be treated
-    :type trimed_st: obspy.Stream
+    :param trimmed_st: Stream to be treated
+    :type trimmed_st: obspy.Stream
     :param inventory: Inventory to have the response removed
     :type inventory: obspy.Inventory
     :param processing_params: Processing parameters object with all required info.
@@ -240,28 +238,28 @@ def preprocess_timespan(
     """
     # TODO add potential plotting option
     log.info("Detrending")
-    trimed_st.detrend(type="polynomial", order=3)
+    trimmed_st.detrend(type="polynomial", order=3)
 
     log.info("Demeaning")
-    trimed_st.detrend(type="demean")
+    trimmed_st.detrend(type="demean")
 
     log.info(
         f"Resampling stream to {processing_params.sampling_rate} Hz with padding to next power of 2"
     )
-    trimed_st = resample_with_padding(
-        st=trimed_st, sampling_rate=processing_params.sampling_rate
+    trimmed_st = resample_with_padding(
+        st=trimmed_st, sampling_rate=processing_params.sampling_rate
     )  # type: ignore
 
     expected_samples = processing_params.get_expected_no_samples()
-    if trimed_st[0].stats.npts > expected_samples:
-        trimed_st[0].data = trimed_st[0].data[:expected_samples]
+    if trimmed_st[0].stats.npts > expected_samples:
+        trimmed_st[0].data = trimmed_st[0].data[:expected_samples]
 
     log.info(
         f"Tapering stream with type: {processing_params.preprocessing_taper_type}; "
         f"width: {processing_params.preprocessing_taper_width}; "
         f"side: {processing_params.preprocessing_taper_side}"
     )
-    trimed_st.taper(
+    trimmed_st.taper(
         type=processing_params.preprocessing_taper_type,
         max_percentage=processing_params.preprocessing_taper_width,
         side=processing_params.preprocessing_taper_side,
@@ -273,7 +271,7 @@ def preprocess_timespan(
         f"high: {processing_params.prefiltering_high};"
         f"order: {processing_params.prefiltering_order}"
     )
-    trimed_st.filter(
+    trimmed_st.filter(
         type="bandpass",
         freqmin=processing_params.prefiltering_low,
         freqmax=processing_params.prefiltering_high,
@@ -281,14 +279,14 @@ def preprocess_timespan(
     )
 
     log.info("Removing response")
-    trimed_st.remove_response(inventory)
+    trimmed_st.remove_response(inventory)
     log.info(
         f"Filtering with bandpass;"
         f"low: {processing_params.prefiltering_low}; "
         f"high: {processing_params.prefiltering_high}; "
         f"order: {processing_params.prefiltering_order};"
     )
-    trimed_st.filter(
+    trimmed_st.filter(
         type="bandpass",
         freqmin=processing_params.prefiltering_low,
         freqmax=processing_params.prefiltering_high,
@@ -297,11 +295,11 @@ def preprocess_timespan(
     )
 
     log.info("Finished preprocessing with success")
-    return trimed_st
+    return trimmed_st
 
 
 def validate_slice(
-    trimed_st: obspy.Stream,
+    trimmed_st: obspy.Stream,
     timespan: Timespan,
     processing_params: DatachunkParams,
     raw_sps: Union[float, int],
@@ -311,10 +309,10 @@ def validate_slice(
     deficit = None
     steps_dicts = {}
 
-    if len(trimed_st) == 0:
+    if len(trimmed_st) == 0:
         ValueError("There was no data to be cut for that timespan")
 
-    samples_in_stream = sum([x.stats.npts for x in trimed_st])
+    samples_in_stream = sum([x.stats.npts for x in trimmed_st])
 
     minimum_no_samples = processing_params.get_raw_minimum_no_samples(raw_sps)
     expected_no_samples = processing_params.get_raw_expected_no_samples(raw_sps)
@@ -327,32 +325,32 @@ def validate_slice(
         )
         raise ValueError("Not enough data in a chunk.")
 
-    if len(trimed_st) > 1:
+    if len(trimmed_st) > 1:
         log.warning(
-            f"There are {len(trimed_st)} traces in that stream. "
+            f"There are {len(trimmed_st)} traces in that stream. "
             f"Trying to merge with Stream.merge(fill_value=0) because its has enough of "
             f"samples to pass minimum_no_samples criterium."
         )
         if verbose_output:
 
-            steps_dicts['original'] = trimed_st.copy()
+            steps_dicts['original'] = trimmed_st.copy()
         try:
-            trimed_st = merge_traces_under_conditions(st=trimed_st, params=processing_params)
+            trimmed_st = merge_traces_under_conditions(st=trimmed_st, params=processing_params)
         except ValueError as e:
             raise ValueError(e)
 
         if verbose_output:
-            steps_dicts['merged'] = trimed_st.copy()
+            steps_dicts['merged'] = trimmed_st.copy()
 
-        if len(trimed_st) > 1:
+        if len(trimmed_st) > 1:
             raise ValueError(f"Merging not successfull. "
-                             f"There are still {len(trimed_st)} traces in the "
+                             f"There are still {len(trimmed_st)} traces in the "
                              f"stream!")
 
     if samples_in_stream == expected_no_samples + 1:
-        trimed_st[0].data = trimed_st[0].data[:-1]
+        trimmed_st[0].data = trimmed_st[0].data[:-1]
         if verbose_output:
-            steps_dicts['last_sample_removed'] = trimed_st.copy()
+            steps_dicts['last_sample_removed'] = trimmed_st.copy()
 
     if samples_in_stream < expected_no_samples:
         deficit = expected_no_samples - samples_in_stream
@@ -361,11 +359,11 @@ def validate_slice(
             f"It will be padded with {deficit} zeros to match exact length."
         )
         try:
-            trimed_st = pad_zeros_to_exact_time_bounds(
-                trimed_st, timespan, expected_no_samples
+            trimmed_st = pad_zeros_to_exact_time_bounds(
+                trimmed_st, timespan, expected_no_samples
             )
         except ValueError as e:
             log.error(f"Padding was not successful. {e}")
             raise ValueError("Datachunk padding unsuccessful.")
 
-    return trimed_st, deficit
+    return trimmed_st, deficit
