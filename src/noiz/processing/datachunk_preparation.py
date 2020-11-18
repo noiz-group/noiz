@@ -241,7 +241,7 @@ def merge_traces_under_conditions(st: obspy.Stream, params: DatachunkParams) -> 
     :rtype: obspy.Stream
     """
     try:
-        _check_if_samples_short_enough(st, params)
+        _check_if_gaps_short_enough(st, params)
     except ValueError as e:
         raise ValueError(f"Cannot merge traces. {e}")
 
@@ -252,7 +252,7 @@ def merge_traces_under_conditions(st: obspy.Stream, params: DatachunkParams) -> 
     return st
 
 
-def _check_if_samples_short_enough(st: obspy.Stream, params: DatachunkParams) -> bool:
+def _check_if_gaps_short_enough(st: obspy.Stream, params: DatachunkParams) -> bool:
     """
     This method takes a stream, tries to merge it with :meth:`obspy.Stream.merge` with params of `method=0`.
     This merging attempt, in case of both overlapping signal or gap, will produce a continuous trace with

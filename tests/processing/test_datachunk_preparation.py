@@ -7,7 +7,7 @@ from noiz.models.processing_params import DatachunkParams
 from noiz.processing.datachunk_preparation import (
     merge_traces_fill_zeros,
     merge_traces_under_conditions,
-    _check_if_samples_short_enough,
+    _check_if_gaps_short_enough,
 )
 
 
@@ -83,7 +83,7 @@ def test_merge_traces_fill_zeros_different_sampling_rates_of_traces():
         merge_traces_fill_zeros(st)
 
 
-def test__check_if_samples_short_enough_positive():
+def test__check_if_gaps_short_enough_positive():
     s = ['', '', '3 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
          '2016-01-07T03:00:00.000000Z | 10.0 Hz, 98 samples',
@@ -98,10 +98,10 @@ def test__check_if_samples_short_enough_positive():
 
     params = DatachunkParams(max_gap_for_merging=3)
 
-    assert _check_if_samples_short_enough(st=st, params=params)
+    assert _check_if_gaps_short_enough(st=st, params=params)
 
 
-def test__check_if_samples_short_enough_positive_zero_gap_permitted():
+def test__check_if_gaps_short_enough_positive_zero_gap_permitted():
     s = ['', '', '3 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
          '2016-01-07T03:00:00.000000Z | 10.0 Hz, 100 samples',
@@ -116,10 +116,10 @@ def test__check_if_samples_short_enough_positive_zero_gap_permitted():
 
     params = DatachunkParams(max_gap_for_merging=0)
 
-    assert _check_if_samples_short_enough(st=st, params=params)
+    assert _check_if_gaps_short_enough(st=st, params=params)
 
 
-def test__check_if_samples_short_enough_positive_zero_gap_permitted_negative():
+def test__check_if_gaps_short_enough_positive_zero_gap_permitted_negative():
     s = ['', '', '3 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
          '2016-01-07T03:00:00.000000Z | 10.0 Hz, 99 samples',
@@ -135,10 +135,10 @@ def test__check_if_samples_short_enough_positive_zero_gap_permitted_negative():
     params = DatachunkParams(max_gap_for_merging=0)
 
     with pytest.raises(ValueError):
-        _check_if_samples_short_enough(st=st, params=params)
+        _check_if_gaps_short_enough(st=st, params=params)
 
 
-def test__check_if_samples_short_enough_positive_zero_gap_permitted_negative_overlap():
+def test__check_if_gaps_short_enough_positive_zero_gap_permitted_negative_overlap():
     s = ['', '', '3 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
          '2016-01-07T03:00:00.000000Z | 10.0 Hz, 101 samples',
@@ -155,10 +155,10 @@ def test__check_if_samples_short_enough_positive_zero_gap_permitted_negative_ove
     params = DatachunkParams(max_gap_for_merging=0)
 
     with pytest.raises(ValueError):
-        _check_if_samples_short_enough(st=st, params=params)
+        _check_if_gaps_short_enough(st=st, params=params)
 
 
-def test__check_if_samples_short_enough_too_long_gap():
+def test__check_if_gaps_short_enough_too_long_gap():
     s = ['', '', '3 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
          '2016-01-07T03:00:00.000000Z | 10.0 Hz, 98 samples',
@@ -174,10 +174,10 @@ def test__check_if_samples_short_enough_too_long_gap():
     params = DatachunkParams(max_gap_for_merging=2)
 
     with pytest.raises(ValueError):
-        _check_if_samples_short_enough(st=st, params=params)
+        _check_if_gaps_short_enough(st=st, params=params)
 
 
-def test__check_if_samples_short_enough_different_ids():
+def test__check_if_gaps_short_enough_different_ids():
     s = ['', '', '3 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
          '2016-01-07T03:00:00.000000Z | 10.0 Hz, 98 samples',
@@ -193,16 +193,16 @@ def test__check_if_samples_short_enough_different_ids():
     params = DatachunkParams(max_gap_for_merging=2)
 
     with pytest.raises(ValueError):
-        _check_if_samples_short_enough(st=st, params=params)
+        _check_if_gaps_short_enough(st=st, params=params)
 
 
-def test__check_if_samples_short_enough_zero_traces():
+def test__check_if_gaps_short_enough_zero_traces():
     st = Stream()
 
     params = DatachunkParams(max_gap_for_merging=2)
 
     with pytest.raises(ValueError):
-        _check_if_samples_short_enough(st=st, params=params)
+        _check_if_gaps_short_enough(st=st, params=params)
 
 
 def test_merge_traces_under_conditions():
