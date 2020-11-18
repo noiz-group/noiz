@@ -7,6 +7,7 @@ from noiz.models.processing_params import DatachunkParams
 from noiz.models.timespan import Timespan
 from noiz.processing.validation_helpers import count_consecutive_trues
 
+import warnings
 
 log = logging.getLogger("noiz.processing")
 
@@ -28,7 +29,8 @@ def expected_npts(timespan_length: float, sampling_rate: float) -> int:
 
 def next_pow_2(number: int) -> int:
     """
-       Finds a number that is a power of two that is next after value provided to that method
+    Finds a number that is a power of two that is next after value provided to that method
+
     :param number: Value of which you need next power of 2
     :type number: int
     :return: Next power of two
@@ -42,7 +44,7 @@ def resample_with_padding(
 ) -> obspy.Stream:
     """
     Pads data of trace (assumes that stream has only one trace) with zeros up to next power of two
-    and resamples it down to provided sampling rate. Furtherwards trims it to original starttime and endtime.
+    and resamples it down to provided sampling rate. In the end it trims it to original starttime and endtime.
 
     :param st: Stream containing one trace to be resampled
     :type st: obspy.Stream
