@@ -207,7 +207,7 @@ def pad_zeros_to_exact_time_bounds(
         fill_value=0,
     )
 
-    st = _check_and_remove_extra_samples_on_the_end(st, expected_no_samples)
+    st = _check_and_remove_extra_samples_on_the_end(st=st, expected_no_samples=expected_no_samples)
 
     if st[0].stats.npts != expected_no_samples:
         raise ValueError(
@@ -229,7 +229,7 @@ def _check_and_remove_extra_samples_on_the_end(st: obspy.Stream, expected_no_sam
     :return:
     :rtype:
     """
-    if len(st) != 0:
+    if len(st) != 1:
         raise ValueError(f"This method expects exactly one trace in the stream! There were {len(st)} traces found.")
 
     tr = st[0]
