@@ -303,9 +303,11 @@ def validate_slice(
     timespan: Timespan,
     processing_params: DatachunkParams,
     raw_sps: Union[float, int],
+    verbose_output: bool = False
 ) -> Tuple[obspy.Stream, Optional[int]]:
 
     deficit = None
+    steps_dicts = {}
 
     if len(trimed_st) == 0:
         ValueError("There was no data to be cut for that timespan")
@@ -329,11 +331,16 @@ def validate_slice(
             f"Trying to merge with Stream.merge(fill_value=0) because its has enough of "
             f"samples to pass minimum_no_samples criterium."
         )
+        if verbose_output:
 
+            steps_dicts['original'] = trimed_st.copy()
         try:
             trimed_st = merge_traces_under_conditions(st=trimed_st, params=processing_params)
         except ValueError as e:
             raise ValueError(e)
+
+        if verbose_output:
+            steps_dicts['merged'] = trimed_st.copy()
 
         if len(trimed_st) > 1:
             raise ValueError(f"Merging not successfull. "
@@ -342,7 +349,8 @@ def validate_slice(
 
     if samples_in_stream == expected_no_samples + 1:
         trimed_st[0].data = trimed_st[0].data[:-1]
-        return trimed_st, deficit
+        if verbose_output:
+            steps_dicts['last_sample_removed'] = trimed_st.copy()
 
     if samples_in_stream < expected_no_samples:
         deficit = expected_no_samples - samples_in_stream
