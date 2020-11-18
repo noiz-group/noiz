@@ -9,7 +9,7 @@ from noiz.models.datachunk import Datachunk, ProcessedDatachunk
 from noiz.models.processing_params import DatachunkParams
 from noiz.models.timespan import Timespan
 from noiz.models.component import Component
-from noiz.processing.datachunk_preparation import directory_exists_or_create
+from noiz.processing.path_helpers import directory_exists_or_create
 
 
 def whiten_trace(tr: obspy.Trace) -> obspy.Trace:

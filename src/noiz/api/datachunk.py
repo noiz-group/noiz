@@ -23,9 +23,9 @@ from noiz.models.processing_params import DatachunkParams
 from noiz.models.time_series_index import Tsindex
 from noiz.models.timespan import Timespan
 from noiz.processing.datachunk_preparation import validate_slice, \
-    preprocess_timespan, assembly_filepath, assembly_sds_like_dir, \
-    assembly_preprocessing_filename, increment_filename_counter, \
-    directory_exists_or_create
+    preprocess_timespan
+from noiz.processing.path_helpers import assembly_preprocessing_filename, assembly_sds_like_dir, assembly_filepath, \
+    directory_exists_or_create, increment_filename_counter
 
 log = logging.getLogger("noiz.api")
 
