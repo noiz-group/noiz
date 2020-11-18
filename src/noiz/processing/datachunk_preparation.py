@@ -438,7 +438,7 @@ def validate_slice(
         )
 
         try:
-            trimed_st = merge_traces_fill_zeros(trimed_st)
+            trimed_st = merge_traces_under_conditions(st=trimed_st, params=processing_params)
         except ValueError as e:
             raise ValueError(e)
 
