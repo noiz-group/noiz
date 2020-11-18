@@ -8,6 +8,7 @@ from noiz.processing.datachunk_preparation import (
     merge_traces_fill_zeros,
     merge_traces_under_conditions,
     _check_if_gaps_short_enough,
+    _check_and_remove_extra_samples_on_the_end,
 )
 
 
@@ -279,8 +280,8 @@ def test_merge_traces_under_conditions_with_interpolation():
 
     st_merged = merge_traces_under_conditions(st=st, params=params)
 
-    trace_data_result = np.array([1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  2.,  3.,  4.,  4.,  4.,
-                                  4.,  4.,  4.,  4.,  4.,  4.,  4.])
+    trace_data_result = np.array([1., 1., 1., 1., 1., 1., 1., 1., 2., 3., 4., 4., 4.,
+                                  4., 4., 4., 4., 4., 4., 4.])
 
     assert isinstance(st_merged, Stream)
     assert len(st_merged) == 1
@@ -356,3 +357,72 @@ def test_validate_slice_samples_over_minimum():
 @pytest.mark.xfail
 def test_validate_slice_no_traces_inside():
     assert False
+
+
+def test__check_and_remove_extra_samples_on_the_end_no_action():
+    expected_no_samples = 10
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         f'2016-01-07T03:00:00.000000Z | 1.0 Hz, {expected_no_samples} samples',
+         '', '']
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+
+    assert st == _check_and_remove_extra_samples_on_the_end(st=st, expected_no_samples=expected_no_samples)
+
+
+def test__check_and_remove_extra_samples_on_the_end_not_enough_samples():
+    expected_no_samples = 50
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         f'2016-01-07T03:00:00.000000Z | 1.0 Hz, {expected_no_samples-10} samples',
+         '', '']
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+
+    with pytest.raises(ValueError):
+        _check_and_remove_extra_samples_on_the_end(st=st, expected_no_samples=expected_no_samples)
+
+
+def test__check_and_remove_extra_samples_on_the_end_trim():
+    expected_no_samples = 10
+    s_out = ['', '', '1 Trace(s) in Stream:',
+             'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+             f'2016-01-07T03:00:00.000000Z | 1.0 Hz, {expected_no_samples} samples',
+             '', '']
+
+    s_in = ['', '', '1 Trace(s) in Stream:',
+            'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+            '2016-01-07T03:00:00.000000Z | 1.0 Hz, 15 samples',
+            '', '']
+
+    s_in = os.linesep.join(s_in)
+    st_in = Stream._dummy_stream_from_string(s_in)
+    s_out = os.linesep.join(s_out)
+    st_out = Stream._dummy_stream_from_string(s_out)
+
+    assert st_out == _check_and_remove_extra_samples_on_the_end(st=st_in, expected_no_samples=expected_no_samples)
+
+
+def test__check_and_remove_extra_samples_on_the_end_many_traces():
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 8 samples',
+         'AA.XXX..HH2 | 2016-01-07T00:00:10.00000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 10 samples',
+         '', '']
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+
+    with pytest.raises(ValueError):
+        _check_and_remove_extra_samples_on_the_end(st=st, expected_no_samples=10)
+
+
+def test__check_and_remove_extra_samples_on_the_end_zero_traces():
+    st = Stream()
+
+    with pytest.raises(ValueError):
+        _check_and_remove_extra_samples_on_the_end(st=st, expected_no_samples=10)
