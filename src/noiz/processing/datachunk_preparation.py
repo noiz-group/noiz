@@ -421,7 +421,6 @@ def validate_slice(
     steps_dict: OrderedDict[str, obspy.Stream] = OrderedDict()
 
     # TODO validate starttime and endtime if they are not higher than bounds
-    # TODO validate if there is too many samples
 
     if len(trimmed_st) == 0:
         ValueError("There was no data to be cut for that timespan")
@@ -430,6 +429,15 @@ def validate_slice(
 
     minimum_no_samples = processing_params.get_raw_minimum_no_samples(original_samplerate)
     expected_no_samples = processing_params.get_raw_expected_no_samples(original_samplerate)
+
+    if samples_in_stream > expected_no_samples+1:
+        message = (
+            f"There were more samples in the stream than expected. "
+            f"Expected: {expected_no_samples}, found in stream {samples_in_stream}. "
+            f"You should make sure that the sampling rate and all the rest of Stream params are okay. "
+        )
+        logging.error(message)
+        raise ValueError(message)
 
     if samples_in_stream < minimum_no_samples:
         message = (
