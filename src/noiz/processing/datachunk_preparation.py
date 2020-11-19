@@ -310,6 +310,8 @@ def preprocess_sliced_stream_for_datachunk(
     :return: Processed Stream
     :rtype: obspy.Stream
     """
+    # py39 This method should return in annotation OrderedDict but there is issue. It's fixed in Python 3.9
+
     steps_dict: OrderedDict[str, obspy.Stream] = OrderedDict()
 
     if verbose_output:
@@ -402,6 +404,7 @@ def validate_slice(
     raw_sps: Union[float, int],
     verbose_output: bool = False
 ) -> Tuple[obspy.Stream, int, Dict[str, obspy.Stream]]:
+    # py39 This method should return in annotation OrderedDict but there is issue. It's fixed in Python 3.9
 
     deficit = 0
     steps_dict: OrderedDict[str, obspy.Stream] = OrderedDict()
