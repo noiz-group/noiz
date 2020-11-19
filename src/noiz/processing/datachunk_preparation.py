@@ -433,25 +433,11 @@ def validate_slice(
     minimum_no_samples = processing_params.get_raw_minimum_no_samples(original_samplerate)
     expected_no_samples = processing_params.get_raw_expected_no_samples(original_samplerate)
 
-    trimmed_st.sort(keys=['starttime'])
-
-    if trimmed_st[0].stats.starttime < timespan.starttime:
-        message = (
-            f"Provided stream has starttime before timespan starts. "
-            f"Are you sure you trimmed it first? "
-            f"Stream starttime: {trimmed_st[0].stats.starttime}, timespan starttime: {timespan.starttime}"
-        )
-        log.error(message)
-        raise ValueError(message)
-
-    if trimmed_st[-1].stats.endtime > timespan.endtime:
-        message = (
-            f"Provided stream has endtime after timespan ends. "
-            f"Are you sure you trimmed it first? "
-            f"Stream endtime: {trimmed_st[-1].stats.endtime}, timespan endtime: {timespan.endtime}"
-        )
-        log.error(message)
-        raise ValueError(message)
+    try:
+        validate_timebounds_agains_timespan(trimmed_st, timespan)
+    except ValueError as e:
+        log.error(e)
+        raise ValueError(e)
 
     if samples_in_stream > expected_no_samples*(2-processing_params.datachunk_sample_threshold):
         message = (
@@ -522,6 +508,25 @@ def validate_slice(
             raise ValueError(f"Datachunk padding unsuccessful. {e}")
 
     return trimmed_st, deficit, steps_dict
+
+
+def validate_timebounds_agains_timespan(st, timespan):
+
+    st.sort(keys=['starttime'])
+    if st[0].stats.starttime < timespan.starttime:
+        message = (
+            f"Provided stream has starttime before timespan starts. "
+            f"Are you sure you trimmed it first? "
+            f"Stream starttime: {st[0].stats.starttime}, timespan starttime: {timespan.starttime}"
+        )
+        raise ValueError(message)
+    if st[-1].stats.endtime > timespan.endtime:
+        message = (
+            f"Provided stream has endtime after timespan ends. "
+            f"Are you sure you trimmed it first? "
+            f"Stream endtime: {st[-1].stats.endtime}, timespan endtime: {timespan.endtime}"
+        )
+        raise ValueError(message)
 
 
 def validate_sample_rate(original_samplerate, trimmed_st):
