@@ -398,6 +398,32 @@ def test_interpolate_ends_to_zero_to_fit_timespan_end_only():
     assert np.array_equal(st_res[0].data, expected_data)
 
 
+def test_interpolate_ends_to_zero_to_fit_timespan_end_only_single_sample():
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 9 samples',
+         '', '']
+
+    ts = Timespan(
+        starttime=Timestamp('2016-01-07T00:00:00.000000Z'),
+        midtime=Timestamp('2016-01-07T00:00:05.000000Z'),
+        endtime=Timestamp('2016-01-07T00:00:10.000000Z'),
+    )
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    st[0].data *= 4
+    expected_no_samples = 10
+
+    expected_data = np.array([4., 4., 4., 4., 4., 4., 4., 4., 4., 0.])
+
+    st_res = interpolate_ends_to_zero_to_fit_timespan(st=st, timespan=ts, expected_no_samples=expected_no_samples)
+
+    assert len(st_res) == 1
+    assert len(st_res[0].data) == expected_no_samples
+    assert np.array_equal(st_res[0].data, expected_data)
+
+
 def test_interpolate_ends_to_zero_to_fit_timespan_beginning_only():
     s = ['', '', '1 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:04.000000Z - '
@@ -416,6 +442,32 @@ def test_interpolate_ends_to_zero_to_fit_timespan_beginning_only():
     expected_no_samples = 10
 
     expected_data = np.array([0., 1., 2., 3., 4., 4., 4., 4., 4., 4.])
+
+    st_res = interpolate_ends_to_zero_to_fit_timespan(st=st, timespan=ts, expected_no_samples=expected_no_samples)
+
+    assert len(st_res) == 1
+    assert len(st_res[0].data) == expected_no_samples
+    assert np.array_equal(st_res[0].data, expected_data)
+
+
+def test_interpolate_ends_to_zero_to_fit_timespan_beginning_only_one_sample():
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:01.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 9 samples',
+         '', '']
+
+    ts = Timespan(
+        starttime=Timestamp('2016-01-07T00:00:00.000000Z'),
+        midtime=Timestamp('2016-01-07T00:00:05.000000Z'),
+        endtime=Timestamp('2016-01-07T00:00:10.000000Z'),
+    )
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    st[0].data *= 4
+    expected_no_samples = 10
+
+    expected_data = np.array([0., 4., 4., 4., 4., 4., 4., 4., 4., 4.])
 
     st_res = interpolate_ends_to_zero_to_fit_timespan(st=st, timespan=ts, expected_no_samples=expected_no_samples)
 
