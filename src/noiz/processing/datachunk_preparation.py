@@ -401,7 +401,7 @@ def validate_slice(
     trimmed_st: obspy.Stream,
     timespan: Timespan,
     processing_params: DatachunkParams,
-    raw_sps: Union[float, int],
+    original_samplerate: Union[float, int],
     verbose_output: bool = False
 ) -> Tuple[obspy.Stream, int, Dict[str, obspy.Stream]]:
     # py39 This method should return in annotation OrderedDict but there is issue. It's fixed in Python 3.9
@@ -414,8 +414,8 @@ def validate_slice(
 
     samples_in_stream = sum([x.stats.npts for x in trimmed_st])
 
-    minimum_no_samples = processing_params.get_raw_minimum_no_samples(raw_sps)
-    expected_no_samples = processing_params.get_raw_expected_no_samples(raw_sps)
+    minimum_no_samples = processing_params.get_raw_minimum_no_samples(original_samplerate)
+    expected_no_samples = processing_params.get_raw_expected_no_samples(original_samplerate)
 
     if samples_in_stream < minimum_no_samples:
         log.error(

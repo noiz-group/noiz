@@ -308,7 +308,7 @@ def create_datachunks_for_component(
                 trimmed_st=trimmed_st,
                 timespan=timespan,
                 processing_params=processing_params,
-                raw_sps=float(time_series.samplerate),
+                original_samplerate=float(time_series.samplerate),
                 verbose_output=False,
             )
         except ValueError as e:
