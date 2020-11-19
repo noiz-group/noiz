@@ -72,6 +72,7 @@ def test_merge_traces_fill_zeros():
     assert np.count_nonzero(st[0].data == 0) == 20
 
 
+@pytest.mark.filterwarnings("ignore: Incompatible traces")
 def test_merge_traces_fill_zeros_different_sampling_rates_of_traces():
     s = ['', '', '2 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
