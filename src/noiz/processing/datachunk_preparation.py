@@ -291,7 +291,7 @@ def _check_and_remove_extra_samples_on_the_end(st: obspy.Stream, expected_no_sam
     return obspy.Stream(traces=tr)
 
 
-def preprocess_timespan(
+def preprocess_sliced_stream_for_datachunk(
     trimmed_st: obspy.Stream,
     inventory: obspy.Inventory,
     processing_params: DatachunkParams,
