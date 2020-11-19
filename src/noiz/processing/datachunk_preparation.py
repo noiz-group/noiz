@@ -431,34 +431,39 @@ def validate_slice(
     expected_no_samples = processing_params.get_raw_expected_no_samples(original_samplerate)
 
     if samples_in_stream < minimum_no_samples:
-        log.error(
+        message = (
             f"There were {samples_in_stream} samples in the trace"
             f" while {minimum_no_samples} were expected. "
             f"Skipping this chunk."
         )
-        raise ValueError("Not enough data in a chunk.")
+        log.error(message)
+        raise ValueError(message)
 
     if len(trimmed_st) > 1:
         log.warning(
             f"There are {len(trimmed_st)} traces in that stream. "
-            f"Trying to merge with Stream.merge(fill_value=0) because its has enough of "
-            f"samples to pass minimum_no_samples criterium."
+            f"Trying to merge with merge_traces_under_conditions because its has enough of "
+            f"samples to pass minimum_no_samples criterion."
         )
         if verbose_output:
-
             steps_dict['original'] = trimmed_st.copy()
         try:
             trimmed_st = merge_traces_under_conditions(st=trimmed_st, params=processing_params)
         except ValueError as e:
+            log.error(e)
             raise ValueError(e)
 
         if verbose_output:
             steps_dict['merged'] = trimmed_st.copy()
 
         if len(trimmed_st) > 1:
-            raise ValueError(f"Merging not successfull. "
-                             f"There are still {len(trimmed_st)} traces in the "
-                             f"stream!")
+            message = (
+                f"Merging not successfull. "
+                f"There are still {len(trimmed_st)} traces in the "
+                f"stream!"
+            )
+            log.error(message)
+            raise ValueError(message)
 
     if samples_in_stream == expected_no_samples + 1:
         trimmed_st[0].data = trimmed_st[0].data[:-1]
@@ -481,6 +486,6 @@ def validate_slice(
                 steps_dict['padded'] = trimmed_st.copy()
         except ValueError as e:
             log.error(f"Padding was not successful. {e}")
-            raise ValueError("Datachunk padding unsuccessful.")
+            raise ValueError(f"Datachunk padding unsuccessful. {e}")
 
     return trimmed_st, deficit, steps_dict
