@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 import obspy
+from collections import OrderedDict
 from typing import Union, Optional, Tuple, Dict
 
 from noiz.models.processing_params import DatachunkParams
@@ -295,7 +296,7 @@ def preprocess_timespan(
     inventory: obspy.Inventory,
     processing_params: DatachunkParams,
     verbose_output: bool = False
-) -> obspy.Stream:
+) -> Tuple[obspy.Stream, OrderedDict[str, obspy.Stream]]:
     """
     Applies standard preprocessing to a obspy.Stream. It consist of tapering, detrending,
     response removal and filtering.
@@ -309,7 +310,7 @@ def preprocess_timespan(
     :return: Processed Stream
     :rtype: obspy.Stream
     """
-    steps_dict = {}
+    steps_dict = OrderedDict()
 
     if verbose_output:
         steps_dict['original'] = trimmed_st.copy()
@@ -390,7 +391,8 @@ def preprocess_timespan(
         steps_dict['filtered_second_time'] = trimmed_st.copy()
 
     log.info("Finished preprocessing with success")
-    return trimmed_st
+
+    return trimmed_st, steps_dict
 
 
 def validate_slice(
@@ -399,10 +401,10 @@ def validate_slice(
     processing_params: DatachunkParams,
     raw_sps: Union[float, int],
     verbose_output: bool = False
-) -> Tuple[obspy.Stream, int, Dict[str, obspy.Stream]]:
+) -> Tuple[obspy.Stream, int, OrderedDict[str, obspy.Stream]]:
 
     deficit = 0
-    steps_dict = {}
+    steps_dict = OrderedDict()
 
     if len(trimmed_st) == 0:
         ValueError("There was no data to be cut for that timespan")
