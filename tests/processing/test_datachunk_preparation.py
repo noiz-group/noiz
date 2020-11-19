@@ -597,6 +597,29 @@ def test_validate_slice_ends_too_late():
         validate_slice(trimmed_st=st, timespan=ts, original_samplerate=2, processing_params=dp)
 
 
+def test_validate_slice_too_many_samples():
+    expected_npts = 240
+    expected_sampling = 4
+
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         f'2016-01-07T03:00:00.000000Z | {expected_sampling} Hz, {expected_npts} samples',
+         '', '']
+
+    ts = Timespan(
+        starttime=Timestamp('2016-01-07T00:00:00.000000Z'),
+        midtime=Timestamp('2016-01-07T00:00:30.000000Z'),
+        endtime=Timestamp('2016-01-07T00:01:00.000000Z'),
+    )
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    dp = DatachunkParams(sampling_rate=expected_sampling, timespan_length=timedelta(seconds=60))
+
+    with pytest.raises(ValueError):
+        validate_slice(trimmed_st=st, timespan=ts, original_samplerate=2, processing_params=dp)
+
+
 @pytest.mark.xfail
 def test_validate_slice_mutli_traces_mergeable():
     assert False
