@@ -234,7 +234,6 @@ def interpolate_ends_to_zero_to_fit_timespan(
     :rtype: obspy.Stream
     :raises ValueError
     """
-    # TODO add handling padding at the start
 
     if len(st) != 1:
         raise ValueError(f"This method expects exactly one trace in the stream! There were {len(st)} traces found.")
