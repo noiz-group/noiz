@@ -109,6 +109,9 @@ class TimespanModel(db.Model):
     def endtime_obspy(self) -> obspy.UTCDateTime:
         return obspy.UTCDateTime(self.endtime)
 
+    def length(self) -> pd.Timedelta:
+        return self.endtime - self.starttime
+
 
 class Timespan(TimespanModel):
     __tablename__ = "timespan"
