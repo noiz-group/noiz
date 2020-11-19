@@ -294,6 +294,7 @@ def preprocess_timespan(
     trimmed_st: obspy.Stream,
     inventory: obspy.Inventory,
     processing_params: DatachunkParams,
+    verbose_output: bool = False
 ) -> obspy.Stream:
     """
     Applies standard preprocessing to a obspy.Stream. It consist of tapering, detrending,
@@ -308,12 +309,21 @@ def preprocess_timespan(
     :return: Processed Stream
     :rtype: obspy.Stream
     """
-    # TODO add potential plotting option
+    steps_dict = {}
+
+    if verbose_output:
+        steps_dict['original'] = trimmed_st.copy()
+
     log.info("Detrending")
     trimmed_st.detrend(type="polynomial", order=3)
 
+    if verbose_output:
+        steps_dict['detrended'] = trimmed_st.copy()
+
     log.info("Demeaning")
     trimmed_st.detrend(type="demean")
+    if verbose_output:
+        steps_dict['demeaned'] = trimmed_st.copy()
 
     log.info(
         f"Resampling stream to {processing_params.sampling_rate} Hz with padding to next power of 2"
@@ -321,10 +331,14 @@ def preprocess_timespan(
     trimmed_st = resample_with_padding(
         st=trimmed_st, sampling_rate=processing_params.sampling_rate
     )  # type: ignore
+    if verbose_output:
+        steps_dict['resampled'] = trimmed_st.copy()
 
     expected_samples = processing_params.get_expected_no_samples()
     if trimmed_st[0].stats.npts > expected_samples:
         trimmed_st[0].data = trimmed_st[0].data[:expected_samples]
+        if verbose_output:
+            steps_dict['trimmed_last_sample'] = trimmed_st.copy()
 
     log.info(
         f"Tapering stream with type: {processing_params.preprocessing_taper_type}; "
@@ -336,6 +350,8 @@ def preprocess_timespan(
         max_percentage=processing_params.preprocessing_taper_width,
         side=processing_params.preprocessing_taper_side,
     )
+    if verbose_output:
+        steps_dict['tapered'] = trimmed_st.copy()
 
     log.info(
         f"Filtering with bandpass to "
@@ -349,9 +365,14 @@ def preprocess_timespan(
         freqmax=processing_params.prefiltering_high,
         corners=processing_params.prefiltering_order,
     )
+    if verbose_output:
+        steps_dict['filtered'] = trimmed_st.copy()
 
     log.info("Removing response")
     trimmed_st.remove_response(inventory)
+    if verbose_output:
+        steps_dict['removed_response'] = trimmed_st.copy()
+
     log.info(
         f"Filtering with bandpass;"
         f"low: {processing_params.prefiltering_low}; "
@@ -365,6 +386,8 @@ def preprocess_timespan(
         corners=processing_params.prefiltering_order,
         zerophase=True,
     )
+    if verbose_output:
+        steps_dict['filtered_second_time'] = trimmed_st.copy()
 
     log.info("Finished preprocessing with success")
     return trimmed_st
