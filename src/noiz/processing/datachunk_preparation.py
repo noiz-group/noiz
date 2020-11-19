@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 import obspy
-from typing import Union, Optional, Tuple
+from typing import Union, Optional, Tuple, Dict
 
 from noiz.models.processing_params import DatachunkParams
 from noiz.models.timespan import Timespan
@@ -375,10 +375,10 @@ def validate_slice(
     processing_params: DatachunkParams,
     raw_sps: Union[float, int],
     verbose_output: bool = False
-) -> Tuple[obspy.Stream, int]:
+) -> Tuple[obspy.Stream, int, Dict[str, obspy.Stream]]:
 
     deficit = 0
-    steps_dicts = {}
+    steps_dict = {}
 
     if len(trimmed_st) == 0:
         ValueError("There was no data to be cut for that timespan")
@@ -404,14 +404,14 @@ def validate_slice(
         )
         if verbose_output:
 
-            steps_dicts['original'] = trimmed_st.copy()
+            steps_dict['original'] = trimmed_st.copy()
         try:
             trimmed_st = merge_traces_under_conditions(st=trimmed_st, params=processing_params)
         except ValueError as e:
             raise ValueError(e)
 
         if verbose_output:
-            steps_dicts['merged'] = trimmed_st.copy()
+            steps_dict['merged'] = trimmed_st.copy()
 
         if len(trimmed_st) > 1:
             raise ValueError(f"Merging not successfull. "
@@ -421,7 +421,7 @@ def validate_slice(
     if samples_in_stream == expected_no_samples + 1:
         trimmed_st[0].data = trimmed_st[0].data[:-1]
         if verbose_output:
-            steps_dicts['last_sample_removed'] = trimmed_st.copy()
+            steps_dict['last_sample_removed'] = trimmed_st.copy()
 
     if samples_in_stream < expected_no_samples:
         deficit = expected_no_samples - samples_in_stream
@@ -436,9 +436,9 @@ def validate_slice(
                 expected_no_samples=expected_no_samples,
             )
             if verbose_output:
-                steps_dicts['padded'] = trimmed_st.copy()
+                steps_dict['padded'] = trimmed_st.copy()
         except ValueError as e:
             log.error(f"Padding was not successful. {e}")
             raise ValueError("Datachunk padding unsuccessful.")
 
-    return trimmed_st, deficit
+    return trimmed_st, deficit, steps_dict
