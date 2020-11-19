@@ -25,9 +25,10 @@ def expected_npts(timespan_length: float, sampling_rate: float) -> int:
     return int(timespan_length * sampling_rate)
 
 
-def next_pow_2(number: int) -> int:
+def next_pow_2(number: Union[int, float]) -> int:
     """
-    Finds a number that is a power of two that is next after value provided to that method
+    Finds a number that is a power of two that is next after value provided to that method.
+    Accepts only positive values.
 
     :param number: Value of which you need next power of 2
     :type number: int

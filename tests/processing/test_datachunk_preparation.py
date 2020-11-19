@@ -12,12 +12,8 @@ from noiz.processing.datachunk_preparation import (
     _check_and_remove_extra_samples_on_the_end,
     pad_zeros_to_exact_time_bounds,
     interpolate_ends_to_zero_to_fit_timespan,
+    next_pow_2,
 )
-
-
-@pytest.mark.xfail
-def test_assembly_sds_like_dir():
-    assert False
 
 
 @pytest.mark.xfail
@@ -25,29 +21,17 @@ def test_expected_npts():
     assert False
 
 
-@pytest.mark.xfail
-def test_assembly_preprocessing_filename():
-    assert False
+@pytest.mark.parametrize(["val", "expected"], [
+    (3, 2),
+    (3.3, 2),
+    (100, 7),
+    (55.57666664, 6)
+])
+def test_next_pow_2(val, expected):
+    output = next_pow_2(val)
 
-
-@pytest.mark.xfail
-def test_assembly_filepath():
-    assert False
-
-
-@pytest.mark.xfail
-def test_directory_exists_or_create():
-    assert False
-
-
-@pytest.mark.xfail
-def test_increment_filename_counter():
-    assert False
-
-
-@pytest.mark.xfail
-def test_next_pow_2():
-    assert False
+    assert isinstance(output, int)
+    assert expected == output
 
 
 @pytest.mark.xfail
