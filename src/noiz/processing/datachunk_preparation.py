@@ -296,7 +296,7 @@ def preprocess_sliced_stream_for_datachunk(
     inventory: obspy.Inventory,
     processing_params: DatachunkParams,
     verbose_output: bool = False
-) -> Tuple[obspy.Stream, OrderedDict[str, obspy.Stream]]:
+) -> Tuple[obspy.Stream, Dict[str, obspy.Stream]]:
     """
     Applies standard preprocessing to a obspy.Stream. It consist of tapering, detrending,
     response removal and filtering.
@@ -310,7 +310,7 @@ def preprocess_sliced_stream_for_datachunk(
     :return: Processed Stream
     :rtype: obspy.Stream
     """
-    steps_dict = OrderedDict()
+    steps_dict: OrderedDict[str, obspy.Stream] = OrderedDict()
 
     if verbose_output:
         steps_dict['original'] = trimmed_st.copy()
@@ -401,10 +401,10 @@ def validate_slice(
     processing_params: DatachunkParams,
     raw_sps: Union[float, int],
     verbose_output: bool = False
-) -> Tuple[obspy.Stream, int, OrderedDict[str, obspy.Stream]]:
+) -> Tuple[obspy.Stream, int, Dict[str, obspy.Stream]]:
 
     deficit = 0
-    steps_dict = OrderedDict()
+    steps_dict: OrderedDict[str, obspy.Stream] = OrderedDict()
 
     if len(trimmed_st) == 0:
         ValueError("There was no data to be cut for that timespan")
