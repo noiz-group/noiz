@@ -422,6 +422,11 @@ def validate_slice(
 
     if len(trimmed_st) == 0:
         ValueError("There was no data to be cut for that timespan")
+    try:
+        validate_sample_rate(original_samplerate, trimmed_st)
+    except ValueError as e:
+        log.error(e)
+        raise ValueError(e)
 
     samples_in_stream = sum([x.stats.npts for x in trimmed_st])
 
@@ -448,7 +453,7 @@ def validate_slice(
         log.error(message)
         raise ValueError(message)
 
-    if samples_in_stream > expected_no_samples+1:
+    if samples_in_stream > expected_no_samples*(2-processing_params.datachunk_sample_threshold):
         message = (
             f"There were more samples in the stream than expected. "
             f"Expected: {expected_no_samples}, found in stream {samples_in_stream}. "
@@ -517,3 +522,15 @@ def validate_slice(
             raise ValueError(f"Datachunk padding unsuccessful. {e}")
 
     return trimmed_st, deficit, steps_dict
+
+
+def validate_sample_rate(original_samplerate, trimmed_st):
+    sample_rates = list(set([x.stats.sampling_rate for x in trimmed_st]))
+    if len(sample_rates) != 1:
+        raise ValueError("The sampling rate in the stream is not uniform!")
+    if sample_rates[0] != original_samplerate:
+        message = (
+            f"Sampling rate of provided stream is different than expected. "
+            f"Found sampling_rate {sample_rates[0]}, expected {original_samplerate} "
+        )
+        raise ValueError(message)
