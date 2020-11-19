@@ -226,6 +226,17 @@ def interpolate_ends_to_zero_to_fit_timespan(
     Takes a obspy Stream and trims it with Stream.trim to starttime and endtime of provided Timespan.
     It also verifies if resulting number of samples is as expected.
 
+    It works using internal mechanism of obspy for determining number of samples to be interpolated as well as
+    the interpolation itself.
+    If there are any samples missing on either end of the :class:`obspy.Trace`, it creates a new :class:`obspy.Stream`
+    that contains the original :class:`obspy.Trace`.
+    Afterwards, depending on which side there are samples missing, it creates a new traces with a single sample equal
+    to zero, that starttime is either at :param:`noiz.models.Timespan.starttime` or
+    :param:`noiz.models.Timespan.endtime` depending on the side.
+    Finally, it merges resulting trace list with :meth:`obspy.Stream.merge` with parameters of `method=1`
+    and `fill_value='interpolate'` which results in interpolating values between the core trace and those
+    zeros on the start or on the end.
+
     :param st: stream to be trimmed
     :type st: obspy.Stream
     :param timespan: Timespan to be used for trimming
@@ -247,7 +258,7 @@ def interpolate_ends_to_zero_to_fit_timespan(
     if st[0].stats.starttime > timespan.starttime:
         tr_start = tr_temp.copy()
         tr_start.stats.starttime = timespan.starttime
-        trace_list.insert(0, tr_start)
+        trace_list.append(tr_start)
     if st[0].stats.endtime < timespan.endtime:
         tr_end = tr_temp.copy()
         tr_end.stats.starttime = timespan.endtime
@@ -408,6 +419,8 @@ def validate_slice(
 
     deficit = 0
     steps_dict: OrderedDict[str, obspy.Stream] = OrderedDict()
+
+    # TODO validate starttime and endtime if they are not higher than bounds
 
     if len(trimmed_st) == 0:
         ValueError("There was no data to be cut for that timespan")
