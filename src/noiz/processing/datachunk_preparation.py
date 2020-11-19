@@ -420,8 +420,6 @@ def validate_slice(
     deficit = 0
     steps_dict: OrderedDict[str, obspy.Stream] = OrderedDict()
 
-    # TODO validate starttime and endtime if they are not higher than bounds
-
     if len(trimmed_st) == 0:
         ValueError("There was no data to be cut for that timespan")
 
@@ -429,6 +427,26 @@ def validate_slice(
 
     minimum_no_samples = processing_params.get_raw_minimum_no_samples(original_samplerate)
     expected_no_samples = processing_params.get_raw_expected_no_samples(original_samplerate)
+
+    trimmed_st.sort(keys=['starttime'])
+
+    if trimmed_st[0].stats.starttime < timespan.starttime:
+        message = (
+            f"Provided stream has starttime before timespan starts. "
+            f"Are you sure you trimmed it first? "
+            f"Stream starttime: {trimmed_st[0].stats.starttime}, timespan starttime: {timespan.starttime}"
+        )
+        log.error(message)
+        raise ValueError(message)
+
+    if trimmed_st[-1].stats.endtime > timespan.endtime:
+        message = (
+            f"Provided stream has endtime after timespan ends. "
+            f"Are you sure you trimmed it first? "
+            f"Stream endtime: {trimmed_st[-1].stats.endtime}, timespan endtime: {timespan.endtime}"
+        )
+        log.error(message)
+        raise ValueError(message)
 
     if samples_in_stream > expected_no_samples+1:
         message = (
