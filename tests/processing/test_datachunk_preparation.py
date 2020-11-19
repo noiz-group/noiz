@@ -702,7 +702,54 @@ def test_validate_slice_mutli_traces_mergeable_small_gap():
     expected_stream = Stream._dummy_stream_from_string(s_out)
     s_in = os.linesep.join(s_in)
     st_in = Stream._dummy_stream_from_string(s_in)
-    dp = DatachunkParams(max_gap_for_merging=10, sampling_rate=expected_sampling, timespan_length=timedelta(seconds=60))
+    dp = DatachunkParams(
+        max_gap_for_merging=10,
+        sampling_rate=expected_sampling,
+        timespan_length=timedelta(seconds=60),
+        datachunk_sample_threshold=0.5
+    )
+    validated_stream, deficit, verbosity_dict = validate_slice(
+        trimmed_st=st_in, timespan=ts, original_samplerate=expected_sampling, processing_params=dp)
+
+    assert isinstance(validated_stream, Stream)
+    assert expected_stream == validated_stream
+    assert len(validated_stream) == 1
+    assert len(validated_stream[0].data) == 120
+    assert validated_stream[0].stats.sampling_rate == expected_sampling
+    assert validated_stream[0].stats.starttime == ts.starttime
+    assert validated_stream[0].stats.endtime == ts.endtime_at_last_sample(sampling_rate=expected_sampling)
+
+
+def test_validate_slice_mutli_traces_mergeable_small_overlap():
+    expected_sampling = 2
+
+    s_in = ['', '', '1 Trace(s) in Stream:',
+            'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+            f'2016-01-07T03:00:00.000000Z | {expected_sampling} Hz, 65 samples',
+            'AA.XXX..HH2 | 2016-01-07T00:00:30.000000Z - '
+            f'2016-01-07T03:00:00.000000Z | {expected_sampling} Hz, 60 samples',
+            '', '']
+    s_out = ['', '', '1 Trace(s) in Stream:',
+             'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+             f'2016-01-07T03:00:00.000000Z | {expected_sampling} Hz, 120 samples',
+             '', '']
+
+    ts = Timespan(
+        starttime=Timestamp('2016-01-07T00:00:00.000000Z'),
+        midtime=Timestamp('2016-01-07T00:00:30.000000Z'),
+        endtime=Timestamp('2016-01-07T00:01:00.000000Z'),
+    )
+
+    s_out = os.linesep.join(s_out)
+    expected_stream = Stream._dummy_stream_from_string(s_out)
+    s_in = os.linesep.join(s_in)
+    st_in = Stream._dummy_stream_from_string(s_in)
+    dp = DatachunkParams(
+        max_gap_for_merging=10,
+        sampling_rate=expected_sampling,
+        timespan_length=timedelta(seconds=60),
+        datachunk_sample_threshold=0.5
+    )
     validated_stream, deficit, verbosity_dict = validate_slice(
         trimmed_st=st_in, timespan=ts, original_samplerate=expected_sampling, processing_params=dp)
 
