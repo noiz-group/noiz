@@ -52,10 +52,10 @@ def resample_with_padding(
     :rtype: obspy.Stream
     """
 
-    tr = st[0]
-    starttime = tr.stats.starttime
-    endtime = tr.stats.endtime
-    npts = tr.stats.npts
+    tr: obspy.Trace = st[0]
+    starttime: obspy.UTCDateTime = tr.stats.starttime
+    endtime: obspy.UTCDateTime = tr.stats.endtime
+    npts: int = tr.stats.npts
 
     log.info("Finding sample deficit up to next power of 2")
     deficit = 2 ** next_pow_2(npts) - npts
