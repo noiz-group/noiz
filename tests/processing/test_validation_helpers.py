@@ -1,7 +1,10 @@
-import pytest
 import numpy as np
+import os
+import pytest
 
-from noiz.processing.validation_helpers import count_consecutive_trues
+from obspy import Stream
+
+from noiz.processing.validation_helpers import count_consecutive_trues, _validate_stream_with_single_trace
 
 
 @pytest.mark.parametrize(["input", "output"],
@@ -16,3 +19,44 @@ from noiz.processing.validation_helpers import count_consecutive_trues
                          ])
 def test_count_consecutive_trues(input, output):
     assert np.array_equal(output, count_consecutive_trues(input))
+
+
+def test__validate_stream_with_single_trace():
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:04.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 30 samples',
+         '', '']
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+
+    assert None is _validate_stream_with_single_trace(st=st)
+
+
+def test__validate_stream_with_single_trace_multiple_traces():
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:04.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 30 samples',
+         'AA.XXX..HH3 | 2016-01-07T00:00:04.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 30 samples',
+         '', '']
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+
+    with pytest.raises(ValueError):
+        _validate_stream_with_single_trace(st=st)
+
+
+def test__validate_stream_with_single_trace_wrong_type():
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:04.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 30 samples',
+         '', '']
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    tr = st[0]
+
+    with pytest.raises(TypeError):
+        _validate_stream_with_single_trace(st=tr)
