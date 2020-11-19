@@ -1,8 +1,10 @@
+from datetime import timedelta
 import numpy as np
 from noiz.models.timespan import Timespan
 from obspy import Stream, Trace, UTCDateTime
 import os
 import pytest
+from pandas import Timestamp
 
 from noiz.models.processing_params import DatachunkParams
 from noiz.processing.datachunk_preparation import (
@@ -12,7 +14,7 @@ from noiz.processing.datachunk_preparation import (
     _check_and_remove_extra_samples_on_the_end,
     pad_zeros_to_exact_time_bounds,
     interpolate_ends_to_zero_to_fit_timespan,
-    next_pow_2,
+    next_pow_2, validate_slice,
 )
 
 
@@ -293,8 +295,6 @@ def test_merge_traces_under_conditions_failing():
 
 
 def test_pad_zeros_to_exact_time_bounds_end_only():
-    from pandas import Timestamp
-
     s = ['', '', '1 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
          '2016-01-07T03:00:00.000000Z | 1.0 Hz, 7 samples',
@@ -321,8 +321,6 @@ def test_pad_zeros_to_exact_time_bounds_end_only():
 
 
 def test_pad_zeros_to_exact_time_bounds_beginning_only():
-    from pandas import Timestamp
-
     s = ['', '', '1 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:03.000000Z - '
          '2016-01-07T03:00:00.000000Z | 1.0 Hz, 7 samples',
@@ -349,8 +347,6 @@ def test_pad_zeros_to_exact_time_bounds_beginning_only():
 
 
 def test_pad_zeros_to_exact_time_bounds_both_ends():
-    from pandas import Timestamp
-
     s = ['', '', '1 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:03.000000Z - '
          '2016-01-07T03:00:00.000000Z | 1.0 Hz, 4 samples',
@@ -377,8 +373,6 @@ def test_pad_zeros_to_exact_time_bounds_both_ends():
 
 
 def test_interpolate_ends_to_zero_to_fit_timespan_end_only():
-    from pandas import Timestamp
-
     s = ['', '', '1 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
          '2016-01-07T03:00:00.000000Z | 1.0 Hz, 7 samples',
@@ -405,8 +399,6 @@ def test_interpolate_ends_to_zero_to_fit_timespan_end_only():
 
 
 def test_interpolate_ends_to_zero_to_fit_timespan_beginning_only():
-    from pandas import Timestamp
-
     s = ['', '', '1 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:04.000000Z - '
          '2016-01-07T03:00:00.000000Z | 1.0 Hz, 7 samples',
@@ -433,8 +425,6 @@ def test_interpolate_ends_to_zero_to_fit_timespan_beginning_only():
 
 
 def test_interpolate_ends_to_zero_to_fit_timespan_both_ends():
-    from pandas import Timestamp
-
     s = ['', '', '1 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:04.000000Z - '
          '2016-01-07T03:00:00.000000Z | 1.0 Hz, 3 samples',
@@ -480,9 +470,33 @@ def test_add_or_upsert_datachunks_in_db():
     assert False
 
 
-@pytest.mark.xfail
 def test_validate_slice():
-    assert False
+    expected_npts = 120
+    expected_sampling = 2
+
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         f'2016-01-07T03:00:00.000000Z | {expected_sampling} Hz, {expected_npts} samples',
+         '', '']
+
+    ts = Timespan(
+        starttime=Timestamp('2016-01-07T00:00:00.000000Z'),
+        midtime=Timestamp('2016-01-07T00:00:30.000000Z'),
+        endtime=Timestamp('2016-01-07T00:01:00.000000Z'),
+    )
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    dp = DatachunkParams(sampling_rate=expected_sampling, timespan_length=timedelta(seconds=60))
+    validated_stream, deficit, verbosity_dict = validate_slice(
+        trimmed_st=st, timespan=ts, original_samplerate=2, processing_params=dp)
+
+    assert isinstance(validated_stream, Stream)
+    assert len(validated_stream) == 1
+    assert len(validated_stream[0].data) == expected_npts
+    assert validated_stream[0].stats.sampling_rate == expected_sampling
+    assert validated_stream[0].stats.starttime == ts.starttime
+    assert validated_stream[0].stats.endtime == ts.endtime_at_last_sample(sampling_rate=expected_sampling)
 
 
 @pytest.mark.xfail
