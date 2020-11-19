@@ -375,9 +375,9 @@ def validate_slice(
     processing_params: DatachunkParams,
     raw_sps: Union[float, int],
     verbose_output: bool = False
-) -> Tuple[obspy.Stream, Optional[int]]:
+) -> Tuple[obspy.Stream, int]:
 
-    deficit = None
+    deficit = 0
     steps_dicts = {}
 
     if len(trimmed_st) == 0:
@@ -430,9 +430,13 @@ def validate_slice(
             f"It will be padded with {deficit} zeros to match exact length."
         )
         try:
-            trimmed_st = pad_zeros_to_exact_time_bounds(
-                trimmed_st, timespan, expected_no_samples
+            trimmed_st = interpolate_ends_to_zero_to_fit_timespan(
+                st=trimmed_st,
+                timespan=timespan,
+                expected_no_samples=expected_no_samples,
             )
+            if verbose_output:
+                steps_dicts['padded'] = trimmed_st.copy()
         except ValueError as e:
             log.error(f"Padding was not successful. {e}")
             raise ValueError("Datachunk padding unsuccessful.")
