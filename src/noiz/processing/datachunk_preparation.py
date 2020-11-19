@@ -468,7 +468,7 @@ def validate_slice(
             raise ValueError(message)
 
     if samples_in_stream == expected_no_samples + 1:
-        trimmed_st[0].data = trimmed_st[0].data[:-1]
+        trimmed_st = _check_and_remove_extra_samples_on_the_end(st=trimmed_st, expected_no_samples=expected_no_samples)
         if verbose_output:
             steps_dict['last_sample_removed'] = trimmed_st.copy()
 
