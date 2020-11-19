@@ -261,7 +261,7 @@ def interpolate_ends_to_zero_to_fit_timespan(
         trace_list.append(tr_start)
     if st[0].stats.endtime < timespan.endtime:
         tr_end = tr_temp.copy()
-        tr_end.stats.starttime = timespan.endtime
+        tr_end.stats.starttime = timespan.endtime_at_last_sample(st[0].stats.sampling_rate)
         trace_list.append(tr_end)
 
     st_temp = obspy.Stream(traces=trace_list)
@@ -421,6 +421,7 @@ def validate_slice(
     steps_dict: OrderedDict[str, obspy.Stream] = OrderedDict()
 
     # TODO validate starttime and endtime if they are not higher than bounds
+    # TODO validate if there is too many samples
 
     if len(trimmed_st) == 0:
         ValueError("There was no data to be cut for that timespan")
@@ -433,7 +434,8 @@ def validate_slice(
     if samples_in_stream < minimum_no_samples:
         message = (
             f"There were {samples_in_stream} samples in the trace"
-            f" while {minimum_no_samples} were expected. "
+            f" while at least {minimum_no_samples} were expected. "
+            f"The proper chunk should contain {expected_no_samples}. "
             f"Skipping this chunk."
         )
         log.error(message)

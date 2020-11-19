@@ -375,7 +375,7 @@ def test_pad_zeros_to_exact_time_bounds_both_ends():
 def test_interpolate_ends_to_zero_to_fit_timespan_end_only():
     s = ['', '', '1 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
-         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 7 samples',
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 6 samples',
          '', '']
 
     ts = Timespan(
@@ -389,7 +389,7 @@ def test_interpolate_ends_to_zero_to_fit_timespan_end_only():
     st[0].data *= 4
     expected_no_samples = 10
 
-    expected_data = np.array([4., 4., 4., 4., 4., 4., 4., 3., 2., 1.])
+    expected_data = np.array([4., 4., 4., 4., 4., 4., 3., 2., 1., 0.])
 
     st_res = interpolate_ends_to_zero_to_fit_timespan(st=st, timespan=ts, expected_no_samples=expected_no_samples)
 
@@ -427,7 +427,7 @@ def test_interpolate_ends_to_zero_to_fit_timespan_beginning_only():
 def test_interpolate_ends_to_zero_to_fit_timespan_both_ends():
     s = ['', '', '1 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:04.000000Z - '
-         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 3 samples',
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 2 samples',
          '', '']
 
     ts = Timespan(
@@ -441,7 +441,7 @@ def test_interpolate_ends_to_zero_to_fit_timespan_both_ends():
     st[0].data *= 4
     expected_no_samples = 10
 
-    expected_data = np.array([0., 1., 2., 3., 4., 4., 4., 3., 2., 1.])
+    expected_data = np.array([0., 1., 2., 3., 4., 4., 3., 2., 1., 0.])
 
     st_res = interpolate_ends_to_zero_to_fit_timespan(st=st, timespan=ts, expected_no_samples=expected_no_samples)
 
