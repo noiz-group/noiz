@@ -5,7 +5,7 @@ from typing import Union, Optional, Tuple
 
 from noiz.models.processing_params import DatachunkParams
 from noiz.models.timespan import Timespan
-from noiz.processing.validation_helpers import count_consecutive_trues
+from noiz.processing.validation_helpers import count_consecutive_trues, _validate_stream_with_single_trace
 
 log = logging.getLogger("noiz.processing")
 
@@ -235,8 +235,7 @@ def interpolate_ends_to_zero_to_fit_timespan(
     :raises ValueError
     """
 
-    if len(st) != 1:
-        raise ValueError(f"This method expects exactly one trace in the stream! There were {len(st)} traces found.")
+    _validate_stream_with_single_trace(st)
 
     tr_temp = obspy.Trace()
     tr_temp.stats = st[0].stats.copy()
@@ -277,8 +276,7 @@ def _check_and_remove_extra_samples_on_the_end(st: obspy.Stream, expected_no_sam
     :return:
     :rtype:
     """
-    if len(st) != 1:
-        raise ValueError(f"This method expects exactly one trace in the stream! There were {len(st)} traces found.")
+    _validate_stream_with_single_trace(st=st)
 
     tr = st[0]
     if len(tr.data) > expected_no_samples:

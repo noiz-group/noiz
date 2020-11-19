@@ -1,4 +1,5 @@
 import numpy as np
+import obspy
 
 
 def count_consecutive_trues(arr: np.array) -> np.array:
@@ -34,3 +35,20 @@ def count_consecutive_trues(arr: np.array) -> np.array:
     )[::2]
 
     return counted_true_vals
+
+
+def _validate_stream_with_single_trace(st: obspy.Stream) -> None:
+    """
+    This is small helper method that checks if provided argument is :class:`obspy.Stream` and contains only one
+    :class:`obspy.Trace` inside.
+
+    :param st: Stream to be checked
+    :type st: obspy.Stream
+    :return: None
+    :rtype: NoneType
+    :raises: TypeError, ValueError
+    """
+    if not isinstance(st, obspy.Stream):
+        raise TypeError(f"obspy.Stream was expected. Got {type(st)}")
+    if len(st) != 1:
+        raise ValueError(f"This method expects exactly one trace in the stream! There were {len(st)} traces found.")
