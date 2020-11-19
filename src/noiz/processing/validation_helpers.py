@@ -9,13 +9,13 @@ def count_consecutive_trues(arr: np.array) -> np.array:
 
     For example:
 
-    >>> a = count_consecutive_trues([0,0,0,0,1,1,1,0,0,0], dtype=bool)
+    >>> a = count_consecutive_trues([0, 0, 0, 0, 1, 1, 1, 0, 0, 0], dtype=bool)
     >>> a == np.array([3])
 
     It can also handle multiple subvectors of True:
 
-    >>> a = count_consecutive_trues(np.array([0,1,0,0,1,1,1,0,0,0,1,1,1,1,1,1], dtype=bool))
-    >>> a == np.array([1,3,6])
+    >>> a = count_consecutive_trues(np.array([0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1], dtype=bool))
+    >>> a == np.array([1, 3, 6])
 
     This method is copied from:
     https://stackoverflow.com/a/24343375/4308541
