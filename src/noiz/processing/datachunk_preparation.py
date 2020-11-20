@@ -429,10 +429,6 @@ def validate_slice(
         log.error(e)
         raise ValueError(e)
 
-    samples_in_stream = sum([x.stats.npts for x in trimmed_st])
-
-    min_no_samples = get_min_sample_count(timespan=timespan, params=processing_params, sampling_rate=original_samplerate)
-    max_no_samples = get_max_sample_count(timespan=timespan, params=processing_params, sampling_rate=original_samplerate)
     expected_no_samples = get_expected_sample_count(timespan=timespan, sampling_rate=original_samplerate)
 
     try:
@@ -441,14 +437,9 @@ def validate_slice(
         log.error(e)
         raise ValueError(e)
 
-    if min_no_samples > samples_in_stream > max_no_samples:
-        message = (
-            f"The number of samples in signal exceed limits. "
-            f"Expected more than {min_no_samples}, and less than {max_no_samples} found in stream {samples_in_stream}. "
-            f"You should make sure that the sampling rate and all the rest of Stream params are okay. "
-        )
-        logging.error(message)
-        raise ValueError(message)
+    validate_sample_count_in_stream(trimmed_st, processing_params, timespan)
+
+    samples_in_stream = sum_samples_in_stream(st=trimmed_st)
 
     if len(trimmed_st) > 1:
         log.warning(
@@ -500,6 +491,32 @@ def validate_slice(
             raise ValueError(f"Datachunk padding unsuccessful. {e}")
 
     return trimmed_st, deficit, steps_dict
+
+
+def validate_sample_count_in_stream(st, processing_params, timespan):
+    samples_in_stream = sum_samples_in_stream(st)
+
+    sampling_rate = st[0].stats.sampling_rate
+
+    min_no_samples = get_min_sample_count(timespan=timespan, params=processing_params,
+                                          sampling_rate=sampling_rate)
+    max_no_samples = get_max_sample_count(timespan=timespan, params=processing_params,
+                                          sampling_rate=sampling_rate)
+
+    if min_no_samples > samples_in_stream > max_no_samples:
+        message = (
+            f"The number of samples in signal exceed limits. "
+            f"Expected more than {min_no_samples}, and less than {max_no_samples} found in stream {samples_in_stream}. "
+            f"You should make sure that the sampling rate and all the rest of Stream params are okay. "
+        )
+        logging.error(message)
+        raise ValueError(message)
+    return True
+
+
+def sum_samples_in_stream(st):
+    samples_in_stream = sum([x.stats.npts for x in st])
+    return samples_in_stream
 
 
 def validate_timebounds_agains_timespan(st, timespan):
