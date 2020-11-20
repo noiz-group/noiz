@@ -14,7 +14,7 @@ def get_expected_sample_count(timespan: Timespan, sampling_rate: Union[int, floa
     :return:
     :rtype:
     """
-    return int(timespan.length().seconds * sampling_rate)
+    return int(timespan.length.seconds * sampling_rate)
 
 
 def get_min_sample_count(params: DatachunkParams, timespan: Timespan, sampling_rate: Union[float, int]):
