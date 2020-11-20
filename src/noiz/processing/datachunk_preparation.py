@@ -12,21 +12,6 @@ from noiz.processing.signal_helpers import get_min_sample_count, get_expected_sa
 log = logging.getLogger("noiz.processing")
 
 
-def expected_npts(timespan_length: float, sampling_rate: float) -> int:
-    """
-    Calculates expected number of npts in a trace based on timespan length and sampling rate.
-    Casted to int with floor rounding.
-
-    :param timespan_length: Length of timespan in seconds
-    :type timespan_length: float
-    :param sampling_rate: Sampling rate in samples per second
-    :type sampling_rate: float
-    :return: Number of samples in the timespan
-    :rtype: int
-    """
-    return int(timespan_length * sampling_rate)
-
-
 def next_pow_2(number: Union[int, float]) -> int:
     """
     Finds a number that is a power of two that is next after value provided to that method.
@@ -138,12 +123,8 @@ def merge_traces_under_conditions(st: obspy.Stream, params: DatachunkParams) -> 
     """
     try:
         _check_if_gaps_short_enough(st, params)
-    except ValueError as e:
-        raise ValueError(f"Cannot merge traces. {e}")
-
-    try:
         st.merge(method=1, interpolation_samples=-1, fill_value='interpolate')
-    except Exception as e:
+    except ValueError as e:
         raise ValueError(f"Cannot merge traces. {e}")
     return st
 

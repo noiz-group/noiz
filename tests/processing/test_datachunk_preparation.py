@@ -1,7 +1,7 @@
 from datetime import timedelta
 import numpy as np
 from noiz.models.timespan import Timespan
-from obspy import Stream, Trace, UTCDateTime
+from obspy import Stream
 import os
 import pytest
 from pandas import Timestamp
@@ -16,11 +16,6 @@ from noiz.processing.datachunk_preparation import (
     interpolate_ends_to_zero_to_fit_timespan,
     next_pow_2, validate_slice,
 )
-
-
-@pytest.mark.xfail
-def test_expected_npts():
-    assert False
 
 
 @pytest.mark.parametrize(["val", "expected"], [
