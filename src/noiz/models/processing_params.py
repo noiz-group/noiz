@@ -39,7 +39,7 @@ class DatachunkParams(db.Model):
         default=datetime.timedelta(seconds=1800),
         nullable=False,
     )
-    _datachunk_sample_threshold = db.Column(
+    _datachunk_sample_tolerance = db.Column(
         "datachunk_sample_threshold", db.Float, default=0.98, nullable=False
     )
 
@@ -66,9 +66,19 @@ class DatachunkParams(db.Model):
         self._timespan_length = kwargs.get(
             "timespan_length", datetime.timedelta(seconds=1800)
         )
-        self._datachunk_sample_threshold = kwargs.get(
-            "datachunk_sample_threshold", 0.98
-        )
+
+        if "datachunk_sample_threshold" in kwargs.keys() and "datachunk_sample_tolerance" in kwargs.keys():
+            raise ValueError("Only one of `datachunk_sample_threshold` or `datachunk_sample_tolerance` "
+                             "accepted at time.")
+
+        if "datachunk_sample_threshold" in kwargs.keys():
+            self._datachunk_sample_tolerance = 1 - kwargs.get(
+                "datachunk_sample_threshold", 0.98
+            )
+        else:
+            self._datachunk_sample_tolerance = kwargs.get(
+                "datachunk_sample_tolerance", 0.02
+            )
 
         self._correlation_max_lag = kwargs.get("correlation_max_lag", 60)
         self._max_gap_for_merging = kwargs.get("max_gap_for_merging", 10)
@@ -118,8 +128,14 @@ class DatachunkParams(db.Model):
         return self._timespan_length
 
     @property
-    def datachunk_sample_threshold(self):
-        return self._datachunk_sample_threshold
+    def datachunk_sample_tolerance(self):
+        """
+        Tolerance in decimal percentage of how much overlap/gaps are tolerated in the datachunk candidate.
+
+        :return:
+        :rtype: float
+        """
+        return self._datachunk_sample_tolerance
 
     @property
     def max_gap_for_merging(self):
@@ -142,7 +158,7 @@ class DatachunkParams(db.Model):
         """
         return int(
             (self._timespan_length.seconds * self._sampling_rate)
-            * self._datachunk_sample_threshold
+            * self._datachunk_sample_tolerance
         )
 
     def get_raw_minimum_no_samples(self, sampling_rate):
@@ -153,7 +169,7 @@ class DatachunkParams(db.Model):
         """
         return int(
             (self._timespan_length.seconds * sampling_rate)
-            * self._datachunk_sample_threshold
+            * self._datachunk_sample_tolerance
         )
 
     def get_expected_no_samples(self):
