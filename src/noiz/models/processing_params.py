@@ -2,6 +2,14 @@ from noiz.database import db
 import datetime
 import numpy as np
 
+from noiz.globals import ExtendedEnum
+
+
+class ZeroPaddingMethod(ExtendedEnum):
+    INTERPOLATED = "interpolated"
+    PADDED = "padded"
+    TAPERED_PADDED = "tapered_padded"
+
 
 class DatachunkParams(db.Model):
     __tablename__ = "datachunk_params"
@@ -47,6 +55,10 @@ class DatachunkParams(db.Model):
 
     _max_gap_for_merging = db.Column("max_gap_for_merging", db.Integer, default=10, nullable=False)
 
+    _zero_padding_method = db.Column(
+        "zero_padding_method", db.UnicodeText, default="padding_with_tapering", nullable=False
+    )
+
     def __init__(self, **kwargs):
         self.id = kwargs.get("id", 1)
         self._sampling_rate = kwargs.get("sampling_rate", 24)
@@ -72,13 +84,17 @@ class DatachunkParams(db.Model):
                              "accepted at time.")
 
         if "datachunk_sample_threshold" in kwargs.keys():
-            self._datachunk_sample_tolerance = 1 - kwargs.get(
-                "datachunk_sample_threshold", 0.98
-            )
+            self._datachunk_sample_tolerance = 1 - kwargs.get("datachunk_sample_threshold", 0.98)
         else:
-            self._datachunk_sample_tolerance = kwargs.get(
-                "datachunk_sample_tolerance", 0.02
-            )
+            self._datachunk_sample_tolerance = kwargs.get("datachunk_sample_tolerance", 0.02)
+
+        padding_method = kwargs.get("zero_padding_method", "tapered_padded")
+        try:
+            padding_method_valid = ZeroPaddingMethod(padding_method)
+        except ValueError:
+            raise ValueError(f"Not supported padding method. Supported types are: {list(ZeroPaddingMethod)}, "
+                             f"You provided {padding_method}")
+        self._zero_padding_method = padding_method_valid.value
 
         self._correlation_max_lag = kwargs.get("correlation_max_lag", 60)
         self._max_gap_for_merging = kwargs.get("max_gap_for_merging", 10)
@@ -149,6 +165,10 @@ class DatachunkParams(db.Model):
         :rtype: float
         """
         return self._correlation_max_lag
+
+    @property
+    def zero_padding_method(self):
+        return ZeroPaddingMethod(self._zero_padding_method)
 
     def get_minimum_no_samples(self):
         """
