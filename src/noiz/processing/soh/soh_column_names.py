@@ -1,9 +1,10 @@
 import numpy as np
-from typing import Dict, Tuple, Type
-from enum import Enum
+from typing import Dict, Tuple
 from collections import defaultdict
 
 from dataclasses import dataclass
+
+from noiz.globals import ExtendedEnum
 
 taurus_instrument_header_names = (
     "timestamp",
@@ -238,13 +239,6 @@ centaur_gnsstime_dtypes = {
     "Time quality(%)": np.int8,
     "Time error(ns)": np.int32,
 }
-
-
-class ExtendedEnum(Enum):
-
-    @classmethod
-    def list(cls):
-        return list(map(lambda c: c.value, cls))  # type: ignore
 
 
 class SohInstrumentNames(ExtendedEnum):
