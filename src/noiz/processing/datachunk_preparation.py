@@ -405,8 +405,6 @@ def validate_slice(
     if len(trimmed_st) == 0:
         ValueError("There was no data to be cut for that timespan")
 
-    expected_no_samples = get_expected_sample_count(timespan=timespan, sampling_rate=original_samplerate)
-
     try:
         validate_sample_rate(original_samplerate, trimmed_st)
         validate_timebounds_agains_timespan(trimmed_st, timespan)
@@ -414,8 +412,6 @@ def validate_slice(
     except ValueError as e:
         log.error(e)
         raise ValueError(e)
-
-    samples_in_stream = sum_samples_in_stream(st=trimmed_st)
 
     if len(trimmed_st) > 1:
         log.warning(
@@ -442,6 +438,9 @@ def validate_slice(
             )
             log.error(message)
             raise ValueError(message)
+
+    expected_no_samples = get_expected_sample_count(timespan=timespan, sampling_rate=original_samplerate)
+    samples_in_stream = sum_samples_in_stream(st=trimmed_st)
 
     if samples_in_stream == expected_no_samples + 1:
         trimmed_st = _check_and_remove_extra_samples_on_the_end(st=trimmed_st, expected_no_samples=expected_no_samples)
