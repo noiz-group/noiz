@@ -7,6 +7,7 @@ from typing import Union, Optional, Tuple, Dict
 from noiz.models.processing_params import DatachunkParams
 from noiz.models.timespan import Timespan
 from noiz.processing.validation_helpers import count_consecutive_trues, _validate_stream_with_single_trace
+from noiz.processing.signal_helpers import get_min_sample_count, get_expected_sample_count, get_max_sample_count
 
 log = logging.getLogger("noiz.processing")
 
@@ -430,8 +431,9 @@ def validate_slice(
 
     samples_in_stream = sum([x.stats.npts for x in trimmed_st])
 
-    minimum_no_samples = processing_params.get_raw_minimum_no_samples(original_samplerate)
-    expected_no_samples = processing_params.get_raw_expected_no_samples(original_samplerate)
+    min_no_samples = get_min_sample_count(timespan=timespan, params=processing_params, sampling_rate=original_samplerate)
+    max_no_samples = get_max_sample_count(timespan=timespan, params=processing_params, sampling_rate=original_samplerate)
+    expected_no_samples = get_expected_sample_count(timespan=timespan, sampling_rate=original_samplerate)
 
     try:
         validate_timebounds_agains_timespan(trimmed_st, timespan)
@@ -439,23 +441,13 @@ def validate_slice(
         log.error(e)
         raise ValueError(e)
 
-    if samples_in_stream > expected_no_samples*(2-processing_params.datachunk_sample_threshold):
+    if min_no_samples > samples_in_stream > max_no_samples:
         message = (
-            f"There were more samples in the stream than expected. "
-            f"Expected: {expected_no_samples}, found in stream {samples_in_stream}. "
+            f"The number of samples in signal exceed limits. "
+            f"Expected more than {min_no_samples}, and less than {max_no_samples} found in stream {samples_in_stream}. "
             f"You should make sure that the sampling rate and all the rest of Stream params are okay. "
         )
         logging.error(message)
-        raise ValueError(message)
-
-    if samples_in_stream < minimum_no_samples:
-        message = (
-            f"There were {samples_in_stream} samples in the trace"
-            f" while at least {minimum_no_samples} were expected. "
-            f"The proper chunk should contain {expected_no_samples}. "
-            f"Skipping this chunk."
-        )
-        log.error(message)
         raise ValueError(message)
 
     if len(trimmed_st) > 1:
