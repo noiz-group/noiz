@@ -437,7 +437,12 @@ def validate_slice(
         log.error(e)
         raise ValueError(e)
 
-    validate_sample_count_in_stream(trimmed_st, processing_params, timespan)
+    try:
+        validate_sample_count_in_stream(trimmed_st, processing_params, timespan)
+    except ValueError as e:
+        log.error(e)
+        raise ValueError(e)
+
 
     samples_in_stream = sum_samples_in_stream(st=trimmed_st)
 
@@ -493,14 +498,27 @@ def validate_slice(
     return trimmed_st, deficit, steps_dict
 
 
-def validate_sample_count_in_stream(st, processing_params, timespan):
+def validate_sample_count_in_stream(st: obspy.Stream, params: DatachunkParams, timespan: Timespan) -> bool:
+    """
+    Checks if sample count in the whole stream is within tolerance bounds set in the
+    :attr:`noiz.models.DatachunkParams.datachunk_sample_tolerance`
+
+    :param st:
+    :type st:
+    :param params:
+    :type params:
+    :param timespan:
+    :type timespan:
+    :return:
+    :rtype:
+    """
     samples_in_stream = sum_samples_in_stream(st)
 
     sampling_rate = st[0].stats.sampling_rate
 
-    min_no_samples = get_min_sample_count(timespan=timespan, params=processing_params,
+    min_no_samples = get_min_sample_count(timespan=timespan, params=params,
                                           sampling_rate=sampling_rate)
-    max_no_samples = get_max_sample_count(timespan=timespan, params=processing_params,
+    max_no_samples = get_max_sample_count(timespan=timespan, params=params,
                                           sampling_rate=sampling_rate)
 
     if min_no_samples > samples_in_stream > max_no_samples:
@@ -514,7 +532,15 @@ def validate_sample_count_in_stream(st, processing_params, timespan):
     return True
 
 
-def sum_samples_in_stream(st):
+def sum_samples_in_stream(st: obspy.Stream) -> int:
+    """
+    Sums up npts of all traces in the stream
+
+    :param st: Stream to sum up samples of
+    :type st: obspy.Stream
+    :return: Sum of samples in stream
+    :rtype: int
+    """
     samples_in_stream = sum([x.stats.npts for x in st])
     return samples_in_stream
 
