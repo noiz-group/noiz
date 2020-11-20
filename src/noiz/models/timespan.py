@@ -100,6 +100,7 @@ class TimespanModel(db.Model):
         )
         return ret
 
+    # TODO convert to property
     def starttime_obspy(self) -> obspy.UTCDateTime:
         return obspy.UTCDateTime(self.starttime)
 
