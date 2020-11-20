@@ -4,7 +4,7 @@ import obspy
 from collections import OrderedDict
 from typing import Union, Optional, Tuple, Dict
 
-from noiz.models.processing_params import DatachunkParams
+from noiz.models.processing_params import DatachunkParams, ZeroPaddingMethod
 from noiz.models.timespan import Timespan
 from noiz.processing.validation_helpers import count_consecutive_trues, _validate_stream_with_single_trace
 from noiz.processing.signal_helpers import get_min_sample_count, get_expected_sample_count, get_max_sample_count
@@ -454,11 +454,7 @@ def validate_slice(
             f"It will be padded with {deficit} zeros to match exact length."
         )
         try:
-            trimmed_st = interpolate_ends_to_zero_to_fit_timespan(
-                st=trimmed_st,
-                timespan=timespan,
-                expected_no_samples=expected_no_samples,
-            )
+
             if verbose_output:
                 steps_dict['padded'] = trimmed_st.copy()
         except ValueError as e:
@@ -466,6 +462,28 @@ def validate_slice(
             raise ValueError(f"Datachunk padding unsuccessful. {e}")
 
     return trimmed_st, deficit, steps_dict
+
+
+def perform_padding_according_to_config(
+        st: obspy.Stream,
+        timespan: Timespan,
+        expected_no_samples: int,
+        params: DatachunkParams
+) -> obspy.Stream:
+
+    selected_method = params.zero_padding_method
+    if selected_method is ZeroPaddingMethod.PADDED:
+        return pad_zeros_to_exact_time_bounds(st=st, expected_no_samples=expected_no_samples, timespan=timespan)
+    elif selected_method is ZeroPaddingMethod.TAPERED_PADDED:
+        raise NotImplementedError("Not yet implemented")
+    elif selected_method is ZeroPaddingMethod.INTERPOLATED:
+        return interpolate_ends_to_zero_to_fit_timespan(
+            st=st,
+            timespan=timespan,
+            expected_no_samples=expected_no_samples,
+        )
+    else:
+        raise NotImplementedError('Selected zero padding method not supported. ')
 
 
 def validate_sample_count_in_stream(st: obspy.Stream, params: DatachunkParams, timespan: Timespan) -> bool:
