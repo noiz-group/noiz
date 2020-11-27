@@ -55,8 +55,8 @@ class DatachunkParams(db.Model):
 
     _max_gap_for_merging = db.Column("max_gap_for_merging", db.Integer, default=10, nullable=False)
 
-    _zero_padding_method = db.Column(
-        "zero_padding_method", db.UnicodeText, default="padding_with_tapering", nullable=False
+    _padding_method = db.Column(
+        "padding_method", db.UnicodeText, default="padding_with_tapering", nullable=False
     )
 
     def __init__(self, **kwargs):
@@ -94,7 +94,7 @@ class DatachunkParams(db.Model):
         except ValueError:
             raise ValueError(f"Not supported padding method. Supported types are: {list(ZeroPaddingMethod)}, "
                              f"You provided {padding_method}")
-        self._zero_padding_method = padding_method_valid.value
+        self._padding_method = padding_method_valid.value
 
         self._correlation_max_lag = kwargs.get("correlation_max_lag", 60)
         self._max_gap_for_merging = kwargs.get("max_gap_for_merging", 10)
@@ -168,7 +168,7 @@ class DatachunkParams(db.Model):
 
     @property
     def zero_padding_method(self):
-        return ZeroPaddingMethod(self._zero_padding_method)
+        return ZeroPaddingMethod(self._padding_method)
 
     def get_minimum_no_samples(self):
         """
