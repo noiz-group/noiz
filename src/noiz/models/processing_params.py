@@ -58,6 +58,9 @@ class DatachunkParams(db.Model):
     _padding_method = db.Column(
         "padding_method", db.UnicodeText, default="padding_with_tapering", nullable=False
     )
+    _padding_taper_type = db.Column("padding_taper_type", db.UnicodeText, nullable=True)
+    _padding_taper_max_length = db.Column("padding_taper_max_length", db.Float, nullable=True)
+    _padding_taper_max_percentage = db.Column("padding_taper_max_percentage", db.Float, nullable=True)
 
     def __init__(self, **kwargs):
         self.id = kwargs.get("id", 1)
@@ -95,6 +98,10 @@ class DatachunkParams(db.Model):
             raise ValueError(f"Not supported padding method. Supported types are: {list(ZeroPaddingMethod)}, "
                              f"You provided {padding_method}")
         self._padding_method = padding_method_valid.value
+
+        self._padding_taper_type = kwargs.get("padding_taper_type", "cosine")
+        self._padding_taper_max_length = kwargs.get("padding_taper_max_length", 5)  # seconds
+        self._padding_taper_max_percentage = kwargs.get("padding_taper_max_percentage", 10)  # percent
 
         self._correlation_max_lag = kwargs.get("correlation_max_lag", 60)
         self._max_gap_for_merging = kwargs.get("max_gap_for_merging", 10)
@@ -169,6 +176,18 @@ class DatachunkParams(db.Model):
     @property
     def zero_padding_method(self):
         return ZeroPaddingMethod(self._padding_method)
+
+    @property
+    def padding_taper_type(self):
+        return self._padding_taper_type
+
+    @property
+    def padding_taper_max_length(self):
+        return self._padding_taper_max_length
+
+    @property
+    def padding_taper_max_percentage(self):
+        return self._padding_taper_max_percentage
 
     def get_minimum_no_samples(self):
         """
