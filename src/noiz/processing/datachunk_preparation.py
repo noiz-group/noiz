@@ -166,7 +166,7 @@ def _check_if_gaps_short_enough(st: obspy.Stream, params: DatachunkParams) -> bo
         return True
 
 
-def pad_zeros_to_exact_time_bounds(
+def pad_zeros_to_timespan(
         st: obspy.Stream, timespan: Timespan, expected_no_samples: int
 ) -> obspy.Stream:
     """
@@ -473,7 +473,7 @@ def perform_padding_according_to_config(
 
     selected_method = params.zero_padding_method
     if selected_method is ZeroPaddingMethod.PADDED:
-        return pad_zeros_to_exact_time_bounds(st=st, expected_no_samples=expected_no_samples, timespan=timespan)
+        return pad_zeros_to_timespan(st=st, expected_no_samples=expected_no_samples, timespan=timespan)
     elif selected_method is ZeroPaddingMethod.TAPERED_PADDED:
         raise NotImplementedError("Not yet implemented")
     elif selected_method is ZeroPaddingMethod.INTERPOLATED:
