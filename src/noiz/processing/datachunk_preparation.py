@@ -387,19 +387,18 @@ def preprocess_sliced_stream_for_datachunk(
         steps_dict['resampled'] = trimmed_st.copy()
 
     expected_samples = processing_params.get_expected_no_samples()
+    # TODO Remove that, use Timespan-based method
+
     if trimmed_st[0].stats.npts > expected_samples:
         trimmed_st[0].data = trimmed_st[0].data[:expected_samples]
         if verbose_output:
             steps_dict['trimmed_last_sample'] = trimmed_st.copy()
 
-    log.info(
-        f"Tapering stream with type: {processing_params.preprocessing_taper_type}; "
-        f"width: {processing_params.preprocessing_taper_width}; "
-        f"side: {processing_params.preprocessing_taper_side}"
-    )
+    log.info(f"Tapering stream with {processing_params.preprocessing_taper_type} taper ")
     trimmed_st.taper(
         type=processing_params.preprocessing_taper_type,
-        max_percentage=processing_params.preprocessing_taper_width,
+        max_length=processing_params.preprocessing_taper_max_length,
+        max_percentage=processing_params.preprocessing_taper_max_percentage,
         side=processing_params.preprocessing_taper_side,
     )
     if verbose_output:
