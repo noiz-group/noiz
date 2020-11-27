@@ -12,7 +12,7 @@ from noiz.processing.datachunk_preparation import (
     merge_traces_under_conditions,
     _check_if_gaps_short_enough,
     _check_and_remove_extra_samples_on_the_end,
-    pad_zeros_to_exact_time_bounds,
+    pad_zeros_to_timespan,
     interpolate_ends_to_zero_to_fit_timespan,
     next_pow_2, validate_slice,
 )
@@ -289,7 +289,7 @@ def test_merge_traces_under_conditions_failing():
         merge_traces_under_conditions(st=st, params=params)
 
 
-def test_pad_zeros_to_exact_time_bounds_end_only():
+def test_pad_zeros_to_timespan_end_only():
     s = ['', '', '1 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
          '2016-01-07T03:00:00.000000Z | 1.0 Hz, 7 samples',
@@ -308,14 +308,14 @@ def test_pad_zeros_to_exact_time_bounds_end_only():
 
     expected_data = np.array([4., 4., 4., 4., 4., 4., 4., 0., 0., 0.])
 
-    st_res = pad_zeros_to_exact_time_bounds(st=st, timespan=ts, expected_no_samples=expected_no_samples)
+    st_res = pad_zeros_to_timespan(st=st, timespan=ts, expected_no_samples=expected_no_samples)
 
     assert len(st_res) == 1
     assert len(st_res[0].data) == expected_no_samples
     assert np.array_equal(st_res[0].data, expected_data)
 
 
-def test_pad_zeros_to_exact_time_bounds_beginning_only():
+def test_pad_zeros_to_timespan_beginning_only():
     s = ['', '', '1 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:03.000000Z - '
          '2016-01-07T03:00:00.000000Z | 1.0 Hz, 7 samples',
@@ -334,14 +334,14 @@ def test_pad_zeros_to_exact_time_bounds_beginning_only():
 
     expected_data = np.array([0., 0., 0., 4., 4., 4., 4., 4., 4., 4.])
 
-    st_res = pad_zeros_to_exact_time_bounds(st=st, timespan=ts, expected_no_samples=expected_no_samples)
+    st_res = pad_zeros_to_timespan(st=st, timespan=ts, expected_no_samples=expected_no_samples)
 
     assert len(st_res) == 1
     assert len(st_res[0].data) == expected_no_samples
     assert np.array_equal(st_res[0].data, expected_data)
 
 
-def test_pad_zeros_to_exact_time_bounds_both_ends():
+def test_pad_zeros_to_timespan_both_ends():
     s = ['', '', '1 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:03.000000Z - '
          '2016-01-07T03:00:00.000000Z | 1.0 Hz, 4 samples',
@@ -360,7 +360,7 @@ def test_pad_zeros_to_exact_time_bounds_both_ends():
 
     expected_data = np.array([0., 0., 0., 4., 4., 4., 4., 0., 0., 0.])
 
-    st_res = pad_zeros_to_exact_time_bounds(st=st, timespan=ts, expected_no_samples=expected_no_samples)
+    st_res = pad_zeros_to_timespan(st=st, timespan=ts, expected_no_samples=expected_no_samples)
 
     assert len(st_res) == 1
     assert len(st_res[0].data) == expected_no_samples
