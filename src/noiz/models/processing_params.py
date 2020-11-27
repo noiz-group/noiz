@@ -1,7 +1,8 @@
-from noiz.database import db
 import datetime
 import numpy as np
+import warnings
 
+from noiz.database import db
 from noiz.globals import ExtendedEnum
 
 
@@ -66,25 +67,23 @@ class DatachunkParams(db.Model):
     _padding_taper_max_percentage = db.Column("padding_taper_max_percentage", db.Float, nullable=True)
 
     def __init__(self, **kwargs):
-        self.id = kwargs.get("id", 1)
         self._sampling_rate = kwargs.get("sampling_rate", 24)
+
         self._prefiltering_low = kwargs.get("prefiltering_low", 0.01)
         self._prefiltering_high = kwargs.get("prefiltering_high", 12.0)
         self._prefiltering_order = kwargs.get("prefiltering_order", 4)
-        self._preprocessing_taper_type = kwargs.get(
-            "preprocessing_taper_type", "cosine"
-        )
+
+        self._preprocessing_taper_type = kwargs.get("preprocessing_taper_type", "cosine")
         self._preprocessing_taper_side = kwargs.get("preprocessing_taper_side", "both")
         self._preprocessing_taper_max_length = kwargs.get("preprocessing_taper_max_length", 5)
         self._preprocessing_taper_max_percentage = kwargs.get("preprocessing_taper_max_percentage", 0.1)
+
         self._remove_response = kwargs.get("remove_response", True)
 
         self._spectral_whitening = kwargs.get("spectral_whitening", True)
         self._one_bit = kwargs.get("one_bit", True)
 
-        self._timespan_length = kwargs.get(
-            "timespan_length", datetime.timedelta(seconds=1800)
-        )
+        self._timespan_length = kwargs.get("timespan_length", datetime.timedelta(seconds=1800))
 
         if "datachunk_sample_threshold" in kwargs.keys() and "datachunk_sample_tolerance" in kwargs.keys():
             raise ValueError("Only one of `datachunk_sample_threshold` or `datachunk_sample_tolerance` "
@@ -203,6 +202,7 @@ class DatachunkParams(db.Model):
         :return:
         :rtype:
         """
+        warnings.warn(DeprecationWarning("Do not use it"))
         return int(
             (self._timespan_length.seconds * self._sampling_rate)
             * self._datachunk_sample_tolerance
@@ -214,6 +214,7 @@ class DatachunkParams(db.Model):
         :return:
         :rtype:
         """
+        warnings.warn(DeprecationWarning("Do not use it"))
         return int(
             (self._timespan_length.seconds * sampling_rate)
             * self._datachunk_sample_tolerance
@@ -225,6 +226,7 @@ class DatachunkParams(db.Model):
         :return:
         :rtype:
         """
+        warnings.warn(DeprecationWarning("Do not use it"))
         return int(self._timespan_length.seconds * self._sampling_rate)
 
     def get_raw_expected_no_samples(self, sampling_rate):
@@ -233,6 +235,7 @@ class DatachunkParams(db.Model):
         :return:
         :rtype:
         """
+        warnings.warn(DeprecationWarning("Do not use it"))
         return int(self._timespan_length.seconds * sampling_rate)
 
     def get_correlation_max_lag_samples(self):

@@ -387,6 +387,8 @@ def preprocess_sliced_stream_for_datachunk(
         steps_dict['resampled'] = trimmed_st.copy()
 
     expected_samples = processing_params.get_expected_no_samples()
+    # TODO Remove that, use Timespan-based method
+
     if trimmed_st[0].stats.npts > expected_samples:
         trimmed_st[0].data = trimmed_st[0].data[:expected_samples]
         if verbose_output:
