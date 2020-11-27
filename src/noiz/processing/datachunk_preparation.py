@@ -166,7 +166,7 @@ def _check_if_gaps_short_enough(st: obspy.Stream, params: DatachunkParams) -> bo
         return True
 
 
-def pad_zeros_to_timespan(
+def _pad_zeros_to_timespan(
         st: obspy.Stream, timespan: Timespan, expected_no_samples: int
 ) -> obspy.Stream:
     """
@@ -201,7 +201,7 @@ def pad_zeros_to_timespan(
     return st
 
 
-def taper_and_pad_zeros_to_timespan(
+def _taper_and_pad_zeros_to_timespan(
         st: obspy.Stream,
         timespan: Timespan,
         expected_no_samples: int,
@@ -257,7 +257,7 @@ def taper_and_pad_zeros_to_timespan(
     return st
 
 
-def interpolate_ends_to_zero_to_fit_timespan(
+def _interpolate_ends_to_zero_to_timespan(
     st: obspy.Stream, timespan: Timespan, expected_no_samples: int
 ) -> obspy.Stream:
     """
@@ -530,20 +530,20 @@ def perform_padding_according_to_config(
     selected_method = params.zero_padding_method
 
     if selected_method is ZeroPaddingMethod.PADDED:
-        return pad_zeros_to_timespan(
+        return _pad_zeros_to_timespan(
             st=st,
             expected_no_samples=expected_no_samples,
             timespan=timespan,
         )
     elif selected_method is ZeroPaddingMethod.TAPERED_PADDED:
-        return taper_and_pad_zeros_to_timespan(
+        return _taper_and_pad_zeros_to_timespan(
             st=st,
             expected_no_samples=expected_no_samples,
             timespan=timespan,
             params=params,
         )
     elif selected_method is ZeroPaddingMethod.INTERPOLATED:
-        return interpolate_ends_to_zero_to_fit_timespan(
+        return _interpolate_ends_to_zero_to_timespan(
             st=st,
             timespan=timespan,
             expected_no_samples=expected_no_samples,
