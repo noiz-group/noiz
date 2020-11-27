@@ -528,10 +528,20 @@ def perform_padding_according_to_config(
 ) -> obspy.Stream:
 
     selected_method = params.zero_padding_method
+
     if selected_method is ZeroPaddingMethod.PADDED:
-        return pad_zeros_to_timespan(st=st, expected_no_samples=expected_no_samples, timespan=timespan)
+        return pad_zeros_to_timespan(
+            st=st,
+            expected_no_samples=expected_no_samples,
+            timespan=timespan,
+        )
     elif selected_method is ZeroPaddingMethod.TAPERED_PADDED:
-        raise NotImplementedError("Not yet implemented")
+        return taper_and_pad_zeros_to_timespan(
+            st=st,
+            expected_no_samples=expected_no_samples,
+            timespan=timespan,
+            params=params,
+        )
     elif selected_method is ZeroPaddingMethod.INTERPOLATED:
         return interpolate_ends_to_zero_to_fit_timespan(
             st=st,
