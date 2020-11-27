@@ -201,6 +201,62 @@ def pad_zeros_to_timespan(
     return st
 
 
+def taper_and_pad_zeros_to_timespan(
+        st: obspy.Stream,
+        timespan: Timespan,
+        expected_no_samples: int,
+        params: DatachunkParams,
+) -> obspy.Stream:
+    """
+    Takes a :class:`obspy.Stream` containing a single :class:`obspy.Trace` and trims it with
+    :meth:`obspy.Stream.trim` to starttime and endtime of provided :class:`noiz.models.Timespan`.
+    It also verifies if resulting number of samples is as expected.
+
+    :param st: stream to be trimmed
+    :type st: obspy.Stream
+    :param timespan: Timespan to be used for trimming
+    :type timespan: Timespan
+    :param expected_no_samples: Expected number of samples to be verified
+    :type expected_no_samples: int
+    :param params: Parameters used for tapering
+    :type params: DatachunkParams
+    :return: Trimmed stream
+    :rtype: obspy.Stream
+    :raises ValueError
+    """
+    sides = []
+    if st[0].stats.starttime > timespan.starttime:
+        sides.append('left')
+    if st[0].stats.endtime < timespan.endtime:
+        sides.append('right')
+    if len(sides) == 2:
+        sides = ['both']
+
+    st.taper(
+        type=params.padding_taper_type,
+        max_length=params.padding_taper_max_length,
+        max_percentage=params.padding_taper_max_percentage,
+        side=sides[0]
+    )
+
+    st.trim(
+        starttime=obspy.UTCDateTime(timespan.starttime),
+        endtime=obspy.UTCDateTime(timespan.endtime),
+        nearest_sample=False,
+        pad=True,
+        fill_value=0,
+    )
+
+    st = _check_and_remove_extra_samples_on_the_end(st, expected_no_samples)
+
+    if st[0].stats.npts != expected_no_samples:
+        raise ValueError(
+            f"The try of padding with zeros to {expected_no_samples} was "
+            f"not successful. Current length of data is {st[0].stats.npts}. "
+        )
+    return st
+
+
 def interpolate_ends_to_zero_to_fit_timespan(
     st: obspy.Stream, timespan: Timespan, expected_no_samples: int
 ) -> obspy.Stream:
