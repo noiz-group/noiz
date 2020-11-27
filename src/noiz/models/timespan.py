@@ -3,7 +3,7 @@ import pandas as pd
 
 from noiz.database import db
 from sqlalchemy import func
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
     # Use this to make hybrid_property's have the same typing as a normal property until stubs are improved.
@@ -84,6 +84,9 @@ class TimespanModel(db.Model):
     def remove_last_microsecond(self) -> obspy.UTCDateTime:
         return obspy.UTCDateTime(self.endtime - pd.Timedelta(microseconds=1))
 
+    def endtime_at_last_sample(self, sampling_rate: Union[int, float]) -> pd.Timestamp:
+        return self.endtime - pd.Timedelta(seconds=1/sampling_rate)
+
     def same_day(self) -> bool:
         """
         Checks if starttime and endtime are effectively the same day.
@@ -97,6 +100,7 @@ class TimespanModel(db.Model):
         )
         return ret
 
+    # TODO convert to property
     def starttime_obspy(self) -> obspy.UTCDateTime:
         return obspy.UTCDateTime(self.starttime)
 
@@ -105,6 +109,10 @@ class TimespanModel(db.Model):
 
     def endtime_obspy(self) -> obspy.UTCDateTime:
         return obspy.UTCDateTime(self.endtime)
+
+    @property
+    def length(self) -> pd.Timedelta:
+        return self.endtime - self.starttime
 
 
 class Timespan(TimespanModel):

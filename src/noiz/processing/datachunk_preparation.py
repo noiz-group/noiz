@@ -1,34 +1,22 @@
 import logging
 import numpy as np
 import obspy
-from typing import Union, Optional, Tuple
+from collections import OrderedDict
+from typing import Union, Optional, Tuple, Dict
 
-from noiz.models.processing_params import DatachunkParams
+from noiz.models.processing_params import DatachunkParams, ZeroPaddingMethod
 from noiz.models.timespan import Timespan
-from noiz.processing.validation_helpers import count_consecutive_trues
-
+from noiz.processing.validation_helpers import count_consecutive_trues, _validate_stream_with_single_trace
+from noiz.processing.signal_helpers import get_min_sample_count, get_expected_sample_count, get_max_sample_count
 
 log = logging.getLogger("noiz.processing")
 
 
-def expected_npts(timespan_length: float, sampling_rate: float) -> int:
+def next_pow_2(number: Union[int, float]) -> int:
     """
-    Calculates expected number of npts in a trace based on timespan length and sampling rate.
-    Casted to int with floor rounding.
+    Finds a number that is a power of two that is next after value provided to that method.
+    Accepts only positive values.
 
-    :param timespan_length: Length of timespan in seconds
-    :type timespan_length: float
-    :param sampling_rate: Sampling rate in samples per second
-    :type sampling_rate: float
-    :return: Number of samples in the timespan
-    :rtype: int
-    """
-    return int(timespan_length * sampling_rate)
-
-
-def next_pow_2(number: int) -> int:
-    """
-       Finds a number that is a power of two that is next after value provided to that method
     :param number: Value of which you need next power of 2
     :type number: int
     :return: Next power of two
@@ -42,7 +30,7 @@ def resample_with_padding(
 ) -> obspy.Stream:
     """
     Pads data of trace (assumes that stream has only one trace) with zeros up to next power of two
-    and resamples it down to provided sampling rate. Furtherwards trims it to original starttime and endtime.
+    and resamples it down to provided sampling rate. In the end it trims it to original starttime and endtime.
 
     :param st: Stream containing one trace to be resampled
     :type st: obspy.Stream
@@ -52,10 +40,10 @@ def resample_with_padding(
     :rtype: obspy.Stream
     """
 
-    tr = st[0]
-    starttime = tr.stats.starttime
-    endtime = tr.stats.endtime
-    npts = tr.stats.npts
+    tr: obspy.Trace = st[0]
+    starttime: obspy.UTCDateTime = tr.stats.starttime
+    endtime: obspy.UTCDateTime = tr.stats.endtime
+    npts: int = tr.stats.npts
 
     log.info("Finding sample deficit up to next power of 2")
     deficit = 2 ** next_pow_2(npts) - npts
@@ -135,12 +123,8 @@ def merge_traces_under_conditions(st: obspy.Stream, params: DatachunkParams) -> 
     """
     try:
         _check_if_gaps_short_enough(st, params)
-    except ValueError as e:
-        raise ValueError(f"Cannot merge traces. {e}")
-
-    try:
         st.merge(method=1, interpolation_samples=-1, fill_value='interpolate')
-    except Exception as e:
+    except ValueError as e:
         raise ValueError(f"Cannot merge traces. {e}")
     return st
 
@@ -182,8 +166,8 @@ def _check_if_gaps_short_enough(st: obspy.Stream, params: DatachunkParams) -> bo
         return True
 
 
-def pad_zeros_to_exact_time_bounds(
-    st: obspy.Stream, timespan: Timespan, expected_no_samples: int
+def _pad_zeros_to_timespan(
+        st: obspy.Stream, timespan: Timespan, expected_no_samples: int
 ) -> obspy.Stream:
     """
     Takes a obspy Stream and trims it with Stream.trim to starttime and endtime of provided Timespan.
@@ -207,8 +191,7 @@ def pad_zeros_to_exact_time_bounds(
         fill_value=0,
     )
 
-    if st[0].stats.npts == expected_no_samples+1:
-        st[0].data = st[0].data[:-1]
+    st = _check_and_remove_extra_samples_on_the_end(st, expected_no_samples)
 
     if st[0].stats.npts != expected_no_samples:
         raise ValueError(
@@ -218,17 +201,157 @@ def pad_zeros_to_exact_time_bounds(
     return st
 
 
-def preprocess_timespan(
-    trimed_st: obspy.Stream,
+def _taper_and_pad_zeros_to_timespan(
+        st: obspy.Stream,
+        timespan: Timespan,
+        expected_no_samples: int,
+        params: DatachunkParams,
+) -> obspy.Stream:
+    """
+    Takes a :class:`obspy.Stream` containing a single :class:`obspy.Trace` and trims it with
+    :meth:`obspy.Stream.trim` to starttime and endtime of provided :class:`noiz.models.Timespan`.
+    It also verifies if resulting number of samples is as expected.
+
+    :param st: stream to be trimmed
+    :type st: obspy.Stream
+    :param timespan: Timespan to be used for trimming
+    :type timespan: Timespan
+    :param expected_no_samples: Expected number of samples to be verified
+    :type expected_no_samples: int
+    :param params: Parameters used for tapering
+    :type params: DatachunkParams
+    :return: Trimmed stream
+    :rtype: obspy.Stream
+    :raises ValueError
+    """
+    sides = []
+    if st[0].stats.starttime > timespan.starttime:
+        sides.append('left')
+    if st[0].stats.endtime < timespan.endtime:
+        sides.append('right')
+    if len(sides) == 2:
+        sides = ['both']
+
+    st.taper(
+        type=params.padding_taper_type,
+        max_length=params.padding_taper_max_length,
+        max_percentage=params.padding_taper_max_percentage,
+        side=sides[0]
+    )
+
+    st.trim(
+        starttime=obspy.UTCDateTime(timespan.starttime),
+        endtime=obspy.UTCDateTime(timespan.endtime),
+        nearest_sample=False,
+        pad=True,
+        fill_value=0,
+    )
+
+    st = _check_and_remove_extra_samples_on_the_end(st, expected_no_samples)
+
+    if st[0].stats.npts != expected_no_samples:
+        raise ValueError(
+            f"The try of padding with zeros to {expected_no_samples} was "
+            f"not successful. Current length of data is {st[0].stats.npts}. "
+        )
+    return st
+
+
+def _interpolate_ends_to_zero_to_timespan(
+    st: obspy.Stream, timespan: Timespan, expected_no_samples: int
+) -> obspy.Stream:
+    """
+    Takes a obspy Stream and trims it with Stream.trim to starttime and endtime of provided Timespan.
+    It also verifies if resulting number of samples is as expected.
+
+    It works using internal mechanism of obspy for determining number of samples to be interpolated as well as
+    the interpolation itself.
+    If there are any samples missing on either end of the :class:`obspy.Trace`, it creates a new :class:`obspy.Stream`
+    that contains the original :class:`obspy.Trace`.
+    Afterwards, depending on which side there are samples missing, it creates a new traces with a single sample equal
+    to zero, that starttime is either at :param:`noiz.models.Timespan.starttime` or
+    :param:`noiz.models.Timespan.endtime` depending on the side.
+    Finally, it merges resulting trace list with :meth:`obspy.Stream.merge` with parameters of `method=1`
+    and `fill_value='interpolate'` which results in interpolating values between the core trace and those
+    zeros on the start or on the end.
+
+    :param st: stream to be trimmed
+    :type st: obspy.Stream
+    :param timespan: Timespan to be used for trimming
+    :type timespan: Timespan
+    :param expected_no_samples: Expected number of samples to be verified
+    :type expected_no_samples: int
+    :return: Trimmed stream
+    :rtype: obspy.Stream
+    :raises ValueError
+    """
+
+    _validate_stream_with_single_trace(st)
+
+    tr_temp = obspy.Trace()
+    tr_temp.stats = st[0].stats.copy()
+    tr_temp.data = np.array([0], dtype=st[0].data.dtype)
+
+    trace_list = [st[0]]
+    if st[0].stats.starttime > timespan.starttime:
+        tr_start = tr_temp.copy()
+        tr_start.stats.starttime = timespan.starttime
+        trace_list.append(tr_start)
+    if st[0].stats.endtime < timespan.endtime:
+        tr_end = tr_temp.copy()
+        tr_end.stats.starttime = timespan.endtime_at_last_sample(st[0].stats.sampling_rate)
+        trace_list.append(tr_end)
+
+    st_temp = obspy.Stream(traces=trace_list)
+    st_temp.merge(method=1, fill_value='interpolate')
+
+    st_res = _check_and_remove_extra_samples_on_the_end(st=st_temp, expected_no_samples=expected_no_samples)
+
+    if st_res[0].stats.npts != expected_no_samples:
+        raise ValueError(
+            f"The try of padding with zeros to {expected_no_samples} was "
+            f"not successful. Current length of data is {st_res[0].stats.npts}. "
+        )
+    return st_res
+
+
+def _check_and_remove_extra_samples_on_the_end(st: obspy.Stream, expected_no_samples: int):
+    """
+    Takes a stream with a single trace and checks if the number of samples is higher than parameter
+    ``expected_no_samples``. Usually used to remove the last sample, if there is any additional one.
+
+    :param st:
+    :type st:
+    :param expected_no_samples:
+    :type expected_no_samples:
+    :return:
+    :rtype:
+    """
+    _validate_stream_with_single_trace(st=st)
+
+    tr = st[0]
+    if len(tr.data) > expected_no_samples:
+        tr.data = tr.data[:expected_no_samples]
+    elif len(tr.data) < expected_no_samples:
+        raise ValueError(f'Provided stream has less than expected number of samples. '
+                         f'Expected {expected_no_samples}, found {len(tr.data)}. ')
+    else:
+        return st
+    return obspy.Stream(traces=tr)
+
+
+def preprocess_sliced_stream_for_datachunk(
+    trimmed_st: obspy.Stream,
     inventory: obspy.Inventory,
     processing_params: DatachunkParams,
-) -> obspy.Stream:
+    verbose_output: bool = False
+) -> Tuple[obspy.Stream, Dict[str, obspy.Stream]]:
     """
     Applies standard preprocessing to a obspy.Stream. It consist of tapering, detrending,
     response removal and filtering.
 
-    :param trimed_st: Stream to be treated
-    :type trimed_st: obspy.Stream
+    :param trimmed_st: Stream to be treated
+    :type trimmed_st: obspy.Stream
     :param inventory: Inventory to have the response removed
     :type inventory: obspy.Inventory
     :param processing_params: Processing parameters object with all required info.
@@ -236,34 +359,51 @@ def preprocess_timespan(
     :return: Processed Stream
     :rtype: obspy.Stream
     """
-    # TODO add potential plotting option
+    # py39 This method should return in annotation OrderedDict but there is issue. It's fixed in Python 3.9
+
+    steps_dict: OrderedDict[str, obspy.Stream] = OrderedDict()
+
+    if verbose_output:
+        steps_dict['original'] = trimmed_st.copy()
+
     log.info("Detrending")
-    trimed_st.detrend(type="polynomial", order=3)
+    trimmed_st.detrend(type="polynomial", order=3)
+
+    if verbose_output:
+        steps_dict['detrended'] = trimmed_st.copy()
 
     log.info("Demeaning")
-    trimed_st.detrend(type="demean")
+    trimmed_st.detrend(type="demean")
+    if verbose_output:
+        steps_dict['demeaned'] = trimmed_st.copy()
 
     log.info(
         f"Resampling stream to {processing_params.sampling_rate} Hz with padding to next power of 2"
     )
-    trimed_st = resample_with_padding(
-        st=trimed_st, sampling_rate=processing_params.sampling_rate
+    trimmed_st = resample_with_padding(
+        st=trimmed_st, sampling_rate=processing_params.sampling_rate
     )  # type: ignore
+    if verbose_output:
+        steps_dict['resampled'] = trimmed_st.copy()
 
     expected_samples = processing_params.get_expected_no_samples()
-    if trimed_st[0].stats.npts > expected_samples:
-        trimed_st[0].data = trimed_st[0].data[:expected_samples]
+    if trimmed_st[0].stats.npts > expected_samples:
+        trimmed_st[0].data = trimmed_st[0].data[:expected_samples]
+        if verbose_output:
+            steps_dict['trimmed_last_sample'] = trimmed_st.copy()
 
     log.info(
         f"Tapering stream with type: {processing_params.preprocessing_taper_type}; "
         f"width: {processing_params.preprocessing_taper_width}; "
         f"side: {processing_params.preprocessing_taper_side}"
     )
-    trimed_st.taper(
+    trimmed_st.taper(
         type=processing_params.preprocessing_taper_type,
         max_percentage=processing_params.preprocessing_taper_width,
         side=processing_params.preprocessing_taper_side,
     )
+    if verbose_output:
+        steps_dict['tapered'] = trimmed_st.copy()
 
     log.info(
         f"Filtering with bandpass to "
@@ -271,78 +411,97 @@ def preprocess_timespan(
         f"high: {processing_params.prefiltering_high};"
         f"order: {processing_params.prefiltering_order}"
     )
-    trimed_st.filter(
+    trimmed_st.filter(
         type="bandpass",
         freqmin=processing_params.prefiltering_low,
         freqmax=processing_params.prefiltering_high,
         corners=processing_params.prefiltering_order,
     )
+    if verbose_output:
+        steps_dict['filtered'] = trimmed_st.copy()
 
     log.info("Removing response")
-    trimed_st.remove_response(inventory)
+    trimmed_st.remove_response(inventory)
+    if verbose_output:
+        steps_dict['removed_response'] = trimmed_st.copy()
+
     log.info(
         f"Filtering with bandpass;"
         f"low: {processing_params.prefiltering_low}; "
         f"high: {processing_params.prefiltering_high}; "
         f"order: {processing_params.prefiltering_order};"
     )
-    trimed_st.filter(
+    trimmed_st.filter(
         type="bandpass",
         freqmin=processing_params.prefiltering_low,
         freqmax=processing_params.prefiltering_high,
         corners=processing_params.prefiltering_order,
         zerophase=True,
     )
+    if verbose_output:
+        steps_dict['filtered_second_time'] = trimmed_st.copy()
 
     log.info("Finished preprocessing with success")
-    return trimed_st
+
+    return trimmed_st, steps_dict
 
 
 def validate_slice(
-    trimed_st: obspy.Stream,
+    trimmed_st: obspy.Stream,
     timespan: Timespan,
     processing_params: DatachunkParams,
-    raw_sps: Union[float, int],
-) -> Tuple[obspy.Stream, Optional[int]]:
+    original_samplerate: Union[float, int],
+    verbose_output: bool = False
+) -> Tuple[obspy.Stream, int, Dict[str, obspy.Stream]]:
+    # py39 This method should return in annotation OrderedDict but there is issue. It's fixed in Python 3.9
 
-    deficit = None
+    deficit = 0
+    steps_dict: OrderedDict[str, obspy.Stream] = OrderedDict()
 
-    if len(trimed_st) == 0:
+    if len(trimmed_st) == 0:
         ValueError("There was no data to be cut for that timespan")
 
-    samples_in_stream = sum([x.stats.npts for x in trimed_st])
+    try:
+        validate_sample_rate(original_samplerate, trimmed_st)
+        validate_timebounds_agains_timespan(trimmed_st, timespan)
+        validate_sample_count_in_stream(trimmed_st, processing_params, timespan)
+    except ValueError as e:
+        log.error(e)
+        raise ValueError(e)
 
-    minimum_no_samples = processing_params.get_raw_minimum_no_samples(raw_sps)
-    expected_no_samples = processing_params.get_raw_expected_no_samples(raw_sps)
-
-    if samples_in_stream < minimum_no_samples:
-        log.error(
-            f"There were {samples_in_stream} samples in the trace"
-            f" while {minimum_no_samples} were expected. "
-            f"Skipping this chunk."
-        )
-        raise ValueError("Not enough data in a chunk.")
-
-    if len(trimed_st) > 1:
+    if len(trimmed_st) > 1:
         log.warning(
-            f"There are {len(trimed_st)} traces in that stream. "
-            f"Trying to merge with Stream.merge(fill_value=0) because its has enough of "
-            f"samples to pass minimum_no_samples criterium."
+            f"There are {len(trimmed_st)} traces in that stream. "
+            f"Trying to merge with merge_traces_under_conditions because its has enough of "
+            f"samples to pass minimum_no_samples criterion."
         )
-
+        if verbose_output:
+            steps_dict['original'] = trimmed_st.copy()
         try:
-            trimed_st = merge_traces_under_conditions(st=trimed_st, params=processing_params)
+            trimmed_st = merge_traces_under_conditions(st=trimmed_st, params=processing_params)
         except ValueError as e:
+            log.error(e)
             raise ValueError(e)
 
-        if len(trimed_st) > 1:
-            raise ValueError(f"Merging not successfull. "
-                             f"There are still {len(trimed_st)} traces in the "
-                             f"stream!")
+        if verbose_output:
+            steps_dict['merged'] = trimmed_st.copy()
+
+        if len(trimmed_st) > 1:
+            message = (
+                f"Merging not successfull. "
+                f"There are still {len(trimmed_st)} traces in the "
+                f"stream!"
+            )
+            log.error(message)
+            raise ValueError(message)
+
+    expected_no_samples = get_expected_sample_count(timespan=timespan, sampling_rate=original_samplerate)
+    samples_in_stream = sum_samples_in_stream(st=trimmed_st)
 
     if samples_in_stream == expected_no_samples + 1:
-        trimed_st[0].data = trimed_st[0].data[:-1]
-        return trimed_st, deficit
+        trimmed_st = _check_and_remove_extra_samples_on_the_end(st=trimmed_st, expected_no_samples=expected_no_samples)
+        if verbose_output:
+            steps_dict['last_sample_removed'] = trimmed_st.copy()
 
     if samples_in_stream < expected_no_samples:
         deficit = expected_no_samples - samples_in_stream
@@ -351,11 +510,121 @@ def validate_slice(
             f"It will be padded with {deficit} zeros to match exact length."
         )
         try:
-            trimed_st = pad_zeros_to_exact_time_bounds(
-                trimed_st, timespan, expected_no_samples
-            )
+
+            if verbose_output:
+                steps_dict['padded'] = trimmed_st.copy()
         except ValueError as e:
             log.error(f"Padding was not successful. {e}")
-            raise ValueError("Datachunk padding unsuccessful.")
+            raise ValueError(f"Datachunk padding unsuccessful. {e}")
 
-    return trimed_st, deficit
+    return trimmed_st, deficit, steps_dict
+
+
+def perform_padding_according_to_config(
+        st: obspy.Stream,
+        timespan: Timespan,
+        expected_no_samples: int,
+        params: DatachunkParams
+) -> obspy.Stream:
+
+    selected_method = params.zero_padding_method
+
+    if selected_method is ZeroPaddingMethod.PADDED:
+        return _pad_zeros_to_timespan(
+            st=st,
+            expected_no_samples=expected_no_samples,
+            timespan=timespan,
+        )
+    elif selected_method is ZeroPaddingMethod.TAPERED_PADDED:
+        return _taper_and_pad_zeros_to_timespan(
+            st=st,
+            expected_no_samples=expected_no_samples,
+            timespan=timespan,
+            params=params,
+        )
+    elif selected_method is ZeroPaddingMethod.INTERPOLATED:
+        return _interpolate_ends_to_zero_to_timespan(
+            st=st,
+            timespan=timespan,
+            expected_no_samples=expected_no_samples,
+        )
+    else:
+        raise NotImplementedError('Selected zero padding method not supported. ')
+
+
+def validate_sample_count_in_stream(st: obspy.Stream, params: DatachunkParams, timespan: Timespan) -> bool:
+    """
+    Checks if sample count in the whole stream is within tolerance bounds set in the
+    :attr:`noiz.models.DatachunkParams.datachunk_sample_tolerance`
+
+    :param st:
+    :type st:
+    :param params:
+    :type params:
+    :param timespan:
+    :type timespan:
+    :return:
+    :rtype:
+    """
+    samples_in_stream = sum_samples_in_stream(st)
+
+    sampling_rate = st[0].stats.sampling_rate
+
+    min_no_samples = get_min_sample_count(timespan=timespan, params=params,
+                                          sampling_rate=sampling_rate)
+    max_no_samples = get_max_sample_count(timespan=timespan, params=params,
+                                          sampling_rate=sampling_rate)
+
+    if min_no_samples > samples_in_stream > max_no_samples:
+        message = (
+            f"The number of samples in signal exceed limits. "
+            f"Expected more than {min_no_samples}, and less than {max_no_samples} found in stream {samples_in_stream}. "
+            f"You should make sure that the sampling rate and all the rest of Stream params are okay. "
+        )
+        logging.error(message)
+        raise ValueError(message)
+    return True
+
+
+def sum_samples_in_stream(st: obspy.Stream) -> int:
+    """
+    Sums up npts of all traces in the stream
+
+    :param st: Stream to sum up samples of
+    :type st: obspy.Stream
+    :return: Sum of samples in stream
+    :rtype: int
+    """
+    samples_in_stream = sum([x.stats.npts for x in st])
+    return samples_in_stream
+
+
+def validate_timebounds_agains_timespan(st, timespan):
+
+    st.sort(keys=['starttime'])
+    if st[0].stats.starttime < timespan.starttime:
+        message = (
+            f"Provided stream has starttime before timespan starts. "
+            f"Are you sure you trimmed it first? "
+            f"Stream starttime: {st[0].stats.starttime}, timespan starttime: {timespan.starttime}"
+        )
+        raise ValueError(message)
+    if st[-1].stats.endtime > timespan.endtime:
+        message = (
+            f"Provided stream has endtime after timespan ends. "
+            f"Are you sure you trimmed it first? "
+            f"Stream endtime: {st[-1].stats.endtime}, timespan endtime: {timespan.endtime}"
+        )
+        raise ValueError(message)
+
+
+def validate_sample_rate(original_samplerate, trimmed_st):
+    sample_rates = list(set([x.stats.sampling_rate for x in trimmed_st]))
+    if len(sample_rates) != 1:
+        raise ValueError("The sampling rate in the stream is not uniform!")
+    if sample_rates[0] != original_samplerate:
+        message = (
+            f"Sampling rate of provided stream is different than expected. "
+            f"Found sampling_rate {sample_rates[0]}, expected {original_samplerate} "
+        )
+        raise ValueError(message)

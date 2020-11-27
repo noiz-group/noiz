@@ -1,49 +1,34 @@
+from datetime import timedelta
 import numpy as np
+from noiz.models.timespan import Timespan
 from obspy import Stream
 import os
 import pytest
+from pandas import Timestamp
 
 from noiz.models.processing_params import DatachunkParams
 from noiz.processing.datachunk_preparation import (
     merge_traces_fill_zeros,
     merge_traces_under_conditions,
     _check_if_gaps_short_enough,
+    _check_and_remove_extra_samples_on_the_end,
+    _pad_zeros_to_timespan,
+    _interpolate_ends_to_zero_to_timespan,
+    next_pow_2, validate_slice,
 )
 
 
-@pytest.mark.xfail
-def test_assembly_sds_like_dir():
-    assert False
+@pytest.mark.parametrize(["val", "expected"], [
+    (3, 2),
+    (3.3, 2),
+    (100, 7),
+    (55.57666664, 6)
+])
+def test_next_pow_2(val, expected):
+    output = next_pow_2(val)
 
-
-@pytest.mark.xfail
-def test_expected_npts():
-    assert False
-
-
-@pytest.mark.xfail
-def test_assembly_preprocessing_filename():
-    assert False
-
-
-@pytest.mark.xfail
-def test_assembly_filepath():
-    assert False
-
-
-@pytest.mark.xfail
-def test_directory_exists_or_create():
-    assert False
-
-
-@pytest.mark.xfail
-def test_increment_filename_counter():
-    assert False
-
-
-@pytest.mark.xfail
-def test_next_pow_2():
-    assert False
+    assert isinstance(output, int)
+    assert expected == output
 
 
 @pytest.mark.xfail
@@ -68,6 +53,7 @@ def test_merge_traces_fill_zeros():
     assert np.count_nonzero(st[0].data == 0) == 20
 
 
+@pytest.mark.filterwarnings("ignore: Incompatible traces")
 def test_merge_traces_fill_zeros_different_sampling_rates_of_traces():
     s = ['', '', '2 Trace(s) in Stream:',
          'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
@@ -279,8 +265,8 @@ def test_merge_traces_under_conditions_with_interpolation():
 
     st_merged = merge_traces_under_conditions(st=st, params=params)
 
-    trace_data_result = np.array([1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  2.,  3.,  4.,  4.,  4.,
-                                  4.,  4.,  4.,  4.,  4.,  4.,  4.])
+    trace_data_result = np.array([1., 1., 1., 1., 1., 1., 1., 1., 2., 3., 4., 4., 4.,
+                                  4., 4., 4., 4., 4., 4., 4.])
 
     assert isinstance(st_merged, Stream)
     assert len(st_merged) == 1
@@ -303,9 +289,212 @@ def test_merge_traces_under_conditions_failing():
         merge_traces_under_conditions(st=st, params=params)
 
 
-@pytest.mark.xfail
-def test_pad_zeros_to_exact_time_bounds():
-    assert False
+def test__pad_zeros_to_timespan_end_only():
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 7 samples',
+         '', '']
+
+    ts = Timespan(
+        starttime=Timestamp('2016-01-07T00:00:00.000000Z'),
+        midtime=Timestamp('2016-01-07T00:00:05.000000Z'),
+        endtime=Timestamp('2016-01-07T00:00:10.000000Z'),
+    )
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    st[0].data *= 4
+    expected_no_samples = 10
+
+    expected_data = np.array([4., 4., 4., 4., 4., 4., 4., 0., 0., 0.])
+
+    st_res = _pad_zeros_to_timespan(st=st, timespan=ts, expected_no_samples=expected_no_samples)
+
+    assert len(st_res) == 1
+    assert len(st_res[0].data) == expected_no_samples
+    assert np.array_equal(st_res[0].data, expected_data)
+
+
+def test__pad_zeros_to_timespan_beginning_only():
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:03.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 7 samples',
+         '', '']
+
+    ts = Timespan(
+        starttime=Timestamp('2016-01-07T00:00:00.000000Z'),
+        midtime=Timestamp('2016-01-07T00:00:05.000000Z'),
+        endtime=Timestamp('2016-01-07T00:00:10.000000Z'),
+    )
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    st[0].data *= 4
+    expected_no_samples = 10
+
+    expected_data = np.array([0., 0., 0., 4., 4., 4., 4., 4., 4., 4.])
+
+    st_res = _pad_zeros_to_timespan(st=st, timespan=ts, expected_no_samples=expected_no_samples)
+
+    assert len(st_res) == 1
+    assert len(st_res[0].data) == expected_no_samples
+    assert np.array_equal(st_res[0].data, expected_data)
+
+
+def test__pad_zeros_to_timespan_both_ends():
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:03.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 4 samples',
+         '', '']
+
+    ts = Timespan(
+        starttime=Timestamp('2016-01-07T00:00:00.000000Z'),
+        midtime=Timestamp('2016-01-07T00:00:05.000000Z'),
+        endtime=Timestamp('2016-01-07T00:00:10.000000Z'),
+    )
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    st[0].data *= 4
+    expected_no_samples = 10
+
+    expected_data = np.array([0., 0., 0., 4., 4., 4., 4., 0., 0., 0.])
+
+    st_res = _pad_zeros_to_timespan(st=st, timespan=ts, expected_no_samples=expected_no_samples)
+
+    assert len(st_res) == 1
+    assert len(st_res[0].data) == expected_no_samples
+    assert np.array_equal(st_res[0].data, expected_data)
+
+
+def test__interpolate_ends_to_zero_to_timespan_end_only():
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 6 samples',
+         '', '']
+
+    ts = Timespan(
+        starttime=Timestamp('2016-01-07T00:00:00.000000Z'),
+        midtime=Timestamp('2016-01-07T00:00:05.000000Z'),
+        endtime=Timestamp('2016-01-07T00:00:10.000000Z'),
+    )
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    st[0].data *= 4
+    expected_no_samples = 10
+
+    expected_data = np.array([4., 4., 4., 4., 4., 4., 3., 2., 1., 0.])
+
+    st_res = _interpolate_ends_to_zero_to_timespan(st=st, timespan=ts, expected_no_samples=expected_no_samples)
+
+    assert len(st_res) == 1
+    assert len(st_res[0].data) == expected_no_samples
+    assert np.array_equal(st_res[0].data, expected_data)
+
+
+def test__interpolate_ends_to_zero_to_timespan_end_only_single_sample():
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 9 samples',
+         '', '']
+
+    ts = Timespan(
+        starttime=Timestamp('2016-01-07T00:00:00.000000Z'),
+        midtime=Timestamp('2016-01-07T00:00:05.000000Z'),
+        endtime=Timestamp('2016-01-07T00:00:10.000000Z'),
+    )
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    st[0].data *= 4
+    expected_no_samples = 10
+
+    expected_data = np.array([4., 4., 4., 4., 4., 4., 4., 4., 4., 0.])
+
+    st_res = _interpolate_ends_to_zero_to_timespan(st=st, timespan=ts, expected_no_samples=expected_no_samples)
+
+    assert len(st_res) == 1
+    assert len(st_res[0].data) == expected_no_samples
+    assert np.array_equal(st_res[0].data, expected_data)
+
+
+def test__interpolate_ends_to_zero_to_timespan_beginning_only():
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:04.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 7 samples',
+         '', '']
+
+    ts = Timespan(
+        starttime=Timestamp('2016-01-07T00:00:00.000000Z'),
+        midtime=Timestamp('2016-01-07T00:00:05.000000Z'),
+        endtime=Timestamp('2016-01-07T00:00:10.000000Z'),
+    )
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    st[0].data *= 4
+    expected_no_samples = 10
+
+    expected_data = np.array([0., 1., 2., 3., 4., 4., 4., 4., 4., 4.])
+
+    st_res = _interpolate_ends_to_zero_to_timespan(st=st, timespan=ts, expected_no_samples=expected_no_samples)
+
+    assert len(st_res) == 1
+    assert len(st_res[0].data) == expected_no_samples
+    assert np.array_equal(st_res[0].data, expected_data)
+
+
+def test__interpolate_ends_to_zero_to_timespan_beginning_only_one_sample():
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:01.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 9 samples',
+         '', '']
+
+    ts = Timespan(
+        starttime=Timestamp('2016-01-07T00:00:00.000000Z'),
+        midtime=Timestamp('2016-01-07T00:00:05.000000Z'),
+        endtime=Timestamp('2016-01-07T00:00:10.000000Z'),
+    )
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    st[0].data *= 4
+    expected_no_samples = 10
+
+    expected_data = np.array([0., 4., 4., 4., 4., 4., 4., 4., 4., 4.])
+
+    st_res = _interpolate_ends_to_zero_to_timespan(st=st, timespan=ts, expected_no_samples=expected_no_samples)
+
+    assert len(st_res) == 1
+    assert len(st_res[0].data) == expected_no_samples
+    assert np.array_equal(st_res[0].data, expected_data)
+
+
+def test__interpolate_ends_to_zero_to_timespan_both_ends():
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:04.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 2 samples',
+         '', '']
+
+    ts = Timespan(
+        starttime=Timestamp('2016-01-07T00:00:00.000000Z'),
+        midtime=Timestamp('2016-01-07T00:00:05.000000Z'),
+        endtime=Timestamp('2016-01-07T00:00:10.000000Z'),
+    )
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    st[0].data *= 4
+    expected_no_samples = 10
+
+    expected_data = np.array([0., 1., 2., 3., 4., 4., 3., 2., 1., 0.])
+
+    st_res = _interpolate_ends_to_zero_to_timespan(st=st, timespan=ts, expected_no_samples=expected_no_samples)
+
+    assert len(st_res) == 1
+    assert len(st_res[0].data) == expected_no_samples
+    assert np.array_equal(st_res[0].data, expected_data)
 
 
 @pytest.mark.xfail
@@ -328,23 +517,248 @@ def test_add_or_upsert_datachunks_in_db():
     assert False
 
 
-@pytest.mark.xfail
 def test_validate_slice():
-    assert False
+    expected_npts = 120
+    expected_sampling = 2
+
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         f'2016-01-07T03:00:00.000000Z | {expected_sampling} Hz, {expected_npts} samples',
+         '', '']
+
+    ts = Timespan(
+        starttime=Timestamp('2016-01-07T00:00:00.000000Z'),
+        midtime=Timestamp('2016-01-07T00:00:30.000000Z'),
+        endtime=Timestamp('2016-01-07T00:01:00.000000Z'),
+    )
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    dp = DatachunkParams(max_gap_for_merging=10, sampling_rate=expected_sampling, timespan_length=timedelta(seconds=60))
+    validated_stream, deficit, verbosity_dict = validate_slice(
+        trimmed_st=st, timespan=ts, original_samplerate=expected_sampling, processing_params=dp)
+
+    assert isinstance(validated_stream, Stream)
+    assert len(validated_stream) == 1
+    assert len(validated_stream[0].data) == expected_npts
+    assert validated_stream[0].stats.sampling_rate == expected_sampling
+    assert validated_stream[0].stats.starttime == ts.starttime
+    assert validated_stream[0].stats.endtime == ts.endtime_at_last_sample(sampling_rate=expected_sampling)
 
 
-@pytest.mark.xfail
-def test_validate_slice_mutli_traces_mergeable():
-    assert False
+def test_validate_slice_starts_too_early():
+    expected_npts = 120
+    expected_sampling = 2
+
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         f'2016-01-07T03:00:00.000000Z | {expected_sampling} Hz, {expected_npts} samples',
+         '', '']
+
+    ts = Timespan(
+        starttime=Timestamp('2016-01-07T00:00:01.000000Z'),
+        midtime=Timestamp('2016-01-07T00:00:30.000000Z'),
+        endtime=Timestamp('2016-01-07T00:01:00.000000Z'),
+    )
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    dp = DatachunkParams(sampling_rate=expected_sampling, timespan_length=timedelta(seconds=60))
+
+    with pytest.raises(ValueError):
+        validate_slice(trimmed_st=st, timespan=ts, original_samplerate=expected_sampling, processing_params=dp)
+
+
+def test_validate_slice_ends_too_late():
+    expected_npts = 120
+    expected_sampling = 2
+
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         f'2016-01-07T03:00:00.000000Z | {expected_sampling} Hz, {expected_npts} samples',
+         '', '']
+
+    ts = Timespan(
+        starttime=Timestamp('2016-01-07T00:00:00.000000Z'),
+        midtime=Timestamp('2016-01-07T00:00:30.000000Z'),
+        endtime=Timestamp('2016-01-07T00:00:58.000000Z'),
+    )
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    dp = DatachunkParams(max_gap_for_merging=10, sampling_rate=expected_sampling, timespan_length=timedelta(seconds=60))
+
+    with pytest.raises(ValueError):
+        validate_slice(trimmed_st=st, timespan=ts, original_samplerate=expected_sampling, processing_params=dp)
+
+
+def test_validate_slice_too_many_samples():
+    expected_npts = 240
+    expected_sampling = 4
+
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         f'2016-01-07T03:00:00.000000Z | {expected_sampling} Hz, {expected_npts} samples',
+         '', '']
+
+    ts = Timespan(
+        starttime=Timestamp('2016-01-07T00:00:00.000000Z'),
+        midtime=Timestamp('2016-01-07T00:00:30.000000Z'),
+        endtime=Timestamp('2016-01-07T00:01:00.000000Z'),
+    )
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    dp = DatachunkParams(max_gap_for_merging=10, sampling_rate=expected_sampling, timespan_length=timedelta(seconds=60))
+    with pytest.raises(ValueError):
+        validate_slice(trimmed_st=st, timespan=ts, original_samplerate=2, processing_params=dp)
+
+
+def test_validate_slice_not_enough_samples():
+    expected_npts = 240
+    expected_sampling = 4
+
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         f'2016-01-07T03:00:00.000000Z | {expected_sampling} Hz, {expected_npts} samples',
+         '', '']
+
+    ts = Timespan(
+        starttime=Timestamp('2016-01-07T00:00:00.000000Z'),
+        midtime=Timestamp('2016-01-07T00:00:30.000000Z'),
+        endtime=Timestamp('2016-01-07T00:01:00.000000Z'),
+    )
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+    dp = DatachunkParams(max_gap_for_merging=10, sampling_rate=expected_sampling, timespan_length=timedelta(seconds=60))
+    with pytest.raises(ValueError):
+        validate_slice(trimmed_st=st, timespan=ts, original_samplerate=2, processing_params=dp)
+
+
+def test_validate_slice_mutli_traces_mergeable_no_gap():
+    expected_sampling = 2
+
+    s_in = ['', '', '1 Trace(s) in Stream:',
+            'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+            f'2016-01-07T03:00:00.000000Z | {expected_sampling} Hz, 60 samples',
+            'AA.XXX..HH2 | 2016-01-07T00:00:30.000000Z - '
+            f'2016-01-07T03:00:00.000000Z | {expected_sampling} Hz, 60 samples',
+            '', '']
+    s_out = ['', '', '1 Trace(s) in Stream:',
+             'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+             f'2016-01-07T03:00:00.000000Z | {expected_sampling} Hz, 120 samples',
+             '', '']
+
+    ts = Timespan(
+        starttime=Timestamp('2016-01-07T00:00:00.000000Z'),
+        midtime=Timestamp('2016-01-07T00:00:30.000000Z'),
+        endtime=Timestamp('2016-01-07T00:01:00.000000Z'),
+    )
+
+    s_out = os.linesep.join(s_out)
+    expected_stream = Stream._dummy_stream_from_string(s_out)
+    s_in = os.linesep.join(s_in)
+    st_in = Stream._dummy_stream_from_string(s_in)
+    dp = DatachunkParams(max_gap_for_merging=10, sampling_rate=expected_sampling, timespan_length=timedelta(seconds=60))
+    validated_stream, deficit, verbosity_dict = validate_slice(
+        trimmed_st=st_in, timespan=ts, original_samplerate=expected_sampling, processing_params=dp)
+
+    assert isinstance(validated_stream, Stream)
+    assert expected_stream == validated_stream
+    assert len(validated_stream) == 1
+    assert len(validated_stream[0].data) == 120
+    assert validated_stream[0].stats.sampling_rate == expected_sampling
+    assert validated_stream[0].stats.starttime == ts.starttime
+    assert validated_stream[0].stats.endtime == ts.endtime_at_last_sample(sampling_rate=expected_sampling)
+
+
+def test_validate_slice_mutli_traces_mergeable_small_gap():
+    expected_sampling = 2
+
+    s_in = ['', '', '1 Trace(s) in Stream:',
+            'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+            f'2016-01-07T03:00:00.000000Z | {expected_sampling} Hz, 55 samples',
+            'AA.XXX..HH2 | 2016-01-07T00:00:30.000000Z - '
+            f'2016-01-07T03:00:00.000000Z | {expected_sampling} Hz, 60 samples',
+            '', '']
+    s_out = ['', '', '1 Trace(s) in Stream:',
+             'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+             f'2016-01-07T03:00:00.000000Z | {expected_sampling} Hz, 120 samples',
+             '', '']
+
+    ts = Timespan(
+        starttime=Timestamp('2016-01-07T00:00:00.000000Z'),
+        midtime=Timestamp('2016-01-07T00:00:30.000000Z'),
+        endtime=Timestamp('2016-01-07T00:01:00.000000Z'),
+    )
+
+    s_out = os.linesep.join(s_out)
+    expected_stream = Stream._dummy_stream_from_string(s_out)
+    s_in = os.linesep.join(s_in)
+    st_in = Stream._dummy_stream_from_string(s_in)
+    dp = DatachunkParams(
+        max_gap_for_merging=10,
+        sampling_rate=expected_sampling,
+        timespan_length=timedelta(seconds=60),
+        datachunk_sample_threshold=0.5
+    )
+    validated_stream, deficit, verbosity_dict = validate_slice(
+        trimmed_st=st_in, timespan=ts, original_samplerate=expected_sampling, processing_params=dp)
+
+    assert isinstance(validated_stream, Stream)
+    assert expected_stream == validated_stream
+    assert len(validated_stream) == 1
+    assert len(validated_stream[0].data) == 120
+    assert validated_stream[0].stats.sampling_rate == expected_sampling
+    assert validated_stream[0].stats.starttime == ts.starttime
+    assert validated_stream[0].stats.endtime == ts.endtime_at_last_sample(sampling_rate=expected_sampling)
+
+
+def test_validate_slice_mutli_traces_mergeable_small_overlap():
+    expected_sampling = 2
+
+    s_in = ['', '', '1 Trace(s) in Stream:',
+            'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+            f'2016-01-07T03:00:00.000000Z | {expected_sampling} Hz, 65 samples',
+            'AA.XXX..HH2 | 2016-01-07T00:00:30.000000Z - '
+            f'2016-01-07T03:00:00.000000Z | {expected_sampling} Hz, 60 samples',
+            '', '']
+    s_out = ['', '', '1 Trace(s) in Stream:',
+             'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+             f'2016-01-07T03:00:00.000000Z | {expected_sampling} Hz, 120 samples',
+             '', '']
+
+    ts = Timespan(
+        starttime=Timestamp('2016-01-07T00:00:00.000000Z'),
+        midtime=Timestamp('2016-01-07T00:00:30.000000Z'),
+        endtime=Timestamp('2016-01-07T00:01:00.000000Z'),
+    )
+
+    s_out = os.linesep.join(s_out)
+    expected_stream = Stream._dummy_stream_from_string(s_out)
+    s_in = os.linesep.join(s_in)
+    st_in = Stream._dummy_stream_from_string(s_in)
+    dp = DatachunkParams(
+        max_gap_for_merging=10,
+        sampling_rate=expected_sampling,
+        timespan_length=timedelta(seconds=60),
+        datachunk_sample_threshold=0.5
+    )
+    validated_stream, deficit, verbosity_dict = validate_slice(
+        trimmed_st=st_in, timespan=ts, original_samplerate=expected_sampling, processing_params=dp)
+
+    assert isinstance(validated_stream, Stream)
+    assert expected_stream == validated_stream
+    assert len(validated_stream) == 1
+    assert len(validated_stream[0].data) == 120
+    assert validated_stream[0].stats.sampling_rate == expected_sampling
+    assert validated_stream[0].stats.starttime == ts.starttime
+    assert validated_stream[0].stats.endtime == ts.endtime_at_last_sample(sampling_rate=expected_sampling)
 
 
 @pytest.mark.xfail
 def test_validate_slice_multi_traces_not_mergeabe():
-    assert False
-
-
-@pytest.mark.xfail
-def test_validate_slice_not_enough_samples():
     assert False
 
 
@@ -356,3 +770,72 @@ def test_validate_slice_samples_over_minimum():
 @pytest.mark.xfail
 def test_validate_slice_no_traces_inside():
     assert False
+
+
+def test__check_and_remove_extra_samples_on_the_end_no_action():
+    expected_no_samples = 10
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         f'2016-01-07T03:00:00.000000Z | 1.0 Hz, {expected_no_samples} samples',
+         '', '']
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+
+    assert st == _check_and_remove_extra_samples_on_the_end(st=st, expected_no_samples=expected_no_samples)
+
+
+def test__check_and_remove_extra_samples_on_the_end_not_enough_samples():
+    expected_no_samples = 50
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         f'2016-01-07T03:00:00.000000Z | 1.0 Hz, {expected_no_samples-10} samples',
+         '', '']
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+
+    with pytest.raises(ValueError):
+        _check_and_remove_extra_samples_on_the_end(st=st, expected_no_samples=expected_no_samples)
+
+
+def test__check_and_remove_extra_samples_on_the_end_trim():
+    expected_no_samples = 10
+    s_out = ['', '', '1 Trace(s) in Stream:',
+             'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+             f'2016-01-07T03:00:00.000000Z | 1.0 Hz, {expected_no_samples} samples',
+             '', '']
+
+    s_in = ['', '', '1 Trace(s) in Stream:',
+            'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+            '2016-01-07T03:00:00.000000Z | 1.0 Hz, 15 samples',
+            '', '']
+
+    s_in = os.linesep.join(s_in)
+    st_in = Stream._dummy_stream_from_string(s_in)
+    s_out = os.linesep.join(s_out)
+    st_out = Stream._dummy_stream_from_string(s_out)
+
+    assert st_out == _check_and_remove_extra_samples_on_the_end(st=st_in, expected_no_samples=expected_no_samples)
+
+
+def test__check_and_remove_extra_samples_on_the_end_many_traces():
+    s = ['', '', '1 Trace(s) in Stream:',
+         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 8 samples',
+         'AA.XXX..HH2 | 2016-01-07T00:00:10.00000Z - '
+         '2016-01-07T03:00:00.000000Z | 1.0 Hz, 10 samples',
+         '', '']
+
+    s = os.linesep.join(s)
+    st = Stream._dummy_stream_from_string(s)
+
+    with pytest.raises(ValueError):
+        _check_and_remove_extra_samples_on_the_end(st=st, expected_no_samples=10)
+
+
+def test__check_and_remove_extra_samples_on_the_end_zero_traces():
+    st = Stream()
+
+    with pytest.raises(ValueError):
+        _check_and_remove_extra_samples_on_the_end(st=st, expected_no_samples=10)

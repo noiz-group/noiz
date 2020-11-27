@@ -2,6 +2,14 @@ from noiz.database import db
 import datetime
 import numpy as np
 
+from noiz.globals import ExtendedEnum
+
+
+class ZeroPaddingMethod(ExtendedEnum):
+    INTERPOLATED = "interpolated"
+    PADDED = "padded"
+    TAPERED_PADDED = "tapered_padded"
+
 
 class DatachunkParams(db.Model):
     __tablename__ = "datachunk_params"
@@ -39,13 +47,20 @@ class DatachunkParams(db.Model):
         default=datetime.timedelta(seconds=1800),
         nullable=False,
     )
-    _datachunk_sample_threshold = db.Column(
+    _datachunk_sample_tolerance = db.Column(
         "datachunk_sample_threshold", db.Float, default=0.98, nullable=False
     )
 
     _correlation_max_lag = db.Column("correlation_max_lag", db.Float, nullable=True)
 
     _max_gap_for_merging = db.Column("max_gap_for_merging", db.Integer, default=10, nullable=False)
+
+    _padding_method = db.Column(
+        "padding_method", db.UnicodeText, default="padding_with_tapering", nullable=False
+    )
+    _padding_taper_type = db.Column("padding_taper_type", db.UnicodeText, nullable=True)
+    _padding_taper_max_length = db.Column("padding_taper_max_length", db.Float, nullable=True)
+    _padding_taper_max_percentage = db.Column("padding_taper_max_percentage", db.Float, nullable=True)
 
     def __init__(self, **kwargs):
         self.id = kwargs.get("id", 1)
@@ -66,9 +81,27 @@ class DatachunkParams(db.Model):
         self._timespan_length = kwargs.get(
             "timespan_length", datetime.timedelta(seconds=1800)
         )
-        self._datachunk_sample_threshold = kwargs.get(
-            "datachunk_sample_threshold", 0.98
-        )
+
+        if "datachunk_sample_threshold" in kwargs.keys() and "datachunk_sample_tolerance" in kwargs.keys():
+            raise ValueError("Only one of `datachunk_sample_threshold` or `datachunk_sample_tolerance` "
+                             "accepted at time.")
+
+        if "datachunk_sample_threshold" in kwargs.keys():
+            self._datachunk_sample_tolerance = 1 - kwargs.get("datachunk_sample_threshold", 0.98)
+        else:
+            self._datachunk_sample_tolerance = kwargs.get("datachunk_sample_tolerance", 0.02)
+
+        padding_method = kwargs.get("zero_padding_method", "tapered_padded")
+        try:
+            padding_method_valid = ZeroPaddingMethod(padding_method)
+        except ValueError:
+            raise ValueError(f"Not supported padding method. Supported types are: {list(ZeroPaddingMethod)}, "
+                             f"You provided {padding_method}")
+        self._padding_method = padding_method_valid.value
+
+        self._padding_taper_type = kwargs.get("padding_taper_type", "cosine")
+        self._padding_taper_max_length = kwargs.get("padding_taper_max_length", 5)  # seconds
+        self._padding_taper_max_percentage = kwargs.get("padding_taper_max_percentage", 10)  # percent
 
         self._correlation_max_lag = kwargs.get("correlation_max_lag", 60)
         self._max_gap_for_merging = kwargs.get("max_gap_for_merging", 10)
@@ -118,8 +151,14 @@ class DatachunkParams(db.Model):
         return self._timespan_length
 
     @property
-    def datachunk_sample_threshold(self):
-        return self._datachunk_sample_threshold
+    def datachunk_sample_tolerance(self):
+        """
+        Tolerance in decimal percentage of how much overlap/gaps are tolerated in the datachunk candidate.
+
+        :return:
+        :rtype: float
+        """
+        return self._datachunk_sample_tolerance
 
     @property
     def max_gap_for_merging(self):
@@ -134,6 +173,22 @@ class DatachunkParams(db.Model):
         """
         return self._correlation_max_lag
 
+    @property
+    def zero_padding_method(self):
+        return ZeroPaddingMethod(self._padding_method)
+
+    @property
+    def padding_taper_type(self):
+        return self._padding_taper_type
+
+    @property
+    def padding_taper_max_length(self):
+        return self._padding_taper_max_length
+
+    @property
+    def padding_taper_max_percentage(self):
+        return self._padding_taper_max_percentage
+
     def get_minimum_no_samples(self):
         """
         Minimum number of samples for datachunk
@@ -142,7 +197,7 @@ class DatachunkParams(db.Model):
         """
         return int(
             (self._timespan_length.seconds * self._sampling_rate)
-            * self._datachunk_sample_threshold
+            * self._datachunk_sample_tolerance
         )
 
     def get_raw_minimum_no_samples(self, sampling_rate):
@@ -153,7 +208,7 @@ class DatachunkParams(db.Model):
         """
         return int(
             (self._timespan_length.seconds * sampling_rate)
-            * self._datachunk_sample_threshold
+            * self._datachunk_sample_tolerance
         )
 
     def get_expected_no_samples(self):
