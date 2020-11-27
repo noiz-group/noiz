@@ -23,7 +23,7 @@ from noiz.models.processing_params import DatachunkParams
 from noiz.models.time_series_index import Tsindex
 from noiz.models.timespan import Timespan
 from noiz.processing.datachunk_preparation import validate_slice, \
-    preprocess_timespan
+    preprocess_sliced_stream_for_datachunk
 from noiz.processing.path_helpers import assembly_preprocessing_filename, assembly_sds_like_dir, assembly_filepath, \
     directory_exists_or_create, increment_filename_counter
 
@@ -297,18 +297,19 @@ def create_datachunks_for_component(
     for timespan in timespans:
 
         log.info(f"Slicing timespan {timespan}")
-        trimed_st: obspy.Trace = st.slice(
+        trimmed_st: obspy.Trace = st.slice(
             starttime=timespan.starttime_obspy(),
             endtime=timespan.remove_last_microsecond(),
             nearest_sample=False,
         )
 
         try:
-            trimed_st, padded_npts = validate_slice(
-                trimed_st=trimed_st,
+            trimmed_st, padded_npts, _ = validate_slice(
+                trimmed_st=trimmed_st,
                 timespan=timespan,
                 processing_params=processing_params,
-                raw_sps=float(time_series.samplerate)
+                original_samplerate=float(time_series.samplerate),
+                verbose_output=False,
             )
         except ValueError as e:
             log.warning(f"There was a problem with trace validation. "
@@ -316,10 +317,11 @@ def create_datachunks_for_component(
             continue
 
         log.info("Preprocessing timespan")
-        trimed_st = preprocess_timespan(
-            trimed_st=trimed_st,
+        trimmed_st, _ = preprocess_sliced_stream_for_datachunk(
+            trimmed_st=trimmed_st,
             inventory=inventory,
             processing_params=processing_params,
+            verbose_output=False
         )
 
         filepath = assembly_filepath(
@@ -344,14 +346,17 @@ def create_datachunks_for_component(
         directory_exists_or_create(filepath)
 
         datachunk_file = DatachunkFile(filepath=str(filepath))
-        trimed_st.write(datachunk_file.filepath, format="mseed")
+        trimmed_st.write(datachunk_file.filepath, format="mseed")
+
+        sampling_rate: Union[str, float] = trimmed_st[0].stats.sampling_rate
+        npts: int = trimmed_st[0].stats.npts
 
         datachunk = Datachunk(
             datachunk_params_id=processing_params.id,
             component_id=component.id,
             timespan_id=timespan.id,
-            sampling_rate=trimed_st[0].stats.sampling_rate,
-            npts=trimed_st[0].stats.npts,
+            sampling_rate=sampling_rate,
+            npts=npts,
             datachunk_file=datachunk_file,
             padded_npts=padded_npts,
         )
