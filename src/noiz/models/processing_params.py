@@ -31,8 +31,11 @@ class DatachunkParams(db.Model):
     _preprocessing_taper_side = db.Column(
         "preprocessing_taper_side", db.UnicodeText, default="both", nullable=False
     )
-    _preprocessing_taper_width = db.Column(
-        "preprocessing_taper_width", db.Float, default=0.1, nullable=False
+    _preprocessing_taper_max_length = db.Column(
+        "preprocessing_taper_max_length", db.Float, nullable=False
+    )
+    _preprocessing_taper_max_percentage = db.Column(
+        "preprocessing_taper_max_percentage", db.Float, nullable=False
     )
     _remove_response = db.Column(
         "remove_response", db.Boolean, default=True, nullable=False
@@ -72,7 +75,8 @@ class DatachunkParams(db.Model):
             "preprocessing_taper_type", "cosine"
         )
         self._preprocessing_taper_side = kwargs.get("preprocessing_taper_side", "both")
-        self._preprocessing_taper_width = kwargs.get("preprocessing_taper_width", 0.1)
+        self._preprocessing_taper_max_length = kwargs.get("preprocessing_taper_max_length", 5)
+        self._preprocessing_taper_max_percentage = kwargs.get("preprocessing_taper_max_percentage", 0.1)
         self._remove_response = kwargs.get("remove_response", True)
 
         self._spectral_whitening = kwargs.get("spectral_whitening", True)
@@ -131,8 +135,12 @@ class DatachunkParams(db.Model):
         return self._preprocessing_taper_side
 
     @property
-    def preprocessing_taper_width(self):
-        return self._preprocessing_taper_width
+    def preprocessing_taper_max_length(self):
+        return self._preprocessing_taper_max_length
+
+    @property
+    def preprocessing_taper_max_percentage(self):
+        return self._preprocessing_taper_max_percentage
 
     @property
     def remove_response(self):
