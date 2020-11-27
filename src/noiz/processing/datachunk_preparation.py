@@ -392,14 +392,11 @@ def preprocess_sliced_stream_for_datachunk(
         if verbose_output:
             steps_dict['trimmed_last_sample'] = trimmed_st.copy()
 
-    log.info(
-        f"Tapering stream with type: {processing_params.preprocessing_taper_type}; "
-        f"width: {processing_params.preprocessing_taper_width}; "
-        f"side: {processing_params.preprocessing_taper_side}"
-    )
+    log.info(f"Tapering stream with {processing_params.preprocessing_taper_type} taper ")
     trimmed_st.taper(
         type=processing_params.preprocessing_taper_type,
-        max_percentage=processing_params.preprocessing_taper_width,
+        max_length=processing_params.preprocessing_taper_max_length,
+        max_percentage=processing_params.preprocessing_taper_max_percentage,
         side=processing_params.preprocessing_taper_side,
     )
     if verbose_output:
