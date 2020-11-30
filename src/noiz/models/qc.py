@@ -1,7 +1,7 @@
 from typing import List
 
 import datetime
-from dataclasses import dataclass
+from pydantic.dataclasses import dataclass
 
 from noiz.database import db
 
