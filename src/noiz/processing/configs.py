@@ -1,6 +1,6 @@
 import toml
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 from pathlib import Path
 
 from noiz.globals import ExtendedEnum
@@ -21,7 +21,7 @@ def select_validator_for_config_type(config_type: DefinedConfigs):
         return validate_dict_as_qcone_holder
 
 
-def parse_single_config_toml(filepath: Path, config_type: Optional[str] = None):
+def parse_single_config_toml(filepath: Path, config_type: Optional[Union[str, DefinedConfigs]] = None):
     config_type_read = None
     config_type_provided = None
 
@@ -36,11 +36,14 @@ def parse_single_config_toml(filepath: Path, config_type: Optional[str] = None):
                          f"Allowed config types are: {list(DefinedConfigs)}")
 
     if config_type is not None:
-        try:
-            config_type_provided = DefinedConfigs(config_type)
-        except ValueError:
-            raise ValueError(f"Wrong config_type value provided. You provided `{config_type}`. "
-                             f"Only accepted ones are: {list(DefinedConfigs)}")
+        if isinstance(config_type, DefinedConfigs):
+            config_type_provided = config_type
+        else:
+            try:
+                config_type_provided = DefinedConfigs(config_type)
+            except ValueError:
+                raise ValueError(f"Wrong config_type value provided. You provided `{config_type}`. "
+                                 f"Only accepted ones are: {list(DefinedConfigs)}")
 
     if len(loaded_dict.keys()) == 1:
         read_value = list(loaded_dict.keys())[0]
