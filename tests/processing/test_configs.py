@@ -63,8 +63,8 @@ def test_parse_single_config_toml_datachunkparams_datachunk_params_provided(tmp_
     parsed_config = parse_single_config_toml(filepath=test_file, config_type="DatachunkParams")
 
     assert isinstance(parsed_config, DatachunkParamsHolder)
-    for key in params['DatachunkParams'].keys():
-        assert params['DatachunkParams'][key] == parsed_config.__getattribute__(key)
+    for key in params.keys():
+        assert params[key] == parsed_config.__getattribute__(key)
 
 
 def test_parse_single_config_toml_datachunkparams_datachunk_params_both(tmp_path):
