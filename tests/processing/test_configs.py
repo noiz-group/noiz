@@ -1,6 +1,6 @@
 import pytest
 
-from noiz.processing.qc import parse_single_config_toml
+from noiz.processing.configs import parse_single_config_toml
 
 
 @pytest.mark.xfail
@@ -53,7 +53,7 @@ def test_parse_single_config_toml_raise_on_wrong_type_read(tmp_path):
 
 
 def test_parse_single_config_toml_raise_on_different_types_provided_and_read(tmp_path):
-    from noiz.processing.qc import DefinedConfigs
+    from noiz.processing.configs import DefinedConfigs
     params = {
         f"{DefinedConfigs.DATACHUNKPARAMS.value}": {
             "value1": 24,
