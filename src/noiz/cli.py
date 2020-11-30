@@ -71,7 +71,7 @@ def configs_group():  # type: ignore
     pass
 
 
-@configs_group.command("load_processing_params")
+@configs_group.command("add_dtachunk_params")
 def load_processing_params():
     """Replaces current processing config with default one"""
     click.echo("This is a placeholder of an option")
