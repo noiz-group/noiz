@@ -170,7 +170,7 @@ api_system_tests:
 cli_system_tests:
   extends: .system_test_parent
   script:
-    - pytest --cov=noiz --runapi
+    - pytest --cov=noiz --runcli
 
 trigger_airflow_master:
   stage: downstream
