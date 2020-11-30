@@ -45,7 +45,7 @@ class Datachunk(db.Model):
         "DatachunkParams", foreign_keys=[datachunk_params_id],
         # uselist = False, # just for the future left, here, dont want to test that now
     )
-    datachunk_stats = db.relationship("DatachunkStats")
+    datachunk_stats = db.relationship("DatachunkStats", uselist=False, back_populates="datachunk")
     processed_datachunks = db.relationship("ProcessedDatachunk")
 
     datachunk_file = db.relationship(
