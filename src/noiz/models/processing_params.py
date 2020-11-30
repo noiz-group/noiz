@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+import datetime
 import numpy as np
 
 from noiz.database import db
@@ -95,7 +97,7 @@ class DatachunkParams(db.Model):
 
         self._padding_taper_type = kwargs.get("padding_taper_type", "cosine")
         self._padding_taper_max_length = kwargs.get("padding_taper_max_length", 5)  # seconds
-        self._padding_taper_max_percentage = kwargs.get("padding_taper_max_percentage", 10)  # percent
+        self._padding_taper_max_percentage = kwargs.get("padding_taper_max_percentage", 0.1)  # percent
 
         self._correlation_max_lag = kwargs.get("correlation_max_lag", 60)  # deprecatethis
         self._max_gap_for_merging = kwargs.get("max_gap_for_merging", 10)  # deprecatethis
@@ -199,6 +201,29 @@ class DatachunkParams(db.Model):
         stop = self._correlation_max_lag + step
 
         return np.arange(start=start, stop=stop, step=step)
+
+
+@dataclass
+class DatachunkParamsHolder:
+    """
+        This simple dataclass is just helping to validate :class:`~noiz.models.DatachunkParams` values loaded
+        from the TOML file
+    """
+    sampling_rate: float
+    prefiltering_low: float
+    prefiltering_high: float
+    prefiltering_order: int
+    preprocessing_taper_type: str
+    preprocessing_taper_side: str
+    preprocessing_taper_max_length: float
+    preprocessing_taper_max_percentage: float
+    remove_response: bool
+    timespan_length: int
+    datachunk_sample_tolerance: float
+    zero_padding_method: str
+    padding_taper_type: str
+    padding_taper_max_length: float
+    padding_taper_max_percentage: float
 
 
 class BeamformingParams(db.Model):

@@ -4,6 +4,7 @@ from typing import Dict, Optional
 from pathlib import Path
 
 from noiz.globals import ExtendedEnum
+from noiz.models.processing_params import DatachunkParamsHolder
 from noiz.models.qc import QCOneRejectedTimeHolder, QCOneHolder
 
 
@@ -72,6 +73,8 @@ def load_qc_one_config_toml(filepath: Path) -> QCOneHolder:
     :return: QCOneHolder compatible with constructor of QCOne model
     :rtype: QCOneHolder
     """
+    import warnings
+    warnings.warn(DeprecationWarning("this method is deprecated, use more general `parse_single_config_toml`"))
 
     if not filepath.exists() or not filepath.is_file():
         raise ValueError("Provided filepath has to be a path to existing file")
@@ -102,5 +105,6 @@ def validate_dict_as_qcone_holder(loaded_dict: Dict) -> QCOneHolder:
     return QCOneHolder(**processed_dict)
 
 
-def validate_config_dict_as_datachunkparams(loaded_dict: Dict):  # -> DatachunkParamsHolder:
-    pass
+def validate_config_dict_as_datachunkparams(loaded_dict: Dict) -> DatachunkParamsHolder:
+    # filldocs
+    return DatachunkParamsHolder(**loaded_dict)
