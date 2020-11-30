@@ -34,6 +34,8 @@ def noiz_app():
 
 @pytest.mark.system
 class TestDataIngestionRoutines:
+    def test_existence_of_processed_data_dir(self, noiz_app):
+        assert Path(noiz_app.noiz_config['processed_data_dir']).exists()
 
     def test_add_inventory_data(self, workdir_with_content, noiz_app):
 
