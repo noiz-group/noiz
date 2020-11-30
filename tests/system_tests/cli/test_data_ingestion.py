@@ -70,7 +70,7 @@ class TestDataIngestionRoutines:
         config_path = workdir_with_content.joinpath('datachunk_params.toml')
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["configs", "add_datachunk_params", str(config_path)])
+        result = runner.invoke(cli, ["configs", "add_datachunk_params", "--add_to_db", "-f", str(config_path)])
 
         assert result.exit_code == 0
 
