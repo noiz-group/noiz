@@ -4,6 +4,7 @@ import sys
 from flask import Flask
 from loguru import logger
 from typing import Union
+from pathlib import Path
 
 from noiz.database import db, migrate
 from noiz.routes import simple_page
@@ -52,6 +53,8 @@ def load_noiz_config(app: Flask):
     processed_data_dir = os.environ.get("PROCESSED_DATA_DIR")
     if processed_data_dir is None:
         raise ValueError("You have to set a PROCESSED_DATA_DIR env variable.")
+    if not Path(processed_data_dir).exists():
+        raise NotADirectoryError(f"Directory provided with `PROCESSED_DATA_DIR` have to exist. {processed_data_dir} ")
     app.noiz_config["processed_data_dir"] = processed_data_dir
 
     return None
