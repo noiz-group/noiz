@@ -124,3 +124,11 @@ class TestDataIngestionRoutines:
 
         assert isinstance(fetched_timespans[0], Timespan)
         assert len(fetched_timespans) == 145
+
+
+    def test_run_datachunk_creation(self, noiz_app):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["processing", "prepare_datachunks", "-sd", "2010-01-01", "-ed", "2030-01-01"])
+        assert result.exit_code == 0
+
+        # TODO Add assert of datachunk count
