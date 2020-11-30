@@ -31,6 +31,8 @@ def parse_single_config_toml(filepath: Path, config_type: Optional[Union[str, De
     with open(file=filepath, mode='r') as f:
         loaded_dict: Dict = toml.load(f=f)  # type: ignore
 
+    single_keyed_dict = len(loaded_dict.keys()) == 1
+
     if len(loaded_dict.keys()) != 1 and config_type is None:
         raise ValueError(f"You have to provide either a config_type argument or indicate in your toml type of config."
                          f"Allowed config types are: {list(DefinedConfigs)}")
@@ -45,7 +47,7 @@ def parse_single_config_toml(filepath: Path, config_type: Optional[Union[str, De
                 raise ValueError(f"Wrong config_type value provided. You provided `{config_type}`. "
                                  f"Only accepted ones are: {list(DefinedConfigs)}")
 
-    if len(loaded_dict.keys()) == 1:
+    if single_keyed_dict:
         read_value = list(loaded_dict.keys())[0]
         try:
             config_type_read = DefinedConfigs(read_value)
@@ -54,7 +56,7 @@ def parse_single_config_toml(filepath: Path, config_type: Optional[Union[str, De
                              f" Only accepted ones are: {list(DefinedConfigs)}")
         loaded_dict = loaded_dict[config_type_read.value]
 
-    if len(loaded_dict.keys()) == 1 and config_type is not None:
+    if single_keyed_dict and config_type is not None:
         if config_type_provided != config_type_read:
             raise ValueError(f"Config type read from TOML file and provided by user are different."
                              f"Read: {config_type_read} "
