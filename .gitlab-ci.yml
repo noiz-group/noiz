@@ -172,6 +172,10 @@ cli_system_tests:
   extends: .system_test_parent
   script:
     - pytest --cov=noiz --runcli
+    - coverage xml
+  artifacts:
+    reports:
+      cobertura: coverage.xml
 
 trigger_airflow_master:
   stage: downstream
