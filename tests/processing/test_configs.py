@@ -100,7 +100,17 @@ def test_parse_single_config_toml_datachunkparams_datachunk_params_both(tmp_path
 
 
 @pytest.mark.xfail
-def test_parse_single_config_toml_datachunkparams_qc_one(tmp_path):
+def test_parse_single_config_toml_datachunkparams_qc_one_defined_in_toml(tmp_path):
+    assert False
+
+
+@pytest.mark.xfail
+def test_parse_single_config_toml_datachunkparams_qc_one_provided(tmp_path):
+    assert False
+
+
+@pytest.mark.xfail
+def test_parse_single_config_toml_datachunkparams_qc_one_both(tmp_path):
     assert False
 
 
