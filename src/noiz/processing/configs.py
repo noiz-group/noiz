@@ -52,6 +52,7 @@ def parse_single_config_toml(filepath: Path, config_type: Optional[Union[str, De
         except ValueError:
             raise ValueError(f"Your TOML file contained wrong section header name. Value read from file `{read_value}`."
                              f" Only accepted ones are: {list(DefinedConfigs)}")
+        loaded_dict = loaded_dict[config_type_read.value]
 
     if len(loaded_dict.keys()) == 1 and config_type is not None:
         if config_type_provided != config_type_read:
