@@ -19,7 +19,7 @@ repos:
         rev: v0.790
         hooks:
         -   id: mypy
-            additional_dependencies: [sqlalchemy-stubs~=0.3]
+            additional_dependencies: [sqlalchemy-stubs~=0.3, pydantic~=1.7.2]
             args:
                 - --ignore-missing-imports
             exclude: tests/

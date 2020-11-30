@@ -52,6 +52,7 @@ type-check:
   image: $UNITTESTING_IMAGE_TAG
   stage: linting
   script:
+    - pip install pydantic
     - mypy src/noiz
 
 flake8:
