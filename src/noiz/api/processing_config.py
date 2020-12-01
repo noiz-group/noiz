@@ -6,19 +6,6 @@ from noiz.models.processing_params import DatachunkParams, DatachunkParamsHolder
 from noiz.processing.configs import validate_config_dict_as_datachunkparams, parse_single_config_toml, DefinedConfigs
 
 
-def upsert_default_params() -> None:
-    default_config = DatachunkParams(id=1)
-    current_config = fetch_processing_config_by_id(1)
-
-    if current_config is not None:
-        db.session.merge(default_config)
-    else:
-        db.session.add(default_config)
-    db.session.commit()
-
-    return
-
-
 def fetch_processing_config_by_id(id: int) -> DatachunkParams:
     """
     Fetches a DatachunkParams objects by its ID.
