@@ -1,12 +1,13 @@
+from pydantic.dataclasses import dataclass
 import datetime
 import numpy as np
-import warnings
 
 from noiz.database import db
 from noiz.globals import ExtendedEnum
 
 
 class ZeroPaddingMethod(ExtendedEnum):
+    # filldocs
     INTERPOLATED = "interpolated"
     PADDED = "padded"
     TAPERED_PADDED = "tapered_padded"
@@ -74,8 +75,8 @@ class DatachunkParams(db.Model):
 
         self._remove_response = kwargs.get("remove_response", True)
 
-        self._spectral_whitening = kwargs.get("spectral_whitening", True)
-        self._one_bit = kwargs.get("one_bit", True)
+        self._spectral_whitening = kwargs.get("spectral_whitening", True)  # deprecatethis
+        self._one_bit = kwargs.get("one_bit", True)  # deprecatethis
 
         if "datachunk_sample_threshold" in kwargs.keys() and "datachunk_sample_tolerance" in kwargs.keys():
             raise ValueError("Only one of `datachunk_sample_threshold` or `datachunk_sample_tolerance` "
@@ -96,10 +97,10 @@ class DatachunkParams(db.Model):
 
         self._padding_taper_type = kwargs.get("padding_taper_type", "cosine")
         self._padding_taper_max_length = kwargs.get("padding_taper_max_length", 5)  # seconds
-        self._padding_taper_max_percentage = kwargs.get("padding_taper_max_percentage", 10)  # percent
+        self._padding_taper_max_percentage = kwargs.get("padding_taper_max_percentage", 0.1)  # percent
 
-        self._correlation_max_lag = kwargs.get("correlation_max_lag", 60)
-        self._max_gap_for_merging = kwargs.get("max_gap_for_merging", 10)
+        self._correlation_max_lag = kwargs.get("correlation_max_lag", 60)  # deprecatethis
+        self._max_gap_for_merging = kwargs.get("max_gap_for_merging", 10)  # deprecatethis
 
     @property
     def sampling_rate(self):
@@ -200,6 +201,28 @@ class DatachunkParams(db.Model):
         stop = self._correlation_max_lag + step
 
         return np.arange(start=start, stop=stop, step=step)
+
+
+@dataclass
+class DatachunkParamsHolder:
+    """
+        This simple dataclass is just helping to validate :class:`~noiz.models.DatachunkParams` values loaded
+        from the TOML file
+    """
+    sampling_rate: float
+    prefiltering_low: float
+    prefiltering_high: float
+    prefiltering_order: int
+    preprocessing_taper_type: str
+    preprocessing_taper_side: str
+    preprocessing_taper_max_length: float
+    preprocessing_taper_max_percentage: float
+    remove_response: bool
+    datachunk_sample_tolerance: float
+    zero_padding_method: str
+    padding_taper_type: str
+    padding_taper_max_length: float
+    padding_taper_max_percentage: float
 
 
 class BeamformingParams(db.Model):
