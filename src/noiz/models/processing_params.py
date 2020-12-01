@@ -218,7 +218,6 @@ class DatachunkParamsHolder:
     preprocessing_taper_max_length: float
     preprocessing_taper_max_percentage: float
     remove_response: bool
-    timespan_length: int
     datachunk_sample_tolerance: float
     zero_padding_method: str
     padding_taper_type: str
