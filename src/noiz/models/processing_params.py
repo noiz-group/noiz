@@ -45,12 +45,6 @@ class DatachunkParams(db.Model):
         "spectral_whitening", db.Boolean, default=True, nullable=False
     )
     _one_bit = db.Column("one_bit", db.Boolean, default=True, nullable=False)
-    _timespan_length = db.Column(
-        "timespan_length",
-        db.Interval,
-        default=datetime.timedelta(seconds=1800),
-        nullable=False,
-    )
     _datachunk_sample_tolerance = db.Column(
         "datachunk_sample_threshold", db.Float, default=0.98, nullable=False
     )
@@ -82,8 +76,6 @@ class DatachunkParams(db.Model):
 
         self._spectral_whitening = kwargs.get("spectral_whitening", True)
         self._one_bit = kwargs.get("one_bit", True)
-
-        self._timespan_length = kwargs.get("timespan_length", datetime.timedelta(seconds=1800))
 
         if "datachunk_sample_threshold" in kwargs.keys() and "datachunk_sample_tolerance" in kwargs.keys():
             raise ValueError("Only one of `datachunk_sample_threshold` or `datachunk_sample_tolerance` "
@@ -154,10 +146,6 @@ class DatachunkParams(db.Model):
         return self._one_bit
 
     @property
-    def timespan_length(self):
-        return self._timespan_length
-
-    @property
     def datachunk_sample_tolerance(self):
         """
         Tolerance in decimal percentage of how much overlap/gaps are tolerated in the datachunk candidate.
@@ -195,48 +183,6 @@ class DatachunkParams(db.Model):
     @property
     def padding_taper_max_percentage(self):
         return self._padding_taper_max_percentage
-
-    def get_minimum_no_samples(self):
-        """
-        Minimum number of samples for datachunk
-        :return:
-        :rtype:
-        """
-        warnings.warn(DeprecationWarning("Do not use it"))
-        return int(
-            (self._timespan_length.seconds * self._sampling_rate)
-            * self._datachunk_sample_tolerance
-        )
-
-    def get_raw_minimum_no_samples(self, sampling_rate):
-        """
-        Minimum number of samples for datachunk
-        :return:
-        :rtype:
-        """
-        warnings.warn(DeprecationWarning("Do not use it"))
-        return int(
-            (self._timespan_length.seconds * sampling_rate)
-            * self._datachunk_sample_tolerance
-        )
-
-    def get_expected_no_samples(self):
-        """
-        Expected number of samples from datachunk
-        :return:
-        :rtype:
-        """
-        warnings.warn(DeprecationWarning("Do not use it"))
-        return int(self._timespan_length.seconds * self._sampling_rate)
-
-    def get_raw_expected_no_samples(self, sampling_rate):
-        """
-        Expected number of samples from datachunk
-        :return:
-        :rtype:
-        """
-        warnings.warn(DeprecationWarning("Do not use it"))
-        return int(self._timespan_length.seconds * sampling_rate)
 
     def get_correlation_max_lag_samples(self):
         return int(self._correlation_max_lag * self._sampling_rate)
