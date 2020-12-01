@@ -321,6 +321,7 @@ def create_datachunks_for_component(
             trimmed_st=trimmed_st,
             inventory=inventory,
             processing_params=processing_params,
+            timespan=timespan,
             verbose_output=False
         )
 
