@@ -1,4 +1,6 @@
 import pytest
+from noiz.models.processing_params import DatachunkParams
+
 pytestmark = [pytest.mark.system, pytest.mark.cli]
 
 from click.testing import CliRunner
@@ -8,6 +10,7 @@ import shutil
 from noiz.cli import cli
 from noiz.app import create_app
 from noiz.api.component import fetch_components
+from noiz.api.processing_config import fetch_processing_config_by_id
 
 
 @pytest.fixture(scope="class")
@@ -61,3 +64,17 @@ class TestDataIngestionRoutines:
     @pytest.mark.xfail
     def test_add_seismic_data(self):
         assert False
+
+    def test_insert_datachunk_params(self, workdir_with_content, noiz_app):
+
+        config_path = workdir_with_content.joinpath('datachunk_params.toml')
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["configs", "add_datachunk_params", "--add_to_db", "-f", str(config_path)])
+
+        assert result.exit_code == 0
+
+        with noiz_app.app_context():
+            fetched_config = fetch_processing_config_by_id(id=1)
+
+        assert isinstance(fetched_config, DatachunkParams)

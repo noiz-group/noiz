@@ -80,6 +80,8 @@ build-docs-tests:
       - docs/*
       - docs/content/*
       - docs/*/*
+  except:
+    - master
 
 build-docs-master:
   extends: .build-docs-parent
@@ -119,6 +121,8 @@ test_build:
       - branches
     changes:
       - Dockerfile
+  except:
+    - master
 
 stable_build:
   extends: .image_building_parent
