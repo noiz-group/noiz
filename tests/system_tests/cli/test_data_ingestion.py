@@ -61,9 +61,16 @@ class TestDataIngestionRoutines:
 
         assert result.exit_code == 0
 
-    @pytest.mark.xfail
     def test_add_seismic_data(self):
-        assert False
+        basedir = workdir_with_content.joinpath('seismic-data')
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["configs", "add_seismic_data",
+                                     "--parallel", "1"
+                                     "--filename_pattern", "*.???",
+                                     str(basedir)])
+
+        assert result.exit_code == 0
 
     def test_insert_datachunk_params(self, workdir_with_content, noiz_app):
 
@@ -78,3 +85,4 @@ class TestDataIngestionRoutines:
             fetched_config = fetch_processing_config_by_id(id=1)
 
         assert isinstance(fetched_config, DatachunkParams)
+        # TODO Add checking for count of datachunk params
