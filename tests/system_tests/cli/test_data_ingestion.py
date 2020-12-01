@@ -128,7 +128,7 @@ class TestDataIngestionRoutines:
 
     def test_run_datachunk_creation(self, noiz_app):
         runner = CliRunner()
-        result = runner.invoke(cli, ["processing", "prepare_datachunks", "-sd", "2010-01-01", "-ed", "2030-01-01"])
+        result = runner.invoke(cli, ["processing", "prepare_datachunks", "-sd", "2019-09-30", "-ed", "2019-10-03"])
         assert result.exit_code == 0
 
         # TODO Add assert of datachunk count
