@@ -341,14 +341,15 @@ def _check_and_remove_extra_samples_on_the_end(st: obspy.Stream, expected_no_sam
 
 
 def preprocess_sliced_stream_for_datachunk(
-    trimmed_st: obspy.Stream,
-    inventory: obspy.Inventory,
-    processing_params: DatachunkParams,
-    verbose_output: bool = False
+        trimmed_st: obspy.Stream,
+        inventory: obspy.Inventory,
+        processing_params: DatachunkParams,
+        timespan: Timespan,
+        verbose_output: bool = False
 ) -> Tuple[obspy.Stream, Dict[str, obspy.Stream]]:
     """
-    Applies standard preprocessing to a obspy.Stream. It consist of tapering, detrending,
-    response removal and filtering.
+    Applies standard preprocessing to a :class:`~obspy.Stream`.
+    It consist of tapering, detrending, response removal and filtering.
 
     :param trimmed_st: Stream to be treated
     :type trimmed_st: obspy.Stream
@@ -356,6 +357,8 @@ def preprocess_sliced_stream_for_datachunk(
     :type inventory: obspy.Inventory
     :param processing_params: Processing parameters object with all required info.
     :type processing_params: DatachunkParams
+    :param timespan: Timespan for which this datachunk is processed for
+    :type timespan: Timespan
     :return: Processed Stream
     :rtype: obspy.Stream
     """
@@ -386,8 +389,7 @@ def preprocess_sliced_stream_for_datachunk(
     if verbose_output:
         steps_dict['resampled'] = trimmed_st.copy()
 
-    expected_samples = processing_params.get_expected_no_samples()
-    # TODO Remove that, use Timespan-based method
+    expected_samples = get_expected_sample_count(timespan=timespan, sampling_rate=processing_params.sampling_rate)
 
     if trimmed_st[0].stats.npts > expected_samples:
         trimmed_st[0].data = trimmed_st[0].data[:expected_samples]
