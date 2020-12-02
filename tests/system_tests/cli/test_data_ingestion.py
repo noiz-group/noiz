@@ -65,7 +65,7 @@ class TestDataIngestionRoutines:
         basedir = workdir_with_content.joinpath('seismic-data')
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["configs", "add_seismic_data",
+        result = runner.invoke(cli, ["data", "add_seismic_data",
                                      "--filename_pattern", "*.???.resampled",
                                      str(basedir)])
 
