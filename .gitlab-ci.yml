@@ -164,7 +164,6 @@ build_postgres:
     - noiz db init
     - noiz db migrate
     - noiz db upgrade
-    - $MSEEDINDEX_EXECUTABLE -v -pghost $POSTGRES_HOST -dbuser $POSTGRES_USER -dbpass $POSTGRES_PASSWORD -dbname $POSTGRES_DB tests/system_tests/dataset/seismic-data/SDS/2019/SI/SI*/*/*
 
 api_system_tests:
   extends: .system_test_parent
