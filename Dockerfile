@@ -42,6 +42,9 @@ RUN --mount=type=ssh git clone git@gitlab.com:noiz-group/mseedindex.git /mseedin
   CFLAGS='-I/usr/include/postgresql/' make
 ENV MSEEDINDEX_EXECUTABLE="/mseedindex/mseedindex"
 
+RUN curl https://www.ietf.org/timezones/data/leap-seconds.list -o /leap-seconds.list
+ENV LIBMSEED_LEAPSECOND_FILE="/leap-seconds.list"
+
 RUN mkdir /noiz
 WORKDIR /noiz
 COPY ./ /noiz/
