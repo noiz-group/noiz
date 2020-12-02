@@ -18,7 +18,11 @@ def create_app(
     register_blueprints(app)
 
     load_noiz_config(app)
-
+    # from flask.logging import default_handler
+    #
+    # root = logging.getLogger()
+    # root.addHandler(default_handler)
+    # root.addHandler(mail_handler)
     # logging.config.dictConfig(logger_config)
     app.logger.info("App initialization successful")
 
