@@ -13,7 +13,6 @@ from pathlib import Path
 from typing import Iterable
 
 from noiz.api.inventory import parse_inventory_insert_stations_and_components_into_db
-from noiz.api.processing_config import upsert_default_params
 from noiz.app import create_app
 from noiz.processing.inventory import read_inventory
 
@@ -98,21 +97,21 @@ def data_group():  # type: ignore
     pass
 
 
-@data_group.command("add_files_recursively")
-@click.argument("paths", nargs=-1, required=True, type=click.Path(exists=True))
-def add_files_recursively(paths):
-    """Globs over provided directories in search of files"""
+@data_group.command("add_seismic_data")
+@with_appcontext
+@click.argument("basedir", nargs=1, required=True, type=click.Path(exists=True))
+@click.option("-fp", "--filename_pattern", default="*", show_default=True)
+def add_seismic_data(basedir, filename_pattern):
+    """Globs over provided directory in search of files fitting provided patten"""
 
-    click.echo("Unfortunately this option is not implemented yet.")
-    click.echo("You need to run this command")
-    click.echo(
-        f"{os.environ['MSEEDINDEX_EXECUTABLE']} -v "
-        f"-pghost {os.environ['POSTGRES_HOST']} "
-        f"-dbuser {os.environ['POSTGRES_USER']} "
-        f"-dbpass {os.environ['POSTGRES_PASSWORD']} "
-        f"-dbname {os.environ['POSTGRES_DB']} "
-        f"{' '.join(paths.rglob('*'))}"
+    from noiz.api.tsindex import add_seismic_data
+
+    add_seismic_data(
+        basedir=Path(basedir),
+        current_dir=Path(os.curdir),
+        filename_pattern=filename_pattern,
     )
+
     return
 
 

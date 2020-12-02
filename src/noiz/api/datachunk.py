@@ -252,6 +252,7 @@ def create_datachunks_for_component(
         time_series: Tsindex,
         processing_params: DatachunkParams
 ) -> Collection[Datachunk]:
+    # TODO Make sure it doesnt connect to db and move to noiz.processing
     """
     All around method that is takes prepared Component, Tsindex,
     DatachunkParams and bunch of Timespans to slice the continuous seed file
