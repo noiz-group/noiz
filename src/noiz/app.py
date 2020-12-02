@@ -1,15 +1,14 @@
 from flask import Flask
 import os
-import logging
 
 from noiz.routes import simple_page
 from noiz.database import db, migrate
-from noiz.logg import logger_config
 
 
 def create_app(
         config_object: str = "noiz.settings",
         mode: str = "app",
+        logging_level: str = "WARNING",
 ):
     app = Flask(__name__)
     app.config.from_object(config_object)
@@ -19,12 +18,20 @@ def create_app(
 
     load_noiz_config(app)
 
-    logging.config.dictConfig(logger_config)
-    log = logging.getLogger("app")
-    log.info("App initialization successful")
+    configure_logging(logging_level)
+
+    app.logger.info("App initialization successful")
 
     if mode == "app":
         return app
+
+
+def configure_logging(logging_level: str):
+    from noiz import rich_handler, log
+
+    rich_handler.setLevel(logging_level)
+    log.handlers = []
+    log.addHandler(rich_handler)
 
 
 def load_noiz_config(app: Flask):
