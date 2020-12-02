@@ -28,6 +28,7 @@ def create_app(
 
 
 def load_noiz_config(app: Flask):
+    # FIXME Remove that noiz config, it's useless I think. Fix usages in inventory CLI also
     app.noiz_config = {}
     processed_data_dir = os.environ.get("PROCESSED_DATA_DIR")
     if processed_data_dir is None:
