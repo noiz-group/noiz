@@ -61,9 +61,22 @@ class TestDataIngestionRoutines:
 
         assert result.exit_code == 0
 
-    @pytest.mark.xfail
-    def test_add_seismic_data(self):
-        assert False
+    def test_add_seismic_data(self, workdir_with_content, noiz_app):
+        basedir = workdir_with_content.joinpath('seismic-data')
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["data", "add_seismic_data",
+                                     "--filename_pattern", "*.???.resampled",
+                                     str(basedir)])
+
+        assert result.exit_code == 0
+        from noiz.models.time_series_index import Tsindex
+        from noiz.database import db
+
+        with noiz_app.app_context():
+            found_in_db = db.session.query(Tsindex).all()
+        assert len(found_in_db) == 18
+        assert isinstance(found_in_db[0], Tsindex)
 
     def test_insert_datachunk_params(self, workdir_with_content, noiz_app):
 
@@ -78,3 +91,4 @@ class TestDataIngestionRoutines:
             fetched_config = fetch_processing_config_by_id(id=1)
 
         assert isinstance(fetched_config, DatachunkParams)
+        # TODO Add checking for count of datachunk params

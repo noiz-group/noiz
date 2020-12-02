@@ -32,6 +32,13 @@ if not postgres_params_empty and db_uri_empty:
 if postgres_params_empty and db_uri_empty:
     raise ConnectionError("You have to specify either all POSTGRES_ connection variables or a SQLALCHEMY_DATABASE_URI")
 
+PROCESSED_DATA_DIR = env.str("PROCESSED_DATA_DIR", default="")
+if PROCESSED_DATA_DIR == "":
+    raise ValueError("You have to set a PROCESSED_DATA_DIR env variable.")
+
+MSEEDINDEX_EXECUTABLE = env.str("MSEEDINDEX_EXECUTABLE", default="")
+if MSEEDINDEX_EXECUTABLE == "":
+    raise ValueError("You have to set a MSEEDINDEX_EXECUTABLE env variable")
 
 # SECRET_KEY = env.str('SECRET_KEY')
 # BCRYPT_LOG_ROUNDS = env.int('BCRYPT_LOG_ROUNDS', default=13)
