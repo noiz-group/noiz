@@ -101,7 +101,7 @@ def data_group():  # type: ignore
 @with_appcontext
 @click.argument("basedir", nargs=1, required=True, type=click.Path(exists=True))
 @click.option("-fp", "--filename_pattern", default="*", show_default=True)
-def add_files_recursively(basedir, filename_pattern, parallel):
+def add_seismic_data(basedir, filename_pattern):
     """Globs over provided directory in search of files fitting provided patten"""
 
     from noiz.api.tsindex import add_seismic_data
