@@ -66,7 +66,6 @@ class TestDataIngestionRoutines:
 
         runner = CliRunner()
         result = runner.invoke(cli, ["configs", "add_seismic_data",
-                                     "--parallel", "1"
                                      "--filename_pattern", "*.???",
                                      str(basedir)])
 
