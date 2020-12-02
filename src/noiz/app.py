@@ -19,9 +19,8 @@ def create_app(
 
     load_noiz_config(app)
 
-    logging.config.dictConfig(logger_config)
-    log = logging.getLogger("app")
-    log.info("App initialization successful")
+    # logging.config.dictConfig(logger_config)
+    app.logger.info("App initialization successful")
 
     if mode == "app":
         return app
