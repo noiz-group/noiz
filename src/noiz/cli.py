@@ -130,6 +130,53 @@ def add_inventory(filepath, filetype):
     return
 
 
+@data_group.command("add_timespans")
+@with_appcontext
+@click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-wl", "--window_length", nargs=1, type=int, required=True)
+@click.option("-wo", "--window_overlap", nargs=1, type=int, required=False)
+@click.option('--generate_over_midnight', is_flag=True, expose_value=True)
+@click.option('--add_to_db', is_flag=True, expose_value=True,
+              prompt='Are you sure you want to add those timespans to DB? `N` will just preview it. ')
+def add_timespans(
+        startdate,
+        enddate,
+        window_length,
+        window_overlap,
+        generate_over_midnight,
+        add_to_db,
+):
+    """This command allows generating fo Timespans and adding it to database"""
+
+    from noiz.api.timespan import create_and_insert_timespans_to_db
+
+    if add_to_db:
+        create_and_insert_timespans_to_db(
+            startdate=startdate,
+            enddate=enddate,
+            window_length=window_length,
+            window_overlap=window_overlap,
+            generate_over_midnight=generate_over_midnight,
+            add_to_db=add_to_db,
+        )
+    else:
+        timespans = create_and_insert_timespans_to_db(
+            startdate=startdate,
+            enddate=enddate,
+            window_length=window_length,
+            window_overlap=window_overlap,
+            generate_over_midnight=generate_over_midnight,
+            add_to_db=add_to_db,
+        )
+        timespans = list(timespans)
+        timespan_count = len(timespans)
+        click.echo(f"There are {timespan_count} generated for that call. \nHere are 10 samples of them: \n")
+        for i in range(11):
+            idx = int(timespan_count*i/100)
+            click.echo(f"Timespan at index {idx}:\n {timespans[idx]}")
+
+
 @data_group.command("add_soh_dir")
 @with_appcontext
 @click.option("-s", "--station", required=True, type=str)
