@@ -1,7 +1,7 @@
 import datetime
 import numpy as np
 import pandas as pd
-from typing import Union, Optional, Tuple, Iterable
+from typing import Union, Optional, Tuple, Iterable, Generator, Any
 
 from noiz.models.timespan import Timespan
 
@@ -69,7 +69,27 @@ def generate_timespans(
     window_length: Union[float, int, pd.Timedelta, np.timedelta64],
     window_overlap: Optional[Union[float, int, pd.Timedelta, np.timedelta64]] = None,
     generate_over_midnight: bool = False,
-) -> Iterable[Timespan]:
+) -> Generator[Timespan, Any, Any]:
+    """
+    Creates instances of :class:`noiz.models.timespan.Timespan` according to passed specifications.
+    For generation of the series of those instances uses :func:`~noiz.processing.timespan.generate_timespans`
+    It is being able to generate windows of specified length between two dates, with or without overlapping.
+    It is also able to generate or not windows spanning over midnight since sometimes that can be problematic to have
+    a window across two days.
+
+    :param startdate: Starttime for requested timespans. Warning! It will be normalized to midnight.
+    :type startdate: datetime.datetime
+    :param enddate: Endtime for requested timespans. Warning! It will be normalized to midnight.
+    :type enddate: datetime.datetime
+    :param window_length: Window length in seconds
+    :type window_length: Union[int, float]
+    :param window_overlap: Window overlap in seconds
+    :type window_overlap: Optional[Union[int, float]]
+    :param generate_over_midnight: If windows spanning over midnight should be included
+    :type generate_over_midnight: bool
+    :return: Generator of timespans
+    :rtype: Generator[Timespan, Any, Any]
+    """
     timespans = generate_starttimes_endtimes(
         startdate=startdate,
         enddate=enddate,
