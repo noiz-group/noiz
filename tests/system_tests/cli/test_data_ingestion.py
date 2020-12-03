@@ -1,16 +1,17 @@
 import pytest
-from noiz.models.processing_params import DatachunkParams
-
 pytestmark = [pytest.mark.system, pytest.mark.cli]
 
 from click.testing import CliRunner
+import datetime
 from pathlib import Path
 import shutil
 
-from noiz.cli import cli
 from noiz.app import create_app
 from noiz.api.component import fetch_components
 from noiz.api.processing_config import fetch_processing_config_by_id
+from noiz.api.timespan import fetch_timespans_between_dates
+from noiz.cli import cli
+from noiz.models.processing_params import DatachunkParams
 
 
 @pytest.fixture(scope="class")
@@ -25,7 +26,7 @@ def workdir_with_content(tmp_path_factory) -> Path:
 
 @pytest.fixture(scope="class")
 def noiz_app():
-    app = create_app()
+    app = create_app(logging_level="CRITICAL")
     return app
 
 
@@ -92,3 +93,30 @@ class TestDataIngestionRoutines:
 
         assert isinstance(fetched_config, DatachunkParams)
         # TODO Add checking for count of datachunk params
+
+    def test_insert_timespans(self, workdir_with_content, noiz_app):
+
+        startdate = datetime.datetime(2019, 9, 30)
+        enddate = datetime.datetime(2019, 10, 3)
+        delta = datetime.timedelta(days=3)
+
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "data", "add_timespans",
+            "-sd", startdate.strftime("%Y-%m-%d"),
+            "-ed", enddate.strftime("%Y-%m-%d"),
+            "-wl", "1800",
+            "--add_to_db"
+        ])
+
+        assert result.exit_code == 0
+
+        with noiz_app.app_context():
+            fetched_timespans = fetch_timespans_between_dates(
+                starttime=startdate-delta,
+                endtime=enddate+delta,
+            )
+        fetched_timespans = list(fetched_timespans)
+
+        assert isinstance(fetched_timespans[0], DatachunkParams)
+        assert len(fetched_timespans) == 145
