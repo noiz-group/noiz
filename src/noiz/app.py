@@ -3,8 +3,8 @@ import os
 import sys
 from flask import Flask
 from loguru import logger
-from typing import Union
 from pathlib import Path
+from typing import Union
 
 from noiz.database import db, migrate
 from noiz.routes import simple_page
