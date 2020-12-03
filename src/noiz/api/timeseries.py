@@ -1,12 +1,14 @@
 import datetime
 from flask import current_app as app
-from typing import List
 from pathlib import Path
+from sqlalchemy.orm import Query
+from typing import List
 
 from noiz.exceptions import NoDataException
 from noiz.models.component import Component
 from noiz.models.timeseries import Tsindex
 from noiz.processing.timeseries import run_mseedindex_on_passed_dir
+from noiz.models.timespan import Timespan
 
 
 def fetch_raw_timeseries(
@@ -69,3 +71,37 @@ def add_seismic_data(
         postgres_db=postgres_db,
     )
     return
+
+
+def fetch_timeseries_for_component_timespan(
+        component: Component,
+        timespan: Timespan
+) -> List[Tsindex]:
+    return _query_tsindex_by_time(component=component,
+                                  starttime=timespan.starttime,
+                                  endtime=timespan.remove_last_microsecond()).all()
+
+
+def count_timeseries_for_component_timespan(
+        component: Component,
+        timespan: Timespan
+) -> int:
+    return _query_tsindex_by_time(component=component,
+                                  starttime=timespan.starttime,
+                                  endtime=timespan.remove_last_microsecond()).count()
+
+
+def _query_tsindex_by_time(
+        component: Component,
+        starttime: datetime.datetime,
+        endtime: datetime.datetime
+) -> Query:
+
+    query = Tsindex.query.filter(
+        Tsindex.network == component.network,
+        Tsindex.station == component.station,
+        Tsindex.component == component.component,
+        Tsindex.starttime <= starttime,
+        Tsindex.endtime >= endtime,
+        )
+    return query
