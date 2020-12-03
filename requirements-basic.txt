@@ -5,6 +5,7 @@ flask~=1.1.2
 flask-sqlalchemy~=2.4.4
 flask-migrate~=2.5.3
 jupyterlab~=2.2.8
+loguru~=0.5.3
 matplotlib~=3.3.2
 numpy~=1.19.2
 obspy~=1.2.2
