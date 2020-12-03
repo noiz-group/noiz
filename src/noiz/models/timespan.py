@@ -33,6 +33,9 @@ class TimespanModel(db.Model):
         self.midtime: pd.Timestamp = validate_timestamp(kwargs.get("midtime"))
         self.endtime: pd.Timestamp = validate_timestamp(kwargs.get("endtime"))
 
+    def __repr__(self):
+        return f"Timespan id: {self.id} from {self.starttime} -- {self.endtime}"
+
     @typed_hybrid_property
     def starttime_year(self) -> int:
         return self.starttime.year  # type: ignore
