@@ -1,5 +1,4 @@
 import datetime
-import logging
 import pendulum
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
@@ -254,6 +253,9 @@ def prepare_datachunk_preparation_parameter_lists(
         year=date.year, doy=date.day_of_year
     )) for date in date_period.range('days')]
 
+    if len(all_timespans):
+        raise ValueError("There were no timespans for requested dates. Check if you created timespans at all.")
+
     fetched_components = fetch_components(networks=None,
                                           stations=stations,
                                           components=components)
@@ -326,9 +328,13 @@ def run_paralel_chunk_preparation(
 
     log.info("Submitting tasks to Dask client")
     futures = []
-    for params in joblist:
-        future = client.submit(create_datachunks_for_component, **params)
-        futures.append(future)
+    try:
+        for params in joblist:
+            future = client.submit(create_datachunks_for_component, **params)
+            futures.append(future)
+    except ValueError as e:
+        log.error(e)
+        raise e
 
     log.info(f"There are {len(futures)} tasks to be executed")
 
