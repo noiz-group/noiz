@@ -1,4 +1,6 @@
 import pytest
+from noiz.models.timespan import Timespan
+
 pytestmark = [pytest.mark.system, pytest.mark.cli]
 
 from click.testing import CliRunner
@@ -118,5 +120,5 @@ class TestDataIngestionRoutines:
             )
         fetched_timespans = list(fetched_timespans)
 
-        assert isinstance(fetched_timespans[0], DatachunkParams)
+        assert isinstance(fetched_timespans[0], Timespan)
         assert len(fetched_timespans) == 145
