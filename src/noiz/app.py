@@ -1,14 +1,18 @@
-from flask import Flask
+import logging
 import os
+import sys
+from flask import Flask
+from loguru import logger
+from typing import Union
 
-from noiz.routes import simple_page
 from noiz.database import db, migrate
+from noiz.routes import simple_page
 
 
 def create_app(
         config_object: str = "noiz.settings",
         mode: str = "app",
-        logging_level: str = "WARNING",
+        logging_level: str = "INFO",
 ):
     app = Flask(__name__)
     app.config.from_object(config_object)
@@ -18,20 +22,28 @@ def create_app(
 
     load_noiz_config(app)
 
-    configure_logging(logging_level)
-
-    app.logger.info("App initialization successful")
+    configure_logging(app, logging_level)
+    logger.info("App initialization successful")
 
     if mode == "app":
         return app
 
 
-def configure_logging(logging_level: str):
-    from noiz import rich_handler, log
+def configure_logging(app: Flask, logging_level: Union[str, int]):
+    logger.remove()
+    logger.add(sys.stderr, filter="noiz", level=logging_level)
 
-    rich_handler.setLevel(logging_level)
-    log.handlers = []
-    log.addHandler(rich_handler)
+    class InterceptHandler(logging.Handler):
+        def emit(self, record):
+            # Retrieve context where the logging call occurred, this happens to be in the 6th frame upward
+            logger_opt = logger.opt(depth=6, exception=record.exc_info)
+            logger_opt.log(record.levelno, record.getMessage())
+
+    handler = InterceptHandler()
+    handler.setLevel(0)
+    for hndlr in app.logger.handlers:
+        app.logger.removeHandler(hndlr)
+    app.logger.addHandler(handler)
 
 
 def load_noiz_config(app: Flask):
