@@ -1,11 +1,58 @@
-from sqlalchemy.dialects.postgresql import insert
-from typing import Iterable, List, Union
-
-from datetime import date, datetime
+import datetime
 from obspy import UTCDateTime
+from sqlalchemy.dialects.postgresql import insert
+from typing import Iterable, List, Union, Optional, Generator, Any
 
 from noiz.database import db
 from noiz.models.timespan import Timespan
+from noiz.processing.timespan import generate_timespans
+
+
+def create_and_insert_timespans_to_db(
+    startdate: datetime.datetime,
+    enddate: datetime.datetime,
+    window_length: Union[float, int],
+    window_overlap: Optional[Union[float, int]] = None,
+    generate_over_midnight: bool = False,
+    add_to_db: bool = False
+) -> Optional[Generator[Timespan, Any, Any]]:
+    """
+    Creates instances of :class:`noiz.models.timespan.Timespan` according to passed specifications.
+    For generation of the series of those instances uses :func:`~noiz.processing.timespan.generate_timespans`
+    It is being able to generate windows of specified length between two dates, with or without overlapping.
+    It is also able to generate or not windows spanning over midnight since sometimes that can be problematic to have
+    a window across two days.
+    After generating of the windows, it can add them to DB or just return them for verification, depending on add_to_db.
+
+    Important Note: both startdate and enddate will be normalized to midnight!
+
+    :param startdate: Starttime for requested timespans. Warning! It will be normalized to midnight.
+    :type startdate: datetime.datetime
+    :param enddate: Endtime for requested timespans. Warning! It will be normalized to midnight.
+    :type enddate: datetime.datetime
+    :param window_length: Window length in seconds
+    :type window_length: Union[int, float]
+    :param window_overlap: Window overlap in seconds
+    :type window_overlap: Optional[Union[int, float]]
+    :param generate_over_midnight: If windows spanning over midnight should be included
+    :type generate_over_midnight: bool
+    :param add_to_db: If timespans should be inserted into db or just returned
+    :type add_to_db: bool
+    :return: Optionally returns generated timespans for verification
+    :rtype: Optional[Generator[Timespan, Any, Any]]
+    """
+    timespans = generate_timespans(
+        startdate=startdate,
+        enddate=enddate,
+        window_length=window_length,
+        window_overlap=window_overlap,
+        generate_over_midnight=generate_over_midnight,
+    )
+    if add_to_db:
+        insert_timespans_into_db(timespans=timespans, bulk_insert=True)
+        return None
+    else:
+        return timespans
 
 
 def insert_timespans_into_db(timespans: Iterable[Timespan], bulk_insert: bool) -> None:
@@ -82,8 +129,8 @@ def fetch_timespans_for_doy(year: int, doy: int) -> List[Timespan]:
 
 
 def fetch_timespans_between_dates(
-        starttime: Union[date, datetime, UTCDateTime],
-        endtime: Union[date, datetime, UTCDateTime],
+        starttime: Union[datetime.date, datetime.datetime, UTCDateTime],
+        endtime: Union[datetime.date, datetime.datetime, UTCDateTime],
 ) -> List[Timespan]:
     """
     Fetches all timespans between two times.
@@ -93,25 +140,25 @@ def fetch_timespans_between_dates(
     Warning: It has to be executed withing application context.
 
     :param starttime: Time after which to look for timespans
-    :type starttime: Union[date, datetime, UTCDateTime]
+    :type starttime: Union[datetime.date, datetime.datetime, UTCDateTime]
     :param endtime: Time before which to look for timespans
-    :type endtime: Union[date, datetime, UTCDateTime],
+    :type endtime: Union[datetime.date, datetime.datetime, UTCDateTime],
     :return: List of all timespans on given day
     :rtype: List[Timespan]
     """
 
     if isinstance(starttime, UTCDateTime):
         starttime = starttime.datetime
-    elif not isinstance(starttime, (date, datetime)):
+    elif not isinstance(starttime, (datetime.date, datetime.datetime)):
         raise ValueError(f"And starttime was expecting either "
-                         f"date, datetime or UTCDateTime objects."
+                         f"datetime.date, datetime.datetime or UTCDateTime objects."
                          f"Got instance of {type(starttime)}")
 
     if isinstance(endtime, UTCDateTime):
         endtime = endtime.datetime
-    elif not isinstance(endtime, (date, datetime)):
+    elif not isinstance(endtime, (datetime.date, datetime.datetime)):
         raise ValueError(f"And endtime was expecting either "
-                         f"date, datetime or UTCDateTime objects."
+                         f"datetime.date, datetime.datetime or UTCDateTime objects."
                          f"Got instance of {type(endtime)}")
 
     timespans = Timespan.query.filter(
