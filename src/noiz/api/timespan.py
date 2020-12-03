@@ -69,6 +69,8 @@ def insert_timespans_into_db(timespans: Iterable[Timespan], bulk_insert: bool) -
     :return: None
     :rtype: None
     """
+    # TODO add some logging messages
+
     if bulk_insert:
         db.session.bulk_save_objects(timespans)
         db.session.commit()
