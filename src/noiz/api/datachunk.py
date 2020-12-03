@@ -253,7 +253,7 @@ def prepare_datachunk_preparation_parameter_lists(
         year=date.year, doy=date.day_of_year
     )) for date in date_period.range('days')]
 
-    if len(all_timespans):
+    if len(all_timespans) == 0:
         raise ValueError("There were no timespans for requested dates. Check if you created timespans at all.")
 
     fetched_components = fetch_components(networks=None,
