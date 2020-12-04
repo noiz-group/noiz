@@ -15,7 +15,7 @@ from noiz.api.processing_config import fetch_processing_config_by_id
 from noiz.database import db
 from noiz.exceptions import NoDataException
 from noiz.models.component import Component
-from noiz.models.datachunk import Datachunk
+from noiz.models.datachunk import Datachunk, DatachunkStats
 from noiz.models.processing_params import DatachunkParams
 from noiz.models.timespan import Timespan
 from noiz.processing.datachunk import create_datachunks_for_component
@@ -446,6 +446,7 @@ def run_stats_calculation(
     from noiz.api.timespan import fetch_timespans_between_dates
     from noiz.api.component import fetch_components
     from noiz.api.processing_config import fetch_processing_config_by_id
+    from noiz.processing.datachunk import calculate_datachunk_stats
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
     fetched_components = fetch_components(
         networks=networks,
@@ -459,3 +460,90 @@ def run_stats_calculation(
         components=fetched_components,
         datachunk_processing_config=fetched_datachunk_params
     )
+
+    from dask.distributed import Client, as_completed
+    client = Client()
+
+    log.info(f'Dask client started succesfully. '
+             f'You can monitor execution on {client.dashboard_link}')
+
+    log.info("Submitting tasks to Dask client")
+    futures = []
+    try:
+        for dc in fetched_datachunks:
+            future = client.submit(calculate_datachunk_stats, dc)
+            futures.append(future)
+    except ValueError as e:
+        log.error(e)
+        raise e
+
+    log.info(f"There are {len(futures)} tasks to be executed")
+
+    log.info("Starting execution. Results will be saved to database on the fly. ")
+
+    for future, result in as_completed(futures, with_results=True, raise_errors=False):
+        add_or_upsert_datachunk_stats_in_db(result)
+
+    client.close()
+    return
+
+
+def add_or_upsert_datachunk_stats_in_db(datachunk_stats: DatachunkStats):
+    """
+    Adds or upserts provided iterable of Datachunks to DB.
+    Must be executed within AppContext.
+
+    :param datachunk_stats:
+    :type datachunk_stats: Iterable[Datachunk]
+    :return:
+    :rtype:
+    """
+
+    if not isinstance(datachunk_stats, DatachunkStats):
+        log.warning(f'Provided object is not an instance of DatachunkStats. '
+                    f'Provided object was an {type(datachunk_stats)}. Skipping.')
+        return
+
+    log.info("Querrying db if the datachunk already exists.")
+    existing_chunks = (
+        db.session.query(DatachunkStats)
+        .filter(
+            DatachunkStats.metadata == datachunk_stats.datachunk_id,
+        )
+        .all()
+    )
+
+    if len(existing_chunks) == 0:
+        log.info("No existing chunks found. Adding DatachunkStats to DB.")
+        db.session.add(datachunk_stats)
+    else:
+        log.info("The datachunk stats already exists in db. Updating.")
+        insert_command = (
+            insert(DatachunkStats)
+            .values(
+                energy=datachunk_stats.energy,
+                min=datachunk_stats.min,
+                max=datachunk_stats.max,
+                mean=datachunk_stats.mean,
+                variance=datachunk_stats.variance,
+                skewness=datachunk_stats.skewness,
+                kurtosis=datachunk_stats.kurtosis,
+            )
+            .on_conflict_do_update(
+                constraint="unique_stats_per_datachunk",
+                set_=dict(
+                    energy=datachunk_stats.energy,
+                    min=datachunk_stats.min,
+                    max=datachunk_stats.max,
+                    mean=datachunk_stats.mean,
+                    variance=datachunk_stats.variance,
+                    skewness=datachunk_stats.skewness,
+                    kurtosis=datachunk_stats.kurtosis,
+                ),
+            )
+        )
+        db.session.execute(insert_command)
+
+    log.debug('Commiting session.')
+    db.session.commit()
+    return
