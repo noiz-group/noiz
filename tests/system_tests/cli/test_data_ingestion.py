@@ -73,7 +73,7 @@ class TestDataIngestionRoutines:
                                      str(basedir)])
 
         assert result.exit_code == 0
-        from noiz.models.time_series_index import Tsindex
+        from noiz.models.timeseries import Tsindex
         from noiz.database import db
 
         with noiz_app.app_context():
