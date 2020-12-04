@@ -431,7 +431,7 @@ def plot_raw_gps_soh(
 @click.option('-pp', '--plotpath', type=click.Path())
 @click.option('--showfig', is_flag=True)
 @click.option('--legend/--no-legend', default=True)
-def averaged_gps_soh(
+def plot_averaged_gps_soh(
         network,
         station,
         starttime,
