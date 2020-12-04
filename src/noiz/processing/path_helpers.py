@@ -3,7 +3,7 @@ from typing import Union
 from pathlib import Path
 
 from noiz.models import Component, Timespan
-from noiz.processing.datachunk_preparation import log
+from noiz.processing.datachunk import log
 
 
 def assembly_preprocessing_filename(

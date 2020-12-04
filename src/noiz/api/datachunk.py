@@ -1,11 +1,10 @@
 import datetime
 import logging
-import obspy
 import pendulum
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import subqueryload
-from typing import List, Iterable, Union, Tuple, Collection, Optional, Dict
+from typing import List, Iterable, Tuple, Collection, Optional, Dict
 
 import itertools
 
@@ -15,22 +14,14 @@ from noiz.api.timeseries import fetch_raw_timeseries
 from noiz.api.timespan import fetch_timespans_for_doy
 from noiz.api.processing_config import fetch_processing_config_by_id
 from noiz.database import db
-from noiz.exceptions import NoDataException, MissingDataFileException
-from noiz.globals import PROCESSED_DATA_DIR
+from noiz.exceptions import NoDataException
 from noiz.models.component import Component
-from noiz.models.datachunk import Datachunk, DatachunkFile
+from noiz.models.datachunk import Datachunk
 from noiz.models.processing_params import DatachunkParams
-from noiz.models.timeseries import Tsindex
 from noiz.models.timespan import Timespan
-from noiz.processing.datachunk_preparation import validate_slice, \
-    preprocess_sliced_stream_for_datachunk
-from noiz.processing.path_helpers import assembly_preprocessing_filename, assembly_sds_like_dir, assembly_filepath, \
-    directory_exists_or_create, increment_filename_counter
+from noiz.processing.datachunk import create_datachunks_for_component
 
-log = logging.getLogger("noiz.api")
-
-
-# log = logging.getLogger(__name__)
+from loguru import logger as log
 
 
 def fetch_datachunks_for_timespan(
@@ -244,131 +235,6 @@ def create_datachunks_add_to_db(
     add_or_upsert_datachunks_in_db(finished_datachunks)
 
     return
-
-
-def create_datachunks_for_component(
-        component: Component,
-        timespans: Collection[Timespan],
-        time_series: Tsindex,
-        processing_params: DatachunkParams
-) -> Collection[Datachunk]:
-    # TODO Make sure it doesnt connect to db and move to noiz.processing
-    """
-    All around method that is takes prepared Component, Tsindex,
-    DatachunkParams and bunch of Timespans to slice the continuous seed file
-    into shorter one, reflecting all the Timespans.
-    It saves the file to the drive but it doesn't add entry to DB.
-
-    Returns collection of Datachunks with DatachunkFile associated to it,
-    ready to be added to DB.
-
-    :param component:
-    :type component: Component
-    :param timespans: Timespans on base of which you want your
-    datachunks to be created.
-    :type timespans: Collection[Timespans]
-    :param time_series: Tsindex object that hs information about
-    location of continuous seed file
-    :type time_series: Tsindex
-    :param processing_params:
-    :type processing_params: DatachunkParams
-    :return: Datachunks ready to be sent to DB.
-    :rtype: Collection[Datachunk]
-    """
-
-    log.info("Reading timeseries and inventory")
-    try:
-        st: obspy.Stream = time_series.read_file()
-    except MissingDataFileException as e:
-        log.warning(f"Data file is missing. Skipping. {e}")
-        return []
-    except Exception as e:
-        log.warning(f"There was some general exception from "
-                    f"obspy.Stream.read function. Here it is: {e} ")
-        return []
-
-    inventory: obspy.Inventory = component.read_inventory()
-
-    # log.info("Preprocessing initially full day timeseries")
-    # st = preprocess_whole_day(st, processing_params)
-
-    finished_datachunks = []
-
-    log.info(f"Splitting full day into timespans for {component}")
-    for timespan in timespans:
-
-        log.info(f"Slicing timespan {timespan}")
-        trimmed_st: obspy.Trace = st.slice(
-            starttime=timespan.starttime_obspy(),
-            endtime=timespan.remove_last_microsecond(),
-            nearest_sample=False,
-        )
-
-        try:
-            trimmed_st, padded_npts, _ = validate_slice(
-                trimmed_st=trimmed_st,
-                timespan=timespan,
-                processing_params=processing_params,
-                original_samplerate=float(time_series.samplerate),
-                verbose_output=False,
-            )
-        except ValueError as e:
-            log.warning(f"There was a problem with trace validation. "
-                        f"There was raised exception {e}")
-            continue
-
-        log.info("Preprocessing timespan")
-        trimmed_st, _ = preprocess_sliced_stream_for_datachunk(
-            trimmed_st=trimmed_st,
-            inventory=inventory,
-            processing_params=processing_params,
-            timespan=timespan,
-            verbose_output=False
-        )
-
-        filepath = assembly_filepath(
-            PROCESSED_DATA_DIR,  # type: ignore
-            "datachunk",
-            assembly_sds_like_dir(component, timespan) \
-                                 .joinpath(assembly_preprocessing_filename(
-                                                component=component,
-                                                timespan=timespan,
-                                                count=0
-                                            )),
-        )
-
-        if filepath.exists():
-            log.info(f'Filepath {filepath} exists. '
-                     f'Trying to find next free one.')
-            filepath = increment_filename_counter(filepath=filepath)
-            log.info(f"Free filepath found. "
-                     f"Datachunk will be saved to {filepath}")
-
-        log.info(f"Chunk will be written to {str(filepath)}")
-        directory_exists_or_create(filepath)
-
-        datachunk_file = DatachunkFile(filepath=str(filepath))
-        trimmed_st.write(datachunk_file.filepath, format="mseed")
-
-        sampling_rate: Union[str, float] = trimmed_st[0].stats.sampling_rate
-        npts: int = trimmed_st[0].stats.npts
-
-        datachunk = Datachunk(
-            datachunk_params_id=processing_params.id,
-            component_id=component.id,
-            timespan_id=timespan.id,
-            sampling_rate=sampling_rate,
-            npts=npts,
-            datachunk_file=datachunk_file,
-            padded_npts=padded_npts,
-        )
-        log.info(
-            "Checking if there are some chunks fot tht timespan and component in db"
-        )
-
-        finished_datachunks.append(datachunk)
-
-    return finished_datachunks
 
 
 def prepare_datachunk_preparation_parameter_lists(
