@@ -47,6 +47,7 @@ def count_datachunks(
         datachunk_processing_config: Optional[DatachunkParams] = None,
         datachunk_ids: Optional[Collection[int]] = None,
         load_component: bool = False,
+        load_stats: bool = False,
         load_timespan: bool = False,
         load_processing_params: bool = False,
 ) -> int:
@@ -70,6 +71,7 @@ def count_datachunks(
         datachunk_processing_config=datachunk_processing_config,
         datachunk_ids=datachunk_ids,
         load_component=load_component,
+        load_stats=load_stats,
         load_timespan=load_timespan,
         load_processing_params=load_processing_params,
     )
@@ -83,6 +85,7 @@ def fetch_datachunks(
         datachunk_processing_config: Optional[DatachunkParams] = None,
         datachunk_ids: Optional[Collection[int]] = None,
         load_component: bool = False,
+        load_stats: bool = False,
         load_timespan: bool = False,
         load_processing_params: bool = False,
 ) -> List[Datachunk]:
@@ -123,6 +126,7 @@ def fetch_datachunks(
         datachunk_processing_config=datachunk_processing_config,
         datachunk_ids=datachunk_ids,
         load_component=load_component,
+        load_stats=load_stats,
         load_timespan=load_timespan,
         load_processing_params=load_processing_params,
     )
@@ -136,6 +140,7 @@ def fetch_datachunks_without_stats(
         datachunk_processing_config: Optional[DatachunkParams] = None,
         datachunk_ids: Optional[Collection[int]] = None,
         load_component: bool = False,
+        load_stats: bool = False,
         load_timespan: bool = False,
         load_processing_params: bool = False,
 ) -> List[Datachunk]:
@@ -145,6 +150,7 @@ def fetch_datachunks_without_stats(
         datachunk_processing_config=datachunk_processing_config,
         datachunk_ids=datachunk_ids,
         load_component=load_component,
+        load_stats=load_stats,
         load_timespan=load_timespan,
         load_processing_params=load_processing_params,
     )
@@ -157,6 +163,7 @@ def _query_datachunks(
         datachunk_processing_config: Optional[DatachunkParams] = None,
         datachunk_ids: Optional[Collection[int]] = None,
         load_component: bool = False,
+        load_stats: bool = False,
         load_timespan: bool = False,
         load_processing_params: bool = False,
 ) -> Query:
@@ -180,6 +187,8 @@ def _query_datachunks(
 
     if load_timespan:
         opts.append(subqueryload(Datachunk.timespan))
+    if load_stats:
+        opts.append(subqueryload(Datachunk.stats))
     if load_component:
         opts.append(subqueryload(Datachunk.component))
     if load_processing_params:
