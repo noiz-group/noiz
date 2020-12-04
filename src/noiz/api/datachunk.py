@@ -3,7 +3,7 @@ import pendulum
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import subqueryload, Query
-from typing import List, Iterable, Tuple, Collection, Optional, Dict
+from typing import List, Iterable, Tuple, Collection, Optional, Dict, Union
 
 import itertools
 
@@ -432,3 +432,30 @@ def run_chunk_preparation(
                                             time_series=None,  # type: ignore
                                             processing_params=processing_config)
     return
+
+
+def run_stats_calculation(
+        starttime: Union[datetime.date, datetime.datetime],
+        endtime: Union[datetime.date, datetime.datetime],
+        datachunk_params_id: int,
+        networks: Optional[Union[Collection[str], str]] = None,
+        stations: Optional[Union[Collection[str], str]] = None,
+        components: Optional[Union[Collection[str], str]] = None,
+        component_ids: Optional[Union[Collection[int], int]] = None,
+):
+    from noiz.api.timespan import fetch_timespans_between_dates
+    from noiz.api.component import fetch_components
+    from noiz.api.processing_config import fetch_processing_config_by_id
+    fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
+    fetched_components = fetch_components(
+        networks=networks,
+        stations=stations,
+        components=components,
+        component_ids=component_ids
+    )
+    fetched_datachunk_params = fetch_processing_config_by_id(id=datachunk_params_id)
+    fetched_datachunks = fetch_datachunks_without_stats(
+        timespans=fetched_timespans,
+        components=fetched_components,
+        datachunk_processing_config=fetched_datachunk_params
+    )
