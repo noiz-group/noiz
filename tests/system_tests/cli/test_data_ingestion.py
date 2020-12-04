@@ -53,6 +53,10 @@ class TestDataIngestionRoutines:
 
         assert len(fetched_components) == 9
 
+    @pytest.mark.xfail
+    def test_add_soh_files(self, noiz_app):
+        assert False
+
     def test_add_soh_data_dir(self, workdir_with_content, noiz_app):
         station = 'SI23'
         station_type = 'taurus'
@@ -138,3 +142,19 @@ class TestDataIngestionRoutines:
 
         assert len(fetched_datachunks) == 855
         assert isinstance(fetched_datachunks[0], Datachunk)
+
+    @pytest.mark.xfail
+    def test_plot_datachunk_availability(self, noiz_app):
+        assert False
+
+    @pytest.mark.xfail
+    def test_plot_raw_gps_soh(self, noiz_app):
+        assert False
+
+    @pytest.mark.xfail
+    def test_average_soh_gps(self, noiz_app):
+        assert False
+
+    @pytest.mark.xfail
+    def test_plot_averaged_gps_soh(self, noiz_app):
+        assert False
