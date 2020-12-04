@@ -7,7 +7,7 @@ import pytest
 from pandas import Timestamp
 
 from noiz.models.processing_params import DatachunkParams
-from noiz.processing.datachunk_preparation import (
+from noiz.processing.datachunk import (
     merge_traces_fill_zeros,
     merge_traces_under_conditions,
     _check_if_gaps_short_enough,
