@@ -91,7 +91,7 @@ class DatachunkStats(db.Model):
     skewness = db.Column("skewness", db.Float, nullable=True)
     kurtosis = db.Column("kurtosis", db.Float, nullable=True)
 
-    datachunk = db.relationship("Datachunk", foreign_keys=[datachunk_id], back_populates="datachunk_stats")
+    datachunk = db.relationship("Datachunk", foreign_keys=[datachunk_id], back_populates="stats")
 
 
 class ProcessedDatachunk(db.Model):
