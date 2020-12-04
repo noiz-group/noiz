@@ -1,4 +1,6 @@
 import pytest
+from noiz.models.datachunk import Datachunk
+
 from noiz.models.timespan import Timespan
 
 pytestmark = [pytest.mark.system, pytest.mark.cli]
@@ -130,4 +132,9 @@ class TestDataIngestionRoutines:
         result = runner.invoke(cli, ["processing", "prepare_datachunks", "-sd", "2019-09-30", "-ed", "2019-10-03"])
         assert result.exit_code == 0
 
-        # TODO Add assert of datachunk count
+        from noiz.api.datachunk import fetch_datachunks
+        with noiz_app.app_context():
+            fetched_datachunks = fetch_datachunks()
+
+        assert len(fetched_datachunks) == 855
+        assert isinstance(fetched_datachunks[0], Datachunk)
