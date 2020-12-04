@@ -192,7 +192,7 @@ def _query_datachunks(
     if load_component:
         opts.append(subqueryload(Datachunk.component))
     if load_processing_params:
-        opts.append(subqueryload(Datachunk.processing_params))
+        opts.append(subqueryload(Datachunk.params))
 
     return Datachunk.query.filter(*filters).options(opts)
 
