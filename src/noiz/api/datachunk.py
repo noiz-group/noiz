@@ -20,7 +20,7 @@ from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models.component import Component
 from noiz.models.datachunk import Datachunk, DatachunkFile
 from noiz.models.processing_params import DatachunkParams
-from noiz.models.time_series_index import Tsindex
+from noiz.models.timeseries import Tsindex
 from noiz.models.timespan import Timespan
 from noiz.processing.datachunk_preparation import validate_slice, \
     preprocess_sliced_stream_for_datachunk
