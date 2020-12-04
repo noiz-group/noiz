@@ -42,9 +42,13 @@ def fetch_datachunks_for_timespan(
 
 
 def count_datachunks(
-        components: Collection[Component],
-        timespans: Collection[Timespan],
-        datachunk_processing_params: DatachunkParams,
+        components: Optional[Collection[Component]] = None,
+        timespans: Optional[Collection[Timespan]] = None,
+        datachunk_processing_config: Optional[DatachunkParams] = None,
+        datachunk_ids: Optional[Collection[int]] = None,
+        load_component: bool = False,
+        load_timespan: bool = False,
+        load_processing_params: bool = False,
 ) -> int:
     """
     Counts number of datachunks for all provided components associated with
@@ -60,15 +64,17 @@ def count_datachunks(
     :return: Count fo datachunks
     :rtype: int
     """
-    # FIXME noiz-group/noiz#45
-    timespan_ids = extract_object_ids(timespans)
-    component_ids = extract_object_ids(components)
-    count = Datachunk.query.filter(
-        Datachunk.component_id.in_(component_ids),
-        Datachunk.timespan_id.in_(timespan_ids),
-        Datachunk.datachunk_params_id == datachunk_processing_params.id
-    ).count()
-    return count
+    query = _query_datachunks(
+        components=components,
+        timespans=timespans,
+        datachunk_processing_config=datachunk_processing_config,
+        datachunk_ids=datachunk_ids,
+        load_component=load_component,
+        load_timespan=load_timespan,
+        load_processing_params=load_processing_params,
+    )
+
+    return query.count()
 
 
 def fetch_datachunks(
@@ -79,7 +85,6 @@ def fetch_datachunks(
         load_component: bool = False,
         load_timespan: bool = False,
         load_processing_params: bool = False,
-
 ) -> List[Datachunk]:
     """
     Fetches datachunks based on provided filters.
@@ -112,31 +117,17 @@ def fetch_datachunks(
     :rtype: List[Datachunk]
     """
 
-    filters = []
+    query = _query_datachunks(
+        components=components,
+        timespans=timespans,
+        datachunk_processing_config=datachunk_processing_config,
+        datachunk_ids=datachunk_ids,
+        load_component=load_component,
+        load_timespan=load_timespan,
+        load_processing_params=load_processing_params,
+    )
 
-    if components is not None:
-        component_ids = extract_object_ids(components)
-        filters.append(Datachunk.component_id.in_(component_ids))
-    if timespans is not None:
-        timespan_ids = extract_object_ids(timespans)
-        filters.append(Datachunk.timespan_id.in_(timespan_ids))
-    if datachunk_processing_config is not None:
-        filters.append(Datachunk.datachunk_params_id == datachunk_processing_config.id)
-    if datachunk_ids is not None:
-        filters.append(Datachunk.id.in_(datachunk_ids))
-    if len(filters) == 0:
-        filters.append(True)
-
-    opts = []
-
-    if load_timespan:
-        opts.append(subqueryload(Datachunk.timespan))
-    if load_component:
-        opts.append(subqueryload(Datachunk.component))
-    if load_processing_params:
-        opts.append(subqueryload(Datachunk.processing_params))
-
-    return Datachunk.query.filter(*filters).options(opts).all()
+    return query.all()
 
 
 def fetch_datachunks_without_stats(
@@ -264,7 +255,7 @@ def create_datachunks_add_to_db(
     no_datachunks = count_datachunks(
         components=(component,),
         timespans=timespans,
-        datachunk_processing_params=processing_params
+        datachunk_processing_config=processing_params
     )
 
     timespans_count = len(timespans)
@@ -336,7 +327,7 @@ def prepare_datachunk_preparation_parameter_lists(
             existing_count = count_datachunks(
                 components=(component,),
                 timespans=timespans,
-                datachunk_processing_params=processing_params,
+                datachunk_processing_config=processing_params,
             )
             if existing_count == len(timespans):
                 log.info("Number of existing timespans is sufficient. Skipping")
@@ -348,7 +339,7 @@ def prepare_datachunk_preparation_parameter_lists(
                              count_datachunks(
                                  components=(component,),
                                  timespans=(timespan,),
-                                 datachunk_processing_params=processing_params
+                                 datachunk_processing_config=processing_params
                              ) == 0]
             timespans = new_timespans
 
