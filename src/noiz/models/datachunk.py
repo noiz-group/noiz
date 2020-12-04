@@ -41,7 +41,7 @@ class Datachunk(db.Model):
 
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id], back_populates="datachunks")
     component = db.relationship("Component", foreign_keys=[component_id])
-    datachunk_processing_config = db.relationship(
+    params = db.relationship(
         "DatachunkParams", foreign_keys=[datachunk_params_id],
         # uselist = False, # just for the future left, here, dont want to test that now
     )
