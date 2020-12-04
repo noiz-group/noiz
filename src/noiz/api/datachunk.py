@@ -2,7 +2,7 @@ import datetime
 import pendulum
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import subqueryload
+from sqlalchemy.orm import subqueryload, Query
 from typing import List, Iterable, Tuple, Collection, Optional, Dict
 
 import itertools
@@ -137,6 +137,64 @@ def fetch_datachunks(
         opts.append(subqueryload(Datachunk.processing_params))
 
     return Datachunk.query.filter(*filters).options(opts).all()
+
+
+def fetch_datachunks_without_stats(
+        components: Optional[Collection[Component]] = None,
+        timespans: Optional[Collection[Timespan]] = None,
+        datachunk_processing_config: Optional[DatachunkParams] = None,
+        datachunk_ids: Optional[Collection[int]] = None,
+        load_component: bool = False,
+        load_timespan: bool = False,
+        load_processing_params: bool = False,
+) -> List[Datachunk]:
+    query = _query_datachunks(
+        components=components,
+        timespans=timespans,
+        datachunk_processing_config=datachunk_processing_config,
+        datachunk_ids=datachunk_ids,
+        load_component=load_component,
+        load_timespan=load_timespan,
+        load_processing_params=load_processing_params,
+    )
+    return query.filter(~Datachunk.stats.has()).all()
+
+
+def _query_datachunks(
+        components: Optional[Collection[Component]] = None,
+        timespans: Optional[Collection[Timespan]] = None,
+        datachunk_processing_config: Optional[DatachunkParams] = None,
+        datachunk_ids: Optional[Collection[int]] = None,
+        load_component: bool = False,
+        load_timespan: bool = False,
+        load_processing_params: bool = False,
+) -> Query:
+
+    filters = []
+
+    if components is not None:
+        component_ids = extract_object_ids(components)
+        filters.append(Datachunk.component_id.in_(component_ids))
+    if timespans is not None:
+        timespan_ids = extract_object_ids(timespans)
+        filters.append(Datachunk.timespan_id.in_(timespan_ids))
+    if datachunk_processing_config is not None:
+        filters.append(Datachunk.datachunk_params_id == datachunk_processing_config.id)
+    if datachunk_ids is not None:
+        filters.append(Datachunk.id.in_(datachunk_ids))
+    if len(filters) == 0:
+        filters.append(True)
+
+    opts = []
+
+    if load_timespan:
+        opts.append(subqueryload(Datachunk.timespan))
+    if load_component:
+        opts.append(subqueryload(Datachunk.component))
+    if load_processing_params:
+        opts.append(subqueryload(Datachunk.processing_params))
+
+    return Datachunk.query.filter(*filters).options(opts)
 
 
 def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
