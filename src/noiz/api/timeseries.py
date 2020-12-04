@@ -6,7 +6,7 @@ from pathlib import Path
 from noiz.exceptions import NoDataException
 from noiz.models.component import Component
 from noiz.models.timeseries import Tsindex
-from noiz.processing.tsindex import run_mseedindex_on_passed_dir
+from noiz.processing.timeseries import run_mseedindex_on_passed_dir
 
 
 def fetch_raw_timeseries(
