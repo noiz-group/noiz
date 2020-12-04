@@ -264,14 +264,14 @@ def processing_group():  # type: ignore
 @click.option("-c", "--component", multiple=True, type=str, callback=_validate_zero_length_as_none)
 @click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
 @click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
-@click.option("-p", "--processing_config_id", nargs=1, type=int,
+@click.option("-p", "--datachunk_params_id", nargs=1, type=int,
               default=1, show_default=True)
 def prepare_datachunks(
         station,
         component,
         startdate,
         enddate,
-        processing_config_id
+        datachunk_params_id
 ):
     """This command starts parallel processing of datachunks"""
 
@@ -282,7 +282,35 @@ def prepare_datachunks(
         components=component,
         startdate=startdate,
         enddate=enddate,
-        processing_config_id=processing_config_id
+        processing_config_id=datachunk_params_id
+    )
+
+
+@processing_group.command("calc_datachunk_stats")
+@with_appcontext
+@click.option("-s", "--station", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-c", "--component", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-p", "--datachunk_params_id", nargs=1, type=int,
+              default=1, show_default=True)
+def calc_datachunk_stats(
+        station,
+        component,
+        startdate,
+        enddate,
+        datachunk_params_id
+):
+    """This command starts parallel calculation of datachunk statistical parameters"""
+
+    from noiz.api.datachunk import run_stats_calculation
+
+    run_stats_calculation(
+        stations=station,
+        components=component,
+        starttime=startdate,
+        endtime=enddate,
+        datachunk_params_id=datachunk_params_id
     )
 
 
