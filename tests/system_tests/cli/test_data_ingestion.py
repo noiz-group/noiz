@@ -1,5 +1,7 @@
 import pytest
-from noiz.models.datachunk import Datachunk
+
+from noiz.database import db
+from noiz.models.datachunk import Datachunk, DatachunkStats
 
 from noiz.models.timespan import Timespan
 
@@ -159,3 +161,17 @@ class TestDataIngestionRoutines:
     @pytest.mark.xfail
     def test_plot_averaged_gps_soh(self, noiz_app):
         assert False
+
+    def test_calc_datachunk_stats(self, noiz_app):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["processing", "calc_datachunk_stats", "-sd", "2019-09-30", "-ed", "2019-10-03"])
+        assert result.exit_code == 0
+
+        from noiz.api.datachunk import fetch_datachunks_without_stats
+
+        with noiz_app.app_context():
+            datachunks_without_stats = fetch_datachunks_without_stats()
+            stats = db.session.query(DatachunkStats).all()
+            datachunks = db.session.query(Datachunk).all()
+        assert len(datachunks_without_stats) == 0
+        assert len(datachunks) == len(stats)
