@@ -36,7 +36,22 @@ def add_seismic_data(
         basedir: Path,
         current_dir: Path,
         filename_pattern: str = "*",
-):
+) -> None:
+    """
+    Executes call to mseedindex app to add the seismic data from provided directory to the db.
+    For connection with database uses information from the noiz application config.
+
+    Requires to be run within app_context
+
+    :param basedir: Directory to start search within
+    :type basedir: Path
+    :param current_dir: Current dir for execution
+    :type current_dir: Path
+    :param filename_pattern: Pattern to call rglob with on the basedir
+    :type filename_pattern: str
+    :return: None
+    :rtype: NoneType
+    """
     mseedindex_executable = app.config['MSEEDINDEX_EXECUTABLE']
     postgres_host = app.config['POSTGRES_HOST']
     postgres_user = app.config['POSTGRES_USER']
