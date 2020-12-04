@@ -4,7 +4,7 @@ from noiz.models.timespan import Timespan
 from noiz.models.component import Component
 from noiz.models.component_pair import ComponentPair
 from noiz.models.processing_params import DatachunkParams
-from noiz.models.time_series_index import Tsindex
+from noiz.models.timeseries import Tsindex
 from noiz.models.soh import SohInstrument, SohGps
 from noiz.models.datachunk import Datachunk, DatachunkFile
 from noiz.models.datachunk import ProcessedDatachunk, ProcessedDatachunkFile

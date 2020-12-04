@@ -1,9 +1,12 @@
 import datetime
+from flask import current_app as app
 from typing import List
+from pathlib import Path
 
 from noiz.exceptions import NoDataException
 from noiz.models.component import Component
-from noiz.models.time_series_index import Tsindex
+from noiz.models.timeseries import Tsindex
+from noiz.processing.timeseries import run_mseedindex_on_passed_dir
 
 
 def fetch_raw_timeseries(
@@ -27,3 +30,42 @@ def fetch_raw_timeseries(
         raise NoDataException(f"No data for {component} on day {year}.{day_of_year}")
     else:
         return time_series[0]
+
+
+def add_seismic_data(
+        basedir: Path,
+        current_dir: Path,
+        filename_pattern: str = "*",
+) -> None:
+    """
+    Executes call to mseedindex app to add the seismic data from provided directory to the db.
+    For connection with database uses information from the noiz application config.
+
+    Requires to be run within app_context
+
+    :param basedir: Directory to start search within
+    :type basedir: Path
+    :param current_dir: Current dir for execution
+    :type current_dir: Path
+    :param filename_pattern: Pattern to call rglob with on the basedir
+    :type filename_pattern: str
+    :return: None
+    :rtype: NoneType
+    """
+    mseedindex_executable = app.config['MSEEDINDEX_EXECUTABLE']
+    postgres_host = app.config['POSTGRES_HOST']
+    postgres_user = app.config['POSTGRES_USER']
+    postgres_password = app.config['POSTGRES_PASSWORD']
+    postgres_db = app.config['POSTGRES_DB']
+
+    run_mseedindex_on_passed_dir(
+        basedir=basedir,
+        current_dir=current_dir,
+        filename_pattern=filename_pattern,
+        mseedindex_executable=mseedindex_executable,
+        postgres_host=postgres_host,
+        postgres_user=postgres_user,
+        postgres_password=postgres_password,
+        postgres_db=postgres_db,
+    )
+    return
