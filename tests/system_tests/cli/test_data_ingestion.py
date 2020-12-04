@@ -100,9 +100,10 @@ class TestDataIngestionRoutines:
 
         with noiz_app.app_context():
             fetched_config = fetch_processing_config_by_id(id=1)
+            all_configs = DatachunkParams.query.all()
 
         assert isinstance(fetched_config, DatachunkParams)
-        # TODO Add checking for count of datachunk params
+        assert len(all_configs) == 1
 
     def test_insert_timespans(self, workdir_with_content, noiz_app):
 
