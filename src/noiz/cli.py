@@ -104,7 +104,7 @@ def data_group():  # type: ignore
 def add_seismic_data(basedir, filename_pattern):
     """Globs over provided directory in search of files fitting provided patten"""
 
-    from noiz.api.tsindex import add_seismic_data
+    from noiz.api.timeseries import add_seismic_data
 
     add_seismic_data(
         basedir=Path(basedir),
