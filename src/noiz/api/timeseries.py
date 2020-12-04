@@ -3,7 +3,7 @@ from typing import List
 
 from noiz.exceptions import NoDataException
 from noiz.models.component import Component
-from noiz.models.time_series_index import Tsindex
+from noiz.models.timeseries import Tsindex
 
 
 def fetch_raw_timeseries(
