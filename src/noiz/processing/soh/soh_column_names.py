@@ -109,6 +109,52 @@ taurus_gpstime_dtypes = {
     "Time error(ns)": np.int32,
 }
 
+
+centaur_miniseed_header_columns = (
+    "GLA",  # GPS latitude [microdegrees]
+    "GLO",  # GPS longitude [microdegrees]
+    "GEL",  # GPS elevation [micrometers]
+    "VCO",  # VCO control voltage (for timing oscillator) [raw DAC counts]
+    "LCQ",  # Clock quality [percent]
+    "LCE",  # Absolute clock phase error [microseconds]
+    "GNS",  # GPS number of satellites used
+    "GAN",  # GPS antenna status
+    "GST",  # GPS status
+    "GPL",  # GPS PLL status
+    "VEC",  # Digitizer system current [miliamps]
+    "VEI",  # Input system voltage [milivolts]
+    "VDT",  # Digitizer system temperature [10e-3 C]
+    "VM1",  # Sensor SOH channel 1
+    "EX1",  # External SOH channel 1
+    "EX2",  # External SOH channel 2
+    "EX3",  # External SOH channel 3
+    "VPB",  # Digitizer buffer percent used [%]
+)
+
+centaur_miniseed_used_columns = (
+    ("VEI", "Supply voltage(V)"),
+    ("VEC", "Total current(A)"),
+    ("VDT", "Temperature(C)"),
+    ("GST", "GPS receiver status"),
+    ("GNS", "GPS satellites used"),
+    ("LCQ", "Timing status"),
+    ("GPL", "Phase lock loop status"),
+    ("VCO", "Timing DAC count"),
+    ("LCE", "Time error(ns)"),
+)
+
+centaur_miniseed_dtypes = {
+    "Supply voltage(V)": np.float64,
+    "Total current(A)": np.float64,
+    "Temperature(C)": np.float64,
+    "GPS receiver status": np.float64,
+    "GPS satellites used": np.float64,
+    "Timing status": np.float64,
+    "Phase lock loop status": np.float64,
+    "Timing DAC count": np.float64,
+    "Time error(ns)": np.float64,
+}
+
 centaur_instrument_header_columns = (
     "timestamp",
     "UTCDateTime",
@@ -251,6 +297,7 @@ class SohType(ExtendedEnum):
     GPSTIME = "gpstime"
     GNSSTIME = "gnsstime"
     ENVIRONMENT = "environment"
+    MINISEED = "miniseed"
 
 
 @dataclass
@@ -268,6 +315,14 @@ class SohCSVParsingParams:
 
 
 __parsing_params_list = (
+    SohCSVParsingParams(
+        instrument_name=SohInstrumentNames.CENTAUR,
+        soh_type=SohType.MINISEED,
+        header_names=centaur_instrument_header_columns,
+        used_names=centaur_instrument_used_columns,
+        header_dtypes=centaur_instrument_dtypes,
+        search_regex="*SOH_*.miniseed",
+    ),
     SohCSVParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
         soh_type=SohType.INSTRUMENT,
@@ -325,55 +380,6 @@ __parsing_params_list = (
         search_regex='*EnvironmentSOH*.csv',
     ),
 )
-
-# SOH_PARSING_PARAMETERS = {
-#     "centaur": {
-#         "instrument": {
-#             "header_columns": centaur_instrument_header_columns,
-#             "used_columns": centaur_instrument_used_columns,
-#             "dtypes": centaur_instrument_dtypes,
-#             "search_regex": "*Instrument*.csv",
-#         },
-#         "gpstime": {
-#             "header_columns": centaur_gpstime_header_columns,
-#             "used_columns": centaur_gpstime_used_columns,
-#             "dtypes": centaur_gpstime_dtypes,
-#             "search_regex": "*GPSTime*.csv",
-#         },
-#         "gnsstime": {
-#             "header_columns": centaur_gnsstime_header_columns,
-#             "used_columns": centaur_gnsstime_used_columns,
-#             "dtypes": centaur_gnsstime_dtypes,
-#             "search_regex": "*GNSSTime*.csv",
-#         },
-#         "environment": {
-#             "header_columns": centaur_environment_header_columns,
-#             "used_columns": centaur_environment_used_columns,
-#             "dtypes": centaur_environment_dtypes,
-#             'search_regex': '*EnvironmentSOH*.csv',
-#         },
-#     },
-#     "taurus": {
-#         "instrument": {
-#             "header_columns": taurus_instrument_header_names,
-#             "used_columns": taurus_instrument_used_names,
-#             "dtypes": taurus_instrument_dtypes,
-#             "search_regex": "*Instrument*.csv",
-#         },
-#         "gpstime": {
-#             "header_columns": taurus_gpstime_header_names,
-#             "used_columns": taurus_gpstime_used_names,
-#             "dtypes": taurus_gpstime_dtypes,
-#             "search_regex": "*GPSTime*.csv",
-#         },
-#         "environment": {
-#             "header_columns": taurus_environment_header_names,
-#             "used_columns": taurus_environment_used_names,
-#             "dtypes": taurus_environment_dtypes,
-#             'search_regex': '*EnvironmentSOH*.csv',
-#         },
-#     },
-# }
 
 __soh_parsing_params = defaultdict(dict)  # type: ignore
 
