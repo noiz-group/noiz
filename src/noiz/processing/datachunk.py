@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 import obspy
+import scipy
 from collections import OrderedDict
 from loguru import logger as log
 from typing import Union, Tuple, Dict, Collection
@@ -8,7 +9,7 @@ from typing import Union, Tuple, Dict, Collection
 from noiz.exceptions import MissingDataFileException
 from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models.component import Component
-from noiz.models.datachunk import Datachunk, DatachunkFile
+from noiz.models.datachunk import Datachunk, DatachunkFile, DatachunkStats
 from noiz.models.processing_params import DatachunkParams, ZeroPaddingMethod
 from noiz.models.timeseries import Tsindex
 from noiz.models.timespan import Timespan
@@ -756,3 +757,31 @@ def create_datachunks_for_component(
         finished_datachunks.append(datachunk)
 
     return finished_datachunks
+
+
+def calculate_datachunk_stats(datachunk: Datachunk) -> DatachunkStats:
+    """
+    Calculates statistics of the signal associated with provided :class:`~noiz.models.datachunk.Datachunk`.
+    It calculates energy as a sum of squared values of the signal normalized by sample count.
+    It also calculates set of statistics with use of :func:`scipy.stats.describe`.
+
+    :param datachunk: Datachunk to calculate statistics for
+    :type datachunk: Datachunk
+    :return: Signal statistics for the datachunk
+    :rtype: DatachunkStats
+    """
+    st = datachunk.load_data()
+    # noinspection PyUnresolvedReferences
+    descibed_stats: scipy.stats.stats.DescribeResult = scipy.stats.describe(st[0].data)
+    energy = np.sum(np.power(st[0].data, 2))/descibed_stats.nobs
+    ret = DatachunkStats(
+        datachunk_id=datachunk.id,
+        energy=energy,
+        min=descibed_stats.minmax[0],
+        max=descibed_stats.minmax[1],
+        mean=descibed_stats.mean,
+        variance=descibed_stats.variance,
+        skewness=descibed_stats.skewness,
+        kurtosis=descibed_stats.kurtosis,
+    )
+    return ret

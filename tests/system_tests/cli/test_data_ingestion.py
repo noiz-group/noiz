@@ -1,4 +1,8 @@
 import pytest
+
+from noiz.database import db
+from noiz.models.datachunk import Datachunk, DatachunkStats
+
 from noiz.models.timespan import Timespan
 
 pytestmark = [pytest.mark.system, pytest.mark.cli]
@@ -34,6 +38,8 @@ def noiz_app():
 
 @pytest.mark.system
 class TestDataIngestionRoutines:
+    def test_existence_of_processed_data_dir(self, noiz_app):
+        assert Path(noiz_app.noiz_config['processed_data_dir']).exists()
 
     def test_add_inventory_data(self, workdir_with_content, noiz_app):
 
@@ -48,6 +54,10 @@ class TestDataIngestionRoutines:
             fetched_components = fetch_components()
 
         assert len(fetched_components) == 9
+
+    @pytest.mark.xfail
+    def test_add_soh_files(self, noiz_app):
+        assert False
 
     def test_add_soh_data_dir(self, workdir_with_content, noiz_app):
         station = 'SI23'
@@ -92,9 +102,10 @@ class TestDataIngestionRoutines:
 
         with noiz_app.app_context():
             fetched_config = fetch_processing_config_by_id(id=1)
+            all_configs = DatachunkParams.query.all()
 
         assert isinstance(fetched_config, DatachunkParams)
-        # TODO Add checking for count of datachunk params
+        assert len(all_configs) == 1
 
     def test_insert_timespans(self, workdir_with_content, noiz_app):
 
@@ -122,3 +133,45 @@ class TestDataIngestionRoutines:
 
         assert isinstance(fetched_timespans[0], Timespan)
         assert len(fetched_timespans) == 145
+
+    def test_run_datachunk_creation(self, noiz_app):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["processing", "prepare_datachunks", "-sd", "2019-09-30", "-ed", "2019-10-03"])
+        assert result.exit_code == 0
+
+        from noiz.api.datachunk import fetch_datachunks
+        with noiz_app.app_context():
+            fetched_datachunks = fetch_datachunks()
+
+        assert len(fetched_datachunks) == 855
+        assert isinstance(fetched_datachunks[0], Datachunk)
+
+    @pytest.mark.xfail
+    def test_plot_datachunk_availability(self, noiz_app):
+        assert False
+
+    @pytest.mark.xfail
+    def test_plot_raw_gps_soh(self, noiz_app):
+        assert False
+
+    @pytest.mark.xfail
+    def test_average_soh_gps(self, noiz_app):
+        assert False
+
+    @pytest.mark.xfail
+    def test_plot_averaged_gps_soh(self, noiz_app):
+        assert False
+
+    def test_calc_datachunk_stats(self, noiz_app):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["processing", "calc_datachunk_stats", "-sd", "2019-09-30", "-ed", "2019-10-03"])
+        assert result.exit_code == 0
+
+        from noiz.api.datachunk import fetch_datachunks_without_stats
+
+        with noiz_app.app_context():
+            datachunks_without_stats = fetch_datachunks_without_stats()
+            stats = db.session.query(DatachunkStats).all()
+            datachunks = db.session.query(Datachunk).all()
+        assert len(datachunks_without_stats) == 0
+        assert len(datachunks) == len(stats)

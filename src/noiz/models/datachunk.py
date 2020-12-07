@@ -41,10 +41,11 @@ class Datachunk(db.Model):
 
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id], back_populates="datachunks")
     component = db.relationship("Component", foreign_keys=[component_id])
-    datachunk_processing_config = db.relationship(
+    params = db.relationship(
         "DatachunkParams", foreign_keys=[datachunk_params_id],
         # uselist = False, # just for the future left, here, dont want to test that now
     )
+    stats = db.relationship("DatachunkStats", uselist=False, back_populates="datachunk")
     processed_datachunks = db.relationship("ProcessedDatachunk")
 
     datachunk_file = db.relationship(
@@ -57,7 +58,8 @@ class Datachunk(db.Model):
     def load_data(self):
         filepath = Path(self.datachunk_file.filepath)
         if filepath.exists:
-            return obspy.read(filepath, "MSEED")
+            # FIXME when obspy will be released, str(Path) wont be necesary
+            return obspy.read(str(filepath), "MSEED")
         else:
             raise MissingDataFileException(f"Data file for chunk {self} is missing")
 
@@ -67,6 +69,30 @@ class DatachunkFile(db.Model):
 
     id = db.Column("id", db.BigInteger, primary_key=True)
     filepath = db.Column("filepath", db.UnicodeText, nullable=False)
+
+
+class DatachunkStats(db.Model):
+    __tablename__ = "datachunk_stats"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "datachunk_id",
+            name="unique_stats_per_datachunk",
+        ),
+    )
+
+    id = db.Column("id", db.BigInteger, primary_key=True)
+
+    datachunk_id = db.Column("datachunk_id", db.BigInteger, db.ForeignKey("datachunk.id"), nullable=False)
+
+    energy = db.Column("energy", db.Float, nullable=True)
+    min = db.Column("min", db.Float, nullable=True)
+    max = db.Column("max", db.Float, nullable=True)
+    mean = db.Column("mean", db.Float, nullable=True)
+    variance = db.Column("variance", db.Float, nullable=True)
+    skewness = db.Column("skewness", db.Float, nullable=True)
+    kurtosis = db.Column("kurtosis", db.Float, nullable=True)
+
+    datachunk = db.relationship("Datachunk", foreign_keys=[datachunk_id], back_populates="stats")
 
 
 class ProcessedDatachunk(db.Model):

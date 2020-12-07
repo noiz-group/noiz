@@ -61,6 +61,8 @@ class DatachunkParams(db.Model):
     _padding_taper_max_length = db.Column("padding_taper_max_length", db.Float, nullable=True)
     _padding_taper_max_percentage = db.Column("padding_taper_max_percentage", db.Float, nullable=True)
 
+    # TODO add a relationship field with all datachunks
+
     def __init__(self, **kwargs):
         self._sampling_rate = kwargs.get("sampling_rate", 24)
 
