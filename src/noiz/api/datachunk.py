@@ -1,10 +1,9 @@
 import datetime
-import logging
 import pendulum
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import subqueryload
-from typing import List, Iterable, Tuple, Collection, Optional, Dict
+from sqlalchemy.orm import subqueryload, Query
+from typing import List, Iterable, Tuple, Collection, Optional, Dict, Union
 
 import itertools
 
@@ -16,7 +15,7 @@ from noiz.api.processing_config import fetch_processing_config_by_id
 from noiz.database import db
 from noiz.exceptions import NoDataException
 from noiz.models.component import Component
-from noiz.models.datachunk import Datachunk
+from noiz.models.datachunk import Datachunk, DatachunkStats
 from noiz.models.processing_params import DatachunkParams
 from noiz.models.timespan import Timespan
 from noiz.processing.datachunk import create_datachunks_for_component
@@ -43,9 +42,14 @@ def fetch_datachunks_for_timespan(
 
 
 def count_datachunks(
-        components: Collection[Component],
-        timespans: Collection[Timespan],
-        datachunk_processing_params: DatachunkParams,
+        components: Optional[Collection[Component]] = None,
+        timespans: Optional[Collection[Timespan]] = None,
+        datachunk_processing_config: Optional[DatachunkParams] = None,
+        datachunk_ids: Optional[Collection[int]] = None,
+        load_component: bool = False,
+        load_stats: bool = False,
+        load_timespan: bool = False,
+        load_processing_params: bool = False,
 ) -> int:
     """
     Counts number of datachunks for all provided components associated with
@@ -61,15 +65,18 @@ def count_datachunks(
     :return: Count fo datachunks
     :rtype: int
     """
-    # FIXME noiz-group/noiz#45
-    timespan_ids = extract_object_ids(timespans)
-    component_ids = extract_object_ids(components)
-    count = Datachunk.query.filter(
-        Datachunk.component_id.in_(component_ids),
-        Datachunk.timespan_id.in_(timespan_ids),
-        Datachunk.datachunk_params_id == datachunk_processing_params.id
-    ).count()
-    return count
+    query = _query_datachunks(
+        components=components,
+        timespans=timespans,
+        datachunk_processing_config=datachunk_processing_config,
+        datachunk_ids=datachunk_ids,
+        load_component=load_component,
+        load_stats=load_stats,
+        load_timespan=load_timespan,
+        load_processing_params=load_processing_params,
+    )
+
+    return query.count()
 
 
 def fetch_datachunks(
@@ -78,9 +85,9 @@ def fetch_datachunks(
         datachunk_processing_config: Optional[DatachunkParams] = None,
         datachunk_ids: Optional[Collection[int]] = None,
         load_component: bool = False,
+        load_stats: bool = False,
         load_timespan: bool = False,
         load_processing_params: bool = False,
-
 ) -> List[Datachunk]:
     """
     Fetches datachunks based on provided filters.
@@ -113,6 +120,54 @@ def fetch_datachunks(
     :rtype: List[Datachunk]
     """
 
+    query = _query_datachunks(
+        components=components,
+        timespans=timespans,
+        datachunk_processing_config=datachunk_processing_config,
+        datachunk_ids=datachunk_ids,
+        load_component=load_component,
+        load_stats=load_stats,
+        load_timespan=load_timespan,
+        load_processing_params=load_processing_params,
+    )
+
+    return query.all()
+
+
+def fetch_datachunks_without_stats(
+        components: Optional[Collection[Component]] = None,
+        timespans: Optional[Collection[Timespan]] = None,
+        datachunk_processing_config: Optional[DatachunkParams] = None,
+        datachunk_ids: Optional[Collection[int]] = None,
+        load_component: bool = False,
+        load_stats: bool = False,
+        load_timespan: bool = False,
+        load_processing_params: bool = False,
+) -> List[Datachunk]:
+    query = _query_datachunks(
+        components=components,
+        timespans=timespans,
+        datachunk_processing_config=datachunk_processing_config,
+        datachunk_ids=datachunk_ids,
+        load_component=load_component,
+        load_stats=load_stats,
+        load_timespan=load_timespan,
+        load_processing_params=load_processing_params,
+    )
+    return query.filter(~Datachunk.stats.has()).all()
+
+
+def _query_datachunks(
+        components: Optional[Collection[Component]] = None,
+        timespans: Optional[Collection[Timespan]] = None,
+        datachunk_processing_config: Optional[DatachunkParams] = None,
+        datachunk_ids: Optional[Collection[int]] = None,
+        load_component: bool = False,
+        load_stats: bool = False,
+        load_timespan: bool = False,
+        load_processing_params: bool = False,
+) -> Query:
+
     filters = []
 
     if components is not None:
@@ -132,12 +187,14 @@ def fetch_datachunks(
 
     if load_timespan:
         opts.append(subqueryload(Datachunk.timespan))
+    if load_stats:
+        opts.append(subqueryload(Datachunk.stats))
     if load_component:
         opts.append(subqueryload(Datachunk.component))
     if load_processing_params:
-        opts.append(subqueryload(Datachunk.processing_params))
+        opts.append(subqueryload(Datachunk.params))
 
-    return Datachunk.query.filter(*filters).options(opts).all()
+    return Datachunk.query.filter(*filters).options(opts)
 
 
 def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
@@ -207,7 +264,7 @@ def create_datachunks_add_to_db(
     no_datachunks = count_datachunks(
         components=(component,),
         timespans=timespans,
-        datachunk_processing_params=processing_params
+        datachunk_processing_config=processing_params
     )
 
     timespans_count = len(timespans)
@@ -254,6 +311,9 @@ def prepare_datachunk_preparation_parameter_lists(
         year=date.year, doy=date.day_of_year
     )) for date in date_period.range('days')]
 
+    if len(all_timespans) == 0:
+        raise ValueError("There were no timespans for requested dates. Check if you created timespans at all.")
+
     fetched_components = fetch_components(networks=None,
                                           stations=stations,
                                           components=components)
@@ -276,7 +336,7 @@ def prepare_datachunk_preparation_parameter_lists(
             existing_count = count_datachunks(
                 components=(component,),
                 timespans=timespans,
-                datachunk_processing_params=processing_params,
+                datachunk_processing_config=processing_params,
             )
             if existing_count == len(timespans):
                 log.info("Number of existing timespans is sufficient. Skipping")
@@ -288,7 +348,7 @@ def prepare_datachunk_preparation_parameter_lists(
                              count_datachunks(
                                  components=(component,),
                                  timespans=(timespan,),
-                                 datachunk_processing_params=processing_params
+                                 datachunk_processing_config=processing_params
                              ) == 0]
             timespans = new_timespans
 
@@ -326,9 +386,13 @@ def run_paralel_chunk_preparation(
 
     log.info("Submitting tasks to Dask client")
     futures = []
-    for params in joblist:
-        future = client.submit(create_datachunks_for_component, **params)
-        futures.append(future)
+    try:
+        for params in joblist:
+            future = client.submit(create_datachunks_for_component, **params)
+            futures.append(future)
+    except ValueError as e:
+        log.error(e)
+        raise e
 
     log.info(f"There are {len(futures)} tasks to be executed")
 
@@ -367,4 +431,119 @@ def run_chunk_preparation(
                                             timespans=timespans,
                                             time_series=None,  # type: ignore
                                             processing_params=processing_config)
+    return
+
+
+def run_stats_calculation(
+        starttime: Union[datetime.date, datetime.datetime],
+        endtime: Union[datetime.date, datetime.datetime],
+        datachunk_params_id: int,
+        networks: Optional[Union[Collection[str], str]] = None,
+        stations: Optional[Union[Collection[str], str]] = None,
+        components: Optional[Union[Collection[str], str]] = None,
+        component_ids: Optional[Union[Collection[int], int]] = None,
+):
+    from noiz.api.timespan import fetch_timespans_between_dates
+    from noiz.api.component import fetch_components
+    from noiz.api.processing_config import fetch_processing_config_by_id
+    from noiz.processing.datachunk import calculate_datachunk_stats
+    fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
+    fetched_components = fetch_components(
+        networks=networks,
+        stations=stations,
+        components=components,
+        component_ids=component_ids
+    )
+    fetched_datachunk_params = fetch_processing_config_by_id(id=datachunk_params_id)
+    fetched_datachunks = fetch_datachunks_without_stats(
+        timespans=fetched_timespans,
+        components=fetched_components,
+        datachunk_processing_config=fetched_datachunk_params
+    )
+
+    from dask.distributed import Client, as_completed
+    client = Client()
+
+    log.info(f'Dask client started succesfully. '
+             f'You can monitor execution on {client.dashboard_link}')
+
+    log.info("Submitting tasks to Dask client")
+    futures = []
+    try:
+        for dc in fetched_datachunks:
+            future = client.submit(calculate_datachunk_stats, dc)
+            futures.append(future)
+    except ValueError as e:
+        log.error(e)
+        raise e
+
+    log.info(f"There are {len(futures)} tasks to be executed")
+
+    log.info("Starting execution. Results will be saved to database on the fly. ")
+
+    for future, result in as_completed(futures, with_results=True, raise_errors=False):
+        add_or_upsert_datachunk_stats_in_db(result)
+
+    client.close()
+    return
+
+
+def add_or_upsert_datachunk_stats_in_db(datachunk_stats: DatachunkStats):
+    """
+    Adds or upserts provided iterable of Datachunks to DB.
+    Must be executed within AppContext.
+
+    :param datachunk_stats:
+    :type datachunk_stats: Iterable[Datachunk]
+    :return:
+    :rtype:
+    """
+
+    if not isinstance(datachunk_stats, DatachunkStats):
+        log.warning(f'Provided object is not an instance of DatachunkStats. '
+                    f'Provided object was an {type(datachunk_stats)}. Skipping.')
+        return
+
+    log.info("Querrying db if the datachunk already exists.")
+    existing_chunks = (
+        db.session.query(DatachunkStats)
+        .filter(
+            DatachunkStats.metadata == datachunk_stats.datachunk_id,
+        )
+        .all()
+    )
+
+    if len(existing_chunks) == 0:
+        log.info("No existing chunks found. Adding DatachunkStats to DB.")
+        db.session.add(datachunk_stats)
+    else:
+        log.info("The datachunk stats already exists in db. Updating.")
+        insert_command = (
+            insert(DatachunkStats)
+            .values(
+                energy=datachunk_stats.energy,
+                min=datachunk_stats.min,
+                max=datachunk_stats.max,
+                mean=datachunk_stats.mean,
+                variance=datachunk_stats.variance,
+                skewness=datachunk_stats.skewness,
+                kurtosis=datachunk_stats.kurtosis,
+            )
+            .on_conflict_do_update(
+                constraint="unique_stats_per_datachunk",
+                set_=dict(
+                    energy=datachunk_stats.energy,
+                    min=datachunk_stats.min,
+                    max=datachunk_stats.max,
+                    mean=datachunk_stats.mean,
+                    variance=datachunk_stats.variance,
+                    skewness=datachunk_stats.skewness,
+                    kurtosis=datachunk_stats.kurtosis,
+                ),
+            )
+        )
+        db.session.execute(insert_command)
+
+    log.debug('Commiting session.')
+    db.session.commit()
     return
