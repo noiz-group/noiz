@@ -9,7 +9,8 @@ import pandas as pd
 from typing import Dict, Tuple, Callable, Optional
 
 from noiz.globals import ExtendedEnum
-from noiz.processing.soh.parsing import _read_single_soh_miniseed_centaur, read_single_soh_csv
+from noiz.processing.soh.parsing import _read_single_soh_miniseed_centaur, read_single_soh_csv, \
+    _postprocess_soh_miniseed_centaur
 
 taurus_instrument_header_names = (
     "timestamp",
@@ -342,7 +343,7 @@ __parsing_params_list = (
         used_names=centaur_miniseed_used_columns,
         header_dtypes=centaur_miniseed_dtypes,
         search_regex="*SOH_*.miniseed",
-        postprocessor=None,
+        postprocessor=_postprocess_soh_miniseed_centaur,
         name_mappings=centaur_miniseed_name_mappings,
         parser=_read_single_soh_miniseed_centaur
     ),
