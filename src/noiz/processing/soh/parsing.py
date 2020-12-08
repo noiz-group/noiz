@@ -12,6 +12,19 @@ def _read_single_soh_miniseed_centaur(
         filepath: Path,
         parsing_params: SohCSVParsingParams,
 ) -> pd.DataFrame:
+    """
+    This method reads a miniseed file and looks for channels defined in the
+    :class:`~noiz.processing.soh.soh_column_names.SohCSVParsingParams` that is provided as param `parsing_params.
+    It also renames all the channels to propoper names.
+    It doesn't postprocess data.
+
+    :param filepath: Filepath of miniseed soh
+    :type filepath: Path
+    :param parsing_params: Parameters object for parsing
+    :type parsing_params: SohCSVParsingParams
+    :return: Resulting DataFrame with soh data
+    :rtype: pd.DataFrame
+    """
 
     st = obspy.read(str(filepath))
     data_read = []
@@ -34,6 +47,13 @@ def _read_single_soh_miniseed_centaur(
     df = df.astype(parsing_params.header_dtypes)
     df.index = df.index.tz_localize("UTC")
 
+    return df
+
+
+def _postprocess_soh_miniseed_centaur(df: pd.DataFrame) -> pd.DataFrame:
+    df.loc[:, 'Supply voltage(V)'] = df.loc[:, 'Supply voltage(V)']/1000
+    df.loc[:, 'Total current(A)'] = df.loc[:, 'Total current(A)']/1000
+    df.loc[:, 'Temperature(C)'] = df.loc[:, 'Temperature(C)']/1000
     return df
 
 
@@ -110,9 +130,10 @@ def read_multiple_soh(
     all_dfs = []
     for filepath in filepaths:
         try:
-            single_df = read_single_soh_csv(
-                filepath=filepath,
-                parsing_params=parsing_params,
+            # This call for typing reason cannot use keyword arguments
+            single_df = parsing_params.parser(
+                filepath,
+                parsing_params,
             )
         except UnparsableDateTimeException as e:
             raise UnparsableDateTimeException(f"{filepath} has raised exception {e}")
@@ -130,6 +151,9 @@ def read_multiple_soh(
     except ValueError as e:
         raise SohParsingException(f"There was an exception raised by pd.concat. The exception was: {e}")
     df = df.sort_index()
+
+    if parsing_params is not None:
+        df = parsing_params.postprocessor(df)
 
     return df
 
