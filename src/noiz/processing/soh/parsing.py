@@ -1,10 +1,40 @@
+import numpy as np
+import obspy
 import pandas as pd
 from pathlib import Path
-
 from typing import Tuple, Optional, Dict, Collection, Generator, Union
 
 from noiz.exceptions import UnparsableDateTimeException, SohParsingException
 from noiz.processing.soh.soh_column_names import SohCSVParsingParams
+
+
+def _read_single_soh_miniseed_centaur(
+        filepath: Path,
+        parsing_params: SohCSVParsingParams,
+) -> pd.DataFrame:
+
+    st = obspy.read(str(filepath))
+    data_read = []
+    for channel in parsing_params.used_names:
+        st_selected = st.select(channel=channel)
+        if len(st_selected) == 0:
+            data_read.append(pd.Series(name=parsing_params.name_mappings[channel], dtype=np.float64))
+            continue
+        for tr in st_selected:
+            data_read.append(
+                pd.Series(
+                    index=[pd.Timestamp.fromtimestamp(t) for t in tr.times('timestamp')],
+                    data=tr.data,
+                    name=parsing_params.name_mappings[channel]
+                )
+            )
+
+    df = pd.concat(data_read, axis=1)
+    df.index = pd.DatetimeIndex(df.index)
+    df = df.astype(parsing_params.header_dtypes)
+    df.index = df.index.tz_localize("UTC")
+
+    return df
 
 
 def read_single_soh_csv(
