@@ -7,7 +7,7 @@ from noiz.processing.soh.parsing import read_single_soh_miniseed
 
 
 def test_read_single_soh_miniseed():
-    filepath = Path(__file__).parent.joinpath("XX.S0001.D0.SOH_centaur-3_1479_20171125_100000.miniseed")
+    filepath = Path(__file__).parent.joinpath("data", "XX.S0001.D0.SOH_centaur-3_1479_20171125_100000.miniseed")
     parsing_params = load_parsing_parameters(
         station_type=SohInstrumentNames.CENTAUR.value, soh_type=SohType.MINISEED.value)
 
