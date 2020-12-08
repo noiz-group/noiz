@@ -1,8 +1,9 @@
-import numpy as np
-from typing import Dict, Tuple
-from collections import defaultdict
-
 from dataclasses import dataclass
+from collections import defaultdict
+import numpy as np
+import pandas as pd
+from typing import Dict, Tuple, Callable, Optional
+
 
 from noiz.globals import ExtendedEnum
 
@@ -132,16 +133,28 @@ centaur_miniseed_header_columns = (
 )
 
 centaur_miniseed_used_columns = (
-    ("VEI", "Supply voltage(V)"),
-    ("VEC", "Total current(A)"),
-    ("VDT", "Temperature(C)"),
-    ("GST", "GPS receiver status"),
-    ("GNS", "GPS satellites used"),
-    ("LCQ", "Timing status"),
-    ("GPL", "Phase lock loop status"),
-    ("VCO", "Timing DAC count"),
-    ("LCE", "Time error(ns)"),
+    "VEI",
+    "VEC",
+    "VDT",
+    "GST",
+    "GNS",
+    "LCQ",
+    "GPL",
+    "VCO",
+    "LCE",
 )
+
+centaur_miniseed_name_mappings = {
+    "VEI": "Supply voltage(V)",
+    "VEC": "Total current(A)",
+    "VDT": "Temperature(C)",
+    "GST": "GPS receiver status",
+    "GNS": "GPS satellites used",
+    "LCQ": "Timing status",
+    "GPL": "Phase lock loop status",
+    "VCO": "Timing DAC count",
+    "LCE": "Time error(ns)",
+}
 
 centaur_miniseed_dtypes = {
     "Supply voltage(V)": np.float64,
@@ -310,18 +323,22 @@ class SohCSVParsingParams:
     soh_type: SohType
     header_names: Tuple[str, ...]
     used_names: Tuple[str, ...]
+    name_mappings: Optional[Dict[str, type]]
     header_dtypes: Dict[str, type]
     search_regex: str
+    postprocessor: Optional[Callable[[pd.DataFrame], pd.DataFrame]]
 
 
 __parsing_params_list = (
     SohCSVParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
         soh_type=SohType.MINISEED,
-        header_names=centaur_instrument_header_columns,
-        used_names=centaur_instrument_used_columns,
-        header_dtypes=centaur_instrument_dtypes,
+        header_names=centaur_miniseed_header_columns,
+        used_names=centaur_miniseed_used_columns,
+        header_dtypes=centaur_miniseed_dtypes,
         search_regex="*SOH_*.miniseed",
+        postprocessor=None,
+        name_mappings=None,
     ),
     SohCSVParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
@@ -330,6 +347,8 @@ __parsing_params_list = (
         used_names=centaur_instrument_used_columns,
         header_dtypes=centaur_instrument_dtypes,
         search_regex="*Instrument*.csv",
+        postprocessor=None,
+        name_mappings=None,
     ),
     SohCSVParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
@@ -338,6 +357,8 @@ __parsing_params_list = (
         used_names=centaur_gpstime_used_columns,
         header_dtypes=centaur_gpstime_dtypes,
         search_regex="*GPSTime*.csv",
+        postprocessor=None,
+        name_mappings=None,
     ),
     SohCSVParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
@@ -346,6 +367,8 @@ __parsing_params_list = (
         used_names=centaur_gnsstime_used_columns,
         header_dtypes=centaur_gnsstime_dtypes,
         search_regex="*GNSSTime*.csv",
+        postprocessor=None,
+        name_mappings=None,
     ),
     SohCSVParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
@@ -354,6 +377,8 @@ __parsing_params_list = (
         used_names=centaur_environment_used_columns,
         header_dtypes=centaur_environment_dtypes,
         search_regex="*EnvironmentSOH*.csv",
+        postprocessor=None,
+        name_mappings=None,
     ),
     SohCSVParsingParams(
         instrument_name=SohInstrumentNames.TAURUS,
@@ -362,6 +387,8 @@ __parsing_params_list = (
         used_names=taurus_instrument_used_names,
         header_dtypes=taurus_instrument_dtypes,
         search_regex="*Instrument*.csv",
+        postprocessor=None,
+        name_mappings=None,
     ),
     SohCSVParsingParams(
         instrument_name=SohInstrumentNames.TAURUS,
@@ -370,6 +397,8 @@ __parsing_params_list = (
         used_names=taurus_gpstime_used_names,
         header_dtypes=taurus_gpstime_dtypes,
         search_regex="*GPSTime*.csv",
+        postprocessor=None,
+        name_mappings=None,
     ),
     SohCSVParsingParams(
         instrument_name=SohInstrumentNames.TAURUS,
@@ -377,7 +406,9 @@ __parsing_params_list = (
         header_names=taurus_environment_header_names,
         used_names=taurus_environment_used_names,
         header_dtypes=taurus_environment_dtypes,
-        search_regex='*EnvironmentSOH*.csv',
+        search_regex="*EnvironmentSOH*.csv",
+        postprocessor=None,
+        name_mappings=None,
     ),
 )
 
