@@ -1,10 +1,4 @@
 import pytest
-
-from noiz.database import db
-from noiz.models.datachunk import Datachunk, DatachunkStats
-
-from noiz.models.timespan import Timespan
-
 pytestmark = [pytest.mark.system, pytest.mark.cli]
 
 from click.testing import CliRunner
@@ -12,12 +6,16 @@ import datetime
 from pathlib import Path
 import shutil
 
-from noiz.app import create_app
 from noiz.api.component import fetch_components
 from noiz.api.processing_config import fetch_processing_config_by_id
 from noiz.api.timespan import fetch_timespans_between_dates
+from noiz.app import create_app
 from noiz.cli import cli
+from noiz.database import db
 from noiz.models.processing_params import DatachunkParams
+from noiz.models.datachunk import Datachunk, DatachunkStats
+from noiz.models.timespan import Timespan
+from noiz.models.soh import SohGps, SohInstrument
 
 
 @pytest.fixture(scope="class")
@@ -58,6 +56,50 @@ class TestDataIngestionRoutines:
     @pytest.mark.xfail
     def test_add_soh_files(self, noiz_app):
         assert False
+
+    def test_add_soh_files_miniseed_instrument(self, workdir_with_content, noiz_app):
+        station = 'SI11'
+        station_type = 'centaur'
+        soh_type = 'miniseed_gpstime'
+        soh_dir = workdir_with_content.joinpath('soh-data', "SI03-all-fields-miniseed")
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["data", "add_soh_dir",
+                                     '--station', station,
+                                     '--station_type', station_type,
+                                     '--soh_type', soh_type,
+                                     str(soh_dir)])
+
+        assert result.exit_code == 0
+        with noiz_app.app_context():
+            found_in_db = db.session.query(SohGps) \
+                .filter(
+                SohGps.datetime > datetime.datetime(2017, 11, 24),
+                SohGps.datetime < datetime.datetime(2017, 11, 26),
+            ).all()
+        assert len(found_in_db) == 48
+
+    def test_add_soh_files_miniseed_gpstime(self, workdir_with_content, noiz_app):
+        station = 'SI23'
+        station_type = 'centaur'
+        soh_type = 'miniseed_instrument'
+        soh_dir = workdir_with_content.joinpath('soh-data', "SI09-lacking-fields-minised")
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["data", "add_soh_dir",
+                                     '--station', station,
+                                     '--station_type', station_type,
+                                     '--soh_type', soh_type,
+                                     str(soh_dir)])
+
+        assert result.exit_code == 0
+        with noiz_app.app_context():
+            found_in_db = db.session.query(SohInstrument) \
+                .filter(
+                SohInstrument.datetime > datetime.datetime(2018, 6, 15),
+                SohInstrument.datetime < datetime.datetime(2018, 6, 17),
+            ).all()
+        assert len(found_in_db) == 48
 
     def test_add_soh_data_dir(self, workdir_with_content, noiz_app):
         station = 'SI23'
