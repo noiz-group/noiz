@@ -53,7 +53,7 @@ def read_multiple_soh(
     return df
 
 
-def read_single_soh_csv(
+def _read_single_soh_csv(
         filepath: Path,
         parsing_params: SohParsingParams,
 ) -> Optional[pd.DataFrame]:
@@ -64,7 +64,7 @@ def read_single_soh_csv(
     :type filepath: Path
     :param parsing_params: Parameters to parse with
     :type parsing_params: SohParsingParams
-    :return: Returns dataframe if there was anything to parse.
+    :return: Returns dataframe if there was anything to parse
     :rtype: Optional[pd.DataFrame]
     """
     try:
@@ -165,6 +165,8 @@ def __postprocess_soh_dataframe(df: pd.DataFrame, parsing_params: SohParsingPara
     :return: Postprocessed dataframe
     :rtype: pd.DataFrame
     """
+
+    # FIXME: Split this method into separate postprocessors and add it to SohParsingParams so they are ran separately
 
     from noiz.processing.soh.soh_column_names import SohType, SohInstrumentNames
     if parsing_params.soh_type in (SohType.GPSTIME, SohType.GNSSTIME):
