@@ -458,6 +458,15 @@ def _read_single_soh_miniseed_centaur(
 
 
 def _postprocess_soh_miniseed_instrument_centaur(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    This is internal postprocessor routine for unifying values read from files with what is expected in the Noiz db.
+    This method is fully internal and used only for specific type of Soh.
+
+    :param df: Dataframe to be processed
+    :type df: pd.DataFrame
+    :return: Postprocessed dataframe
+    :rtype: pd.DataFrame
+    """
     df.loc[:, 'Supply voltage(V)'] = df.loc[:, 'Supply voltage(V)']/1000
     df.loc[:, 'Total current(A)'] = df.loc[:, 'Total current(A)']/1000
     df.loc[:, 'Temperature(C)'] = df.loc[:, 'Temperature(C)']/1000
