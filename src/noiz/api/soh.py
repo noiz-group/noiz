@@ -20,7 +20,7 @@ from noiz.models.timespan import Timespan
 from noiz.models.soh import SohInstrument, SohGps, association_table_soh_instr, association_table_soh_gps, AveragedSohGps, \
     association_table_averaged_soh_gps_components
 from noiz.processing.soh import load_parsing_parameters, read_multiple_soh, __postprocess_soh_dataframe, \
-    glob_soh_directory, __calculate_mean_gps_soh
+    _glob_soh_directory, __calculate_mean_gps_soh
 
 
 def fetch_raw_soh_gps_df(
@@ -203,17 +203,17 @@ def ingest_soh_files(
         raise ValueError("Exactly one of filepath or main_filepath arguments has to be provided.")
 
     if main_filepath is not None:
-        filepaths: Generator[Path, None, None] = glob_soh_directory(   # type: ignore
+        filepaths: Generator[Path, None, None] = _glob_soh_directory(   # type: ignore
             parsing_parameters=parsing_parameters,
             main_filepath=main_filepath
         )
 
     df = read_multiple_soh(filepaths=filepaths, parsing_params=parsing_parameters)  # type: ignore
-    df = __postprocess_soh_dataframe(df, station_type=station_type, soh_type=soh_type)
+    df = __postprocess_soh_dataframe(df=df, parsing_params=parsing_parameters)
 
-    if soh_type == "instrument":
+    if soh_type in ("instrument", "miniseed_instrument"):
         __upsert_into_db_soh_instrument(df=df, station=station, network=network)
-    elif soh_type in ("gpstime", "gnsstime"):
+    elif soh_type in ("gpstime", "gnsstime", "miniseed_gpstime"):
         __upsert_into_db_soh_gps(df=df, station=station, network=network)
     else:
         raise ValueError(f'Provided soh_type not supported for database insertion. '

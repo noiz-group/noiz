@@ -1,9 +1,15 @@
+from __future__ import annotations
+
 import numpy as np
-from typing import Dict, Tuple
+import obspy
+import pandas as pd
 from collections import defaultdict
-
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, Tuple, Optional
+from typing_extensions import Protocol
 
+from noiz.exceptions import UnparsableDateTimeException
 from noiz.globals import ExtendedEnum
 
 taurus_instrument_header_names = (
@@ -107,6 +113,74 @@ taurus_gpstime_dtypes = {
     "Time uncertainty(ns)": np.int32,
     "Timing DAC count": np.int32,
     "Time error(ns)": np.int32,
+}
+
+
+centaur_miniseed_header_columns = (
+    "GLA",  # GPS latitude [microdegrees]
+    "GLO",  # GPS longitude [microdegrees]
+    "GEL",  # GPS elevation [micrometers]
+    "VCO",  # VCO control voltage (for timing oscillator) [raw DAC counts]
+    "LCQ",  # Clock quality [percent]
+    "LCE",  # Absolute clock phase error [microseconds]
+    "GNS",  # GPS number of satellites used
+    "GAN",  # GPS antenna status
+    "GST",  # GPS status
+    "GPL",  # GPS PLL status
+    "VEC",  # Digitizer system current [miliamps]
+    "VEI",  # Input system voltage [milivolts]
+    "VDT",  # Digitizer system temperature [10e-3 C]
+    "VM1",  # Sensor SOH channel 1
+    "EX1",  # External SOH channel 1
+    "EX2",  # External SOH channel 2
+    "EX3",  # External SOH channel 3
+    "VPB",  # Digitizer buffer percent used [%]
+)
+
+centaur_miniseed_gpstime_used_columns = (
+    "GST",
+    "GNS",
+    "LCQ",
+    "GPL",
+    "VCO",
+    "LCE",
+    "TIME_UNCERTAINTY"
+)
+
+centaur_miniseed_gpstime_name_mappings = {
+    "GST": "GPS receiver status",
+    "GNS": "GPS satellites used",
+    "LCQ": "Timing status",
+    "GPL": "Phase lock loop status",
+    "VCO": "Timing DAC count",
+    "LCE": "Time error(ms)",
+    "TIME_UNCERTAINTY": "Time uncertainty(ms)"
+}
+
+centaur_miniseed_gpstime_dtypes = {
+    "GPS receiver status": np.float64,
+    "GPS satellites used": np.float64,
+    "Timing status": np.float64,
+    "Phase lock loop status": np.float64,
+    "Timing DAC count": np.float64,
+    "Time error(ms)": np.float64,
+}
+centaur_miniseed_instrument_used_columns = (
+    "VEI",
+    "VEC",
+    "VDT",
+)
+
+centaur_miniseed_instrument_name_mappings = {
+    "VEI": "Supply voltage(V)",
+    "VEC": "Total current(A)",
+    "VDT": "Temperature(C)",
+}
+
+centaur_miniseed_instrument_dtypes = {
+    "Supply voltage(V)": np.float64,
+    "Total current(A)": np.float64,
+    "Temperature(C)": np.float64,
 }
 
 centaur_instrument_header_columns = (
@@ -251,10 +325,32 @@ class SohType(ExtendedEnum):
     GPSTIME = "gpstime"
     GNSSTIME = "gnsstime"
     ENVIRONMENT = "environment"
+    MINISEED_GPSTIME = "miniseed_gpstime"
+    MINISEED_INSTRUMENT = "miniseed_instrument"
+
+
+def _empty_postprocessor(df: pd.DataFrame) -> pd.DataFrame:
+    return df
+
+
+class Postprocessor(Protocol):
+    """
+    This is just a callback protocol which defines type for
+    :param:`noiz.processing.soh.soh_column_names.SohParsingParams.postprocessor`.
+    """
+    def __call__(self, df: pd.DataFrame) -> pd.DataFrame: ...
+
+
+class Parser(Protocol):
+    """
+    This is just a callback protocol which defines type for
+    :param:`noiz.processing.soh.soh_column_names.SohParsingParams.parser`.
+    """
+    def __call__(self, filepath: Path, parsing_params: SohParsingParams) -> pd.DataFrame: ...
 
 
 @dataclass
-class SohCSVParsingParams:
+class SohParsingParams:
     """
     This is just here implemented for the future.
     The SOHProcessingParams dict should be refactored to use that class
@@ -264,116 +360,236 @@ class SohCSVParsingParams:
     header_names: Tuple[str, ...]
     used_names: Tuple[str, ...]
     header_dtypes: Dict[str, type]
+    name_mappings: Dict[str, str]
     search_regex: str
+    postprocessor: Postprocessor
+    parser: Parser
+
+
+def _read_single_soh_csv(
+        filepath: Path,
+        parsing_params: SohParsingParams,
+) -> Optional[pd.DataFrame]:
+    """
+    Takes a filepath to a single CSV file and parses it according to parameters passed.
+
+    :param filepath: File to be parsed
+    :type filepath: Path
+    :param parsing_params: Parameters to parse with
+    :type parsing_params: SohParsingParams
+    :return: Returns dataframe if there was anything to parse
+    :rtype: Optional[pd.DataFrame]
+    """
+    try:
+        single_df = pd.read_csv(
+            filepath,
+            index_col=False,
+            names=parsing_params.header_names,
+            usecols=parsing_params.used_names,
+            parse_dates=["UTCDateTime"],
+            skiprows=1,
+        ).set_index("UTCDateTime")
+    except ValueError:
+        raise UnparsableDateTimeException(
+            f"There is a problem with parsing file.\n {filepath}"
+        )
+
+    if len(single_df) == 0:
+        return None
+
+    if single_df.index.dtype == "O":
+        single_df = single_df[~single_df.index.str.contains("Time")]
+        try:
+            single_df.index = single_df.index.astype("datetime64[ns]")
+        except ValueError:
+            raise UnparsableDateTimeException(
+                f"There was a problem with parsing the SOH file.\n"
+                f" One of elements of UTCDateTime column could not be parsed to datetime format.\n"
+                f" Check the file, it might contain single unparsable line.\n"
+                f" {filepath} "
+            )
+
+    single_df = single_df.astype(parsing_params.header_dtypes)
+    single_df.index = single_df.index.tz_localize("UTC")
+
+    return single_df
+
+
+def _read_single_soh_miniseed_centaur(
+        filepath: Path,
+        parsing_params: SohParsingParams,
+) -> pd.DataFrame:
+    """
+    This method reads a miniseed file and looks for channels defined in the
+    :class:`~noiz.processing.soh.soh_column_names.SohParsingParams` that is provided as param `parsing_params.
+    It also renames all the channels to propoper names.
+    It doesn't postprocess data.
+
+    :param filepath: Filepath of miniseed soh
+    :type filepath: Path
+    :param parsing_params: Parameters object for parsing
+    :type parsing_params: SohParsingParams
+    :return: Resulting DataFrame with soh data
+    :rtype: pd.DataFrame
+    """
+
+    st = obspy.read(str(filepath))
+    data_read = []
+    for channel in parsing_params.used_names:
+        st_selected = st.select(channel=channel)
+        if len(st_selected) == 0:
+            data_read.append(pd.Series(name=parsing_params.name_mappings[channel], dtype=np.float64))
+            continue
+        for tr in st_selected:
+            data_read.append(
+                pd.Series(
+                    index=[pd.Timestamp.fromtimestamp(t) for t in tr.times('timestamp')],
+                    data=tr.data,
+                    name=parsing_params.name_mappings[channel]
+                )
+            )
+
+    df = pd.concat(data_read, axis=1)
+    df.index = pd.DatetimeIndex(df.index)
+    df = df.astype(parsing_params.header_dtypes)
+    df.index = df.index.tz_localize("UTC")
+
+    return df
+
+
+def _postprocess_soh_miniseed_instrument_centaur(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    This is internal postprocessor routine for unifying values read from files with what is expected in the Noiz db.
+    This method is fully internal and used only for specific type of Soh.
+
+    :param df: Dataframe to be processed
+    :type df: pd.DataFrame
+    :return: Postprocessed dataframe
+    :rtype: pd.DataFrame
+    """
+    df.loc[:, 'Supply voltage(V)'] = df.loc[:, 'Supply voltage(V)']/1000
+    df.loc[:, 'Total current(A)'] = df.loc[:, 'Total current(A)']/1000
+    df.loc[:, 'Temperature(C)'] = df.loc[:, 'Temperature(C)']/1000
+    return df
+
+
+def _postprocess_soh_miniseed_gpstime_centaur(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    This is internal postprocessor routine for unifying values read from files with what is expected in the Noiz db.
+    This method is fully internal and used only for specific type of Soh.
+
+    It converts ns to ms.
+
+    :param df: Dataframe to be processed
+    :type df: pd.DataFrame
+    :return: Postprocessed dataframe
+    :rtype: pd.DataFrame
+    """
+    df.loc[:, 'Time error(ms)'] = df.loc[:, 'Time error(ms)']/1000
+    return df
 
 
 __parsing_params_list = (
-    SohCSVParsingParams(
+    SohParsingParams(
+        instrument_name=SohInstrumentNames.CENTAUR,
+        soh_type=SohType.MINISEED_GPSTIME,
+        header_names=centaur_miniseed_header_columns,
+        used_names=centaur_miniseed_gpstime_used_columns,
+        header_dtypes=centaur_miniseed_gpstime_dtypes,
+        search_regex="*SOH_*.miniseed",
+        postprocessor=_postprocess_soh_miniseed_gpstime_centaur,
+        name_mappings=centaur_miniseed_gpstime_name_mappings,
+        parser=_read_single_soh_miniseed_centaur
+    ),
+    SohParsingParams(
+        instrument_name=SohInstrumentNames.CENTAUR,
+        soh_type=SohType.MINISEED_INSTRUMENT,
+        header_names=centaur_miniseed_header_columns,
+        used_names=centaur_miniseed_instrument_used_columns,
+        header_dtypes=centaur_miniseed_instrument_dtypes,
+        search_regex="*SOH_*.miniseed",
+        postprocessor=_postprocess_soh_miniseed_instrument_centaur,
+        name_mappings=centaur_miniseed_instrument_name_mappings,
+        parser=_read_single_soh_miniseed_centaur
+    ),
+    SohParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
         soh_type=SohType.INSTRUMENT,
         header_names=centaur_instrument_header_columns,
         used_names=centaur_instrument_used_columns,
         header_dtypes=centaur_instrument_dtypes,
         search_regex="*Instrument*.csv",
+        postprocessor=_empty_postprocessor,
+        name_mappings={},
+        parser=_read_single_soh_csv
     ),
-    SohCSVParsingParams(
+    SohParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
         soh_type=SohType.GPSTIME,
         header_names=centaur_gpstime_header_columns,
         used_names=centaur_gpstime_used_columns,
         header_dtypes=centaur_gpstime_dtypes,
         search_regex="*GPSTime*.csv",
+        postprocessor=_empty_postprocessor,
+        name_mappings={},
+        parser=_read_single_soh_csv
     ),
-    SohCSVParsingParams(
+    SohParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
         soh_type=SohType.GNSSTIME,
         header_names=centaur_gnsstime_header_columns,
         used_names=centaur_gnsstime_used_columns,
         header_dtypes=centaur_gnsstime_dtypes,
         search_regex="*GNSSTime*.csv",
+        postprocessor=_empty_postprocessor,
+        name_mappings={},
+        parser=_read_single_soh_csv
     ),
-    SohCSVParsingParams(
+    SohParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
         soh_type=SohType.ENVIRONMENT,
         header_names=centaur_environment_header_columns,
         used_names=centaur_environment_used_columns,
         header_dtypes=centaur_environment_dtypes,
         search_regex="*EnvironmentSOH*.csv",
+        postprocessor=_empty_postprocessor,
+        name_mappings={},
+        parser=_read_single_soh_csv
     ),
-    SohCSVParsingParams(
+    SohParsingParams(
         instrument_name=SohInstrumentNames.TAURUS,
         soh_type=SohType.INSTRUMENT,
         header_names=taurus_instrument_header_names,
         used_names=taurus_instrument_used_names,
         header_dtypes=taurus_instrument_dtypes,
         search_regex="*Instrument*.csv",
+        postprocessor=_empty_postprocessor,
+        name_mappings={},
+        parser=_read_single_soh_csv
     ),
-    SohCSVParsingParams(
+    SohParsingParams(
         instrument_name=SohInstrumentNames.TAURUS,
         soh_type=SohType.GPSTIME,
         header_names=taurus_gpstime_header_names,
         used_names=taurus_gpstime_used_names,
         header_dtypes=taurus_gpstime_dtypes,
         search_regex="*GPSTime*.csv",
+        postprocessor=_empty_postprocessor,
+        name_mappings={},
+        parser=_read_single_soh_csv
     ),
-    SohCSVParsingParams(
+    SohParsingParams(
         instrument_name=SohInstrumentNames.TAURUS,
         soh_type=SohType.ENVIRONMENT,
         header_names=taurus_environment_header_names,
         used_names=taurus_environment_used_names,
         header_dtypes=taurus_environment_dtypes,
-        search_regex='*EnvironmentSOH*.csv',
+        search_regex="*EnvironmentSOH*.csv",
+        postprocessor=_empty_postprocessor,
+        name_mappings={},
+        parser=_read_single_soh_csv
     ),
 )
-
-# SOH_PARSING_PARAMETERS = {
-#     "centaur": {
-#         "instrument": {
-#             "header_columns": centaur_instrument_header_columns,
-#             "used_columns": centaur_instrument_used_columns,
-#             "dtypes": centaur_instrument_dtypes,
-#             "search_regex": "*Instrument*.csv",
-#         },
-#         "gpstime": {
-#             "header_columns": centaur_gpstime_header_columns,
-#             "used_columns": centaur_gpstime_used_columns,
-#             "dtypes": centaur_gpstime_dtypes,
-#             "search_regex": "*GPSTime*.csv",
-#         },
-#         "gnsstime": {
-#             "header_columns": centaur_gnsstime_header_columns,
-#             "used_columns": centaur_gnsstime_used_columns,
-#             "dtypes": centaur_gnsstime_dtypes,
-#             "search_regex": "*GNSSTime*.csv",
-#         },
-#         "environment": {
-#             "header_columns": centaur_environment_header_columns,
-#             "used_columns": centaur_environment_used_columns,
-#             "dtypes": centaur_environment_dtypes,
-#             'search_regex': '*EnvironmentSOH*.csv',
-#         },
-#     },
-#     "taurus": {
-#         "instrument": {
-#             "header_columns": taurus_instrument_header_names,
-#             "used_columns": taurus_instrument_used_names,
-#             "dtypes": taurus_instrument_dtypes,
-#             "search_regex": "*Instrument*.csv",
-#         },
-#         "gpstime": {
-#             "header_columns": taurus_gpstime_header_names,
-#             "used_columns": taurus_gpstime_used_names,
-#             "dtypes": taurus_gpstime_dtypes,
-#             "search_regex": "*GPSTime*.csv",
-#         },
-#         "environment": {
-#             "header_columns": taurus_environment_header_names,
-#             "used_columns": taurus_environment_used_names,
-#             "dtypes": taurus_environment_dtypes,
-#             'search_regex': '*EnvironmentSOH*.csv',
-#         },
-#     },
-# }
 
 __soh_parsing_params = defaultdict(dict)  # type: ignore
 
@@ -383,17 +599,17 @@ for item in __parsing_params_list:
 SOH_PARSING_PARAMETERS = dict(__soh_parsing_params)
 
 
-def load_parsing_parameters(soh_type: str, station_type: str) -> SohCSVParsingParams:
+def load_parsing_parameters(soh_type: str, station_type: str) -> SohParsingParams:
     """
     Checks if provided soh_type and station_type are valid names and then checks if a given combination
-    of station_type and soh_type have SohCSVParsingParams associated with them.
+    of station_type and soh_type have SohParsingParams associated with them.
 
     :param soh_type: Type of soh to be queried
     :type soh_type: str
     :param station_type: Type of station to be queried
     :type station_type: str
-    :return: Valid SohCSVParsingParams
-    :rtype: SohCSVParsingParams
+    :return: Valid SohParsingParams
+    :rtype: SohParsingParams
     raises: ValueError
     """
 
