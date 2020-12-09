@@ -61,7 +61,7 @@ flake8:
     - flake8 .
 
 .build-docs-parent:
-  image: $UNITTESTING_IMAGE_TAG
+  image: registry.gitlab.com/noiz-group/noiz:docsbuilding
   stage: documentation
   script:
   - cd docs
