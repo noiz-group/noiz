@@ -137,7 +137,7 @@ centaur_miniseed_header_columns = (
     "VPB",  # Digitizer buffer percent used [%]
 )
 
-centaur_miniseed_used_columns = (
+centaur_miniseed_gpstime_used_columns = (
     "VEI",
     "VEC",
     "VDT",
@@ -149,7 +149,7 @@ centaur_miniseed_used_columns = (
     "LCE",
 )
 
-centaur_miniseed_name_mappings = {
+centaur_miniseed_gpstime_name_mappings = {
     "VEI": "Supply voltage(V)",
     "VEC": "Total current(A)",
     "VDT": "Temperature(C)",
@@ -161,7 +161,7 @@ centaur_miniseed_name_mappings = {
     "LCE": "Time error(ns)",
 }
 
-centaur_miniseed_dtypes = {
+centaur_miniseed_gpstime_dtypes = {
     "Supply voltage(V)": np.float64,
     "Total current(A)": np.float64,
     "Temperature(C)": np.float64,
@@ -317,8 +317,10 @@ class SohType(ExtendedEnum):
     ENVIRONMENT = "environment"
     MINISEED = "miniseed"
 
+
 def _empty_postprocessor(df: pd.DataFrame) -> pd.DataFrame:
     return df
+
 
 @dataclass
 class SohCSVParsingParams:
@@ -342,11 +344,11 @@ __parsing_params_list = (
         instrument_name=SohInstrumentNames.CENTAUR,
         soh_type=SohType.MINISEED,
         header_names=centaur_miniseed_header_columns,
-        used_names=centaur_miniseed_used_columns,
-        header_dtypes=centaur_miniseed_dtypes,
+        used_names=centaur_miniseed_gpstime_used_columns,
+        header_dtypes=centaur_miniseed_gpstime_dtypes,
         search_regex="*SOH_*.miniseed",
         postprocessor=_postprocess_soh_miniseed_centaur,
-        name_mappings=centaur_miniseed_name_mappings,
+        name_mappings=centaur_miniseed_gpstime_name_mappings,
         parser=_read_single_soh_miniseed_centaur
     ),
     SohCSVParsingParams(
