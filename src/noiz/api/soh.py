@@ -209,11 +209,11 @@ def ingest_soh_files(
         )
 
     df = read_multiple_soh(filepaths=filepaths, parsing_params=parsing_parameters)  # type: ignore
-    df = __postprocess_soh_dataframe(df, station_type=station_type, soh_type=soh_type)
+    df = __postprocess_soh_dataframe(df=df, parsing_params=parsing_parameters)
 
-    if soh_type == "instrument":
+    if soh_type in ("instrument", "miniseed_instrument"):
         __upsert_into_db_soh_instrument(df=df, station=station, network=network)
-    elif soh_type in ("gpstime", "gnsstime"):
+    elif soh_type in ("gpstime", "gnsstime", "miniseed_gpstime"):
         __upsert_into_db_soh_gps(df=df, station=station, network=network)
     else:
         raise ValueError(f'Provided soh_type not supported for database insertion. '
