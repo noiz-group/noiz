@@ -144,6 +144,7 @@ centaur_miniseed_gpstime_used_columns = (
     "GPL",
     "VCO",
     "LCE",
+    "TIME_UNCERTAINTY"
 )
 
 centaur_miniseed_gpstime_name_mappings = {
@@ -152,7 +153,8 @@ centaur_miniseed_gpstime_name_mappings = {
     "LCQ": "Timing status",
     "GPL": "Phase lock loop status",
     "VCO": "Timing DAC count",
-    "LCE": "Time error(ns)",
+    "LCE": "Time error(ms)",
+    "TIME_UNCERTAINTY": "Time uncertainty(ms)"
 }
 
 centaur_miniseed_gpstime_dtypes = {
@@ -161,7 +163,7 @@ centaur_miniseed_gpstime_dtypes = {
     "Timing status": np.float64,
     "Phase lock loop status": np.float64,
     "Timing DAC count": np.float64,
-    "Time error(ns)": np.float64,
+    "Time error(ms)": np.float64,
 }
 centaur_miniseed_instrument_used_columns = (
     "VEI",
@@ -470,6 +472,21 @@ def _postprocess_soh_miniseed_instrument_centaur(df: pd.DataFrame) -> pd.DataFra
     df.loc[:, 'Temperature(C)'] = df.loc[:, 'Temperature(C)']/1000
     return df
 
+def _postprocess_soh_miniseed_gpstime_centaur(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    This is internal postprocessor routine for unifying values read from files with what is expected in the Noiz db.
+    This method is fully internal and used only for specific type of Soh.
+
+    It converts ns to ms.
+
+    :param df: Dataframe to be processed
+    :type df: pd.DataFrame
+    :return: Postprocessed dataframe
+    :rtype: pd.DataFrame
+    """
+    df.loc[:, 'Time error(ms)'] = df.loc[:, 'Time error(ms)']/1000
+    return df
+
 
 __parsing_params_list = (
     SohParsingParams(
@@ -479,7 +496,7 @@ __parsing_params_list = (
         used_names=centaur_miniseed_gpstime_used_columns,
         header_dtypes=centaur_miniseed_gpstime_dtypes,
         search_regex="*SOH_*.miniseed",
-        postprocessor=_empty_postprocessor,
+        postprocessor=_postprocess_soh_miniseed_gpstime_centaur,
         name_mappings=centaur_miniseed_gpstime_name_mappings,
         parser=_read_single_soh_miniseed_centaur
     ),
