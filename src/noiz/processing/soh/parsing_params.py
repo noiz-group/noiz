@@ -410,8 +410,6 @@ def _read_single_soh_csv(
     single_df = single_df.astype(parsing_params.header_dtypes)
     single_df.index = single_df.index.tz_localize("UTC")
 
-    single_df = parsing_params.postprocessor(single_df)
-
     return single_df
 
 
