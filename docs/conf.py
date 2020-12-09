@@ -46,17 +46,20 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
     "sphinx.ext.viewcode",
-    'autoapi.extension',
+    "sphinx.ext.autodoc",
+    # 'autoapi.extension',
 ]
 
-autoapi_type = 'python'
-autoapi_dirs = ['../src/noiz']
-autoapi_root = "content/autoapi"
-autoapi_keep_files = True
-
-autodoc_default_options = {
-    'private-members': True,
-}
+# autoapi_type = 'python'
+# autoapi_dirs = ['../src/noiz']
+# autoapi_root = "content/autoapi"
+# autoapi_keep_files = True
+# # autoapi_member_order = ''
+# autoapi_python_use_implicit_namespaces=True
+#
+# autodoc_default_options = {
+#     'private-members': True,
+# }
 autodoc_typehints = "description"
 
 
