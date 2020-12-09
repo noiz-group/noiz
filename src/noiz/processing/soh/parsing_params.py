@@ -472,6 +472,7 @@ def _postprocess_soh_miniseed_instrument_centaur(df: pd.DataFrame) -> pd.DataFra
     df.loc[:, 'Temperature(C)'] = df.loc[:, 'Temperature(C)']/1000
     return df
 
+
 def _postprocess_soh_miniseed_gpstime_centaur(df: pd.DataFrame) -> pd.DataFrame:
     """
     This is internal postprocessor routine for unifying values read from files with what is expected in the Noiz db.
