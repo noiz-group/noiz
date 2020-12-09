@@ -1,11 +1,9 @@
-import numpy as np
-import obspy
 import pandas as pd
 from pathlib import Path
-from typing import Tuple, Optional, Dict, Collection, Generator, Union
+from typing import Dict, Collection, Generator, Union
 
 from noiz.exceptions import UnparsableDateTimeException, SohParsingException
-from noiz.processing.soh.soh_column_names import SohParsingParams
+from noiz.processing.soh.parsing_params import SohParsingParams
 
 
 def read_multiple_soh(
@@ -53,104 +51,6 @@ def read_multiple_soh(
     return df
 
 
-def _read_single_soh_csv(
-        filepath: Path,
-        parsing_params: SohParsingParams,
-) -> Optional[pd.DataFrame]:
-    """
-    Takes a filepath to a single CSV file and parses it according to parameters passed.
-
-    :param filepath: File to be parsed
-    :type filepath: Path
-    :param parsing_params: Parameters to parse with
-    :type parsing_params: SohParsingParams
-    :return: Returns dataframe if there was anything to parse
-    :rtype: Optional[pd.DataFrame]
-    """
-    try:
-        single_df = pd.read_csv(
-            filepath,
-            index_col=False,
-            names=parsing_params.header_names,
-            usecols=parsing_params.used_names,
-            parse_dates=["UTCDateTime"],
-            skiprows=1,
-        ).set_index("UTCDateTime")
-    except ValueError:
-        raise UnparsableDateTimeException(
-            f"There is a problem with parsing file.\n {filepath}"
-        )
-
-    if len(single_df) == 0:
-        return None
-
-    if single_df.index.dtype == "O":
-        single_df = single_df[~single_df.index.str.contains("Time")]
-        try:
-            single_df.index = single_df.index.astype("datetime64[ns]")
-        except ValueError:
-            raise UnparsableDateTimeException(
-                f"There was a problem with parsing the SOH file.\n"
-                f" One of elements of UTCDateTime column could not be parsed to datetime format.\n"
-                f" Check the file, it might contain single unparsable line.\n"
-                f" {filepath} "
-            )
-
-    single_df = single_df.astype(parsing_params.header_dtypes)
-    single_df.index = single_df.index.tz_localize("UTC")
-
-    return single_df
-
-
-def _read_single_soh_miniseed_centaur(
-        filepath: Path,
-        parsing_params: SohParsingParams,
-) -> pd.DataFrame:
-    """
-    This method reads a miniseed file and looks for channels defined in the
-    :class:`~noiz.processing.soh.soh_column_names.SohParsingParams` that is provided as param `parsing_params.
-    It also renames all the channels to propoper names.
-    It doesn't postprocess data.
-
-    :param filepath: Filepath of miniseed soh
-    :type filepath: Path
-    :param parsing_params: Parameters object for parsing
-    :type parsing_params: SohParsingParams
-    :return: Resulting DataFrame with soh data
-    :rtype: pd.DataFrame
-    """
-
-    st = obspy.read(str(filepath))
-    data_read = []
-    for channel in parsing_params.used_names:
-        st_selected = st.select(channel=channel)
-        if len(st_selected) == 0:
-            data_read.append(pd.Series(name=parsing_params.name_mappings[channel], dtype=np.float64))
-            continue
-        for tr in st_selected:
-            data_read.append(
-                pd.Series(
-                    index=[pd.Timestamp.fromtimestamp(t) for t in tr.times('timestamp')],
-                    data=tr.data,
-                    name=parsing_params.name_mappings[channel]
-                )
-            )
-
-    df = pd.concat(data_read, axis=1)
-    df.index = pd.DatetimeIndex(df.index)
-    df = df.astype(parsing_params.header_dtypes)
-    df.index = df.index.tz_localize("UTC")
-
-    return df
-
-
-def _postprocess_soh_miniseed_instrument_centaur(df: pd.DataFrame) -> pd.DataFrame:
-    df.loc[:, 'Supply voltage(V)'] = df.loc[:, 'Supply voltage(V)']/1000
-    df.loc[:, 'Total current(A)'] = df.loc[:, 'Total current(A)']/1000
-    df.loc[:, 'Temperature(C)'] = df.loc[:, 'Temperature(C)']/1000
-    return df
-
-
 def __postprocess_soh_dataframe(df: pd.DataFrame, parsing_params: SohParsingParams) -> pd.DataFrame:
     """
     Postprocessing of the dataframes coming from Nanometrics devices.
@@ -168,7 +68,7 @@ def __postprocess_soh_dataframe(df: pd.DataFrame, parsing_params: SohParsingPara
 
     # FIXME: Split this method into separate postprocessors and add it to SohParsingParams so they are ran separately
 
-    from noiz.processing.soh.soh_column_names import SohType, SohInstrumentNames
+    from noiz.processing.soh.parsing_params import SohType, SohInstrumentNames
     if parsing_params.soh_type in (SohType.GPSTIME, SohType.GNSSTIME):
         df["Time uncertainty(ns)"] = df["Time uncertainty(ns)"] / 1000
         df["Time error(ns)"] = df["Time error(ns)"] / 1000
