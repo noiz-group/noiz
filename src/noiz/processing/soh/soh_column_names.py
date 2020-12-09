@@ -332,10 +332,18 @@ def _empty_postprocessor(df: pd.DataFrame) -> pd.DataFrame:
 
 
 class Postprocessor(Protocol):
+    """
+    This is just a callback protocol which defines type for
+    :param:`noiz.processing.soh.soh_column_names.SohParsingParams.postprocessor`.
+    """
     def __call__(self, df: pd.DataFrame) -> pd.DataFrame: ...
 
 
 class Parser(Protocol):
+    """
+    This is just a callback protocol which defines type for
+    :param:`noiz.processing.soh.soh_column_names.SohParsingParams.parser`.
+    """
     def __call__(self, filepath: Path, parsing_params: SohParsingParams) -> pd.DataFrame: ...
 
 
