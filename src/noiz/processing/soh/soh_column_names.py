@@ -10,7 +10,7 @@ from typing import Dict, Tuple, Callable, Optional
 
 from noiz.globals import ExtendedEnum
 from noiz.processing.soh.parsing import _read_single_soh_miniseed_centaur, read_single_soh_csv, \
-    _postprocess_soh_miniseed_centaur
+    _postprocess_soh_miniseed_instrument_centaur
 
 taurus_instrument_header_names = (
     "timestamp",
@@ -138,9 +138,6 @@ centaur_miniseed_header_columns = (
 )
 
 centaur_miniseed_gpstime_used_columns = (
-    "VEI",
-    "VEC",
-    "VDT",
     "GST",
     "GNS",
     "LCQ",
@@ -150,9 +147,6 @@ centaur_miniseed_gpstime_used_columns = (
 )
 
 centaur_miniseed_gpstime_name_mappings = {
-    "VEI": "Supply voltage(V)",
-    "VEC": "Total current(A)",
-    "VDT": "Temperature(C)",
     "GST": "GPS receiver status",
     "GNS": "GPS satellites used",
     "LCQ": "Timing status",
@@ -162,15 +156,29 @@ centaur_miniseed_gpstime_name_mappings = {
 }
 
 centaur_miniseed_gpstime_dtypes = {
-    "Supply voltage(V)": np.float64,
-    "Total current(A)": np.float64,
-    "Temperature(C)": np.float64,
     "GPS receiver status": np.float64,
     "GPS satellites used": np.float64,
     "Timing status": np.float64,
     "Phase lock loop status": np.float64,
     "Timing DAC count": np.float64,
     "Time error(ns)": np.float64,
+}
+centaur_miniseed_instrument_used_columns = (
+    "VEI",
+    "VEC",
+    "VDT",
+)
+
+centaur_miniseed_instrument_name_mappings = {
+    "VEI": "Supply voltage(V)",
+    "VEC": "Total current(A)",
+    "VDT": "Temperature(C)",
+}
+
+centaur_miniseed_instrument_dtypes = {
+    "Supply voltage(V)": np.float64,
+    "Total current(A)": np.float64,
+    "Temperature(C)": np.float64,
 }
 
 centaur_instrument_header_columns = (
@@ -315,7 +323,8 @@ class SohType(ExtendedEnum):
     GPSTIME = "gpstime"
     GNSSTIME = "gnsstime"
     ENVIRONMENT = "environment"
-    MINISEED = "miniseed"
+    MINISEED_GPSTIME = "miniseed_gpstime"
+    MINISEED_INSTRUMENT = "miniseed_instrument"
 
 
 def _empty_postprocessor(df: pd.DataFrame) -> pd.DataFrame:
@@ -342,13 +351,24 @@ class SohCSVParsingParams:
 __parsing_params_list = (
     SohCSVParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
-        soh_type=SohType.MINISEED,
+        soh_type=SohType.MINISEED_GPSTIME,
         header_names=centaur_miniseed_header_columns,
         used_names=centaur_miniseed_gpstime_used_columns,
         header_dtypes=centaur_miniseed_gpstime_dtypes,
         search_regex="*SOH_*.miniseed",
-        postprocessor=_postprocess_soh_miniseed_centaur,
+        postprocessor=_empty_postprocessor,
         name_mappings=centaur_miniseed_gpstime_name_mappings,
+        parser=_read_single_soh_miniseed_centaur
+    ),
+    SohCSVParsingParams(
+        instrument_name=SohInstrumentNames.CENTAUR,
+        soh_type=SohType.MINISEED_INSTRUMENT,
+        header_names=centaur_miniseed_header_columns,
+        used_names=centaur_miniseed_instrument_used_columns,
+        header_dtypes=centaur_miniseed_instrument_dtypes,
+        search_regex="*SOH_*.miniseed",
+        postprocessor=_postprocess_soh_miniseed_instrument_centaur,
+        name_mappings=centaur_miniseed_instrument_name_mappings,
         parser=_read_single_soh_miniseed_centaur
     ),
     SohCSVParsingParams(

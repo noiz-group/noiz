@@ -50,7 +50,7 @@ def _read_single_soh_miniseed_centaur(
     return df
 
 
-def _postprocess_soh_miniseed_centaur(df: pd.DataFrame) -> pd.DataFrame:
+def _postprocess_soh_miniseed_instrument_centaur(df: pd.DataFrame) -> pd.DataFrame:
     df.loc[:, 'Supply voltage(V)'] = df.loc[:, 'Supply voltage(V)']/1000
     df.loc[:, 'Total current(A)'] = df.loc[:, 'Total current(A)']/1000
     df.loc[:, 'Temperature(C)'] = df.loc[:, 'Temperature(C)']/1000

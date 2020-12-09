@@ -9,7 +9,7 @@ from noiz.processing.soh.parsing import _read_single_soh_miniseed_centaur
 def test__read_single_soh_miniseed_centaur_all_channels_present():
     filepath = Path(__file__).parent.joinpath("data", "XX.S0001.D0.SOH_centaur-3_1479_20171125_100000.miniseed")
     parsing_params = load_parsing_parameters(
-        station_type=SohInstrumentNames.CENTAUR.value, soh_type=SohType.MINISEED.value)
+        station_type=SohInstrumentNames.CENTAUR.value, soh_type=SohType.MINISEED_GPSTIME.value)
 
     res = _read_single_soh_miniseed_centaur(filepath=filepath, parsing_params=parsing_params)
 
@@ -21,7 +21,7 @@ def test__read_single_soh_miniseed_centaur_all_channels_present():
 def test__read_single_soh_miniseed_centaur_empty_channels():
     filepath = Path(__file__).parent.joinpath("data", "SI.SI09.D0.SOH_centaur-3_1492_20180616_040000.miniseed")
     parsing_params = load_parsing_parameters(
-        station_type=SohInstrumentNames.CENTAUR.value, soh_type=SohType.MINISEED.value)
+        station_type=SohInstrumentNames.CENTAUR.value, soh_type=SohType.MINISEED_GPSTIME.value)
 
     res = _read_single_soh_miniseed_centaur(filepath=filepath, parsing_params=parsing_params)
 
