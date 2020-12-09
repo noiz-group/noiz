@@ -317,6 +317,8 @@ class SohType(ExtendedEnum):
     ENVIRONMENT = "environment"
     MINISEED = "miniseed"
 
+def _empty_postprocessor(df: pd.DataFrame) -> pd.DataFrame:
+    return df
 
 @dataclass
 class SohCSVParsingParams:
@@ -331,7 +333,7 @@ class SohCSVParsingParams:
     header_dtypes: Dict[str, type]
     name_mappings: Dict[str, str]
     search_regex: str
-    postprocessor: Optional[Callable[[pd.DataFrame], pd.DataFrame]]
+    postprocessor: Callable[[pd.DataFrame], pd.DataFrame]
     parser: Callable[[Path, SohCSVParsingParams], pd.DataFrame]
 
 
@@ -354,7 +356,7 @@ __parsing_params_list = (
         used_names=centaur_instrument_used_columns,
         header_dtypes=centaur_instrument_dtypes,
         search_regex="*Instrument*.csv",
-        postprocessor=None,
+        postprocessor=_empty_postprocessor,
         name_mappings={},
         parser=read_single_soh_csv
     ),
@@ -365,7 +367,7 @@ __parsing_params_list = (
         used_names=centaur_gpstime_used_columns,
         header_dtypes=centaur_gpstime_dtypes,
         search_regex="*GPSTime*.csv",
-        postprocessor=None,
+        postprocessor=_empty_postprocessor,
         name_mappings={},
         parser=read_single_soh_csv
     ),
@@ -376,7 +378,7 @@ __parsing_params_list = (
         used_names=centaur_gnsstime_used_columns,
         header_dtypes=centaur_gnsstime_dtypes,
         search_regex="*GNSSTime*.csv",
-        postprocessor=None,
+        postprocessor=_empty_postprocessor,
         name_mappings={},
         parser=read_single_soh_csv
     ),
@@ -387,7 +389,7 @@ __parsing_params_list = (
         used_names=centaur_environment_used_columns,
         header_dtypes=centaur_environment_dtypes,
         search_regex="*EnvironmentSOH*.csv",
-        postprocessor=None,
+        postprocessor=_empty_postprocessor,
         name_mappings={},
         parser=read_single_soh_csv
     ),
@@ -398,7 +400,7 @@ __parsing_params_list = (
         used_names=taurus_instrument_used_names,
         header_dtypes=taurus_instrument_dtypes,
         search_regex="*Instrument*.csv",
-        postprocessor=None,
+        postprocessor=_empty_postprocessor,
         name_mappings={},
         parser=read_single_soh_csv
     ),
@@ -409,7 +411,7 @@ __parsing_params_list = (
         used_names=taurus_gpstime_used_names,
         header_dtypes=taurus_gpstime_dtypes,
         search_regex="*GPSTime*.csv",
-        postprocessor=None,
+        postprocessor=_empty_postprocessor,
         name_mappings={},
         parser=read_single_soh_csv
     ),
@@ -420,7 +422,7 @@ __parsing_params_list = (
         used_names=taurus_environment_used_names,
         header_dtypes=taurus_environment_dtypes,
         search_regex="*EnvironmentSOH*.csv",
-        postprocessor=None,
+        postprocessor=_empty_postprocessor,
         name_mappings={},
         parser=read_single_soh_csv
     ),
