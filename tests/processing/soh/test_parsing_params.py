@@ -1,8 +1,10 @@
 import pytest
 
 import numpy as np
+from pandas._testing import assert_frame_equal
 from pathlib import Path
 import pandas as pd
+from pandas.testing import assert_index_equal
 
 from noiz.processing.soh.parsing_params import SohType, SohInstrumentNames, load_parsing_parameters, \
     _read_single_soh_miniseed_centaur, _postprocess_soh_miniseed_instrument_centaur
@@ -26,7 +28,7 @@ def test__read_single_soh_miniseed_gpstime_centaur_all_channels_present():
     assert isinstance(res.index, pd.DatetimeIndex)
     assert res.shape == (2, 6)
     assert np.array_equal(res.values, expected_values)
-    assert res.index == expected_index
+    assert_index_equal(res.index, expected_index)
 
 
 def test__read_single_soh_miniseed_instrument_centaur_all_channels_present():
@@ -46,7 +48,7 @@ def test__read_single_soh_miniseed_instrument_centaur_all_channels_present():
     assert isinstance(res.index, pd.DatetimeIndex)
     assert res.shape == (2, 3)
     assert np.array_equal(res.values, expected_values)
-    assert res.index == expected_index
+    assert_index_equal(res.index, expected_index)
 
 
 def test__postprocess_soh_miniseed_instrument_centaur_all_channels_present():
@@ -67,7 +69,7 @@ def test__postprocess_soh_miniseed_instrument_centaur_all_channels_present():
     assert isinstance(res.index, pd.DatetimeIndex)
     assert res.shape == (2, 3)
     assert np.array_equal(res.values, expected_values)
-    assert res.index == expected_index
+    assert_index_equal(res.index, expected_index)
 
 
 def test__read_single_soh_miniseed_gpstime_centaur_empty_channels():
@@ -77,14 +79,12 @@ def test__read_single_soh_miniseed_gpstime_centaur_empty_channels():
 
     res = _read_single_soh_miniseed_centaur(filepath=filepath, parsing_params=parsing_params)
 
-    expected_values = np.array([], shape=(0, 6), dtype=np.float64)
     expected_index = pd.DatetimeIndex([], dtype='datetime64[ns, UTC]', freq=None)
 
     assert isinstance(res, pd.DataFrame)
     assert isinstance(res.index, pd.DatetimeIndex)
     assert res.shape == (0, 6)
-    assert np.array_equal(res.values, expected_values)
-    assert res.index == expected_index
+    assert_index_equal(res.index, expected_index)
 
 
 def test__read_single_soh_miniseed_instrument_centaur_empty_channels():
@@ -94,16 +94,17 @@ def test__read_single_soh_miniseed_instrument_centaur_empty_channels():
 
     res = _read_single_soh_miniseed_centaur(filepath=filepath, parsing_params=parsing_params)
 
+    expected_columns = pd.Index(['Supply voltage(V)', 'Total current(A)', 'Temperature(C)'], dtype='object')
     expected_values = np.array([[np.nan, np.nan, 25250.],
                                 [np.nan, np.nan, 25000.]])
     expected_index = pd.DatetimeIndex(['2018-06-16 04:00:00+00:00', '2018-06-16 04:30:00+00:00'],
                                       dtype='datetime64[ns, UTC]', freq=None)
+    expected_df = pd.DataFrame(index=expected_index, columns=expected_columns, data=expected_values)
 
     assert isinstance(res, pd.DataFrame)
     assert isinstance(res.index, pd.DatetimeIndex)
     assert res.shape == (2, 3)
-    assert np.array_equal(res.values, expected_values)
-    assert res.index == expected_index
+    assert_frame_equal(res, expected_df)
 
 
 def test__postprocess_soh_miniseed_instrument_centaur_empty_channels():
@@ -114,13 +115,14 @@ def test__postprocess_soh_miniseed_instrument_centaur_empty_channels():
     part = _read_single_soh_miniseed_centaur(filepath=filepath, parsing_params=parsing_params)
     res = _postprocess_soh_miniseed_instrument_centaur(df=part)
 
+    expected_columns = pd.Index(['Supply voltage(V)', 'Total current(A)', 'Temperature(C)'], dtype='object')
     expected_values = np.array([[np.nan, np.nan, 25.250],
                                 [np.nan, np.nan, 25.000]])
     expected_index = pd.DatetimeIndex(['2018-06-16 04:00:00+00:00', '2018-06-16 04:30:00+00:00'],
                                       dtype='datetime64[ns, UTC]', freq=None)
+    expected_df = pd.DataFrame(index=expected_index, columns=expected_columns, data=expected_values)
 
     assert isinstance(res, pd.DataFrame)
     assert isinstance(res.index, pd.DatetimeIndex)
     assert res.shape == (2, 3)
-    assert np.array_equal(res.values, expected_values)
-    assert res.index == expected_index
+    assert_frame_equal(res, expected_df)
