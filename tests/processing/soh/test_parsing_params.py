@@ -7,7 +7,8 @@ import pandas as pd
 from pandas.testing import assert_index_equal
 
 from noiz.processing.soh.parsing_params import SohType, SohInstrumentNames, load_parsing_parameters, \
-    _read_single_soh_miniseed_centaur, _postprocess_soh_miniseed_instrument_centaur
+    _read_single_soh_miniseed_centaur, _postprocess_soh_miniseed_instrument_centaur, \
+    _postprocess_soh_miniseed_gpstime_centaur
 
 
 def test__read_single_soh_miniseed_gpstime_centaur_all_channels_present():
@@ -17,18 +18,41 @@ def test__read_single_soh_miniseed_gpstime_centaur_all_channels_present():
 
     res = _read_single_soh_miniseed_centaur(filepath=filepath, parsing_params=parsing_params)
 
+    expected_columns = pd.Index(['GPS receiver status', 'GPS satellites used', 'Timing status',
+                                 'Phase lock loop status', 'Timing DAC count', 'Time error(ms)',
+                                 'Time uncertainty(ms)'],
+                                dtype='object')
     expected_values = np.array([[0.00000000e+00, 1.00000000e+01, 9.00000000e+01,
-                                 3.00000000e+00, 8.32400000e+03, 0.00000000e+00],
+                                 3.00000000e+00, 8.32400000e+03, 0.00000000e+00,
+                                 np.nan],
                                 [0.00000000e+00, 1.00000000e+01, 9.00000000e+01,
-                                 3.00000000e+00, 8.32700000e+03, 0.00000000e+00]])
+                                 3.00000000e+00, 8.32700000e+03, 0.00000000e+00,
+                                 np.nan]])
     expected_index = pd.DatetimeIndex(['2017-11-25 10:00:00+00:00', '2017-11-25 10:30:00+00:00'],
                                       dtype='datetime64[ns, UTC]', freq=None)
+    expected_df = pd.DataFrame(columns=expected_columns, index=expected_index, data=expected_values)
 
     assert isinstance(res, pd.DataFrame)
     assert isinstance(res.index, pd.DatetimeIndex)
-    assert res.shape == (2, 6)
-    assert np.array_equal(res.values, expected_values)
-    assert_index_equal(res.index, expected_index)
+    assert res.shape == (2, 7)
+    assert_frame_equal(res, expected_df)
+
+
+def test__postprocess_soh_miniseed_gpstime_centaur_all_channels_present():
+    filepath = Path(__file__).parent.joinpath("data", "XX.S0001.D0.SOH_centaur-3_1479_20171125_100000.miniseed")
+    parsing_params = load_parsing_parameters(
+        station_type=SohInstrumentNames.CENTAUR.value, soh_type=SohType.MINISEED_GPSTIME.value)
+
+    df = _read_single_soh_miniseed_centaur(filepath=filepath, parsing_params=parsing_params)
+    orig_vals = np.array([2657, 2356])
+    df['Time error(ms)'] = orig_vals
+
+    res = _postprocess_soh_miniseed_gpstime_centaur(df=df)
+
+    assert isinstance(res, pd.DataFrame)
+    assert isinstance(res.index, pd.DatetimeIndex)
+    assert res.shape == (2, 7)
+    assert np.array_equal(res['Time error(ms)'].values, orig_vals/1000)
 
 
 def test__read_single_soh_miniseed_instrument_centaur_all_channels_present():
@@ -83,7 +107,7 @@ def test__read_single_soh_miniseed_gpstime_centaur_empty_channels():
 
     assert isinstance(res, pd.DataFrame)
     assert isinstance(res.index, pd.DatetimeIndex)
-    assert res.shape == (0, 6)
+    assert res.shape == (0, 7)
     assert_index_equal(res.index, expected_index)
 
 
