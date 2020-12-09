@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from collections import defaultdict
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
-from typing import Dict, Tuple, Callable, Optional
+from collections import defaultdict
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, Tuple
+from typing_extensions import Protocol
 
 from noiz.globals import ExtendedEnum
 from noiz.processing.soh.parsing import _read_single_soh_miniseed_centaur, read_single_soh_csv, \
@@ -330,10 +330,10 @@ class SohType(ExtendedEnum):
 def _empty_postprocessor(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
-from typing_extensions import Protocol
 
 class Postprocessor(Protocol):
     def __call__(self, df: pd.DataFrame) -> pd.DataFrame: ...
+
 
 class Parser(Protocol):
     def __call__(self, filepath: Path, parsing_params: SohCSVParsingParams) -> pd.DataFrame: ...
