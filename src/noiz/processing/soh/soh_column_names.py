@@ -336,11 +336,11 @@ class Postprocessor(Protocol):
 
 
 class Parser(Protocol):
-    def __call__(self, filepath: Path, parsing_params: SohCSVParsingParams) -> pd.DataFrame: ...
+    def __call__(self, filepath: Path, parsing_params: SohParsingParams) -> pd.DataFrame: ...
 
 
 @dataclass
-class SohCSVParsingParams:
+class SohParsingParams:
     """
     This is just here implemented for the future.
     The SOHProcessingParams dict should be refactored to use that class
@@ -357,7 +357,7 @@ class SohCSVParsingParams:
 
 
 __parsing_params_list = (
-    SohCSVParsingParams(
+    SohParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
         soh_type=SohType.MINISEED_GPSTIME,
         header_names=centaur_miniseed_header_columns,
@@ -368,7 +368,7 @@ __parsing_params_list = (
         name_mappings=centaur_miniseed_gpstime_name_mappings,
         parser=_read_single_soh_miniseed_centaur
     ),
-    SohCSVParsingParams(
+    SohParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
         soh_type=SohType.MINISEED_INSTRUMENT,
         header_names=centaur_miniseed_header_columns,
@@ -379,7 +379,7 @@ __parsing_params_list = (
         name_mappings=centaur_miniseed_instrument_name_mappings,
         parser=_read_single_soh_miniseed_centaur
     ),
-    SohCSVParsingParams(
+    SohParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
         soh_type=SohType.INSTRUMENT,
         header_names=centaur_instrument_header_columns,
@@ -390,7 +390,7 @@ __parsing_params_list = (
         name_mappings={},
         parser=read_single_soh_csv
     ),
-    SohCSVParsingParams(
+    SohParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
         soh_type=SohType.GPSTIME,
         header_names=centaur_gpstime_header_columns,
@@ -401,7 +401,7 @@ __parsing_params_list = (
         name_mappings={},
         parser=read_single_soh_csv
     ),
-    SohCSVParsingParams(
+    SohParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
         soh_type=SohType.GNSSTIME,
         header_names=centaur_gnsstime_header_columns,
@@ -412,7 +412,7 @@ __parsing_params_list = (
         name_mappings={},
         parser=read_single_soh_csv
     ),
-    SohCSVParsingParams(
+    SohParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
         soh_type=SohType.ENVIRONMENT,
         header_names=centaur_environment_header_columns,
@@ -423,7 +423,7 @@ __parsing_params_list = (
         name_mappings={},
         parser=read_single_soh_csv
     ),
-    SohCSVParsingParams(
+    SohParsingParams(
         instrument_name=SohInstrumentNames.TAURUS,
         soh_type=SohType.INSTRUMENT,
         header_names=taurus_instrument_header_names,
@@ -434,7 +434,7 @@ __parsing_params_list = (
         name_mappings={},
         parser=read_single_soh_csv
     ),
-    SohCSVParsingParams(
+    SohParsingParams(
         instrument_name=SohInstrumentNames.TAURUS,
         soh_type=SohType.GPSTIME,
         header_names=taurus_gpstime_header_names,
@@ -445,7 +445,7 @@ __parsing_params_list = (
         name_mappings={},
         parser=read_single_soh_csv
     ),
-    SohCSVParsingParams(
+    SohParsingParams(
         instrument_name=SohInstrumentNames.TAURUS,
         soh_type=SohType.ENVIRONMENT,
         header_names=taurus_environment_header_names,
@@ -466,17 +466,17 @@ for item in __parsing_params_list:
 SOH_PARSING_PARAMETERS = dict(__soh_parsing_params)
 
 
-def load_parsing_parameters(soh_type: str, station_type: str) -> SohCSVParsingParams:
+def load_parsing_parameters(soh_type: str, station_type: str) -> SohParsingParams:
     """
     Checks if provided soh_type and station_type are valid names and then checks if a given combination
-    of station_type and soh_type have SohCSVParsingParams associated with them.
+    of station_type and soh_type have SohParsingParams associated with them.
 
     :param soh_type: Type of soh to be queried
     :type soh_type: str
     :param station_type: Type of station to be queried
     :type station_type: str
-    :return: Valid SohCSVParsingParams
-    :rtype: SohCSVParsingParams
+    :return: Valid SohParsingParams
+    :rtype: SohParsingParams
     raises: ValueError
     """
 

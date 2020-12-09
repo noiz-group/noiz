@@ -5,23 +5,23 @@ from pathlib import Path
 from typing import Tuple, Optional, Dict, Collection, Generator, Union
 
 from noiz.exceptions import UnparsableDateTimeException, SohParsingException
-from noiz.processing.soh.soh_column_names import SohCSVParsingParams
+from noiz.processing.soh.soh_column_names import SohParsingParams
 
 
 def _read_single_soh_miniseed_centaur(
         filepath: Path,
-        parsing_params: SohCSVParsingParams,
+        parsing_params: SohParsingParams,
 ) -> pd.DataFrame:
     """
     This method reads a miniseed file and looks for channels defined in the
-    :class:`~noiz.processing.soh.soh_column_names.SohCSVParsingParams` that is provided as param `parsing_params.
+    :class:`~noiz.processing.soh.soh_column_names.SohParsingParams` that is provided as param `parsing_params.
     It also renames all the channels to propoper names.
     It doesn't postprocess data.
 
     :param filepath: Filepath of miniseed soh
     :type filepath: Path
     :param parsing_params: Parameters object for parsing
-    :type parsing_params: SohCSVParsingParams
+    :type parsing_params: SohParsingParams
     :return: Resulting DataFrame with soh data
     :rtype: pd.DataFrame
     """
@@ -59,7 +59,7 @@ def _postprocess_soh_miniseed_instrument_centaur(df: pd.DataFrame) -> pd.DataFra
 
 def read_single_soh_csv(
         filepath: Path,
-        parsing_params: SohCSVParsingParams,
+        parsing_params: SohParsingParams,
 ) -> Optional[pd.DataFrame]:
     """
     Takes a filepath to a single CSV file and parses it according to parameters passed.
@@ -113,7 +113,7 @@ def read_single_soh_csv(
 
 def read_multiple_soh(
         filepaths: Union[Collection[Path], Generator[Path, None, None]],
-        parsing_params: SohCSVParsingParams,
+        parsing_params: SohParsingParams,
 ) -> pd.DataFrame:
     """
     Method that takes a collection of Paths and iterates over them trying to parse each of them according
@@ -156,7 +156,7 @@ def read_multiple_soh(
     return df
 
 
-def __postprocess_soh_dataframe(df: pd.DataFrame, parsing_params: SohCSVParsingParams) -> pd.DataFrame:
+def __postprocess_soh_dataframe(df: pd.DataFrame, parsing_params: SohParsingParams) -> pd.DataFrame:
     """
     Postprocessing of the dataframes coming from Nanometrics devices.
     It recalculates the time GPS time errors from ns to ms.
@@ -166,7 +166,7 @@ def __postprocess_soh_dataframe(df: pd.DataFrame, parsing_params: SohCSVParsingP
     :param df: Dataframe to be postprocessed
     :type df: pd.DataFrame
     :param parsing_params: Soh processing params
-    :type parsing_params: SohCSVParsingParams
+    :type parsing_params: SohParsingParams
     :return: Postprocessed dataframe
     :rtype: pd.DataFrame
     """
@@ -215,7 +215,7 @@ def __postprocess_soh_dataframe(df: pd.DataFrame, parsing_params: SohCSVParsingP
 
 
 def glob_soh_directory(
-        parsing_parameters: SohCSVParsingParams,
+        parsing_parameters: SohParsingParams,
         main_filepath: Path
 ) -> Generator[Path, None, None]:
     """
@@ -223,7 +223,7 @@ def glob_soh_directory(
     parsing_parameters.search_regex
 
     :param parsing_parameters: Parsing parameters to be used
-    :type parsing_parameters: SohCSVParsingParams
+    :type parsing_parameters: SohParsingParams
     :param main_filepath: Directory to be rglobbed
     :type main_filepath: Path
     :return: Paths to files fitting the search_regex
