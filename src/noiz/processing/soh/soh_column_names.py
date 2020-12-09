@@ -9,7 +9,7 @@ from typing import Dict, Tuple
 from typing_extensions import Protocol
 
 from noiz.globals import ExtendedEnum
-from noiz.processing.soh.parsing import _read_single_soh_miniseed_centaur, read_single_soh_csv, \
+from noiz.processing.soh.parsing import _read_single_soh_miniseed_centaur, _read_single_soh_csv, \
     _postprocess_soh_miniseed_instrument_centaur
 
 taurus_instrument_header_names = (
@@ -388,7 +388,7 @@ __parsing_params_list = (
         search_regex="*Instrument*.csv",
         postprocessor=_empty_postprocessor,
         name_mappings={},
-        parser=read_single_soh_csv
+        parser=_read_single_soh_csv
     ),
     SohParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
@@ -399,7 +399,7 @@ __parsing_params_list = (
         search_regex="*GPSTime*.csv",
         postprocessor=_empty_postprocessor,
         name_mappings={},
-        parser=read_single_soh_csv
+        parser=_read_single_soh_csv
     ),
     SohParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
@@ -410,7 +410,7 @@ __parsing_params_list = (
         search_regex="*GNSSTime*.csv",
         postprocessor=_empty_postprocessor,
         name_mappings={},
-        parser=read_single_soh_csv
+        parser=_read_single_soh_csv
     ),
     SohParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
@@ -421,7 +421,7 @@ __parsing_params_list = (
         search_regex="*EnvironmentSOH*.csv",
         postprocessor=_empty_postprocessor,
         name_mappings={},
-        parser=read_single_soh_csv
+        parser=_read_single_soh_csv
     ),
     SohParsingParams(
         instrument_name=SohInstrumentNames.TAURUS,
@@ -432,7 +432,7 @@ __parsing_params_list = (
         search_regex="*Instrument*.csv",
         postprocessor=_empty_postprocessor,
         name_mappings={},
-        parser=read_single_soh_csv
+        parser=_read_single_soh_csv
     ),
     SohParsingParams(
         instrument_name=SohInstrumentNames.TAURUS,
@@ -443,7 +443,7 @@ __parsing_params_list = (
         search_regex="*GPSTime*.csv",
         postprocessor=_empty_postprocessor,
         name_mappings={},
-        parser=read_single_soh_csv
+        parser=_read_single_soh_csv
     ),
     SohParsingParams(
         instrument_name=SohInstrumentNames.TAURUS,
@@ -454,7 +454,7 @@ __parsing_params_list = (
         search_regex="*EnvironmentSOH*.csv",
         postprocessor=_empty_postprocessor,
         name_mappings={},
-        parser=read_single_soh_csv
+        parser=_read_single_soh_csv
     ),
 )
 
