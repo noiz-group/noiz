@@ -130,10 +130,9 @@ def read_multiple_soh(
     all_dfs = []
     for filepath in filepaths:
         try:
-            # This call for typing reason cannot use keyword arguments
             single_df = parsing_params.parser(
-                filepath,
-                parsing_params,
+                filepath=filepath,
+                parsing_params=parsing_params,
             )
         except UnparsableDateTimeException as e:
             raise UnparsableDateTimeException(f"{filepath} has raised exception {e}")
@@ -152,7 +151,7 @@ def read_multiple_soh(
         raise SohParsingException(f"There was an exception raised by pd.concat. The exception was: {e}")
     df = df.sort_index()
 
-    df = parsing_params.postprocessor(df)
+    df = parsing_params.postprocessor(df=df)
 
     return df
 

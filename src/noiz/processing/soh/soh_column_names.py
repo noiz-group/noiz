@@ -330,6 +330,14 @@ class SohType(ExtendedEnum):
 def _empty_postprocessor(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
+from typing_extensions import Protocol
+
+class Postprocessor(Protocol):
+    def __call__(self, df: pd.DataFrame) -> pd.DataFrame: ...
+
+class Parser(Protocol):
+    def __call__(self, filepath: Path, parsing_params: SohCSVParsingParams) -> pd.DataFrame: ...
+
 
 @dataclass
 class SohCSVParsingParams:
@@ -344,8 +352,8 @@ class SohCSVParsingParams:
     header_dtypes: Dict[str, type]
     name_mappings: Dict[str, str]
     search_regex: str
-    postprocessor: Callable[[pd.DataFrame], pd.DataFrame]
-    parser: Callable[[Path, SohCSVParsingParams], pd.DataFrame]
+    postprocessor: Postprocessor
+    parser: Parser
 
 
 __parsing_params_list = (
