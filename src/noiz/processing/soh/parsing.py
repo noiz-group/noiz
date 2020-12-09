@@ -156,11 +156,7 @@ def read_multiple_soh(
     return df
 
 
-def __postprocess_soh_dataframe(
-        df: pd.DataFrame,
-        station_type: str,
-        soh_type: str
-) -> pd.DataFrame:
+def __postprocess_soh_dataframe(df: pd.DataFrame, parsing_params: SohCSVParsingParams) -> pd.DataFrame:
     """
     Postprocessing of the dataframes coming from Nanometrics devices.
     It recalculates the time GPS time errors from ns to ms.
@@ -169,15 +165,14 @@ def __postprocess_soh_dataframe(
 
     :param df: Dataframe to be postprocessed
     :type df: pd.DataFrame
-    :param station_type: Station type
-    :type station_type: str
-    :param soh_type: Soh type
-    :type soh_type: str
+    :param parsing_params: Soh processing params
+    :type parsing_params: SohCSVParsingParams
     :return: Postprocessed dataframe
     :rtype: pd.DataFrame
     """
 
-    if soh_type.lower() in ("gpstime", "gnsstime"):
+    from noiz.processing.soh.soh_column_names import SohType, SohInstrumentNames
+    if parsing_params.soh_type in (SohType.GPSTIME, SohType.GNSSTIME):
         df["Time uncertainty(ns)"] = df["Time uncertainty(ns)"] / 1000
         df["Time error(ns)"] = df["Time error(ns)"] / 1000
 
@@ -188,7 +183,8 @@ def __postprocess_soh_dataframe(
             }
         )
 
-    if (station_type == "taurus") and (soh_type.lower() == "instrument"):
+    if (parsing_params.instrument_name == SohInstrumentNames.TAURUS)\
+            and (parsing_params.soh_type == SohType.INSTRUMENT):
         df["Supply voltage(V)"] = df["Supply Voltage(mV)"] / 1000
         df["Total current(A)"] = (
             df.loc[
