@@ -56,7 +56,7 @@ def fetch_components(
     if components is not None:
         filters.append(Component.component.in_(validate_to_tuple(components, accepted_type=str)))
     if component_ids is not None:
-        filters.append(Component.id.in_(component_ids, accepted_type=int))
+        filters.append(Component.id.in_(validate_to_tuple(component_ids, accepted_type=int)))
 
     if len(filters) == 0:
         filters.append(True)
