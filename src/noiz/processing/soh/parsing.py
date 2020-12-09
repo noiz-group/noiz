@@ -152,8 +152,7 @@ def read_multiple_soh(
         raise SohParsingException(f"There was an exception raised by pd.concat. The exception was: {e}")
     df = df.sort_index()
 
-    if parsing_params is not None:
-        df = parsing_params.postprocessor(df)
+    df = parsing_params.postprocessor(df)
 
     return df
 
