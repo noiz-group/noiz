@@ -344,7 +344,7 @@ class Parser(Protocol):
     This is just a callback protocol which defines type for
     :param:`noiz.processing.soh.soh_column_names.SohParsingParams.parser`.
     """
-    def __call__(self, filepath: Path, parsing_params: 'SohParsingParams') -> pd.DataFrame: ...
+    def __call__(self, filepath: Path, parsing_params: SohParsingParams) -> pd.DataFrame: ...
 
 
 @dataclass
