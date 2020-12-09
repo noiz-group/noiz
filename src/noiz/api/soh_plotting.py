@@ -189,6 +189,8 @@ def __plot_gps_data_soh(
     :rtype:
     """
 
+    # TODO Move this method to noiz.processing.soh.plotting
+
     fig, axes = plt.subplots(nrows=len(z_components), sharex=True, sharey=True, dpi=150)
 
     if len(z_components) == 1:
