@@ -2,8 +2,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from noiz.processing.soh.soh_column_names import SohType, SohInstrumentNames, load_parsing_parameters
-from noiz.processing.soh.parsing import _read_single_soh_miniseed_centaur
+from noiz.processing.soh.parsing_params import SohType, SohInstrumentNames, load_parsing_parameters, \
+    _read_single_soh_miniseed_centaur
 
 
 def test__read_single_soh_miniseed_centaur_all_channels_present():
