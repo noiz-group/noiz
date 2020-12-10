@@ -17,10 +17,10 @@ from noiz.api.helpers import validate_exactly_one_argument_provided, extract_obj
 from noiz.database import db
 from noiz.models.component import Component
 from noiz.models.timespan import Timespan
-from noiz.models.soh import SohInstrument, SohGps, association_table_soh_instr, association_table_soh_gps, AveragedSohGps, \
-    association_table_averaged_soh_gps_components
-from noiz.processing.soh import load_parsing_parameters, read_multiple_soh, __postprocess_soh_dataframe, \
-    _glob_soh_directory, __calculate_mean_gps_soh
+from noiz.models.soh import SohInstrument, SohGps, association_table_soh_instr, association_table_soh_gps, \
+    AveragedSohGps, association_table_averaged_soh_gps_components
+from noiz.processing.soh import load_parsing_parameters, read_multiple_soh, _glob_soh_directory, \
+    __calculate_mean_gps_soh
 
 
 def fetch_raw_soh_gps_df(
@@ -209,7 +209,6 @@ def ingest_soh_files(
         )
 
     df = read_multiple_soh(filepaths=filepaths, parsing_params=parsing_parameters)  # type: ignore
-    df = __postprocess_soh_dataframe(df=df, parsing_params=parsing_parameters)
 
     if soh_type in ("instrument", "miniseed_instrument"):
         __upsert_into_db_soh_instrument(df=df, station=station, network=network)
