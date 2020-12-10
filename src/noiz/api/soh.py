@@ -1,6 +1,6 @@
 import datetime
 import itertools
-import logging
+from loguru import logger
 import pandas as pd
 import warnings
 from pathlib import Path
@@ -255,7 +255,7 @@ def __upsert_into_db_soh_instrument(
     insert_commands = []
     for i, (timestamp, row) in enumerate(df.iterrows()):
         if i % int(command_count / 10) == 0:
-            logging.info(f"Prepared already {i}/{command_count} commands")
+            logger.info(f"Prepared already {i}/{command_count} commands")
         insert_command = (
             insert(SohInstrument)
             .values(
@@ -278,14 +278,14 @@ def __upsert_into_db_soh_instrument(
 
     for i, insert_command in enumerate(insert_commands):
         if i % int(command_count / 10) == 0:
-            logging.info(f"Inserted already {i}/{command_count} rows")
+            logger.info(f"Inserted already {i}/{command_count} rows")
         db.session.execute(insert_command)
 
-    logging.info('Commiting to db')
+    logger.info('Commiting to db')
     db.session.commit()
-    logging.info('Commit succesfull')
+    logger.info('Commit succesfull')
 
-    logging.info('Preparing to insert information about db relationship/')
+    logger.info('Preparing to insert information about db relationship/')
 
     soh_env_inserted = SohInstrument.query.filter(SohInstrument.z_component_id.in_(fetched_components_ids),
                                                   SohInstrument.datetime.in_(df.index.to_list())).all()
@@ -295,7 +295,7 @@ def __upsert_into_db_soh_instrument(
     insert_commands = []
     for i, (inserted_soh, component_id) in enumerate(itertools.product(soh_env_inserted, fetched_components_ids)):
         if i % int(command_count / 10) == 0:
-            logging.info(f"Prepared already {i}/{command_count} commands")
+            logger.info(f"Prepared already {i}/{command_count} commands")
 
         insert_command = (
             insert(association_table_soh_instr)
@@ -309,12 +309,12 @@ def __upsert_into_db_soh_instrument(
 
     for i, insert_command in enumerate(insert_commands):
         if i % int(command_count / 10) == 0:
-            logging.info(f"Inserted already {i}/{command_count} rows")
+            logger.info(f"Inserted already {i}/{command_count} rows")
         db.session.execute(insert_command)
 
-    logging.info('Commiting to db')
+    logger.info('Commiting to db')
     db.session.commit()
-    logging.info('Commit succesfull')
+    logger.info('Commit succesfull')
 
     return
 
@@ -353,7 +353,7 @@ def __upsert_into_db_soh_gps(
     insert_commands = []
     for i, (timestamp, row) in enumerate(df.iterrows()):
         if i % int(command_count / 10) == 0:
-            logging.info(f"Prepared already {i}/{command_count} commands")
+            logger.info(f"Prepared already {i}/{command_count} commands")
         insert_command = (
             insert(SohGps)
             .values(
@@ -374,14 +374,14 @@ def __upsert_into_db_soh_gps(
 
     for i, insert_command in enumerate(insert_commands):
         if i % int(command_count / 10) == 0:
-            logging.info(f"Inserted already {i}/{command_count} rows")
+            logger.info(f"Inserted already {i}/{command_count} rows")
         db.session.execute(insert_command)
 
-    logging.info('Commiting to db')
+    logger.info('Commiting to db')
     db.session.commit()
-    logging.info('Commit succesfull')
+    logger.info('Commit succesfull')
 
-    logging.info('Preparing to insert information about db relationship/')
+    logger.info('Preparing to insert information about db relationship/')
 
     fetched_soh = SohGps.query.filter(SohGps.z_component_id.in_(fetched_components_ids),
                                       SohGps.datetime.in_(df.index.to_list())).all()
@@ -391,7 +391,7 @@ def __upsert_into_db_soh_gps(
     insert_commands = []
     for i, (inserted_soh, component_id) in enumerate(itertools.product(fetched_soh, fetched_components_ids)):
         if i % int(command_count / 10) == 0:
-            logging.info(f"Prepared already {i}/{command_count} commands")
+            logger.info(f"Prepared already {i}/{command_count} commands")
 
         insert_command = (
             insert(association_table_soh_gps)
@@ -405,12 +405,12 @@ def __upsert_into_db_soh_gps(
 
     for i, insert_command in enumerate(insert_commands):
         if i % int(command_count / 10) == 0:
-            logging.info(f"Inserted already {i}/{command_count} rows")
+            logger.info(f"Inserted already {i}/{command_count} rows")
         db.session.execute(insert_command)
 
-    logging.info('Commiting to db')
+    logger.info('Commiting to db')
     db.session.commit()
-    logging.info('Commit succesfull')
+    logger.info('Commit succesfull')
 
     return
 
@@ -510,7 +510,7 @@ def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
     insert_commands = []
     for i, (timestamp, row) in enumerate(avg_results.iterrows()):
         if i % int(command_count / 10) == 0:
-            logging.info(f"Prepared already {i}/{command_count} commands")
+            logger.info(f"Prepared already {i}/{command_count} commands")
         insert_command = (
             insert(AveragedSohGps)
             .values(
@@ -531,14 +531,14 @@ def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
 
     for i, insert_command in enumerate(insert_commands):
         if i % int(command_count / 10) == 0:
-            logging.info(f"Inserted already {i}/{command_count} rows")
+            logger.info(f"Inserted already {i}/{command_count} rows")
         db.session.execute(insert_command)
 
-    logging.info('Commiting to db')
+    logger.info('Commiting to db')
     db.session.commit()
-    logging.info('Commit succesfull')
+    logger.info('Commit succesfull')
 
-    logging.info('Preparing to insert information about db relationship/')
+    logger.info('Preparing to insert information about db relationship/')
 
     unique_z_cmp_ids = avg_results.loc[:, "z_component_id"].drop_duplicates().values.astype(pd.Int64Dtype)
 
@@ -566,7 +566,7 @@ def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
 
         for i, (inserted_soh, component_id) in enumerate(itertools.product(fetched_soh, all_components)):
             if i % int(command_count / 10) == 0:
-                logging.info(f"Prepared already {i}/{command_count} commands")
+                logger.info(f"Prepared already {i}/{command_count} commands")
 
             insert_command = (
                 insert(association_table_averaged_soh_gps_components)
@@ -580,12 +580,12 @@ def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
 
     for i, insert_command in enumerate(insert_commands):
         if i % int(command_count / 10) == 0:
-            logging.info(f"Inserted already {i}/{command_count} rows")
+            logger.info(f"Inserted already {i}/{command_count} rows")
         db.session.execute(insert_command)
 
-    logging.info('Commiting to db')
+    logger.info('Commiting to db')
     db.session.commit()
-    logging.info('Commit succesfull')
+    logger.info('Commit succesfull')
 
     return
 

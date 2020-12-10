@@ -1,7 +1,6 @@
 # mypy: ignore-errors
 
 import click
-import logging
 import os
 import pendulum
 
@@ -15,8 +14,6 @@ from typing import Iterable
 from noiz.api.inventory import parse_inventory_insert_stations_and_components_into_db
 from noiz.app import create_app
 from noiz.processing.inventory import read_inventory
-
-log = logging.getLogger(__name__)
 
 cli = AppGroup("noiz")
 configs_group = AppGroup("configs")  # type: ignore
@@ -188,15 +185,18 @@ def add_soh_dir(station, station_type, soh_type, dirpath, network):
     """Globs over provided directories in search of soh files fitting parsing requirements"""
 
     from noiz.api.soh import ingest_soh_files
-
-    ingest_soh_files(
-        station=station,
-        station_type=station_type,
-        soh_type=soh_type,
-        main_filepath=dirpath,
-        filepaths=None,
-        network=network,
-    )
+    from noiz.exceptions import SohParsingException
+    try:
+        ingest_soh_files(
+            station=station,
+            station_type=station_type,
+            soh_type=soh_type,
+            main_filepath=dirpath,
+            filepaths=None,
+            network=network,
+        )
+    except SohParsingException as e:
+        click.echo(e)
 
     return
 
