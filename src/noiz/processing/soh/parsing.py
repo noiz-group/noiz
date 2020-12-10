@@ -22,8 +22,9 @@ def read_multiple_soh(
     :return: Dataframe containing all parsed values
     :rtype: pd.DataFrame
     """
+    from tqdm import tqdm
     all_dfs = []
-    for filepath in filepaths:
+    for filepath in tqdm(filepaths):
         try:
             single_df = parsing_params.parser(
                 filepath=filepath,
@@ -47,66 +48,6 @@ def read_multiple_soh(
     df = df.sort_index()
 
     df = parsing_params.postprocessor(df=df)
-
-    return df
-
-
-def __postprocess_soh_dataframe(df: pd.DataFrame, parsing_params: SohParsingParams) -> pd.DataFrame:
-    """
-    Postprocessing of the dataframes coming from Nanometrics devices.
-    It recalculates the time GPS time errors from ns to ms.
-    Also, it sums up all the current values of submodules of the Taurus in order to have one value
-    that can be compared to the Centaur.
-
-    :param df: Dataframe to be postprocessed
-    :type df: pd.DataFrame
-    :param parsing_params: Soh processing params
-    :type parsing_params: SohParsingParams
-    :return: Postprocessed dataframe
-    :rtype: pd.DataFrame
-    """
-
-    # FIXME: Split this method into separate postprocessors and add it to SohParsingParams so they are ran separately
-
-    from noiz.processing.soh.parsing_params import SohType, SohInstrumentNames
-    if parsing_params.soh_type in (SohType.GPSTIME, SohType.GNSSTIME):
-        df["Time uncertainty(ns)"] = df["Time uncertainty(ns)"] / 1000
-        df["Time error(ns)"] = df["Time error(ns)"] / 1000
-
-        df = df.rename(
-            columns={
-                "Time uncertainty(ns)": "Time uncertainty(ms)",
-                "Time error(ns)": "Time error(ms)",
-            }
-        )
-
-    if (parsing_params.instrument_name == SohInstrumentNames.TAURUS)\
-            and (parsing_params.soh_type == SohType.INSTRUMENT):
-        df["Supply voltage(V)"] = df["Supply Voltage(mV)"] / 1000
-        df["Total current(A)"] = (
-            df.loc[
-                :,
-                [
-                    "NMX Bus Current(mA)",
-                    "Sensor Current(mA)",
-                    "Serial Port Current(mA)",
-                    "Controller Current(mA)",
-                    "Digitizer Current(mA)",
-                ],
-            ].sum(axis="columns")
-            / 1000
-        )
-
-        df = df.drop(
-            columns=[
-                "Supply Voltage(mV)",
-                "NMX Bus Current(mA)",
-                "Sensor Current(mA)",
-                "Serial Port Current(mA)",
-                "Controller Current(mA)",
-                "Digitizer Current(mA)",
-            ]
-        )
 
     return df
 
