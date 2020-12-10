@@ -1,11 +1,8 @@
-import logging
-
+from loguru import logger
 from typing import List, Iterable, Optional, Collection, Union
 
 from noiz.api.helpers import validate_to_tuple
 from noiz.models.component import Component
-
-log = logging.getLogger("noiz.api")
 
 
 def fetch_components_by_id(component_ids: Collection[int]) -> List[Component]:
@@ -19,8 +16,8 @@ def fetch_components_by_id(component_ids: Collection[int]) -> List[Component]:
     :return: List of all fetched components
     :rtype: List[Component]
     """
-    log.warning("DEPRACATION. Method depracted. "
-                "Use noiz.api.component.fetch_components")
+    logger.warning("DEPRACATION. Method depracted. "
+                   "Use noiz.api.component.fetch_components")
     return fetch_components(component_ids=component_ids)
 
 

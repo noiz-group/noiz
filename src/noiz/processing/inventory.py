@@ -1,13 +1,11 @@
+from loguru import logger
 import obspy
-
 from obspy import Inventory
 from obspy.core.inventory.network import Network
 from obspy.core.inventory.station import Station
 from obspy.core.inventory.channel import Channel
 from pathlib import Path
 from typing import Iterable, Dict, List
-
-import logging
 
 
 def _assembly_single_component_inventory(
@@ -51,11 +49,11 @@ def divide_channels_by_component(
     :rtype: Dict[str: Iterable[Channel]]
     """
 
-    logging.info("Parsing channels to find components")
+    logger.info("Parsing channels to find components")
     components: Dict[str, List[Channel]] = {}
     for channel in channels:
         component = channel.code[-1]
-        logging.info(f"Found component {component}")
+        logger.info(f"Found component {component}")
         if components.get(component) is None:
             components[component] = []
         components[component].append(channel)

@@ -1,9 +1,8 @@
+from loguru import logger
+from pathlib import Path
 from typing import Union
 
-from pathlib import Path
-
 from noiz.models import Component, Timespan
-from noiz.processing.datachunk import log
 
 
 def assembly_preprocessing_filename(
@@ -79,9 +78,9 @@ def directory_exists_or_create(filepath: Path) -> bool:
     :rtype: bool
     """
     directory = filepath.parent
-    log.info(f"Checking if directory {directory} exists")
+    logger.info(f"Checking if directory {directory} exists")
     if not directory.exists():
-        log.info(f"Directory {directory} does not exists, trying to create.")
+        logger.info(f"Directory {directory} does not exists, trying to create.")
         directory.mkdir(parents=True)
     return directory.exists()
 

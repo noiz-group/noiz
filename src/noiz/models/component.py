@@ -1,8 +1,7 @@
-import logging
-from typing import Optional, Tuple
+from loguru import logger
 from obspy.core.util import AttribDict
 from obspy import read_inventory
-
+from typing import Optional, Tuple
 import utm
 
 from noiz.database import db
@@ -90,9 +89,9 @@ class Component(db.Model):
         zone: Optional[int], northern: Optional[bool]
     ) -> Tuple[int, bool]:
         if zone is None:
-            logging.warning("Zone is not set, using default 32.")
+            logger.warning("Zone is not set, using default 32.")
             zone = 32
         if northern is None:
-            logging.warning("Northern is not set, using default True.")
+            logger.warning("Northern is not set, using default True.")
             northern = True
         return zone, northern
