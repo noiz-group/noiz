@@ -1,5 +1,5 @@
 import datetime
-import logging
+from loguru import logger
 from obspy.signal.cross_correlation import correlate
 from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import insert
@@ -51,7 +51,7 @@ def upsert_crosscorrelations(crosscorrelations: Iterable[Crosscorrelation]) -> N
     :return: None
     :rtype: None
     """
-    logging.info("Starting upserting")
+    logger.info("Starting upserting")
     for i, xcorr in enumerate(crosscorrelations):
         insert_command = (
             insert(Crosscorrelation)
@@ -67,10 +67,10 @@ def upsert_crosscorrelations(crosscorrelations: Iterable[Crosscorrelation]) -> N
             )
         )
         db.session.execute(insert_command)
-        logging.info(f"{i+1} Upserts done")
-    logging.info("Commiting changes")
+        logger.info(f"{i + 1} Upserts done")
+    logger.info("Commiting changes")
     db.session.commit()
-    logging.info("Commit done")
+    logger.info("Commit done")
     return
 
 
@@ -92,7 +92,7 @@ def perform_crosscorrelations_for_day_and_pairs(
         .first()
     )
 
-    logging.info(
+    logger.info(
         f"Querrying for components that are present on day {year}.{day_of_year}"
     )
 
@@ -112,7 +112,7 @@ def perform_crosscorrelations_for_day_and_pairs(
 
     components_day = [cmp for _, cmp in components_day]
     component_ids = [cmp.id for cmp in components_day]
-    logging.info(f"There are {len(component_ids)} unique components")
+    logger.info(f"There are {len(component_ids)} unique components")
 
     component_pairs_day = (
         db.session.query(
@@ -134,7 +134,7 @@ def perform_crosscorrelations_for_day_and_pairs(
             )
         )
     ).all()
-    logging.info(
+    logger.info(
         f"There are {len(component_pairs_day)} component pairs to be correlated that day"
     )
 
@@ -142,31 +142,31 @@ def perform_crosscorrelations_for_day_and_pairs(
         component_pairs_day
     )
 
-    logging.info("Looking for all processed datachunks for that day")
+    logger.info("Looking for all processed datachunks for that day")
     processed_datachunks_day = fetch_processeddatachunks_a_day(date=execution_date)
-    logging.info(
+    logger.info(
         f"There are {len(processed_datachunks_day)} processed_datachunks available for {execution_date.date()}"
     )
     groupped_chunks = group_chunks_by_timespanid_componentid(processed_datachunks_day)
 
     no_timespans = len(groupped_chunks)
-    logging.info(
+    logger.info(
         f"Groupping all_possible correlations. There are {no_timespans} timespans to check."
     )
     xcorrs = []
     for i, (timespan, chunks) in enumerate(groupped_chunks.items()):
-        logging.info(f"Starting to look for correlations in {i + 1}/{no_timespans}")
+        logger.info(f"Starting to look for correlations in {i + 1}/{no_timespans}")
         timespan_corrs = find_correlations_in_chunks(chunks, groupped_componentpairs)
-        logging.info("Loading data for that timespan")
+        logger.info("Loading data for that timespan")
         streams = load_data_for_chunks(chunks)
 
         no_corrs = len(timespan_corrs)
-        logging.info(f"Starting correlation of data. There are {no_corrs} to do")
+        logger.info(f"Starting correlation of data. There are {no_corrs} to do")
 
         for cmp_a, components_b in timespan_corrs.items():
             for cmp_b, current_pair in components_b.items():
                 if streams[cmp_a][0].data.shape != streams[cmp_b][0].data.shape:
-                    logging.error(
+                    logger.error(
                         f"The shapes of data arrays for {cmp_a} and {cmp_b} are different. "
                         f"Shapes: {cmp_a} is {streams[cmp_a][0].data.shape} "
                         f"{cmp_b} is {streams[cmp_b][0].data.shape} "
@@ -186,25 +186,25 @@ def perform_crosscorrelations_for_day_and_pairs(
                 )
                 xcorrs.append(xcorr)
 
-        logging.info(f"Correlations for timespan {timespan} done")
+        logger.info(f"Correlations for timespan {timespan} done")
 
     if bulk_insert:
-        logging.info("Trying to do bulk insert")
+        logger.info("Trying to do bulk insert")
         try:
             bulk_add_crosscorrelations(xcorrs)
         except IntegrityError as e:
-            logging.warning(f"There was an integrity error thrown. {e}")
-            logging.warning("Rollingback session")
+            logger.warning(f"There was an integrity error thrown. {e}")
+            logger.warning("Rollingback session")
             db.session.rollback()
-            logging.warning("Retrying with upsert")
+            logger.warning("Retrying with upsert")
             upsert_crosscorrelations(xcorrs)
     else:
-        logging.info(
+        logger.info(
             f"Starting to perform careful upsert. There are {len(xcorrs)} to insert"
         )
         upsert_crosscorrelations(xcorrs)
 
-    logging.info("Success!")
+    logger.info("Success!")
     return
 
 

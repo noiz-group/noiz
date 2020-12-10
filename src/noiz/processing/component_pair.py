@@ -1,4 +1,4 @@
-import logging
+from loguru import logger
 
 import numpy as np
 
@@ -166,15 +166,15 @@ def calculate_distance_azimuths(
     """
 
     if iris:
-        logging.info("Calculating distance and azimuths with iris")
+        logger.info("Calculating distance and azimuths with iris")
         from obspy.clients.iris import Client
 
         distaz = Client().distaz(cmp_a.lat, cmp_a.lon, cmp_b.lat, cmp_b.lon)
-        logging.info("Calculation successful!")
+        logger.info("Calculation successful!")
     else:
-        logging.info("Calculating distance and azimuths with local method")
+        logger.info("Calculating distance and azimuths with local method")
         distaz = _calculate_distance_backazimuth(
             cmp_a.lat, cmp_a.lon, cmp_b.lat, cmp_b.lon
         )
-        logging.info("Calculation successful!")
+        logger.info("Calculation successful!")
     return distaz
