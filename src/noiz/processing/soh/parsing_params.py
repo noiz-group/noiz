@@ -338,6 +338,7 @@ class Postprocessor(Protocol):
     This is just a callback protocol which defines type for
     :param:`noiz.processing.soh.soh_column_names.SohParsingParams.postprocessor`.
     """
+
     def __call__(self, df: pd.DataFrame) -> pd.DataFrame: ...
 
 
@@ -346,6 +347,7 @@ class Parser(Protocol):
     This is just a callback protocol which defines type for
     :param:`noiz.processing.soh.soh_column_names.SohParsingParams.parser`.
     """
+
     def __call__(self, filepath: Path, parsing_params: SohParsingParams) -> pd.DataFrame: ...
 
 
@@ -467,9 +469,9 @@ def _postprocess_soh_miniseed_instrument_centaur(df: pd.DataFrame) -> pd.DataFra
     :return: Postprocessed dataframe
     :rtype: pd.DataFrame
     """
-    df.loc[:, 'Supply voltage(V)'] = df.loc[:, 'Supply voltage(V)']/1000
-    df.loc[:, 'Total current(A)'] = df.loc[:, 'Total current(A)']/1000
-    df.loc[:, 'Temperature(C)'] = df.loc[:, 'Temperature(C)']/1000
+    df.loc[:, 'Supply voltage(V)'] = df.loc[:, 'Supply voltage(V)'] / 1000
+    df.loc[:, 'Total current(A)'] = df.loc[:, 'Total current(A)'] / 1000
+    df.loc[:, 'Temperature(C)'] = df.loc[:, 'Temperature(C)'] / 1000
     return df
 
 
@@ -485,7 +487,70 @@ def _postprocess_soh_miniseed_gpstime_centaur(df: pd.DataFrame) -> pd.DataFrame:
     :return: Postprocessed dataframe
     :rtype: pd.DataFrame
     """
-    df.loc[:, 'Time error(ms)'] = df.loc[:, 'Time error(ms)']/1000
+    df.loc[:, 'Time error(ms)'] = df.loc[:, 'Time error(ms)'] / 1000
+    return df
+
+
+def __postprocess_soh_gpstime_gnsstime(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Postprocessing of the dataframes coming from Nanometrics devices.
+    It recalculates the time GPS time errors from ns to ms.
+
+    :param df: Dataframe to be postprocessed
+    :type df: pd.DataFrame
+    :return: Postprocessed dataframe
+    :rtype: pd.DataFrame
+    """
+
+    df["Time uncertainty(ns)"] = df["Time uncertainty(ns)"] / 1000
+    df["Time error(ns)"] = df["Time error(ns)"] / 1000
+
+    df = df.rename(
+        columns={
+            "Time uncertainty(ns)": "Time uncertainty(ms)",
+            "Time error(ns)": "Time error(ms)",
+        }
+    )
+    return df
+
+
+def __postprocess_soh_taurus_instrument(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Postprocessing of the dataframes coming from Nanometrics devices.
+    Also, it sums up all the current values of submodules of the Taurus in order to have one value
+    that can be compared to the Centaur.
+
+    :param df: Dataframe to be postprocessed
+    :type df: pd.DataFrame
+    :return: Postprocessed dataframe
+    :rtype: pd.DataFrame
+    """
+
+    df["Supply voltage(V)"] = df["Supply Voltage(mV)"] / 1000
+    df["Total current(A)"] = (
+        df.loc[:,
+               [
+                   "NMX Bus Current(mA)",
+                   "Sensor Current(mA)",
+                   "Serial Port Current(mA)",
+                   "Controller Current(mA)",
+                   "Digitizer Current(mA)",
+               ],
+               ].sum(axis="columns")
+        / 1000
+    )
+
+    df = df.drop(
+        columns=[
+            "Supply Voltage(mV)",
+            "NMX Bus Current(mA)",
+            "Sensor Current(mA)",
+            "Serial Port Current(mA)",
+            "Controller Current(mA)",
+            "Digitizer Current(mA)",
+        ]
+    )
+
     return df
 
 
@@ -530,7 +595,7 @@ __parsing_params_list = (
         used_names=centaur_gpstime_used_columns,
         header_dtypes=centaur_gpstime_dtypes,
         search_regex="*GPSTime*.csv",
-        postprocessor=_empty_postprocessor,
+        postprocessor=__postprocess_soh_gpstime_gnsstime,
         name_mappings={},
         parser=_read_single_soh_csv
     ),
@@ -541,7 +606,7 @@ __parsing_params_list = (
         used_names=centaur_gnsstime_used_columns,
         header_dtypes=centaur_gnsstime_dtypes,
         search_regex="*GNSSTime*.csv",
-        postprocessor=_empty_postprocessor,
+        postprocessor=__postprocess_soh_gpstime_gnsstime,
         name_mappings={},
         parser=_read_single_soh_csv
     ),
@@ -563,7 +628,7 @@ __parsing_params_list = (
         used_names=taurus_instrument_used_names,
         header_dtypes=taurus_instrument_dtypes,
         search_regex="*Instrument*.csv",
-        postprocessor=_empty_postprocessor,
+        postprocessor=__postprocess_soh_taurus_instrument,
         name_mappings={},
         parser=_read_single_soh_csv
     ),
@@ -574,7 +639,7 @@ __parsing_params_list = (
         used_names=taurus_gpstime_used_names,
         header_dtypes=taurus_gpstime_dtypes,
         search_regex="*GPSTime*.csv",
-        postprocessor=_empty_postprocessor,
+        postprocessor=__postprocess_soh_gpstime_gnsstime,
         name_mappings={},
         parser=_read_single_soh_csv
     ),
