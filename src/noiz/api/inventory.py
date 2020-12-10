@@ -1,5 +1,4 @@
 from pathlib import Path
-import logging
 
 from noiz.database import db
 from noiz.models.component import Component
@@ -9,28 +8,31 @@ from noiz.processing.inventory import (
     _assembly_stationxml_filename,
 )
 
+from loguru import logger
+
 
 def parse_inventory_for_single_component_db_entries(inventory, inventory_dir):
+    # TODO move to processing
     objects_to_commit = []
     added_filepaths = []
 
-    logging.info("Parsing inventory")
+    logger.info("Parsing inventory")
 
     for network in inventory:
-        logging.info(f"Found network {network.code}")
+        logger.info(f"Found network {network.code}")
         for station in network:
-            logging.info(f"Found station {station.code}")
+            logger.info(f"Found station {station.code}")
             components = divide_channels_by_component(station.channels)
 
             for component, channels in components.items():
-                logging.info(f"Creating inventory for component {component}")
+                logger.info(f"Creating inventory for component {component}")
                 inventory_single_component = _assembly_single_component_inventory(
                     inventory, network, station, channels
                 )
                 filename = _assembly_stationxml_filename(network, station, component)
 
                 inventory_filepath = inventory_dir.joinpath(filename)
-                logging.info(
+                logger.info(
                     f"Inventory for component {component} will be saved to {inventory_filepath}"
                 )
 
@@ -38,12 +40,12 @@ def parse_inventory_for_single_component_db_entries(inventory, inventory_dir):
                     added_filepaths.append(inventory_filepath)
 
                 else:
-                    logging.warning("The inventory_file_exists")
+                    logger.warning("The inventory_file_exists")
 
                 inventory_single_component.write(
                     str(inventory_filepath), format="stationxml"
                 )
-                logging.info("Saving of the inventory file successful!")
+                logger.info("Saving of the inventory file successful!")
 
                 db_component = Component(
                     network=network.code,
@@ -55,9 +57,9 @@ def parse_inventory_for_single_component_db_entries(inventory, inventory_dir):
                     inventory_filepath=str(inventory_filepath),
                 )
 
-                logging.info(f"Created Component object {db_component}")
+                logger.info(f"Created Component object {db_component}")
                 objects_to_commit.append(db_component)
-                logging.info(f"Finished with component {component}")
+                logger.info(f"Finished with component {component}")
 
     return objects_to_commit, added_filepaths
 
