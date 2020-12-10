@@ -22,8 +22,9 @@ def read_multiple_soh(
     :return: Dataframe containing all parsed values
     :rtype: pd.DataFrame
     """
+    from tqdm import tqdm
     all_dfs = []
-    for filepath in filepaths:
+    for filepath in tqdm(filepaths):
         try:
             single_df = parsing_params.parser(
                 filepath=filepath,
