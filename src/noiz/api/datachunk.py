@@ -20,7 +20,7 @@ from noiz.models.processing_params import DatachunkParams
 from noiz.models.timespan import Timespan
 from noiz.processing.datachunk import create_datachunks_for_component
 
-from loguru import logger as log
+from loguru import logger
 
 
 def fetch_datachunks_for_timespan(
@@ -37,7 +37,7 @@ def fetch_datachunks_for_timespan(
     :return: List of Datachunks
     :rtype: List[Datachunk]
     """
-    log.warning("Method deprected. Use noiz.api.datachunkfetch_datachunks instead.")
+    logger.warning("Method deprected. Use noiz.api.datachunkfetch_datachunks instead.")
     return fetch_datachunks(timespans=timespans)
 
 
@@ -210,25 +210,25 @@ def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
     for datachunk in datachunks:
 
         if not isinstance(datachunk, Datachunk):
-            log.warning(f'Provided object is not an instance of Datachunk. '
-                        f'Provided object was an {type(datachunk)}. Skipping.')
+            logger.warning(f'Provided object is not an instance of Datachunk. '
+                           f'Provided object was an {type(datachunk)}. Skipping.')
             continue
 
-        log.info("Querrying db if the datachunk already exists.")
+        logger.info("Querrying db if the datachunk already exists.")
         existing_chunks = (
             db.session.query(Datachunk)
                       .filter(
-                        Datachunk.component_id == datachunk.component_id,
-                        Datachunk.timespan_id == datachunk.timespan_id,
-                      )
-              .all()
+                Datachunk.component_id == datachunk.component_id,
+                Datachunk.timespan_id == datachunk.timespan_id,
+            )
+            .all()
         )
 
         if len(existing_chunks) == 0:
-            log.info("No existing chunks found. Adding Datachunk to DB.")
+            logger.info("No existing chunks found. Adding Datachunk to DB.")
             db.session.add(datachunk)
         else:
-            log.info("The datachunk already exists in db. Updating.")
+            logger.info("The datachunk already exists in db. Updating.")
             insert_command = (
                 insert(Datachunk)
                 .values(
@@ -249,7 +249,7 @@ def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
             )
             db.session.execute(insert_command)
 
-    log.debug('Commiting session.')
+    logger.debug('Commiting session.')
     db.session.commit()
     return
 
@@ -269,20 +269,20 @@ def create_datachunks_add_to_db(
 
     timespans_count = len(timespans)
 
-    log.info(
+    logger.info(
         f"There are {no_datachunks} datachunks for {execution_date} in db")
 
     if no_datachunks == timespans_count:
-        log.info("There is enough of datachunks in the db (no_datachunks == no_timespans)")
+        logger.info("There is enough of datachunks in the db (no_datachunks == no_timespans)")
         return
 
-    log.info(f"Fetching timeseries for {execution_date} {component}")
+    logger.info(f"Fetching timeseries for {execution_date} {component}")
     try:
         time_series = fetch_raw_timeseries(
             component=component, execution_date=execution_date
         )
     except NoDataException as e:
-        log.error(e)
+        logger.error(e)
         raise e
 
     finished_datachunks = create_datachunks_for_component(component=component,
@@ -304,7 +304,7 @@ def prepare_datachunk_preparation_parameter_lists(
 ) -> Iterable[Dict]:
     date_period = pendulum.period(startdate, enddate)
 
-    log.info("Fetching processing config, timespans and componsents from db. ")
+    logger.info("Fetching processing config, timespans and componsents from db. ")
     processing_params = fetch_processing_config_by_id(id=processing_config_id)
 
     all_timespans = [(date, fetch_timespans_for_doy(
@@ -321,29 +321,29 @@ def prepare_datachunk_preparation_parameter_lists(
     for component, (date, timespans) in itertools.product(fetched_components,
                                                           all_timespans):
 
-        log.info(f"Looking for data on {date} for {component}")
+        logger.info(f"Looking for data on {date} for {component}")
 
         try:
             time_series = fetch_raw_timeseries(
                 component=component, execution_date=date
             )
         except NoDataException as e:
-            log.warning(f"{e} Skipping.")
+            logger.warning(f"{e} Skipping.")
             continue
 
         if not skip_existing:
-            log.info("Checking if some timespans already exists")
+            logger.info("Checking if some timespans already exists")
             existing_count = count_datachunks(
                 components=(component,),
                 timespans=timespans,
                 datachunk_processing_config=processing_params,
             )
             if existing_count == len(timespans):
-                log.info("Number of existing timespans is sufficient. Skipping")
+                logger.info("Number of existing timespans is sufficient. Skipping")
                 continue
 
-            log.info(f"There are only {existing_count} existing Datachunks. "
-                     f"Looking for those that are missing one by one.")
+            logger.info(f"There are only {existing_count} existing Datachunks. "
+                        f"Looking for those that are missing one by one.")
             new_timespans = [timespan for timespan in timespans if
                              count_datachunks(
                                  components=(component,),
@@ -368,7 +368,7 @@ def run_paralel_chunk_preparation(
         processing_config_id: int,
 
 ):
-    log.info("Preparing jobs for execution")
+    logger.info("Preparing jobs for execution")
     joblist = prepare_datachunk_preparation_parameter_lists(stations,
                                                             components,
                                                             startdate, enddate,
@@ -381,22 +381,22 @@ def run_paralel_chunk_preparation(
     from dask.distributed import Client, as_completed
     client = Client()
 
-    log.info(f'Dask client started succesfully. '
-             f'You can monitor execution on {client.dashboard_link}')
+    logger.info(f'Dask client started succesfully. '
+                f'You can monitor execution on {client.dashboard_link}')
 
-    log.info("Submitting tasks to Dask client")
+    logger.info("Submitting tasks to Dask client")
     futures = []
     try:
         for params in joblist:
             future = client.submit(create_datachunks_for_component, **params)
             futures.append(future)
     except ValueError as e:
-        log.error(e)
+        logger.error(e)
         raise e
 
-    log.info(f"There are {len(futures)} tasks to be executed")
+    logger.info(f"There are {len(futures)} tasks to be executed")
 
-    log.info("Starting execution. Results will be saved to database on the fly. ")
+    logger.info("Starting execution. Results will be saved to database on the fly. ")
 
     for future, result in as_completed(futures, with_results=True, raise_errors=False):
         add_or_upsert_datachunks_in_db(result)
@@ -411,7 +411,7 @@ def run_chunk_preparation(
     year = execution_date.year
     day_of_year = execution_date.timetuple().tm_yday
 
-    log.info("Fetching processing config, timespans and componsents from db")
+    logger.info("Fetching processing config, timespans and componsents from db")
     with app.app_context():
         processing_config = (
             db.session.query(DatachunkParams)
@@ -424,7 +424,7 @@ def run_chunk_preparation(
             Component.station == station, Component.component == component
         ).all()
 
-    log.info("Invoking chunc creation itself")
+    logger.info("Invoking chunc creation itself")
     for component in components:
         with app.app_context():
             create_datachunks_for_component(component=component,
@@ -464,22 +464,22 @@ def run_stats_calculation(
     from dask.distributed import Client, as_completed
     client = Client()
 
-    log.info(f'Dask client started succesfully. '
-             f'You can monitor execution on {client.dashboard_link}')
+    logger.info(f'Dask client started succesfully. '
+                f'You can monitor execution on {client.dashboard_link}')
 
-    log.info("Submitting tasks to Dask client")
+    logger.info("Submitting tasks to Dask client")
     futures = []
     try:
         for dc in fetched_datachunks:
             future = client.submit(calculate_datachunk_stats, dc)
             futures.append(future)
     except ValueError as e:
-        log.error(e)
+        logger.error(e)
         raise e
 
-    log.info(f"There are {len(futures)} tasks to be executed")
+    logger.info(f"There are {len(futures)} tasks to be executed")
 
-    log.info("Starting execution. Results will be saved to database on the fly. ")
+    logger.info("Starting execution. Results will be saved to database on the fly. ")
 
     for future, result in as_completed(futures, with_results=True, raise_errors=False):
         add_or_upsert_datachunk_stats_in_db(result)
@@ -500,11 +500,11 @@ def add_or_upsert_datachunk_stats_in_db(datachunk_stats: DatachunkStats):
     """
 
     if not isinstance(datachunk_stats, DatachunkStats):
-        log.warning(f'Provided object is not an instance of DatachunkStats. '
-                    f'Provided object was an {type(datachunk_stats)}. Skipping.')
+        logger.warning(f'Provided object is not an instance of DatachunkStats. '
+                       f'Provided object was an {type(datachunk_stats)}. Skipping.')
         return
 
-    log.info("Querrying db if the datachunk already exists.")
+    logger.info("Querrying db if the datachunk already exists.")
     existing_chunks = (
         db.session.query(DatachunkStats)
         .filter(
@@ -514,10 +514,10 @@ def add_or_upsert_datachunk_stats_in_db(datachunk_stats: DatachunkStats):
     )
 
     if len(existing_chunks) == 0:
-        log.info("No existing chunks found. Adding DatachunkStats to DB.")
+        logger.info("No existing chunks found. Adding DatachunkStats to DB.")
         db.session.add(datachunk_stats)
     else:
-        log.info("The datachunk stats already exists in db. Updating.")
+        logger.info("The datachunk stats already exists in db. Updating.")
         insert_command = (
             insert(DatachunkStats)
             .values(
@@ -544,6 +544,6 @@ def add_or_upsert_datachunk_stats_in_db(datachunk_stats: DatachunkStats):
         )
         db.session.execute(insert_command)
 
-    log.debug('Commiting session.')
+    logger.debug('Commiting session.')
     db.session.commit()
     return

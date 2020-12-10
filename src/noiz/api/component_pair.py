@@ -1,7 +1,6 @@
 import itertools
-import logging
+from loguru import logger
 from typing import Iterable, Optional, List
-
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import aliased, subqueryload
 
@@ -29,9 +28,9 @@ def prepare_componentpairs(components: List[Component]) -> List[ComponentPair]:
     component_pairs: List[ComponentPair] = []
     potential_pairs = list(itertools.product(components, repeat=2))
     no = len(potential_pairs)
-    logging.info(f"There are {no} potential pairs to be checked.")
+    logger.info(f"There are {no} potential pairs to be checked.")
     for i, (cmp_a, cmp_b) in enumerate(potential_pairs):
-        logging.info(f"Starting with potential pair {i}/{no - 1}")
+        logger.info(f"Starting with potential pair {i}/{no - 1}")
 
         component_pair = ComponentPair(
             component_a_id=cmp_a.id,
@@ -40,22 +39,22 @@ def prepare_componentpairs(components: List[Component]) -> List[ComponentPair]:
         )
 
         if is_autocorrelation(cmp_a, cmp_b):
-            logging.info(f"Pair {component_pair} is autocorrelation")
+            logger.info(f"Pair {component_pair} is autocorrelation")
             component_pair.set_autocorrelation()
             component_pairs.append(component_pair)
             continue
 
         if is_intrastation_correlation(cmp_a, cmp_b):
-            logging.info(f"Pair {component_pair} is intracorrelation")
+            logger.info(f"Pair {component_pair} is intracorrelation")
             component_pair.set_intracorrelation()
             component_pairs.append(component_pair)
             continue
 
         if not is_east_to_west(cmp_a, cmp_b):
-            logging.info(f"Pair {component_pair} is not east to west, skipping")
+            logger.info(f"Pair {component_pair} is not east to west, skipping")
             continue
 
-        logging.info(
+        logger.info(
             f"Pair {component_pair} is east to west, calculating distance and backazimuths"
         )
         distaz = calculate_distance_azimuths(cmp_a, cmp_b)
@@ -79,7 +78,7 @@ def upsert_component_pairs(component_pairs: List[ComponentPair]) -> None:
     :rtype: None
     """
     no = len(component_pairs)
-    logging.info(f"There are {no} component pairs to process")
+    logger.info(f"There are {no} component pairs to process")
     for i, component_pair in enumerate(component_pairs):
         insert_command = (
             insert(ComponentPair)
@@ -106,10 +105,10 @@ def upsert_component_pairs(component_pairs: List[ComponentPair]) -> None:
             )
         )
         db.session.execute(insert_command)
-        logging.info(f"Inserted {i}/{no - 1} component_pairs")
-    logging.info("Commiting changes")
+        logger.info(f"Inserted {i}/{no - 1} component_pairs")
+    logger.info("Commiting changes")
     db.session.commit()
-    logging.info("Commit successfull. Returning")
+    logger.info("Commit successfull. Returning")
     return
 
 
