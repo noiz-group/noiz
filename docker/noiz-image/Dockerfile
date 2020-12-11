@@ -47,7 +47,7 @@ ENV LIBMSEED_LEAPSECOND_FILE="/leap-seconds.list"
 
 RUN mkdir /noiz
 WORKDIR /noiz
-COPY ./ /noiz/
+COPY ../.. /noiz/
 
 RUN cd /noiz/ && \
   python -m pip install -r requirements.txt --no-cache-dir && \
