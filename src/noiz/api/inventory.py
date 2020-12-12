@@ -1,3 +1,5 @@
+import obspy
+from flask import current_app
 from pathlib import Path
 
 from noiz.database import db
@@ -11,10 +13,12 @@ from noiz.processing.inventory import (
 from loguru import logger
 
 
-def parse_inventory_for_single_component_db_entries(inventory, inventory_dir):
+def parse_inventory_for_single_component_db_entries(inventory_path: Path, inventory_dir: Path):
     # TODO move to processing
     objects_to_commit = []
     added_filepaths = []
+
+    inventory = obspy.read_inventory(str(inventory_path))
 
     logger.info("Parsing inventory")
 
@@ -64,16 +68,29 @@ def parse_inventory_for_single_component_db_entries(inventory, inventory_dir):
     return objects_to_commit, added_filepaths
 
 
-def parse_inventory_insert_stations_and_components_into_db(app, inventory):
-    processed_data_dir = Path(app.noiz_config.get("processed_data_dir"))
-    inventory_dir = processed_data_dir.joinpath("inventory")
-    inventory_dir.mkdir(exist_ok=True)
+def parse_inventory_insert_stations_and_components_into_db(inventory_path: Path) -> None:
 
-    (
-        objects_to_commit,
-        added_filepaths,
-    ) = parse_inventory_for_single_component_db_entries(inventory, inventory_dir)
+    inventory_dir = get_processed_inventory_dir()
+
+    objects_to_commit, added_filepaths = parse_inventory_for_single_component_db_entries(
+        inventory_path=inventory_path,
+        inventory_dir=inventory_dir,
+    )
+
     for obj in objects_to_commit:
         db.session.merge(obj)
     db.session.commit()
     return
+
+
+def get_processed_inventory_dir() -> Path:
+    """
+    Prepares directory inside of a processed_data_dir that will hold the processed inventory files.
+
+    :return: Processed inventory dir
+    :rtype: Path
+    """
+    processed_data_dir = Path(current_app.noiz_config.get("processed_data_dir")).absolute()
+    inventory_dir = processed_data_dir.joinpath("inventory")
+    inventory_dir.mkdir(exist_ok=True)
+    return inventory_dir

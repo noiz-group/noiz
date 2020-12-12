@@ -11,9 +11,7 @@ from pendulum.date import Date
 from pathlib import Path
 from typing import Iterable
 
-from noiz.api.inventory import parse_inventory_insert_stations_and_components_into_db
 from noiz.app import create_app
-from noiz.processing.inventory import read_inventory
 
 cli = AppGroup("noiz")
 configs_group = AppGroup("configs")  # type: ignore
@@ -120,11 +118,9 @@ def add_seismic_data(basedir, filename_pattern):
 def add_inventory(filepath, filetype):
     """Read the stationxml file and add components to database"""
 
-    inventory = read_inventory(filepath=filepath, filetype=filetype)
+    from noiz.api.inventory import parse_inventory_insert_stations_and_components_into_db
 
-    parse_inventory_insert_stations_and_components_into_db(
-        app=current_app, inventory=inventory
-    )
+    parse_inventory_insert_stations_and_components_into_db(inventory_path=filepath)
     return
 
 
