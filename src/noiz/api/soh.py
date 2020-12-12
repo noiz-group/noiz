@@ -624,3 +624,18 @@ def parse_soh_insert_into_db(
             soh_type='instrument'
         )
     return
+
+
+def export_raw_soh_gps_data_to_csv(
+        networks: Optional[Collection[str]] = None,
+        stations: Optional[Collection[str]] = None,
+        starttime: datetime.datetime = datetime.datetime(2000, 1, 1),
+        endtime: datetime.datetime = datetime.datetime(2030, 1, 1),
+        filepath: Optional[Path] = None,
+):
+    cmps = fetch_components(networks=networks, stations=stations, components=("Z",))
+    df = fetch_raw_soh_gps_df(components=cmps, starttime=starttime, endtime=endtime, load_z_component=True)
+
+    df = df.loc[:, ['station', 'datetime', 'time_error', 'time_uncertainty']]
+    df.set_index('datetime', inplace=True)
+    df.to_csv(path_or_buf=filepath)

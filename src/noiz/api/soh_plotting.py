@@ -28,6 +28,7 @@ def plot_raw_gps_data_availability(
         filepath: Optional[Path] = None,
         showfig: bool = False,
         show_legend: bool = True,
+        keep_empty: bool = True,
         minticks: int = 5,
         maxticks: int = 8,
 ) -> matplotlib.pyplot.Figure:
@@ -49,6 +50,8 @@ def plot_raw_gps_data_availability(
     :type showfig: bool
     :param show_legend: If legend should be added to the bottom subplot
     :type show_legend: bool
+    :param keep_empty: If plot should contain empty subplots
+    :type keep_empty: bool
     :param minticks: Value of minticks passed to ConciseDateFormatter
     :type minticks: int
     :param maxticks: Value of maxticks passed to ConciseDateFormatter
@@ -66,6 +69,10 @@ def plot_raw_gps_data_availability(
     fig_title = "Raw GPS SOH data"
 
     df.index = df['datetime']
+
+    if not keep_empty:
+        present_component_ids = df['z_component_id'].unique()
+        z_components = [cmp for cmp in z_components if cmp.id in present_component_ids]
 
     fig = __plot_gps_data_soh(
         df=df,
@@ -95,6 +102,7 @@ def plot_averaged_gps_data_availability(
         filepath: Optional[Path] = None,
         showfig: bool = False,
         show_legend: bool = True,
+        keep_empty: bool = True,
         minticks: int = 5,
         maxticks: int = 8,
 ) -> matplotlib.pyplot.Figure:
@@ -116,6 +124,8 @@ def plot_averaged_gps_data_availability(
     :type showfig: bool
     :param show_legend: If legend should be added to the bottom subplot
     :type show_legend: bool
+    :param keep_empty: If plot should contain empty subplots
+    :type keep_empty: bool
     :param minticks: Value of minticks passed to ConciseDateFormatter
     :type minticks: int
     :param maxticks: Value of maxticks passed to ConciseDateFormatter
@@ -134,6 +144,9 @@ def plot_averaged_gps_data_availability(
     fig_title = "Averaged GPS SOH data"
 
     df.index = df['midtime']
+    if not keep_empty:
+        present_component_ids = df['z_component_id'].unique()
+        z_components = [cmp for cmp in z_components if cmp.id in present_component_ids]
 
     fig = __plot_gps_data_soh(
         df=df,
