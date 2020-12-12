@@ -28,6 +28,12 @@ def workdir_with_content(tmp_path_factory) -> Path:
     return test_workdir
 
 
+@pytest.fixture(scope="function")
+def empty_workdir(tmp_path_factory) -> Path:
+    test_workdir = tmp_path_factory.mktemp("workdir")
+    return test_workdir
+
+
 @pytest.fixture(scope="class")
 def noiz_app():
     app = create_app(logging_level="CRITICAL")
@@ -192,9 +198,17 @@ class TestDataIngestionRoutines:
     def test_plot_datachunk_availability(self, noiz_app):
         assert False
 
-    @pytest.mark.xfail
-    def test_plot_raw_gps_soh(self, noiz_app):
-        assert False
+    def test_plot_raw_gps_soh(self, noiz_app, empty_workdir):
+        exported_filename = "exported_soh.png"
+        exported_filepath = empty_workdir.joinpath(exported_filename).absolute()
+        runner = CliRunner()
+        result = runner.invoke(cli, ["plot", "raw_gps_soh",
+                                     "-sd", "2019-09-01",
+                                     "-ed", "2019-11-01",
+                                     "--savefig",
+                                     "-pp", str(exported_filepath)])
+        assert result.exit_code == 0
+        assert exported_filepath.exists()
 
     @pytest.mark.xfail
     def test_average_soh_gps(self, noiz_app):
@@ -203,6 +217,17 @@ class TestDataIngestionRoutines:
     @pytest.mark.xfail
     def test_plot_averaged_gps_soh(self, noiz_app):
         assert False
+
+    def test_export_raw_gps_soh(self, noiz_app, empty_workdir):
+        exported_filename = "exported_soh.csv"
+        exported_filepath = empty_workdir.joinpath(exported_filename).absolute()
+        runner = CliRunner()
+        result = runner.invoke(cli, ["export", "raw_gps_soh",
+                                     "-sd", "2019-09-01",
+                                     "-ed", "2019-11-01",
+                                     '-p', str(exported_filepath)])
+        assert result.exit_code == 0
+        assert exported_filepath.exists()
 
     def test_calc_datachunk_stats(self, noiz_app):
         runner = CliRunner()
