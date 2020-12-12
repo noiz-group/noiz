@@ -26,6 +26,19 @@ class Component(db.Model):
     zone = db.Column("zone", db.Integer)
     northern = db.Column("northern", db.Boolean)
     elevation = db.Column("elevation", db.Float)
+    component_file_id = db.Column(
+        "component_file_id",
+        db.BigInteger,
+        db.ForeignKey("component_file.id"),
+        nullable=True,
+    )
+
+    component_file = db.relationship(
+        "ComponentFile",
+        foreign_keys=[component_file_id],
+        uselist=False,
+        lazy="joined",
+    )
 
     def __init__(self, **kwargs):
         super(Component, self).__init__(**kwargs)
@@ -95,3 +108,10 @@ class Component(db.Model):
             logger.warning("Northern is not set, using default True.")
             northern = True
         return zone, northern
+
+
+class ComponentFile(db.Model):
+    __tablename__ = "component_file"
+
+    id = db.Column("id", db.BigInteger, primary_key=True)
+    filepath = db.Column("filepath", db.UnicodeText, nullable=False)
