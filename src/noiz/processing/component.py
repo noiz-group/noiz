@@ -1,11 +1,11 @@
-from loguru import logger
 import obspy
-from obspy import Inventory
-from obspy.core.inventory.network import Network
-from obspy.core.inventory.station import Station
-from obspy.core.inventory.channel import Channel
 from pathlib import Path
+
+from loguru import logger
 from typing import Iterable, Dict, List, Tuple
+
+from obspy import Inventory
+from obspy.core.inventory import Network, Station, Channel
 
 from noiz.models import Component
 from noiz.models.component import ComponentFile
