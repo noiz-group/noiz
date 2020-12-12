@@ -87,7 +87,6 @@ def read_inventory(filepath: Path, filetype: str = "stationxml") -> Inventory:
 
 def parse_inventory_for_single_component_db_entries(inventory_path: Path, inventory_dir: Path):
     objects_to_commit = []
-    added_filepaths = []
 
     inventory = obspy.read_inventory(str(inventory_path))
 
@@ -130,7 +129,7 @@ def parse_inventory_for_single_component_db_entries(inventory_path: Path, invent
                 objects_to_commit.append(db_component)
                 logger.info(f"Finished with component {component}")
 
-    return objects_to_commit, added_filepaths
+    return objects_to_commit
 
 
 def _assembly_single_component_invenontory_path(component, inventory_dir, network, station):
