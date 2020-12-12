@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Iterable, Dict, List
 
 from noiz.models import Component
+from noiz.models.component import ComponentFile
+from noiz.processing.path_helpers import increment_filename_counter
 
 
 def _assembly_single_component_inventory(
@@ -63,15 +65,16 @@ def divide_channels_by_component(
 
 
 def _assembly_stationxml_filename(
-    network: Network, station: Station, component: str
+    network: Network, station: Station, component: str, counter: int = 0
 ) -> str:
     """"""
-    return f"inventory_{network.code}.{station.code}.{component}.xml"
+    return f"inventory_{network.code}.{station.code}.{component}.xml.{counter}"
 
 
 def read_inventory(filepath: Path, filetype: str = "stationxml") -> Inventory:
     """
-    Wrapper for path-like objects to be read passed to obspy.read_inventory
+    Wrapper for path-like objects to be read passed to :func:`~obspy.read_inventory`
+
     :param filepath: Path to an inventory file
     :type filepath: Path
     :param filetype: type of inventory file
@@ -83,7 +86,6 @@ def read_inventory(filepath: Path, filetype: str = "stationxml") -> Inventory:
 
 
 def parse_inventory_for_single_component_db_entries(inventory_path: Path, inventory_dir: Path):
-    # TODO move to processing
     objects_to_commit = []
     added_filepaths = []
 
@@ -102,23 +104,16 @@ def parse_inventory_for_single_component_db_entries(inventory_path: Path, invent
                 inventory_single_component = _assembly_single_component_inventory(
                     inventory, network, station, channels
                 )
-                filename = _assembly_stationxml_filename(network, station, component)
 
-                inventory_filepath = inventory_dir.joinpath(filename)
-                logger.info(
-                    f"Inventory for component {component} will be saved to {inventory_filepath}"
-                )
-
-                if not inventory_filepath.exists():
-                    added_filepaths.append(inventory_filepath)
-
-                else:
-                    logger.warning("The inventory_file_exists")
+                single_cmp_inv_path = _assembly_single_component_invenontory_path(component, inventory_dir, network,
+                                                                                  station)
 
                 inventory_single_component.write(
-                    str(inventory_filepath), format="stationxml"
+                    str(single_cmp_inv_path), format="stationxml"
                 )
                 logger.info("Saving of the inventory file successful!")
+
+                cmp_file = ComponentFile(filepath=str(single_cmp_inv_path))
 
                 db_component = Component(
                     network=network.code,
@@ -127,7 +122,8 @@ def parse_inventory_for_single_component_db_entries(inventory_path: Path, invent
                     lat=station.latitude,
                     lon=station.longitude,
                     elevation=station.elevation,
-                    inventory_filepath=str(inventory_filepath),
+                    inventory_filepath=str(single_cmp_inv_path),
+                    component_file=cmp_file,
                 )
 
                 logger.info(f"Created Component object {db_component}")
@@ -135,3 +131,21 @@ def parse_inventory_for_single_component_db_entries(inventory_path: Path, invent
                 logger.info(f"Finished with component {component}")
 
     return objects_to_commit, added_filepaths
+
+
+def _assembly_single_component_invenontory_path(component, inventory_dir, network, station):
+
+    filename = _assembly_stationxml_filename(network, station, component, counter=0)
+
+    single_cmp_inv_path = inventory_dir.joinpath(filename)
+
+    if single_cmp_inv_path.exists():
+        logger.info(f'Filepath {single_cmp_inv_path} exists. '
+                    f'Trying to find next free one.')
+        single_cmp_inv_path = increment_filename_counter(filepath=single_cmp_inv_path)
+        logger.info(f"Free filepath found. "
+                    f"Inventory will be saved to {single_cmp_inv_path}")
+    logger.info(
+        f"Inventory for component {component} will be saved to {single_cmp_inv_path}"
+    )
+    return single_cmp_inv_path
