@@ -118,7 +118,7 @@ def add_seismic_data(basedir, filename_pattern):
 def add_inventory(filepath, filetype):
     """Read the stationxml file and add components to database"""
 
-    from noiz.api.inventory import parse_inventory_insert_stations_and_components_into_db
+    from noiz.api.component import parse_inventory_insert_stations_and_components_into_db
 
     parse_inventory_insert_stations_and_components_into_db(inventory_path=filepath)
     return
