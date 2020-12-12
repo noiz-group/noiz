@@ -5,7 +5,7 @@ from obspy.core.inventory.network import Network
 from obspy.core.inventory.station import Station
 from obspy.core.inventory.channel import Channel
 from pathlib import Path
-from typing import Iterable, Dict, List
+from typing import Iterable, Dict, List, Tuple
 
 from noiz.models import Component
 from noiz.models.component import ComponentFile
@@ -85,7 +85,19 @@ def read_inventory(filepath: Path, filetype: str = "stationxml") -> Inventory:
     return obspy.read_inventory(str(filepath), filetype)
 
 
-def parse_inventory_for_single_component_db_entries(inventory_path: Path, inventory_dir: Path):
+def parse_inventory_for_single_component_db_entries(inventory_path: Path, inventory_dir: Path) -> Tuple[Component, ...]:
+    """
+    Reads provided inventory file and tries to split it into a single component files that will be saved
+    inside of the provided inventory_dir.
+    It creates a database object of Component and Component files ready to be stored in the DB.
+
+    :param inventory_path:
+    :type inventory_path: Path
+    :param inventory_dir:
+    :type inventory_dir: Path
+    :return: Tuple of Component objects ready to be added to database
+    :rtype: Tuple[Component]
+    """
     objects_to_commit = []
 
     inventory = obspy.read_inventory(str(inventory_path))
@@ -104,8 +116,8 @@ def parse_inventory_for_single_component_db_entries(inventory_path: Path, invent
                     inventory, network, station, channels
                 )
 
-                single_cmp_inv_path = _assembly_single_component_invenontory_path(component, inventory_dir, network,
-                                                                                  station)
+                single_cmp_inv_path = _assembly_single_component_invenontory_path(network, station, component,
+                                                                                  inventory_dir)
 
                 inventory_single_component.write(
                     str(single_cmp_inv_path), format="stationxml"
@@ -129,10 +141,31 @@ def parse_inventory_for_single_component_db_entries(inventory_path: Path, invent
                 objects_to_commit.append(db_component)
                 logger.info(f"Finished with component {component}")
 
-    return objects_to_commit
+    return tuple(objects_to_commit)
 
 
-def _assembly_single_component_invenontory_path(component, inventory_dir, network, station):
+def _assembly_single_component_invenontory_path(
+        network: Network,
+        station: Station,
+        component: str,
+        inventory_dir: Path
+) -> Path:
+    """
+    Creates a filepath for a new inventory file based on standard schema.
+    If there already exists a file with that name, it will increment counter on the end of name until it find next
+    free filepath.
+
+    :param network: Network object from inventory being parsed
+    :type network: Network
+    :param station: Station object from inventory being parsed
+    :type station: Station
+    :param component: Component name (single letter)
+    :type component: str
+    :param inventory_dir: Base directory where inventory files will be stored
+    :type inventory_dir: Path
+    :return: Filepath to new inventory file
+    :rtype: Path
+    """
 
     filename = _assembly_stationxml_filename(network, station, component, counter=0)
 
