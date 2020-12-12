@@ -21,6 +21,7 @@ data_group = AppGroup("data")  # type: ignore
 qc_group = AppGroup("qc")  # type: ignore
 processing_group = AppGroup("processing")  # type: ignore
 plotting_group = AppGroup("plotting")  # type: ignore
+export_group = AppGroup("export")  # type: ignore
 
 DEFAULT_STARTDATE = pendulum.Pendulum(2010, 1, 1).date()
 DEFAULT_ENDDATE = pendulum.today().date()
@@ -63,7 +64,7 @@ def cli():  # type: ignore
 
 @configs_group.group("configs")
 def configs_group():  # type: ignore
-    """Initiate operation in noiz"""
+    """Operations on processing configs in noiz"""
     pass
 
 
@@ -76,7 +77,7 @@ def add_datachunk_params(
         filepath: str,
         add_to_db: bool,
 ):
-    """This command allows for reading a TOML file with DatachunkParams config and adding it to database"""
+    """Read a TOML file with DatachunkParams config and add to db."""
 
     from noiz.api.processing_config import create_and_add_qc_one_config_from_toml
 
@@ -90,7 +91,7 @@ def add_datachunk_params(
 
 @data_group.group("data")
 def data_group():  # type: ignore
-    """Ingest raw data by Noiz"""
+    """Ingest raw data"""
     pass
 
 
@@ -99,7 +100,7 @@ def data_group():  # type: ignore
 @click.argument("basedir", nargs=1, required=True, type=click.Path(exists=True))
 @click.option("-fp", "--filename_pattern", default="*", show_default=True)
 def add_seismic_data(basedir, filename_pattern):
-    """Globs over provided directory in search of files fitting provided patten"""
+    """Find seismic files in the directory and add them to DB"""
 
     from noiz.api.timeseries import add_seismic_data
 
@@ -117,7 +118,7 @@ def add_seismic_data(basedir, filename_pattern):
 @click.argument("filepath", nargs=1, required=True, type=click.Path(exists=True))
 @click.option("-t", "--filetype", default="stationxml", show_default=True)
 def add_inventory(filepath, filetype):
-    """Globs over provided directories in search of files"""
+    """Read the stationxml file and add components to database"""
 
     inventory = read_inventory(filepath=filepath, filetype=filetype)
 
@@ -144,7 +145,7 @@ def add_timespans(
         generate_over_midnight,
         add_to_db,
 ):
-    """This command allows generating fo Timespans and adding it to database"""
+    """Generate Timespans and add them to database"""
 
     from noiz.api.timespan import create_and_insert_timespans_to_db
 
@@ -182,7 +183,7 @@ def add_timespans(
 @click.option("-n", "--network", type=str, default=None)
 @click.argument("dirpath", nargs=1, type=click.Path(exists=True))
 def add_soh_dir(station, station_type, soh_type, dirpath, network):
-    """Globs over provided directories in search of soh files fitting parsing requirements"""
+    """Find files and parse them for SOH information"""
 
     from noiz.api.soh import ingest_soh_files
     from noiz.exceptions import SohParsingException
@@ -209,7 +210,7 @@ def add_soh_dir(station, station_type, soh_type, dirpath, network):
 @click.option("-n", "--network", type=str, default=None)
 @click.argument("paths", nargs=-1, type=click.Path(exists=True))
 def add_soh_files(station, station_type, soh_type, paths, network):
-    """Globs over provided directories in search of soh files fitting parsing requirements"""
+    """Parse provided files for SOH information"""
 
     from noiz.api.soh import ingest_soh_files
 
@@ -254,7 +255,7 @@ def read_qc_one_config(
 
 @processing_group.group("processing")
 def processing_group():  # type: ignore
-    """Processing subcommands"""
+    """Data processing"""
     pass
 
 
@@ -273,7 +274,7 @@ def prepare_datachunks(
         enddate,
         datachunk_params_id
 ):
-    """This command starts parallel processing of datachunks"""
+    """Start parallel processing of datachunks"""
 
     from noiz.api.datachunk import run_paralel_chunk_preparation
 
@@ -301,7 +302,7 @@ def calc_datachunk_stats(
         enddate,
         datachunk_params_id
 ):
-    """This command starts parallel calculation of datachunk statistical parameters"""
+    """Start parallel calculation of datachunk statistical parameters"""
 
     from noiz.api.datachunk import run_stats_calculation
 
@@ -341,7 +342,7 @@ def average_soh_gps(
     )
 
 
-@plotting_group.group("plotting")
+@plotting_group.group("plot")
 def plotting_group():  # type: ignore
     """Plotting routines"""
     pass
@@ -373,7 +374,7 @@ def plot_datachunk_availability(
         showfig
 ):
     """
-    Method to plot datachunk availability based on passed arguments.
+    Plot datachunk availability
     """
 
     if savefig is True and plotpath is None:
@@ -411,6 +412,7 @@ def plot_datachunk_availability(
 @click.option('-pp', '--plotpath', type=click.Path())
 @click.option('--showfig', is_flag=True)
 @click.option('--legend/--no-legend', default=True)
+@click.option('--keep-empty/--no-keep-empty', default=True)
 def plot_raw_gps_soh(
         network,
         station,
@@ -419,15 +421,16 @@ def plot_raw_gps_soh(
         savefig,
         plotpath,
         showfig,
-        legend
+        legend,
+        keep_empty,
 ):
     """
-    Method to plot raw GPS SOH based on passed arguments.
+    Plot raw GPS SOH
     """
 
     if savefig is True and plotpath is None:
         plotpath = Path('.')\
-            .joinpath(f'raw_gps_soh_{starttime.date()}_{endtime.date()}.png')
+            .joinpath(f'raw_gps_soh_{starttime}_{endtime}.png')
         click.echo(f"The --plotpath argument was not provided."
                    f"plot will be saved to {plotpath}")
     elif not isinstance(plotpath, Path):
@@ -443,6 +446,7 @@ def plot_raw_gps_soh(
         filepath=plotpath,
         showfig=showfig,
         show_legend=legend,
+        keep_empty=keep_empty
     )
     return
 
@@ -459,6 +463,7 @@ def plot_raw_gps_soh(
 @click.option('-pp', '--plotpath', type=click.Path())
 @click.option('--showfig', is_flag=True)
 @click.option('--legend/--no-legend', default=True)
+@click.option('--keep-empty/--no-keep-empty', default=True)
 def plot_averaged_gps_soh(
         network,
         station,
@@ -467,10 +472,11 @@ def plot_averaged_gps_soh(
         savefig,
         plotpath,
         showfig,
-        legend
+        legend,
+        keep_empty,
 ):
     """
-    Method to plot Averaged GPS SOH based on passed arguments.
+    Plot Averaged GPS SOH based
     """
 
     if savefig is True and plotpath is None:
@@ -491,11 +497,69 @@ def plot_averaged_gps_soh(
         filepath=plotpath,
         showfig=showfig,
         show_legend=legend,
+        keep_empty=keep_empty,
     )
     return
 
 
-_register_subgroups_to_cli(cli, (configs_group, data_group, processing_group, qc_group, plotting_group))
+@export_group.group("export")
+def export_group():  # type: ignore
+    """Data exporting"""
+    pass
+
+
+@export_group.command("raw_gps_soh")
+@with_appcontext
+@click.option("-n", "--network", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
+@click.option("-s", "--station", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
+@click.option("-sd", "--startdate", nargs=1, type=str,
+              default=DEFAULT_STARTDATE, show_default=True, callback=_parse_as_date)
+@click.option("-ed", "--enddate", nargs=1, type=str,
+              default=DEFAULT_ENDDATE, show_default=True, callback=_parse_as_date)
+@click.option('-p', '--path', type=click.Path())
+def export_raw_gps_soh(
+        network,
+        station,
+        startdate,
+        enddate,
+        path,
+):
+    """
+    Export raw GPS SOH data to CSV.
+    """
+
+    if path is None:
+        path = Path('.') \
+            .joinpath(f'raw_gps_soh_{startdate}_{enddate}.csv')
+        click.echo(f"The --path argument was not provided."
+                   f"File will be saved to {path}")
+    elif not isinstance(path, Path):
+        path = Path(path)
+
+    from noiz.api.soh import export_raw_soh_gps_data_to_csv
+
+    export_raw_soh_gps_data_to_csv(
+        networks=network,
+        stations=station,
+        starttime=startdate,
+        endtime=enddate,
+        filepath=path
+    )
+
+    return
+
+
+_register_subgroups_to_cli(
+    cli,
+    (
+        configs_group,
+        data_group,
+        processing_group,
+        qc_group,
+        plotting_group,
+        export_group
+    )
+)
 
 
 if __name__ == "__main__":
