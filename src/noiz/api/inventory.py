@@ -9,7 +9,7 @@ def parse_inventory_insert_stations_and_components_into_db(inventory_path: Path)
 
     inventory_dir = get_processed_inventory_dir()
 
-    objects_to_commit, added_filepaths = parse_inventory_for_single_component_db_entries(
+    objects_to_commit = parse_inventory_for_single_component_db_entries(
         inventory_path=inventory_path,
         inventory_dir=inventory_dir,
     )
