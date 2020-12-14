@@ -13,7 +13,7 @@ class NullTreatmentPolicy(ExtendedEnum):
 
 
 class QCOneConfig(db.Model):
-    __tablename__ = "qc_one_config"
+    __tablename__ = "qcone_config"
 
     id = db.Column("id", db.Integer, primary_key=True)
 
@@ -43,10 +43,10 @@ class QCOneConfig(db.Model):
 
 
 class QCOneRejectedTime(db.Model):
-    __tablename__ = "qc_one_rejected_time_periods"
+    __tablename__ = "qcone_rejected_time_periods"
     id = db.Column("id", db.Integer, primary_key=True)
 
-    qc_one_config_id = db.Column("qc_one_config_id", db.Integer, db.ForeignKey("qc_one_config.id"))
+    qc_one_config_id = db.Column("qcone_config_id", db.Integer, db.ForeignKey("qcone_config.id"))
     component_id = db.Column("component_id", db.Integer, db.ForeignKey("component.id"))
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
@@ -57,11 +57,11 @@ class QCOneRejectedTime(db.Model):
 
 
 class QCOneResults(db.Model):
-    __tablename__ = "qc_one_results"
+    __tablename__ = "qcone_results"
 
     id = db.Column("id", db.BigInteger, primary_key=True)
 
-    qc_one_config_id = db.Column("qc_one_config_id", db.Integer, db.ForeignKey("qc_one_config.id"))
+    qc_one_config_id = db.Column("qcone_config_id", db.Integer, db.ForeignKey("qcone_config.id"))
     datachunk_id = db.Column("datachunk_id", db.Integer, db.ForeignKey("datachunk.id"))
 
     starttime = db.Column("starttime", db.Boolean, nullable=False)
