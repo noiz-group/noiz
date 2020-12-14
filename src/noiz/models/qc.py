@@ -4,14 +4,21 @@ import datetime
 from pydantic.dataclasses import dataclass
 
 from noiz.database import db
+from noiz.globals import ExtendedEnum
 
 
-# TODO Add null treatment policy field
+class NullTreatmentPolicy(ExtendedEnum):
+    FAIL = "fail"
+    PASS = "pass"
+    NAN = "nan"
+
+
 class QCOneConfig(db.Model):
     __tablename__ = "qc_one_config"
 
     id = db.Column("id", db.Integer, primary_key=True)
 
+    null_policy = db.Column("null_policy", db.UnicodeText, default=NullTreatmentPolicy.NAN.value, nullable=False)
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
     avg_gps_time_error_min = db.Column("avg_gps_time_error_min", db.Float, nullable=False)
@@ -75,6 +82,7 @@ class QCOneHolder:
     This simple dataclass is just helping to validate :class:`~noiz.models.QCOne` values loaded from the TOML file
     """
 
+    null_treatment_policy: NullTreatmentPolicy
     starttime: datetime.datetime
     endtime: datetime.datetime
     avg_gps_time_error_min: float
