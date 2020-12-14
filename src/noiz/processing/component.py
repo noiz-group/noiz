@@ -78,7 +78,11 @@ def read_inventory(filepath: Path, filetype: str = "stationxml") -> Inventory:
     return obspy.read_inventory(str(filepath), filetype)
 
 
-def parse_inventory_for_single_component_db_entries(inventory_path: Path, inventory_dir: Path) -> Tuple[Component, ...]:
+def parse_inventory_for_single_component_db_entries(
+        inventory_path: Path,
+        inventory_dir: Path,
+        filetype: str = "STATIONXML",
+) -> Tuple[Component, ...]:
     """
     Reads provided inventory file and tries to split it into a single component files that will be saved
     inside of the provided inventory_dir.
@@ -93,7 +97,7 @@ def parse_inventory_for_single_component_db_entries(inventory_path: Path, invent
     """
     objects_to_commit = []
 
-    inventory = obspy.read_inventory(str(inventory_path))
+    inventory = obspy.read_inventory(str(inventory_path), format=filetype)
 
     logger.info("Parsing inventory")
 
