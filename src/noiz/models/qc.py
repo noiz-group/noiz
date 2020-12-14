@@ -10,7 +10,6 @@ from noiz.globals import ExtendedEnum
 class NullTreatmentPolicy(ExtendedEnum):
     FAIL = "fail"
     PASS = "pass"
-    NAN = "nan"
 
 
 class QCOneConfig(db.Model):
@@ -18,13 +17,27 @@ class QCOneConfig(db.Model):
 
     id = db.Column("id", db.Integer, primary_key=True)
 
-    null_policy = db.Column("null_policy", db.UnicodeText, default=NullTreatmentPolicy.NAN.value, nullable=False)
+    null_policy = db.Column("null_policy", db.UnicodeText, default=NullTreatmentPolicy.PASS.value, nullable=False)
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
-    avg_gps_time_error_min = db.Column("avg_gps_time_error_min", db.Float, nullable=False)
-    avg_gps_time_error_max = db.Column("avg_gps_time_error_max", db.Float, nullable=False)
-    avg_gps_time_uncertainty_min = db.Column("avg_gps_time_uncertainty_min", db.Float, nullable=False)
-    avg_gps_time_uncertainty_max = db.Column("avg_gps_time_uncertainty_max", db.Float, nullable=False)
+    min_avg_gps_time_error_min = db.Column("min_avg_gps_time_error", db.Float, nullable=True)
+    max_avg_gps_time_error_max = db.Column("max_avg_gps_time_error", db.Float, nullable=True)
+    min_avg_gps_time_uncertainty_min = db.Column("min_avg_gps_time_uncertainty", db.Float, nullable=True)
+    max_avg_gps_time_uncertainty_max = db.Column("max_avg_gps_time_uncertainty", db.Float, nullable=True)
+    min_signal_energy = db.Column("signal_energy", db.Float, nullable=True)
+    max_signal_energy = db.Column("signal_energy", db.Float, nullable=True)
+    min_signal_min = db.Column("min_signal_min", db.Float, nullable=True)
+    max_signal_min = db.Column("max_signal_min", db.Float, nullable=True)
+    min_signal_max = db.Column("min_signal_max", db.Float, nullable=True)
+    max_signal_max = db.Column("max_signal_max", db.Float, nullable=True)
+    min_signal_mean = db.Column("min_signal_mean", db.Float, nullable=True)
+    max_signal_mean = db.Column("max_signal_mean", db.Float, nullable=True)
+    min_signal_variance = db.Column("min_signal_variance", db.Float, nullable=True)
+    max_signal_variance = db.Column("max_signal_variance", db.Float, nullable=True)
+    min_signal_skewness = db.Column("min_signal_skewness", db.Float, nullable=True)
+    max_signal_skewness = db.Column("max_signal_skewness", db.Float, nullable=True)
+    min_signal_kurtosis = db.Column("min_signal_kurtosis", db.Float, nullable=True)
+    max_signal_kurtosis = db.Column("max_signal_kurtosis", db.Float, nullable=True)
 
     time_periods_rejected = db.relationship("QCOneRejectedTime", back_populates="qc_one_config", lazy="joined")
 
@@ -53,11 +66,24 @@ class QCOneResults(db.Model):
 
     starttime = db.Column("starttime", db.Boolean, nullable=False)
     endtime = db.Column("endtime", db.Boolean, nullable=False)
-    avg_gps_time_error_min = db.Column("avg_gps_time_error_min", db.Boolean, nullable=True)
-    avg_gps_time_error_max = db.Column("avg_gps_time_error_max", db.Boolean, nullable=True)
-    avg_gps_time_uncertainty_min = db.Column("avg_gps_time_uncertainty_min", db.Boolean, nullable=True)
-    avg_gps_time_uncertainty_max = db.Column("avg_gps_time_uncertainty_max", db.Boolean, nullable=True)
-    time_periods_rejected = db.Column("time_periods_rejected", db.Boolean, nullable=False)
+    avg_gps_time_error_min = db.Column("avg_gps_time_error_min", db.Boolean, nullable=False)
+    avg_gps_time_error_max = db.Column("avg_gps_time_error_max", db.Boolean, nullable=False)
+    avg_gps_time_uncertainty_min = db.Column("avg_gps_time_uncertainty_min", db.Boolean, nullable=False)
+    avg_gps_time_uncertainty_max = db.Column("avg_gps_time_uncertainty_max", db.Boolean, nullable=False)
+    signal_energy_min = db.Column("signal_energy_min", db.Boolean, nullable=False)
+    signal_energy_max = db.Column("signal_energy_max", db.Boolean, nullable=False)
+    signal_min_value_min = db.Column("signal_min_value_min", db.Boolean, nullable=False)
+    signal_min_value_max = db.Column("signal_min_value_max", db.Boolean, nullable=False)
+    signal_max_value_min = db.Column("signal_max_value_min", db.Boolean, nullable=False)
+    signal_max_value_max = db.Column("signal_max_value_max", db.Boolean, nullable=False)
+    signal_mean_value_min = db.Column("signal_mean_value_min", db.Boolean, nullable=False)
+    signal_mean_value_max = db.Column("signal_mean_value_max", db.Boolean, nullable=False)
+    signal_variance_min = db.Column("signal_variance_min", db.Boolean, nullable=False)
+    signal_variance_max = db.Column("signal_variance_max", db.Boolean, nullable=False)
+    signal_skewness_min = db.Column("signal_skewness_min", db.Boolean, nullable=False)
+    signal_skewness_max = db.Column("signal_skewness_max", db.Boolean, nullable=False)
+    signal_kurtosis_min = db.Column("signal_kurtosis_min", db.Boolean, nullable=False)
+    signal_kurtosis_max = db.Column("signal_kurtosis_max", db.Boolean, nullable=False)
 
     qc_one_config = db.relationship("QCOneConfig", foreign_keys=[qc_one_config_id])
     datachunk = db.relationship("Datachunk", foreign_keys=[datachunk_id])
@@ -90,3 +116,17 @@ class QCOneHolder:
     avg_gps_time_uncertainty_min: float
     avg_gps_time_uncertainty_max: float
     rejected_times: List[QCOneRejectedTimeHolder]
+    signal_energy_min: float
+    signal_energy_max: float
+    signal_min_value_min: float
+    signal_min_value_max: float
+    signal_max_value_min: float
+    signal_max_value_max: float
+    signal_mean_value_min: float
+    signal_mean_value_max: float
+    signal_variance_min: float
+    signal_variance_max: float
+    signal_skewness_min: float
+    signal_skewness_max: float
+    signal_kurtosis_min: float
+    signal_kurtosis_max: float
