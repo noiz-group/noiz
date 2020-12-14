@@ -39,20 +39,20 @@ class QCOneConfig(db.Model):
     signal_kurtosis_min = db.Column("signal_kurtosis_min", db.Float, nullable=True)
     signal_kurtosis_max = db.Column("signal_kurtosis_max", db.Float, nullable=True)
 
-    time_periods_rejected = db.relationship("QCOneRejectedTime", back_populates="qc_one_config", lazy="joined")
+    time_periods_rejected = db.relationship("QCOneRejectedTime", back_populates="qcone_config", lazy="joined")
 
 
 class QCOneRejectedTime(db.Model):
     __tablename__ = "qcone_rejected_time_periods"
     id = db.Column("id", db.Integer, primary_key=True)
 
-    qc_one_config_id = db.Column("qcone_config_id", db.Integer, db.ForeignKey("qcone_config.id"))
+    qcone_config_id = db.Column("qcone_config_id", db.Integer, db.ForeignKey("qcone_config.id"))
     component_id = db.Column("component_id", db.Integer, db.ForeignKey("component.id"))
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
 
-    qc_one_config = db.relationship("QCOneConfig", back_populates="time_periods_rejected",
-                                    foreign_keys=[qc_one_config_id])
+    qcone_config = db.relationship("QCOneConfig", back_populates="time_periods_rejected",
+                                    foreign_keys=[qcone_config_id])
     component = db.relationship("Component", foreign_keys=[component_id])
 
 
@@ -61,7 +61,7 @@ class QCOneResults(db.Model):
 
     id = db.Column("id", db.BigInteger, primary_key=True)
 
-    qc_one_config_id = db.Column("qcone_config_id", db.Integer, db.ForeignKey("qcone_config.id"))
+    qcone_config_id = db.Column("qcone_config_id", db.Integer, db.ForeignKey("qcone_config.id"))
     datachunk_id = db.Column("datachunk_id", db.Integer, db.ForeignKey("datachunk.id"))
 
     starttime = db.Column("starttime", db.Boolean, nullable=False)
@@ -85,7 +85,7 @@ class QCOneResults(db.Model):
     signal_kurtosis_min = db.Column("signal_kurtosis_min", db.Boolean, nullable=False)
     signal_kurtosis_max = db.Column("signal_kurtosis_max", db.Boolean, nullable=False)
 
-    qc_one_config = db.relationship("QCOneConfig", foreign_keys=[qc_one_config_id])
+    qcone_config = db.relationship("QCOneConfig", foreign_keys=[qcone_config_id])
     datachunk = db.relationship("Datachunk", foreign_keys=[datachunk_id])
 
 
