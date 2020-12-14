@@ -215,9 +215,21 @@ class TestDataIngestionRoutines:
         assert result.exit_code == 0
         assert exported_filepath.exists()
 
-    @pytest.mark.xfail
     def test_average_soh_gps(self, noiz_app):
-        assert False
+        from noiz.api.soh import fetch_averaged_soh_gps_all
+        runner = CliRunner()
+        result = runner.invoke(cli, ["processing", "average_soh_gps",
+                                     "-sd", "2019-09-01",
+                                     "-ed", "2019-11-01"])
+        assert result.exit_code == 0
+        with noiz_app.app_context():
+            timespans = fetch_timespans_between_dates(
+                starttime=datetime.datetime(2019, 9, 1),
+                endtime=datetime.datetime(2019, 11, 1),
+            )
+            components = fetch_components()
+            fetched_soh = fetch_averaged_soh_gps_all(components=components, timespans=timespans)
+        assert len(fetched_soh) == 97
 
     @pytest.mark.xfail
     def test_plot_averaged_gps_soh(self, noiz_app):
