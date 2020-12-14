@@ -1,5 +1,6 @@
 import datetime
 import pendulum
+from noiz.models.qc import QCOneConfig, QCOneResults
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import subqueryload, Query
@@ -155,6 +156,37 @@ def fetch_datachunks_without_stats(
         load_processing_params=load_processing_params,
     )
     return query.filter(~Datachunk.stats.has()).all()
+
+
+def fetch_datachunks_without_qcone(
+        qc_one: QCOneConfig,
+        components: Optional[Collection[Component]] = None,
+        timespans: Optional[Collection[Timespan]] = None,
+        datachunk_processing_config: Optional[DatachunkParams] = None,
+        datachunk_ids: Optional[Collection[int]] = None,
+        load_component: bool = False,
+        load_stats: bool = False,
+        load_timespan: bool = False,
+        load_processing_params: bool = False,
+) -> List[Datachunk]:
+    query = _query_datachunks(
+        components=components,
+        timespans=timespans,
+        datachunk_processing_config=datachunk_processing_config,
+        datachunk_ids=datachunk_ids,
+        load_component=load_component,
+        load_stats=load_stats,
+        load_timespan=load_timespan,
+        load_processing_params=load_processing_params,
+    )
+
+    res = query.filter(
+        ~Datachunk.qcones.any(
+            QCOneResults.qcone_config.has(
+                QCOneConfig.id == qc_one.id)))
+
+    return res.all()
+
 
 
 def _query_datachunks(
