@@ -1,8 +1,12 @@
+from flask import current_app
 from loguru import logger
+from pathlib import Path
 from typing import List, Iterable, Optional, Collection, Union
 
 from noiz.api.helpers import validate_to_tuple
+from noiz.database import db
 from noiz.models.component import Component
+from noiz.processing.component import parse_inventory_for_single_component_db_entries
 
 
 def fetch_components_by_id(component_ids: Collection[int]) -> List[Component]:
@@ -59,3 +63,32 @@ def fetch_components(
         filters.append(True)
 
     return Component.query.filter(*filters).all()
+
+
+def parse_inventory_insert_stations_and_components_into_db(inventory_path: Path, filetype: str = "STATIONXML") -> None:
+
+    inventory_dir = get_processed_inventory_dir()
+
+    objects_to_commit = parse_inventory_for_single_component_db_entries(
+        inventory_path=inventory_path,
+        inventory_dir=inventory_dir,
+        filetype=filetype,
+    )
+
+    for obj in objects_to_commit:
+        db.session.merge(obj)
+    db.session.commit()
+    return
+
+
+def get_processed_inventory_dir() -> Path:
+    """
+    Prepares directory inside of a processed_data_dir that will hold the processed inventory files.
+
+    :return: Processed inventory dir
+    :rtype: Path
+    """
+    processed_data_dir = Path(current_app.noiz_config.get("processed_data_dir")).absolute()
+    inventory_dir = processed_data_dir.joinpath("inventory")
+    inventory_dir.mkdir(exist_ok=True)
+    return inventory_dir

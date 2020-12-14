@@ -1,4 +1,7 @@
 import pytest
+
+from noiz.models.component import ComponentFile
+
 pytestmark = [pytest.mark.system, pytest.mark.cli]
 
 from click.testing import CliRunner
@@ -56,8 +59,10 @@ class TestDataIngestionRoutines:
 
         with noiz_app.app_context():
             fetched_components = fetch_components()
+            fetched_component_files = db.session.query(ComponentFile).all()
 
         assert len(fetched_components) == 9
+        assert len(fetched_component_files) == 9
 
     @pytest.mark.xfail
     def test_add_soh_files(self, noiz_app):

@@ -1,10 +1,12 @@
 from loguru import logger
 from obspy.core.util import AttribDict
 from obspy import read_inventory
+from pathlib import Path
 from typing import Optional, Tuple
 import utm
 
 from noiz.database import db
+from noiz.exceptions import MissingDataFileException
 
 
 class Component(db.Model):
@@ -26,6 +28,19 @@ class Component(db.Model):
     zone = db.Column("zone", db.Integer)
     northern = db.Column("northern", db.Boolean)
     elevation = db.Column("elevation", db.Float)
+    component_file_id = db.Column(
+        "component_file_id",
+        db.BigInteger,
+        db.ForeignKey("component_file.id"),
+        nullable=True,
+    )
+
+    component_file = db.relationship(
+        "ComponentFile",
+        foreign_keys=[component_file_id],
+        uselist=False,
+        lazy="joined",
+    )
 
     def __init__(self, **kwargs):
         super(Component, self).__init__(**kwargs)
@@ -73,7 +88,16 @@ class Component(db.Model):
         self.lon = lon
 
     def read_inventory(self):
-        return read_inventory(self.inventory_filepath, format="stationxml")
+        # FIXME add deprecation warning
+        return self.load_data()
+
+    def load_data(self):
+        filepath = Path(self.component_file.filepath)
+        if filepath.exists:
+            # FIXME when obspy will be released, str(Path) wont be necesary
+            return read_inventory(str(filepath), format="stationxml")
+        else:
+            raise MissingDataFileException(f"Inventory file for component {self} is missing")
 
     def get_location_as_attribdict(self):
         return AttribDict(
@@ -95,3 +119,10 @@ class Component(db.Model):
             logger.warning("Northern is not set, using default True.")
             northern = True
         return zone, northern
+
+
+class ComponentFile(db.Model):
+    __tablename__ = "component_file"
+
+    id = db.Column("id", db.BigInteger, primary_key=True)
+    filepath = db.Column("filepath", db.UnicodeText, nullable=False)
