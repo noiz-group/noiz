@@ -46,6 +46,7 @@ class Datachunk(db.Model):
         # uselist = False, # just for the future left, here, dont want to test that now
     )
     stats = db.relationship("DatachunkStats", uselist=False, back_populates="datachunk")
+    qcones = db.relationship("QCOneResults", uselist=True, back_populates="datachunk")
     processed_datachunks = db.relationship("ProcessedDatachunk")
 
     datachunk_file = db.relationship(
