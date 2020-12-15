@@ -7,8 +7,7 @@ from typing import Iterable, Dict, List, Tuple
 from obspy import Inventory
 from obspy.core.inventory import Network, Station, Channel
 
-from noiz.models import Component
-from noiz.models.component import ComponentFile
+from noiz.models.component import Component, ComponentFile, Device
 from noiz.processing.path_helpers import _assembly_single_component_invenontory_path
 
 
@@ -123,6 +122,11 @@ def parse_inventory_for_single_component_db_entries(
 
                 cmp_file = ComponentFile(filepath=str(single_cmp_inv_path))
 
+                device = Device(
+                    network=network.code,
+                    station=station.code,
+                )
+
                 db_component = Component(
                     network=network.code,
                     station=station.code,
@@ -132,6 +136,7 @@ def parse_inventory_for_single_component_db_entries(
                     elevation=station.elevation,
                     inventory_filepath=str(single_cmp_inv_path),
                     component_file=cmp_file,
+                    device=device,
                 )
 
                 logger.info(f"Created Component object {db_component}")
