@@ -41,6 +41,21 @@ class QCOneConfig(db.Model):
 
     time_periods_rejected = db.relationship("QCOneRejectedTime", back_populates="qcone_config", lazy="joined")
 
+    def uses_gps(self) -> bool:
+        """
+        Checks if any of the GPS checks is defined.
+
+        :return: If any of GPS checks is defines
+        :rtype: bool
+        """
+        res = any([x is not None for x in (
+            self.avg_gps_time_error_min,
+            self.avg_gps_time_error_max,
+            self.avg_gps_time_uncertainty_max,
+            self.avg_gps_time_uncertainty_min
+        )])
+        return res
+
 
 class QCOneRejectedTime(db.Model):
     __tablename__ = "qcone_rejected_time_periods"
