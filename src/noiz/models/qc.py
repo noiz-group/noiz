@@ -52,7 +52,7 @@ class QCOneRejectedTime(db.Model):
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
 
     qcone_config = db.relationship("QCOneConfig", back_populates="time_periods_rejected",
-                                    foreign_keys=[qcone_config_id])
+                                   foreign_keys=[qcone_config_id])
     component = db.relationship("Component", foreign_keys=[component_id])
 
 

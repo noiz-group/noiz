@@ -188,7 +188,6 @@ def fetch_datachunks_without_qcone(
     return res.all()
 
 
-
 def _query_datachunks(
         components: Optional[Collection[Component]] = None,
         timespans: Optional[Collection[Timespan]] = None,
