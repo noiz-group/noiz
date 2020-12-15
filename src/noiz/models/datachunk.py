@@ -92,6 +92,9 @@ class DatachunkStats(db.Model):
 
     datachunk = db.relationship("Datachunk", foreign_keys=[datachunk_id], back_populates="stats")
 
+    def __repr__(self):
+        return f"Stats of Datachunk no.{self.datachunk_id}"
+
 
 class ProcessedDatachunk(db.Model):
     __tablename__ = "processeddatachunk"
