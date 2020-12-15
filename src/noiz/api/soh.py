@@ -249,6 +249,7 @@ def __upsert_into_db_soh_instrument(
         fetched_components_ids.append(cmp.id)
         if cmp.component == 'Z':
             z_component_id = cmp.id
+    comp: Component = fetched_components[0]
 
     command_count = len(df)
 
@@ -264,6 +265,7 @@ def __upsert_into_db_soh_instrument(
                 voltage=row["Supply voltage(V)"],
                 current=row["Total current(A)"],
                 temperature=row["Temperature(C)"],
+                device_id=comp.device_id
             )
             .on_conflict_do_update(
                 constraint="unique_timestamp_per_station_in_sohinstrument",
@@ -347,7 +349,7 @@ def __upsert_into_db_soh_gps(
         fetched_components_ids.append(cmp.id)
         if cmp.component == 'Z':
             z_component_id = cmp.id
-
+    comp: Component = fetched_components[0]
     command_count = len(df)
 
     insert_commands = []
@@ -361,6 +363,7 @@ def __upsert_into_db_soh_gps(
                 datetime=timestamp,
                 time_error=row["Time error(ms)"],
                 time_uncertainty=row["Time uncertainty(ms)"],
+                device_id=comp.device_id
             )
             .on_conflict_do_update(
                 constraint="unique_timestamp_per_station_in_sohgps",
@@ -471,7 +474,7 @@ def __calculate_averages_of_gps_soh(
 
         query = (
             db.session
-            .query(SohGps, (Component.id).label('component_id'))
+            .query(SohGps, (Component.id).label('component_id'), (SohGps.device_id).label('device_id'))
             .join((SohGps.components, Component))
             .filter(
                 SohGps.datetime >= timespan.starttime,
@@ -518,6 +521,7 @@ def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
                 timespan_id=row["timespan_id"],
                 time_error=row["time_error"],
                 time_uncertainty=row["time_uncertainty"],
+                device_id=row["device_id"],
             )
             .on_conflict_do_update(
                 constraint="unique_tispan_per_station_in_avgsohgps",
