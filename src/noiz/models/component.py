@@ -13,7 +13,7 @@ class Device(db.Model):
     __tablename__ = "device"
     __table_args__ = (
         db.UniqueConstraint(
-            "network", "station", name="unique_component_per_station"
+            "network", "station", name="unique_device_per_station"
         ),
     )
 
