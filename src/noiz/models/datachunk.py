@@ -38,14 +38,14 @@ class Datachunk(db.Model):
         db.ForeignKey("datachunk_file.id"),
         nullable=True,
     )
+    device_id = db.Column("device_id", db.Integer, db.ForeignKey("device.id"), nullable=True)
 
+    device = db.relationship("Device", foreign_keys=[device_id], uselist=False, lazy="joined")
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id], back_populates="datachunks")
     component = db.relationship("Component", foreign_keys=[component_id])
-    params = db.relationship(
-        "DatachunkParams", foreign_keys=[datachunk_params_id],
-        # uselist = False, # just for the future left, here, dont want to test that now
-    )
+    params = db.relationship("DatachunkParams", uselist=False, foreign_keys=[datachunk_params_id])
     stats = db.relationship("DatachunkStats", uselist=False, back_populates="datachunk")
+    qcones = db.relationship("QCOneResults", uselist=True, back_populates="datachunk")
     processed_datachunks = db.relationship("ProcessedDatachunk")
 
     datachunk_file = db.relationship(
@@ -93,6 +93,9 @@ class DatachunkStats(db.Model):
     kurtosis = db.Column("kurtosis", db.Float, nullable=True)
 
     datachunk = db.relationship("Datachunk", foreign_keys=[datachunk_id], back_populates="stats")
+
+    def __repr__(self):
+        return f"Stats of Datachunk no.{self.datachunk_id}"
 
 
 class ProcessedDatachunk(db.Model):

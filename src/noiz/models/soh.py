@@ -26,7 +26,9 @@ class SohInstrument(db.Model):
     voltage = db.Column("voltage", db.Float, nullable=True)
     current = db.Column("current", db.Float, nullable=True)
     temperature = db.Column("temperature", db.Float, nullable=True)
+    device_id = db.Column("device_id", db.Integer, db.ForeignKey("device.id"), nullable=True)
 
+    device = db.relationship("Device", foreign_keys=[device_id], uselist=False, lazy="joined")
     z_component = db.relationship("Component", foreign_keys=[z_component_id])
     components = db.relationship("Component", secondary=association_table_soh_instr)
 
@@ -63,7 +65,9 @@ class SohGps(db.Model):
     datetime = db.Column("datetime", db.TIMESTAMP(timezone=True), nullable=False)
     time_error = db.Column("time_error", db.Float, nullable=True)
     time_uncertainty = db.Column("time_uncertainty", db.Float, nullable=True)
+    device_id = db.Column("device_id", db.Integer, db.ForeignKey("device.id"), nullable=True)
 
+    device = db.relationship("Device", foreign_keys=[device_id], uselist=False, lazy="joined")
     z_component = db.relationship("Component", foreign_keys=[z_component_id])
     components = db.relationship("Component", secondary=association_table_soh_gps)
 
@@ -101,7 +105,9 @@ class AveragedSohGps(db.Model):
     z_component_id = db.Column("z_component_id", db.Integer, db.ForeignKey("component.id"))
     time_error = db.Column("time_error", db.Float, nullable=True)
     time_uncertainty = db.Column("time_uncertainty", db.Float, nullable=True)
+    device_id = db.Column("device_id", db.Integer, db.ForeignKey("device.id"), nullable=True)
 
+    device = db.relationship("Device", foreign_keys=[device_id], uselist=False, lazy="joined")
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
     z_component = db.relationship("Component", foreign_keys=[z_component_id])
     components = db.relationship("Component", secondary=association_table_averaged_soh_gps_components)

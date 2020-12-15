@@ -7,8 +7,7 @@ from typing import Iterable, Dict, List, Tuple
 from obspy import Inventory
 from obspy.core.inventory import Network, Station, Channel
 
-from noiz.models import Component
-from noiz.models.component import ComponentFile
+from noiz.models.component import Component, ComponentFile, Device
 from noiz.processing.path_helpers import _assembly_single_component_invenontory_path
 
 
@@ -82,7 +81,7 @@ def parse_inventory_for_single_component_db_entries(
         inventory_path: Path,
         inventory_dir: Path,
         filetype: str = "STATIONXML",
-) -> Tuple[Component, ...]:
+) -> Tuple[Tuple[Component, ...], Tuple[Device, ...]]:
     """
     Reads provided inventory file and tries to split it into a single component files that will be saved
     inside of the provided inventory_dir.
@@ -95,7 +94,8 @@ def parse_inventory_for_single_component_db_entries(
     :return: Tuple of Component objects ready to be added to database
     :rtype: Tuple[Component]
     """
-    objects_to_commit = []
+    components_to_commit = []
+    devices_to_commit = []
 
     inventory = obspy.read_inventory(str(inventory_path), format=filetype)
 
@@ -105,6 +105,15 @@ def parse_inventory_for_single_component_db_entries(
         logger.info(f"Found network {network.code}")
         for station in network:
             logger.info(f"Found station {station.code}")
+            logger.info(f"Creating Device for {network.code}.{station.code}")
+            device = Device(
+                network=network.code,
+                station=station.code,
+            )
+            logger.info(f"Created Device object {device}")
+            devices_to_commit.append(device)
+
+            logger.info("Dividing channels by component")
             components = divide_channels_by_component(station.channels)
 
             for component, channels in components.items():
@@ -132,10 +141,11 @@ def parse_inventory_for_single_component_db_entries(
                     elevation=station.elevation,
                     inventory_filepath=str(single_cmp_inv_path),
                     component_file=cmp_file,
+                    device=device,
                 )
 
                 logger.info(f"Created Component object {db_component}")
-                objects_to_commit.append(db_component)
+                components_to_commit.append(db_component)
                 logger.info(f"Finished with component {component}")
 
-    return tuple(objects_to_commit)
+    return tuple(components_to_commit), tuple(devices_to_commit)
