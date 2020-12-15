@@ -1,4 +1,5 @@
 from noiz.database import db
+from sqlalchemy.ext.associationproxy import association_proxy
 
 
 association_table_soh_instr = db.Table(
@@ -110,4 +111,6 @@ class AveragedSohGps(db.Model):
     device = db.relationship("Device", foreign_keys=[device_id], uselist=False, lazy="joined")
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
     z_component = db.relationship("Component", foreign_keys=[z_component_id])
-    components = db.relationship("Component", secondary=association_table_averaged_soh_gps_components)
+    components = db.relationship("Component", secondary=lambda: association_table_averaged_soh_gps_components)
+
+    component_ids = association_proxy('components', 'id')
