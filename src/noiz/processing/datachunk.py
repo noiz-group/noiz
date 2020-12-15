@@ -748,6 +748,7 @@ def create_datachunks_for_component(
             npts=npts,
             datachunk_file=datachunk_file,
             padded_npts=padded_npts,
+            device_id=component.device_id
         )
         logger.info(
             "Checking if there are some chunks fot tht timespan and component in db"

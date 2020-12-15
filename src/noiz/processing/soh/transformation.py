@@ -8,6 +8,7 @@ import pandas as pd
 class TempAverageGpsSoh:
     z_component_id: int
     all_components: set
+    device_id: int
     time_error: float
     time_uncertainty: float
     timespan_id: int
@@ -40,6 +41,7 @@ def __calculate_mean_gps_soh(df: pd.DataFrame, timespan_id: int) -> List[TempAve
             TempAverageGpsSoh(
                 z_component_id=z_component_id,
                 all_components=all_components.values,
+                device_id=row['device_id'],
                 timespan_id=timespan_id,
                 time_error=row['time_error'],
                 time_uncertainty=row['time_uncertainty']
