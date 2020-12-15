@@ -9,6 +9,20 @@ from noiz.database import db
 from noiz.exceptions import MissingDataFileException
 
 
+class Device(db.Model):
+    __tablename__ = "device"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "network", "station", name="unique_component_per_station"
+        ),
+    )
+
+    id = db.Column("id", db.Integer, primary_key=True)
+    network = db.Column("network", db.UnicodeText)
+    station = db.Column("station", db.UnicodeText)
+    qcones = db.relationship("QCOneResults", uselist=True, back_populates="device")
+
+
 class Component(db.Model):
     __tablename__ = "component"
     __table_args__ = (
@@ -28,6 +42,12 @@ class Component(db.Model):
     zone = db.Column("zone", db.Integer)
     northern = db.Column("northern", db.Boolean)
     elevation = db.Column("elevation", db.Float)
+    device_id = db.Column(
+        "device_id",
+        db.Integer,
+        db.ForeignKey("device.id"),
+        nullable=True,
+    )
     component_file_id = db.Column(
         "component_file_id",
         db.BigInteger,
@@ -35,6 +55,12 @@ class Component(db.Model):
         nullable=True,
     )
 
+    device = db.relationship(
+        "Device",
+        foreign_keys=[device_id],
+        uselist=False,
+        lazy="joined",
+    )
     component_file = db.relationship(
         "ComponentFile",
         foreign_keys=[component_file_id],
