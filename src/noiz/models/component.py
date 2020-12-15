@@ -20,7 +20,8 @@ class Device(db.Model):
     id = db.Column("id", db.Integer, primary_key=True)
     network = db.Column("network", db.UnicodeText)
     station = db.Column("station", db.UnicodeText)
-    qcones = db.relationship("QCOneResults", uselist=True, back_populates="device")
+    components = db.relationship("Component", uselist=True, back_populates="device")
+    avg_soh_gps = db.relationship("Component", uselist=True, back_populates="device")
 
 
 class Component(db.Model):
