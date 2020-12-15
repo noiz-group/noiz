@@ -69,15 +69,24 @@ def parse_inventory_insert_stations_and_components_into_db(inventory_path: Path,
 
     inventory_dir = get_processed_inventory_dir()
 
-    objects_to_commit = parse_inventory_for_single_component_db_entries(
+    components, devices = parse_inventory_for_single_component_db_entries(
         inventory_path=inventory_path,
         inventory_dir=inventory_dir,
         filetype=filetype,
     )
 
-    for obj in objects_to_commit:
-        db.session.merge(obj)
+    logger.info("Finished parsing inventory")
+
+    logger.info("Trying to add devices to DB")
+    db.session.add_all(devices)
+    logger.info("Commiting devices in db")
     db.session.commit()
+
+    logger.info("Adding components to db")
+    db.session.add_all(components)
+    logger.info("Commiting components to db")
+    db.session.commit()
+    logger.info('Success')
     return
 
 
