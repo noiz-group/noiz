@@ -342,6 +342,34 @@ def average_soh_gps(
     )
 
 
+@processing_group.command("run_qcone")
+@with_appcontext
+@click.option("-s", "--station", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-c", "--component", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-c", "--qcone_config_id", nargs=1, type=int,
+              default=1, show_default=True)
+def run_qcone(
+        station,
+        component,
+        startdate,
+        enddate,
+        qcone_config_id
+):
+    """Estimate qcone results """
+
+    from noiz.api.qc import process_qcone
+
+    process_qcone(
+        stations=station,
+        components=component,
+        starttime=startdate,
+        endtime=enddate,
+        qcone_config_id=qcone_config_id
+    )
+
+
 @plotting_group.group("plot")
 def plotting_group():  # type: ignore
     """Plotting routines"""
