@@ -259,3 +259,11 @@ class TestDataIngestionRoutines:
             datachunks = db.session.query(Datachunk).all()
         assert len(datachunks_without_stats) == 0
         assert len(datachunks) == len(stats)
+
+    def test_run_qcone(self, noiz_app):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["processing", "run_qcone",
+                                     "-c", "1",
+                                     "-sd", "2019-09-30",
+                                     "-ed", "2019-10-03"])
+        assert result.exit_code == 0
