@@ -13,7 +13,8 @@ from noiz.models.datachunk import Datachunk, DatachunkStats
 from noiz.models.qc import QCOneConfig, QCOneRejectedTime, QCOneRejectedTimeHolder, QCOneHolder, QCOneResults
 from noiz.models.soh import AveragedSohGps
 from noiz.models.timespan import Timespan
-from noiz.processing.configs import validate_dict_as_qcone_holder, load_qc_one_config_toml
+from noiz.processing.configs import validate_dict_as_qcone_holder, load_qc_one_config_toml, parse_single_config_toml, \
+    DefinedConfigs
 
 
 def fetch_qc_ones(ids: Union[int, Collection[int]]) -> List[QCOneConfig]:
@@ -460,3 +461,48 @@ def determine_qcone_gps(
         qcone_res.avg_gps_time_uncertainty_max = null_value
         qcone_res.avg_gps_time_uncertainty_min = null_value
     return qcone_res
+
+
+def insert_qconeconfig_into_db(params: QCOneConfig):
+    """
+    This is method simply adding an instance of :class:`~noiz.models.DatachunkParams` to DB and committing changes.
+
+    Has to be executed within `app_context`
+
+    :param params: Instance of DatachunkParams to be added to db
+    :type params: DatachunkParams
+    :return: None
+    :rtype: NoneType
+    """
+    db.session.add(params)
+    db.session.commit()
+    return
+
+
+def create_and_add_qcone_config_from_toml(
+        filepath: Path,
+        add_to_db: bool = False
+) -> Optional[Tuple[QCOneHolder, QCOneConfig]]:
+    """
+    This method takes a filepath to a TOML file with valid parameters
+    to create a :class:`~noiz.processing.qc.QCOneHolder` and subsequently :class:`~noiz.models.QCOneConfig`.
+    It can also add the created object to the database. By default it does not add it to db.
+    If chosen not to add the result to db, a tuple containing both :class:`~noiz.processing.qc.QCOneHolder`
+    and :class:`~noiz.models.QCOneConfig` will be returned for manual check.
+
+    :param filepath: Path to existing TOML file
+    :type filepath: Path
+    :param add_to_db: If the result of parsing of TOML should be added to DB
+    :type add_to_db: bool
+    :return: It can return QCOneHolder object for manual validation
+    :rtype: Optional[QCOneHolder]
+    """
+
+    params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.QCONE)
+    qcone = create_qcone_config(qcone_holder=params_holder)
+
+    if add_to_db:
+        insert_qconeconfig_into_db(params=qcone)
+    else:
+        return (params_holder, qcone)
+    return None
