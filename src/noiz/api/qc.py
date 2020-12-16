@@ -7,6 +7,7 @@ from typing import List, Collection, Union, Optional, Tuple
 from noiz.api.component import fetch_components
 from noiz.api.datachunk import _determine_filters_and_opts_for_datachunk
 from noiz.api.helpers import validate_to_tuple
+from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.database import db
 from noiz.models.datachunk import Datachunk, DatachunkStats
 from noiz.models.qc import QCOneConfig, QCOneRejectedTime, QCOneRejectedTimeHolder, QCOneHolder, QCOneResults
@@ -174,9 +175,25 @@ def _determine_null_value(qcone_config: QCOneConfig) -> bool:
         raise NotImplementedError(f"I did not expect this value of null_policy {qcone_config.null_policy}")
 
 
-def process_qcone(qcone_config_id):
+def process_qcone(
+        qcone_config_id,
+        stations,
+        components,
+        starttime,
+        endtime,
+):
     qcone_config = fetch_qc_one_single(id=qcone_config_id)
-    filters, opts = _determine_filters_and_opts_for_datachunk(load_timespan=True, load_stats=True)
+    timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
+    fetched_components = fetch_components(
+        stations=stations,
+        components=components
+    )
+    filters, opts = _determine_filters_and_opts_for_datachunk(
+        components=fetched_components,
+        timespans=timespans,
+        load_timespan=True,
+        load_stats=True
+    )
 
     null_value = _determine_null_value(qcone_config=qcone_config)
 
@@ -209,7 +226,7 @@ def process_qcone(qcone_config_id):
 
         qcone_results = []
 
-        for datachunk, stats, avg_soh_gps in fetched_results:
+        for datachunk, stats in fetched_results:
             qcone_res = calculate_qcone_for_stats_only(datachunk, null_value, qcone_config, stats)
             qcone_results.append(qcone_res)
 
