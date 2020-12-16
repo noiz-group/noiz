@@ -73,6 +73,11 @@ class QCOneRejectedTime(db.Model):
 
 class QCOneResults(db.Model):
     __tablename__ = "qcone_results"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "datachunk_id", "qcone_config_id", name="unique_qcone_results_per_config_per_datachunk"
+        ),
+    )
 
     id = db.Column("id", db.BigInteger, primary_key=True)
 
