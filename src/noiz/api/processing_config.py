@@ -1,9 +1,12 @@
+from noiz.models.qc import QCOneConfig, QCOneHolder
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
+from noiz.api.qc import create_qcone_config
 from noiz.database import db
 from noiz.models.processing_params import DatachunkParams, DatachunkParamsHolder
-from noiz.processing.configs import validate_config_dict_as_datachunkparams, parse_single_config_toml, DefinedConfigs
+from noiz.processing.configs import validate_config_dict_as_datachunkparams, parse_single_config_toml, DefinedConfigs, \
+    validate_dict_as_qcone_holder
 
 
 def fetch_processing_config_by_id(id: int) -> DatachunkParams:
@@ -63,7 +66,7 @@ def create_datachunkparams(
     return params
 
 
-def insert_qc_one_config_into_db(params: DatachunkParams):
+def insert_params_into_db(params: Union[DatachunkParams, QCOneConfig]):
     """
     This is method simply adding an instance of :class:`~noiz.models.DatachunkParams` to DB and committing changes.
 
@@ -79,7 +82,7 @@ def insert_qc_one_config_into_db(params: DatachunkParams):
     return
 
 
-def create_and_add_qc_one_config_from_toml(
+def create_and_add_datachunk_params_config_from_toml(
         filepath: Path,
         add_to_db: bool = False
 ) -> Optional[Tuple[DatachunkParamsHolder, DatachunkParams]]:
@@ -102,7 +105,36 @@ def create_and_add_qc_one_config_from_toml(
     datchunk_params = create_datachunkparams(params_holder=params_holder)
 
     if add_to_db:
-        insert_qc_one_config_into_db(params=datchunk_params)
+        insert_params_into_db(params=datchunk_params)
     else:
         return (params_holder, datchunk_params)
+    return None
+
+
+def create_and_add_qcone_config_from_toml(
+        filepath: Path,
+        add_to_db: bool = False
+) -> Optional[Tuple[QCOneHolder, QCOneConfig]]:
+    """
+    This method takes a filepath to a TOML file with valid parameters
+    to create a :class:`~noiz.processing.qc.QCOneHolder` and subsequently :class:`~noiz.models.QCOneConfig`.
+    It can also add the created object to the database. By default it does not add it to db.
+    If chosen not to add the result to db, a tuple containing both :class:`~noiz.processing.qc.QCOneHolder`
+    and :class:`~noiz.models.QCOneConfig` will be returned for manual check.
+
+    :param filepath: Path to existing TOML file
+    :type filepath: Path
+    :param add_to_db: If the result of parsing of TOML should be added to DB
+    :type add_to_db: bool
+    :return: It can return QCOneHolder object for manual validation
+    :rtype: Optional[QCOneHolder]
+    """
+
+    params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.QCONE)
+    qcone = create_qcone_config(qcone_holder=params_holder)
+
+    if add_to_db:
+        insert_params_into_db(params=qcone)
+    else:
+        return (params_holder, qcone)
     return None
