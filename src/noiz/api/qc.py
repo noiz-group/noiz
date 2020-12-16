@@ -213,6 +213,8 @@ def process_qcone(qcone_config_id):
             qcone_res = calculate_qcone_for_stats_only(datachunk, null_value, qcone_config, stats)
             qcone_results.append(qcone_res)
 
+    add_or_upsert_qcone_results_in_db(qcone_results_collection=qcone_results)
+
 
 def add_or_upsert_qcone_results_in_db(qcone_results_collection: Collection[QCOneResults]):
     """
