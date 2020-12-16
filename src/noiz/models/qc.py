@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union
 
 import datetime
 from pydantic.dataclasses import dataclass
@@ -118,8 +118,8 @@ class QCOneRejectedTimeHolder:
     network: str
     station: str
     component: str
-    starttime: datetime.datetime
-    endtime: datetime.datetime
+    starttime: Union[datetime.datetime, datetime.date]
+    endtime: Union[datetime.datetime, datetime.date]
 
 
 @dataclass
@@ -129,8 +129,8 @@ class QCOneHolder:
     """
 
     null_treatment_policy: NullTreatmentPolicy
-    starttime: datetime.datetime
-    endtime: datetime.datetime
+    starttime: Union[datetime.datetime, datetime.date]
+    endtime: Union[datetime.datetime, datetime.date]
     avg_gps_time_error_min: float
     avg_gps_time_error_max: float
     avg_gps_time_uncertainty_min: float
