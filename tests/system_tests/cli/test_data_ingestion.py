@@ -160,6 +160,25 @@ class TestDataIngestionRoutines:
         assert isinstance(fetched_config, DatachunkParams)
         assert len(all_configs) == 1
 
+    def test_add_qcone_config(self, workdir_with_content, noiz_app):
+
+        config_path = workdir_with_content.joinpath('QCOneConfig.toml')
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["configs", "add_qcone_config", "--add_to_db", "-f", str(config_path)])
+
+        assert result.exit_code == 0
+
+        from noiz.api.qc import fetch_qc_one_single
+        from noiz.models.qc import QCOneConfig
+
+        with noiz_app.app_context():
+            fetched_config = fetch_qc_one_single(id=1)
+            all_configs = QCOneConfig.query.all()
+
+        assert isinstance(fetched_config, QCOneConfig)
+        assert len(all_configs) == 1
+
     def test_insert_timespans(self, workdir_with_content, noiz_app):
 
         startdate = datetime.datetime(2019, 9, 30)
