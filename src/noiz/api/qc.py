@@ -9,7 +9,7 @@ from noiz.models.qc import QCOneConfig, QCOneRejectedTime, QCOneRejectedTimeHold
 from noiz.processing.configs import validate_dict_as_qcone_holder, load_qc_one_config_toml
 
 
-def fetch_qc_one(ids: Union[int, Collection[int]]) -> List[QCOneConfig]:
+def fetch_qc_ones(ids: Union[int, Collection[int]]) -> List[QCOneConfig]:
     """
     Fetches the QCOne from db based on id.
 
@@ -24,6 +24,23 @@ def fetch_qc_one(ids: Union[int, Collection[int]]) -> List[QCOneConfig]:
     fetched = db.session.query(QCOneConfig).filter(
         QCOneConfig.id.in_(ids),
     ).all()
+
+    return fetched
+
+
+def fetch_qc_one_single(id: int) -> QCOneConfig:
+    """
+    Fetches the QCOne from db based on id.
+
+    :param ids: IDs to be fetched
+    :type ids: Union[int, Collection[int]]
+    :return: Fetched QCones
+    :rtype: List[QCOneConfig]
+    """
+
+    fetched = db.session.query(QCOneConfig).filter(
+        QCOneConfig.id == id,
+    ).first()
 
     return fetched
 
