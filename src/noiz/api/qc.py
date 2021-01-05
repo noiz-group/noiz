@@ -2,7 +2,8 @@ from loguru import logger
 from pathlib import Path
 from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import insert
-from typing import List, Collection, Union, Optional, Tuple
+from typing import List, Collection, Union, Optional, Tuple, Any, Callable
+from typing_extensions import Protocol
 
 from noiz.api.component import fetch_components
 from noiz.api.datachunk import _determine_filters_and_opts_for_datachunk
@@ -479,6 +480,22 @@ def determine_qcone_gps(
         qcone_res.avg_gps_time_uncertainty_max = null_value
         qcone_res.avg_gps_time_uncertainty_min = null_value
     return qcone_res
+
+
+class Operator(Protocol):
+    """
+    This is just a callback protocol which defines type passed as op argument of
+    :func:`noiz.api.qc.compare_vals_null_safe`.
+    """
+
+    def __call__(self, a: Any, b: Any) -> bool: ...
+
+
+def compare_vals_null_safe(a: Any, b: Any, op: Operator, null_value: bool):
+    if a is None or b is None:
+        return null_value
+    else:
+        return op(a, b)
 
 
 def insert_qconeconfig_into_db(params: QCOneConfig) -> None:
