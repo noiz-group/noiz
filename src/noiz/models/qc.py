@@ -1,3 +1,4 @@
+from functools import cached_property
 from typing import List, Union
 
 import datetime
@@ -79,7 +80,8 @@ class QCOneConfig(db.Model):
         )])
         return res
 
-    @property
+    # py38 only. If you want to go below, use just standard property
+    @cached_property
     def null_value(self) -> bool:
         if self.null_policy is NullTreatmentPolicy.PASS or self.null_policy == NullTreatmentPolicy.PASS.value:
             return True
