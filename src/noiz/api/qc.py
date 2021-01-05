@@ -1,9 +1,9 @@
 from loguru import logger
+import operator as ope
 from pathlib import Path
 from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import insert
 from typing import List, Collection, Union, Optional, Tuple, Any, Callable
-from typing_extensions import Protocol
 
 from noiz.api.component import fetch_components
 from noiz.api.datachunk import _determine_filters_and_opts_for_datachunk
@@ -356,10 +356,10 @@ def calculate_qcone_for_gps_and_stats(avg_soh_gps, datachunk, null_value, qcone_
         avg_soh_gps=avg_soh_gps
     )
     qcone_res = determine_qcone_stats(
-        qcone_res=qcone_res,
+        results=qcone_res,
         stats=stats,
-        qcone_config=qcone_config,
-        null_value=null_value
+        config=qcone_config,
+        null_val=null_value
     )
     return qcone_res
 
@@ -378,10 +378,10 @@ def calculate_qcone_for_stats_only(datachunk, null_value, qcone_config, stats):
         avg_soh_gps=None
     )
     qcone_res = determine_qcone_stats(
-        qcone_res=qcone_res,
+        results=qcone_res,
         stats=stats,
-        qcone_config=qcone_config,
-        null_value=null_value
+        config=qcone_config,
+        null_val=null_value
     )
     return qcone_res
 
@@ -395,63 +395,35 @@ def determine_qcone_time(
     if not isinstance(datachunk.timespan, Timespan):
         raise ValueError('You should load timespan together with the Datachunk.')
 
-    qcone_res.starttime = qcone_config.starttime <= datachunk.timespan.starttime
-    qcone_res.endtime = qcone_config.endtime >= datachunk.timespan.endtime
+    qcone_res.starttime = compare_vals_null_safe(qcone_config.starttime, datachunk.timespan.starttime, ope.le, null_value=null_value)
+    qcone_res.endtime = compare_vals_null_safe(qcone_config.endtime, datachunk.timespan.endtime, ope.ge, null_value=null_value)
 
     return qcone_res
 
 
 def determine_qcone_stats(
-        qcone_res: QCOneResults,
+        results: QCOneResults,
         stats: DatachunkStats,
-        qcone_config: QCOneConfig,
-        null_value: bool
+        config: QCOneConfig,
+        null_val: bool
 ) -> QCOneResults:
 
-    if stats.energy is not None:
-        qcone_res.signal_energy_max = qcone_config.signal_energy_max <= stats.energy
-        qcone_res.signal_energy_min = qcone_config.signal_energy_min >= stats.energy
-    else:
-        qcone_res.signal_energy_max = null_value
-        qcone_res.signal_energy_min = null_value
-    if stats.min is not None:
-        qcone_res.signal_min_value_max = qcone_config.signal_min_value_max <= stats.min
-        qcone_res.signal_min_value_min = qcone_config.signal_min_value_min >= stats.min
-    else:
-        qcone_res.signal_min_value_max = null_value
-        qcone_res.signal_min_value_min = null_value
-    if stats.max is not None:
-        qcone_res.signal_max_value_max = qcone_config.signal_max_value_max <= stats.max
-        qcone_res.signal_max_value_min = qcone_config.signal_max_value_min >= stats.max
-    else:
-        qcone_res.signal_max_value_max = null_value
-        qcone_res.signal_max_value_min = null_value
-    if stats.mean is not None:
-        qcone_res.signal_mean_value_max = qcone_config.signal_mean_value_max <= stats.mean
-        qcone_res.signal_mean_value_min = qcone_config.signal_mean_value_min >= stats.mean
-    else:
-        qcone_res.signal_mean_value_max = null_value
-        qcone_res.signal_mean_value_min = null_value
-    if stats.variance is not None:
-        qcone_res.signal_variance_max = qcone_config.signal_variance_max <= stats.variance
-        qcone_res.signal_variance_min = qcone_config.signal_variance_min >= stats.variance
-    else:
-        qcone_res.signal_variance_max = null_value
-        qcone_res.signal_variance_min = null_value
-    if stats.skewness is not None:
-        qcone_res.signal_skewness_max = qcone_config.signal_skewness_max <= stats.skewness
-        qcone_res.signal_skewness_min = qcone_config.signal_skewness_min >= stats.skewness
-    else:
-        qcone_res.signal_skewness_max = null_value
-        qcone_res.signal_skewness_min = null_value
-    if stats.kurtosis is not None:
-        qcone_res.signal_kurtosis_max = qcone_config.signal_kurtosis_max <= stats.kurtosis
-        qcone_res.signal_kurtosis_min = qcone_config.signal_kurtosis_min >= stats.kurtosis
-    else:
-        qcone_res.signal_kurtosis_max = null_value
-        qcone_res.signal_kurtosis_min = null_value
+    results.signal_energy_max = compare_vals_null_safe(config.signal_energy_max, stats.energy, ope.le, null_val)
+    results.signal_energy_min = compare_vals_null_safe(config.signal_energy_min, stats.energy, ope.ge, null_val)
+    results.signal_min_value_max = compare_vals_null_safe(config.signal_min_value_max, stats.min, ope.le, null_val)
+    results.signal_min_value_min = compare_vals_null_safe(config.signal_min_value_min, stats.min, ope.ge, null_val)
+    results.signal_max_value_max = compare_vals_null_safe(config.signal_max_value_max, stats.max, ope.le, null_val)
+    results.signal_max_value_min = compare_vals_null_safe(config.signal_max_value_min, stats.max, ope.ge, null_val)
+    results.signal_mean_value_max = compare_vals_null_safe(config.signal_mean_value_max, stats.mean, ope.le, null_val)
+    results.signal_mean_value_min = compare_vals_null_safe(config.signal_mean_value_min, stats.mean, ope.ge, null_val)
+    results.signal_variance_max = compare_vals_null_safe(config.signal_variance_max, stats.variance, ope.le, null_val)
+    results.signal_variance_min = compare_vals_null_safe(config.signal_variance_min, stats.variance, ope.ge, null_val)
+    results.signal_skewness_max = compare_vals_null_safe(config.signal_skewness_max, stats.skewness, ope.le, null_val)
+    results.signal_skewness_min = compare_vals_null_safe(config.signal_skewness_min, stats.skewness, ope.ge, null_val)
+    results.signal_kurtosis_max = compare_vals_null_safe(config.signal_kurtosis_max, stats.kurtosis, ope.le, null_val)
+    results.signal_kurtosis_min = compare_vals_null_safe(config.signal_kurtosis_min, stats.kurtosis, ope.ge, null_val)
 
-    return qcone_res
+    return results
 
 
 def determine_qcone_gps(
@@ -461,19 +433,14 @@ def determine_qcone_gps(
         avg_soh_gps: Optional[AveragedSohGps]
 ) -> QCOneResults:
     if avg_soh_gps is not None:
-        if avg_soh_gps.time_error is not None:
-            qcone_res.avg_gps_time_error_max = qcone_config.avg_gps_time_error_max >= avg_soh_gps.time_error
-            qcone_res.avg_gps_time_error_min = qcone_config.avg_gps_time_error_min <= avg_soh_gps.time_error
-        else:
-            qcone_res.avg_gps_time_error_max = null_value
-            qcone_res.avg_gps_time_error_min = null_value
-
-        if avg_soh_gps.time_uncertainty is not None:
-            qcone_res.avg_gps_time_uncertainty_max = qcone_config.avg_gps_time_uncertainty_max >= avg_soh_gps.time_uncertainty
-            qcone_res.avg_gps_time_uncertainty_min = qcone_config.avg_gps_time_uncertainty_min <= avg_soh_gps.time_uncertainty
-        else:
-            qcone_res.avg_gps_time_uncertainty_max = null_value
-            qcone_res.avg_gps_time_uncertainty_min = null_value
+        qcone_res.avg_gps_time_error_max = compare_vals_null_safe(
+            qcone_config.avg_gps_time_error_max, avg_soh_gps.time_error, ope.ge, null_value)
+        qcone_res.avg_gps_time_error_min = compare_vals_null_safe(
+            qcone_config.avg_gps_time_error_min, avg_soh_gps.time_error, ope.le, null_value)
+        qcone_res.avg_gps_time_uncertainty_max = compare_vals_null_safe(
+            qcone_config.avg_gps_time_uncertainty_max, avg_soh_gps.time_uncertainty, ope.ge, null_value)
+        qcone_res.avg_gps_time_uncertainty_min = compare_vals_null_safe(
+            qcone_config.avg_gps_time_uncertainty_min, avg_soh_gps.time_uncertainty, ope.le, null_value)
     else:
         qcone_res.avg_gps_time_error_max = null_value
         qcone_res.avg_gps_time_error_min = null_value
@@ -482,16 +449,7 @@ def determine_qcone_gps(
     return qcone_res
 
 
-class Operator(Protocol):
-    """
-    This is just a callback protocol which defines type passed as op argument of
-    :func:`noiz.api.qc.compare_vals_null_safe`.
-    """
-
-    def __call__(self, a: Any, b: Any) -> bool: ...
-
-
-def compare_vals_null_safe(a: Any, b: Any, op: Operator, null_value: bool):
+def compare_vals_null_safe(a: Any, b: Any, op: Callable[[Any, Any], bool], null_value: bool):
     if a is None or b is None:
         return null_value
     else:
