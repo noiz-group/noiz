@@ -74,12 +74,14 @@ def create_qcone_rejected_time(
         stations=holder.station,
         components=holder.component,
     )
+    if len(fetched_components) == 0:
+        raise ValueError(f"There were no components found in db for that parameters. "
+                         f"{holder.network}.{holder.station}.{holder.component}")
 
     res = [
-        QCOneRejectedTime(component=cmp, starttime=holder.starttime, endtime=holder.endtime)
+        QCOneRejectedTime(component_id=cmp.id, starttime=holder.starttime, endtime=holder.endtime)
         for cmp in fetched_components
     ]
-
     return res
 
 
@@ -111,13 +113,29 @@ def create_qcone_config(
         qc_one_rejected_times.extend(create_qcone_rejected_time(holder=rej_time))
 
     qcone = QCOneConfig(
+        null_policy=qcone_holder.null_treatment_policy.value,
         starttime=qcone_holder.starttime,
         endtime=qcone_holder.endtime,
         avg_gps_time_error_min=qcone_holder.avg_gps_time_error_min,
         avg_gps_time_error_max=qcone_holder.avg_gps_time_error_max,
         avg_gps_time_uncertainty_min=qcone_holder.avg_gps_time_uncertainty_min,
         avg_gps_time_uncertainty_max=qcone_holder.avg_gps_time_uncertainty_max,
+        signal_energy_min=qcone_holder.signal_energy_min,
+        signal_energy_max=qcone_holder.signal_energy_max,
+        signal_min_value_min=qcone_holder.signal_min_value_min,
+        signal_min_value_max=qcone_holder.signal_min_value_max,
+        signal_max_value_min=qcone_holder.signal_max_value_min,
+        signal_max_value_max=qcone_holder.signal_max_value_max,
+        signal_mean_value_min=qcone_holder.signal_mean_value_min,
+        signal_mean_value_max=qcone_holder.signal_mean_value_max,
+        signal_variance_min=qcone_holder.signal_variance_min,
+        signal_variance_max=qcone_holder.signal_variance_max,
+        signal_skewness_min=qcone_holder.signal_skewness_min,
+        signal_skewness_max=qcone_holder.signal_skewness_max,
+        signal_kurtosis_min=qcone_holder.signal_kurtosis_min,
+        signal_kurtosis_max=qcone_holder.signal_kurtosis_max,
     )
+    qcone.time_periods_rejected = qc_one_rejected_times
     return qcone
 
 
@@ -463,7 +481,7 @@ def determine_qcone_gps(
     return qcone_res
 
 
-def insert_qconeconfig_into_db(params: QCOneConfig):
+def insert_qconeconfig_into_db(params: QCOneConfig) -> None:
     """
     This is method simply adding an instance of :class:`~noiz.models.DatachunkParams` to DB and committing changes.
 
