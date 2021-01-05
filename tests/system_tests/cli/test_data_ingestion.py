@@ -170,6 +170,7 @@ class TestDataIngestionRoutines:
         assert result.exit_code == 0
 
         import toml
+        import pytest_check as check
         from noiz.api.qc import fetch_qc_one_single
         from noiz.models.qc import QCOneConfig
 
@@ -187,9 +188,11 @@ class TestDataIngestionRoutines:
             if key in ("null_treatment_policy", "rejected_times"):
                 continue
             if key in ("starttime", "endtime"):
-                assert fetched_config.__getattribute__(key).date() == value
+                check.equal(fetched_config.__getattribute__(key).date(), value)
                 continue
-            assert fetched_config.__getattribute__(key) == value
+            check.almost_equal(fetched_config.__getattribute__(key), value)
+
+        check.equal(len(original_config['QCOne']['rejected_times']), len(fetched_config.time_periods_rejected))
 
     def test_insert_timespans(self, workdir_with_content, noiz_app):
 
