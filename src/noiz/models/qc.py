@@ -79,6 +79,15 @@ class QCOneConfig(db.Model):
         )])
         return res
 
+    @property
+    def null_value(self) -> bool:
+        if self.null_policy is NullTreatmentPolicy.PASS or self.null_policy == NullTreatmentPolicy.PASS.value:
+            return True
+        elif self.null_policy is NullTreatmentPolicy.FAIL or self.null_policy == NullTreatmentPolicy.FAIL.value:
+            return False
+        else:
+            raise NotImplementedError(f"I did not expect this value of null_policy {self.null_policy}")
+
 
 class QCOneResults(db.Model):
     __tablename__ = "qcone_results"
