@@ -185,16 +185,6 @@ def create_and_add_qc_one_config_from_toml(
     return None
 
 
-def _determine_null_value(qcone_config: QCOneConfig) -> bool:
-    from noiz.models.qc import NullTreatmentPolicy
-    if qcone_config.null_policy is NullTreatmentPolicy.PASS or qcone_config.null_policy == NullTreatmentPolicy.PASS.value:
-        return True
-    elif qcone_config.null_policy is NullTreatmentPolicy.FAIL or qcone_config.null_policy == NullTreatmentPolicy.FAIL.value:
-        return False
-    else:
-        raise NotImplementedError(f"I did not expect this value of null_policy {qcone_config.null_policy}")
-
-
 def process_qcone(
         qcone_config_id,
         stations,
@@ -215,8 +205,6 @@ def process_qcone(
         load_stats=True
     )
 
-    null_value = _determine_null_value(qcone_config=qcone_config)
-
     if qcone_config.uses_gps():
         query = (db.session
                  .query(Datachunk, DatachunkStats, AveragedSohGps)
@@ -232,7 +220,7 @@ def process_qcone(
 
         qcone_results = []
         for datachunk, stats, avg_soh_gps in fetched_results:
-            qcone_res = calculate_qcone_for_gps_and_stats(avg_soh_gps, datachunk, null_value, qcone_config, stats)
+            qcone_res = calculate_qcone_for_gps_and_stats(avg_soh_gps, datachunk, qcone_config, stats)
             qcone_results.append(qcone_res)
         # TODO Add part for topping up QCone results without the AveragedSohGPS values
 
@@ -247,7 +235,7 @@ def process_qcone(
         qcone_results = []
 
         for datachunk, stats in fetched_results:
-            qcone_res = calculate_qcone_for_stats_only(datachunk, null_value, qcone_config, stats)
+            qcone_res = calculate_qcone_for_stats_only(datachunk, qcone_config, stats)
             qcone_results.append(qcone_res)
 
     add_or_upsert_qcone_results_in_db(qcone_results_collection=qcone_results)
@@ -342,111 +330,105 @@ def add_or_upsert_qcone_results_in_db(qcone_results_collection: Collection[QCOne
     return
 
 
-def calculate_qcone_for_gps_and_stats(avg_soh_gps, datachunk, null_value, qcone_config, stats):
+def calculate_qcone_for_gps_and_stats(avg_soh_gps, datachunk, qcone_config, stats):
     qcone_res = QCOneResults(datachunk_id=datachunk.id, qcone_config_id=qcone_config.id)
     qcone_res = determine_qcone_time(
-        qcone_res=qcone_res,
-        datachunk=datachunk,
-        qcone_config=qcone_config,
-    )
-    qcone_res = determine_qcone_gps(
-        qcone_res=qcone_res,
-        qcone_config=qcone_config,
-        null_value=null_value,
-        avg_soh_gps=avg_soh_gps
-    )
-    qcone_res = determine_qcone_stats(
         results=qcone_res,
-        stats=stats,
+        datachunk=datachunk,
         config=qcone_config,
-        null_val=null_value
     )
+    qcone_res = determine_qcone_gps(result=qcone_res, config=qcone_config, avg_soh_gps=avg_soh_gps)
+    qcone_res = determine_qcone_stats(results=qcone_res, stats=stats, config=qcone_config)
     return qcone_res
 
 
-def calculate_qcone_for_stats_only(datachunk, null_value, qcone_config, stats):
+def calculate_qcone_for_stats_only(datachunk, qcone_config, stats):
     qcone_res = QCOneResults(datachunk_id=datachunk.id, qcone_config_id=qcone_config.id)
     qcone_res = determine_qcone_time(
-        qcone_res=qcone_res,
-        datachunk=datachunk,
-        qcone_config=qcone_config,
-    )
-    qcone_res = determine_qcone_gps(
-        qcone_res=qcone_res,
-        qcone_config=qcone_config,
-        null_value=null_value,
-        avg_soh_gps=None
-    )
-    qcone_res = determine_qcone_stats(
         results=qcone_res,
-        stats=stats,
+        datachunk=datachunk,
         config=qcone_config,
-        null_val=null_value
     )
+    qcone_res = determine_qcone_gps(result=qcone_res, config=qcone_config, avg_soh_gps=None)
+    qcone_res = determine_qcone_stats(results=qcone_res, stats=stats, config=qcone_config)
     return qcone_res
 
 
 def determine_qcone_time(
-        qcone_res: QCOneResults,
+        results: QCOneResults,
         datachunk: Datachunk,
-        qcone_config: QCOneConfig,
+        config: QCOneConfig,
 ) -> QCOneResults:
 
     if not isinstance(datachunk.timespan, Timespan):
         raise ValueError('You should load timespan together with the Datachunk.')
 
-    qcone_res.starttime = compare_vals_null_safe(qcone_config.starttime, datachunk.timespan.starttime, ope.le, null_value=null_value)
-    qcone_res.endtime = compare_vals_null_safe(qcone_config.endtime, datachunk.timespan.endtime, ope.ge, null_value=null_value)
+    results.starttime = compare_vals_null_safe(
+        config.starttime, datachunk.timespan.starttime, ope.le, null_value=config.null_value)
+    results.endtime = compare_vals_null_safe(
+        config.endtime, datachunk.timespan.endtime, ope.ge, null_value=config.null_value)
 
-    return qcone_res
+    return results
 
 
 def determine_qcone_stats(
         results: QCOneResults,
         stats: DatachunkStats,
         config: QCOneConfig,
-        null_val: bool
 ) -> QCOneResults:
 
-    results.signal_energy_max = compare_vals_null_safe(config.signal_energy_max, stats.energy, ope.le, null_val)
-    results.signal_energy_min = compare_vals_null_safe(config.signal_energy_min, stats.energy, ope.ge, null_val)
-    results.signal_min_value_max = compare_vals_null_safe(config.signal_min_value_max, stats.min, ope.le, null_val)
-    results.signal_min_value_min = compare_vals_null_safe(config.signal_min_value_min, stats.min, ope.ge, null_val)
-    results.signal_max_value_max = compare_vals_null_safe(config.signal_max_value_max, stats.max, ope.le, null_val)
-    results.signal_max_value_min = compare_vals_null_safe(config.signal_max_value_min, stats.max, ope.ge, null_val)
-    results.signal_mean_value_max = compare_vals_null_safe(config.signal_mean_value_max, stats.mean, ope.le, null_val)
-    results.signal_mean_value_min = compare_vals_null_safe(config.signal_mean_value_min, stats.mean, ope.ge, null_val)
-    results.signal_variance_max = compare_vals_null_safe(config.signal_variance_max, stats.variance, ope.le, null_val)
-    results.signal_variance_min = compare_vals_null_safe(config.signal_variance_min, stats.variance, ope.ge, null_val)
-    results.signal_skewness_max = compare_vals_null_safe(config.signal_skewness_max, stats.skewness, ope.le, null_val)
-    results.signal_skewness_min = compare_vals_null_safe(config.signal_skewness_min, stats.skewness, ope.ge, null_val)
-    results.signal_kurtosis_max = compare_vals_null_safe(config.signal_kurtosis_max, stats.kurtosis, ope.le, null_val)
-    results.signal_kurtosis_min = compare_vals_null_safe(config.signal_kurtosis_min, stats.kurtosis, ope.ge, null_val)
+    results.signal_energy_max = compare_vals_null_safe(
+        config.signal_energy_max, stats.energy, ope.le, config.null_value)
+    results.signal_energy_min = compare_vals_null_safe(
+        config.signal_energy_min, stats.energy, ope.ge, config.null_value)
+    results.signal_min_value_max = compare_vals_null_safe(
+        config.signal_min_value_max, stats.min, ope.le, config.null_value)
+    results.signal_min_value_min = compare_vals_null_safe(
+        config.signal_min_value_min, stats.min, ope.ge, config.null_value)
+    results.signal_max_value_max = compare_vals_null_safe(
+        config.signal_max_value_max, stats.max, ope.le, config.null_value)
+    results.signal_max_value_min = compare_vals_null_safe(
+        config.signal_max_value_min, stats.max, ope.ge, config.null_value)
+    results.signal_mean_value_max = compare_vals_null_safe(
+        config.signal_mean_value_max, stats.mean, ope.le, config.null_value)
+    results.signal_mean_value_min = compare_vals_null_safe(
+        config.signal_mean_value_min, stats.mean, ope.ge, config.null_value)
+    results.signal_variance_max = compare_vals_null_safe(
+        config.signal_variance_max, stats.variance, ope.le, config.null_value)
+    results.signal_variance_min = compare_vals_null_safe(
+        config.signal_variance_min, stats.variance, ope.ge, config.null_value)
+    results.signal_skewness_max = compare_vals_null_safe(
+        config.signal_skewness_max, stats.skewness, ope.le, config.null_value)
+    results.signal_skewness_min = compare_vals_null_safe(
+        config.signal_skewness_min, stats.skewness, ope.ge, config.null_value)
+    results.signal_kurtosis_max = compare_vals_null_safe(
+        config.signal_kurtosis_max, stats.kurtosis, ope.le, config.null_value)
+    results.signal_kurtosis_min = compare_vals_null_safe(
+        config.signal_kurtosis_min, stats.kurtosis, ope.ge, config.null_value)
 
     return results
 
 
 def determine_qcone_gps(
-        qcone_res: QCOneResults,
-        qcone_config: QCOneConfig,
-        null_value: bool,
+        result: QCOneResults,
+        config: QCOneConfig,
         avg_soh_gps: Optional[AveragedSohGps]
 ) -> QCOneResults:
     if avg_soh_gps is not None:
-        qcone_res.avg_gps_time_error_max = compare_vals_null_safe(
-            qcone_config.avg_gps_time_error_max, avg_soh_gps.time_error, ope.ge, null_value)
-        qcone_res.avg_gps_time_error_min = compare_vals_null_safe(
-            qcone_config.avg_gps_time_error_min, avg_soh_gps.time_error, ope.le, null_value)
-        qcone_res.avg_gps_time_uncertainty_max = compare_vals_null_safe(
-            qcone_config.avg_gps_time_uncertainty_max, avg_soh_gps.time_uncertainty, ope.ge, null_value)
-        qcone_res.avg_gps_time_uncertainty_min = compare_vals_null_safe(
-            qcone_config.avg_gps_time_uncertainty_min, avg_soh_gps.time_uncertainty, ope.le, null_value)
+        result.avg_gps_time_error_max = compare_vals_null_safe(
+            config.avg_gps_time_error_max, avg_soh_gps.time_error, ope.ge, config.null_value)
+        result.avg_gps_time_error_min = compare_vals_null_safe(
+            config.avg_gps_time_error_min, avg_soh_gps.time_error, ope.le, config.null_value)
+        result.avg_gps_time_uncertainty_max = compare_vals_null_safe(
+            config.avg_gps_time_uncertainty_max, avg_soh_gps.time_uncertainty, ope.ge, config.null_value)
+        result.avg_gps_time_uncertainty_min = compare_vals_null_safe(
+            config.avg_gps_time_uncertainty_min, avg_soh_gps.time_uncertainty, ope.le, config.null_value)
     else:
-        qcone_res.avg_gps_time_error_max = null_value
-        qcone_res.avg_gps_time_error_min = null_value
-        qcone_res.avg_gps_time_uncertainty_max = null_value
-        qcone_res.avg_gps_time_uncertainty_min = null_value
-    return qcone_res
+        result.avg_gps_time_error_max = config.null_value
+        result.avg_gps_time_error_min = config.null_value
+        result.avg_gps_time_uncertainty_max = config.null_value
+        result.avg_gps_time_uncertainty_min = config.null_value
+    return result
 
 
 def compare_vals_null_safe(a: Any, b: Any, op: Callable[[Any, Any], bool], null_value: bool):
