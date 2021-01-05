@@ -191,6 +191,7 @@ def process_qcone(
         components,
         starttime,
         endtime,
+
 ):
     qcone_config = fetch_qc_one_single(id=qcone_config_id)
     timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
@@ -218,11 +219,26 @@ def process_qcone(
                  .filter(*filters).options(opts))
         fetched_results = query.all()
 
+        logger.error(len(fetched_results))
         qcone_results = []
+        used_ids = []
         for datachunk, stats, avg_soh_gps in fetched_results:
+            used_ids.append(datachunk.id)
             qcone_res = calculate_qcone_for_gps_and_stats(avg_soh_gps, datachunk, qcone_config, stats)
             qcone_results.append(qcone_res)
-        # TODO Add part for topping up QCone results without the AveragedSohGPS values
+
+        # Topping up by calculating QCOneResult for those Datachunks that do not have an AvgGpsSoh
+        filters.append(~Datachunk.id.in_(used_ids))
+        topup_query = (db.session
+                       .query(Datachunk, DatachunkStats)
+                       .select_from(Datachunk)
+                       .join(DatachunkStats)
+                       .filter(*filters).options(opts))
+        topup_fetched_results = topup_query.all()
+
+        for datachunk, stats in topup_fetched_results:
+            qcone_res = calculate_qcone_for_stats_only(datachunk, qcone_config, stats)
+            qcone_results.append(qcone_res)
 
     else:
         query = (db.session
