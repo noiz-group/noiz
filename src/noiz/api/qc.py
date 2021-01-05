@@ -1,3 +1,4 @@
+import datetime
 from loguru import logger
 import operator as ope
 from pathlib import Path
@@ -186,12 +187,13 @@ def create_and_add_qc_one_config_from_toml(
 
 
 def process_qcone(
-        qcone_config_id,
-        stations,
-        components,
-        starttime,
-        endtime,
-
+        qcone_config_id: int,
+        stations: Optional[Union[Collection[str], str]],
+        components: Optional[Union[Collection[str], str]],
+        starttime: Union[datetime.date, datetime.datetime],
+        endtime: Union[datetime.date, datetime.datetime],
+        use_gps: bool = True,
+        strict_gps: bool = False,
 ):
     qcone_config = fetch_qc_one_single(id=qcone_config_id)
     timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
@@ -206,7 +208,7 @@ def process_qcone(
         load_stats=True
     )
 
-    if qcone_config.uses_gps():
+    if qcone_config.uses_gps() and use_gps:
         query = (db.session
                  .query(Datachunk, DatachunkStats, AveragedSohGps)
                  .select_from(Datachunk)
@@ -227,18 +229,19 @@ def process_qcone(
             qcone_res = calculate_qcone_for_gps_and_stats(avg_soh_gps, datachunk, qcone_config, stats)
             qcone_results.append(qcone_res)
 
-        # Topping up by calculating QCOneResult for those Datachunks that do not have an AvgGpsSoh
-        filters.append(~Datachunk.id.in_(used_ids))
-        topup_query = (db.session
-                       .query(Datachunk, DatachunkStats)
-                       .select_from(Datachunk)
-                       .join(DatachunkStats)
-                       .filter(*filters).options(opts))
-        topup_fetched_results = topup_query.all()
+        if not strict_gps:
+            # Topping up by calculating QCOneResult for those Datachunks that do not have an AvgGpsSoh
+            filters.append(~Datachunk.id.in_(used_ids))
+            topup_query = (db.session
+                           .query(Datachunk, DatachunkStats)
+                           .select_from(Datachunk)
+                           .join(DatachunkStats)
+                           .filter(*filters).options(opts))
+            topup_fetched_results = topup_query.all()
 
-        for datachunk, stats in topup_fetched_results:
-            qcone_res = calculate_qcone_for_stats_only(datachunk, qcone_config, stats)
-            qcone_results.append(qcone_res)
+            for datachunk, stats in topup_fetched_results:
+                qcone_res = calculate_qcone_for_stats_only(datachunk, qcone_config, stats)
+                qcone_results.append(qcone_res)
 
     else:
         query = (db.session
