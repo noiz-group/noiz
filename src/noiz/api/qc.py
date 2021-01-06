@@ -82,8 +82,8 @@ def create_qcone_rejected_time(
         components=holder.component,
     )
     if len(fetched_components) == 0:
-        raise ValueError(f"There were no components found in db for that parameters. "
-                         f"{holder.network}.{holder.station}.{holder.component}")
+        raise EmptyResultException(f"There were no components found in db for that parameters. "
+                                   f"{holder.network}.{holder.station}.{holder.component}")
 
     res = [
         QCOneRejectedTime(component_id=cmp.id, starttime=holder.starttime, endtime=holder.endtime)
