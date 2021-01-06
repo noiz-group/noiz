@@ -1,5 +1,5 @@
 from functools import cached_property
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Tuple
 
 import datetime
 from pydantic.dataclasses import dataclass
@@ -89,6 +89,11 @@ class QCOneConfig(db.Model):
             return False
         else:
             raise NotImplementedError(f"I did not expect this value of null_policy {self.null_policy}")
+
+    # py38 only. If you want to go below, use just standard property
+    @cached_property
+    def component_ids_rejected_times(self) -> Tuple[int, ...]:
+        return tuple([x.component_id for x in self.time_periods_rejected])
 
 
 class QCOneResults(db.Model):
