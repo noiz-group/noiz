@@ -2,6 +2,8 @@ import datetime
 from loguru import logger
 import operator as ope
 from pathlib import Path
+
+from noiz.models.component import Component
 from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import insert
 from typing import List, Collection, Union, Optional, Tuple, Any, Callable
@@ -257,8 +259,9 @@ def process_qcone(
     filters, opts = _determine_filters_and_opts_for_datachunk(
         components=fetched_components,
         timespans=timespans,
+        load_component=False,
         load_timespan=True,
-        load_stats=True
+        load_stats=False,
     )
 
     if qcone_config.uses_gps() and use_gps:
@@ -442,6 +445,7 @@ def calculate_qcone_results(
     qcone_res = QCOneResults(datachunk_id=datachunk.id, qcone_config_id=qcone_config.id)
 
     qcone_res = _determine_qcone_time(results=qcone_res,  datachunk=datachunk, config=qcone_config)
+    qcone_res = _determine_qcone_accepted_times(results=qcone_res, datachunk=datachunk, config=qcone_config)
     qcone_res = _determine_qcone_gps(result=qcone_res, config=qcone_config, avg_soh_gps=avg_soh_gps)
     qcone_res = _determine_qcone_stats(results=qcone_res, stats=stats, config=qcone_config)
 
@@ -464,6 +468,33 @@ def _determine_qcone_time(
         config.starttime, datachunk.timespan.starttime, ope.le, null_value=config.null_value)
     results.endtime = compare_vals_null_safe(
         config.endtime, datachunk.timespan.endtime, ope.ge, null_value=config.null_value)
+
+    return results
+
+
+def _determine_qcone_accepted_times(
+        results: QCOneResults,
+        datachunk: Datachunk,
+        config: QCOneConfig,
+) -> QCOneResults:
+    """
+    filldocs
+    """
+
+    if not isinstance(datachunk.timespan, Timespan):
+        raise ValueError('You should load timespan together with the Datachunk.')
+
+    reject_checks = [True, ]
+    for rej in config.time_periods_rejected:
+        if not rej.component_id == datachunk.component_id:
+            continue
+
+        reject_checks.append(
+                (rej.starttime <= datachunk.timespan.endtime) and (datachunk.timespan.starttime <= rej.endtime)
+        )
+        # This check is adaptation of https://stackoverflow.com/a/13513973/4308541
+
+    results.accepted_time = all(reject_checks)
 
     return results
 
