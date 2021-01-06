@@ -11,6 +11,7 @@ from noiz.api.datachunk import _determine_filters_and_opts_for_datachunk
 from noiz.api.helpers import validate_to_tuple
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.database import db
+from noiz.exceptions import EmptyResultException
 from noiz.models.datachunk import Datachunk, DatachunkStats
 from noiz.models.qc import QCOneConfig, QCOneRejectedTime, QCOneRejectedTimeHolder, QCOneHolder, QCOneResults
 from noiz.models.soh import AveragedSohGps
@@ -40,17 +41,21 @@ def fetch_qc_ones(ids: Union[int, Collection[int]]) -> List[QCOneConfig]:
 
 def fetch_qc_one_single(id: int) -> QCOneConfig:
     """
-    Fetches the QCOne from db based on id.
+    Fetches a single :class:`noiz.models.qc.QCOneConfig` from db based on id.
 
-    :param ids: IDs to be fetched
-    :type ids: Union[int, Collection[int]]
-    :return: Fetched QCones
-    :rtype: List[QCOneConfig]
+    :param id: ID to be fetched
+    :type id: int
+    :return: Fetched config
+    :rtype: QCOneConfig
+    :raises ValueError
     """
 
     fetched = db.session.query(QCOneConfig).filter(
         QCOneConfig.id == id,
     ).first()
+
+    if fetched is None:
+        raise EmptyResultException(f"There was no QCOneConfig with if={id} in the database.")
 
     return fetched
 
@@ -188,18 +193,66 @@ def create_and_add_qc_one_config_from_toml(
 
 def process_qcone(
         qcone_config_id: int,
-        stations: Optional[Union[Collection[str], str]],
-        components: Optional[Union[Collection[str], str]],
         starttime: Union[datetime.date, datetime.datetime],
         endtime: Union[datetime.date, datetime.datetime],
         use_gps: bool = True,
         strict_gps: bool = False,
+        networks: Optional[Union[Collection[str], str]] = None,
+        stations: Optional[Union[Collection[str], str]] = None,
+        components: Optional[Union[Collection[str], str]] = None,
+        component_ids: Optional[Union[Collection[int], int]] = None,
 ):
-    qcone_config = fetch_qc_one_single(id=qcone_config_id)
+    """
+    A method that runs the whole process of calculation of results of QCOne.
+    You need to provide id of :class:`noiz.models.qc.QCOneConfig` object that has to be present in the database.
+    You have to add the config with different method prior to calling this one.
+
+    You can limit the run of this method by standardized selection parameter based on the selection
+    of :class:`noiz.models.component.Component` object and the :class:`noiz.models.timespan.Timespan` object.
+    Arguments for selecting the former are voluntary, for the latter are obligatory. Component object query by default
+    will return all components in the database.
+
+    You can specify if you want to use GPS information for calculations by passing True as parameter
+    :paramref:`noiz.api.qc.process_qcone.use_gps`.
+    The default action here is to use gps. Additionally, by default, the Datachunks that do not have associated
+    gps information with them, will have fields connected to GPS information filled with defined null value.
+    This can be turned off by passing value False as param :paramref:`noiz.api.qc.process_qcone.strict_gps`.
+
+    By default, results of that process will be upserted to the database.
+
+    :param qcone_config_id: Id of a QCOneConfig from the database
+    :type qcone_config_id: int
+    :param starttime: Time after which to look for timespans
+    :type starttime: Union[datetime.date, datetime.datetime]
+    :param endtime: Time before which to look for timespans
+    :type endtime: Union[datetime.date, datetime.datetime],
+    :param use_gps: If gps information should be used in the process
+    :type use_gps: bool
+    :param strict_gps: If the datachunks not containing gps information should be ommited.
+    :type strict_gps: bool
+    :param networks: Networks of components to be fetched
+    :type networks: Optional[Union[Collection[str], str]]
+    :param stations: Stations of components to be fetched
+    :type stations: Optional[Union[Collection[str], str]]
+    :param components: Component letters to be fetched
+    :type components: Optional[Union[Collection[str], str]]
+    :param components: Ids of components objects to be fetched
+    :type components: Optional[Union[Collection[int], int]]
+    :return:
+    :rtype:
+    """
+    try:
+        qcone_config: QCOneConfig = fetch_qc_one_single(id=qcone_config_id)
+    except EmptyResultException as e:
+        logger.error(e)
+        raise e
+
     timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
     fetched_components = fetch_components(
+        networks=networks,
         stations=stations,
-        components=components
+        components=components,
+        component_ids=component_ids,
     )
     filters, opts = _determine_filters_and_opts_for_datachunk(
         components=fetched_components,
@@ -226,7 +279,12 @@ def process_qcone(
         used_ids = []
         for datachunk, stats, avg_soh_gps in fetched_results:
             used_ids.append(datachunk.id)
-            qcone_res = calculate_qcone_for_gps_and_stats(avg_soh_gps, datachunk, qcone_config, stats)
+            qcone_res = calculate_qcone_results(
+                datachunk=datachunk,
+                qcone_config=qcone_config,
+                stats=stats,
+                avg_soh_gps=avg_soh_gps,
+            )
             qcone_results.append(qcone_res)
 
         if not strict_gps:
@@ -240,7 +298,12 @@ def process_qcone(
             topup_fetched_results = topup_query.all()
 
             for datachunk, stats in topup_fetched_results:
-                qcone_res = calculate_qcone_for_stats_only(datachunk, qcone_config, stats)
+                qcone_res = calculate_qcone_results(
+                    datachunk=datachunk,
+                    qcone_config=qcone_config,
+                    stats=stats,
+                    avg_soh_gps=None
+                )
                 qcone_results.append(qcone_res)
 
     else:
@@ -254,21 +317,26 @@ def process_qcone(
         qcone_results = []
 
         for datachunk, stats in fetched_results:
-            qcone_res = calculate_qcone_for_stats_only(datachunk, qcone_config, stats)
+            qcone_res = calculate_qcone_results(
+                datachunk=datachunk,
+                qcone_config=qcone_config,
+                stats=stats,
+                avg_soh_gps=None
+            )
             qcone_results.append(qcone_res)
 
     add_or_upsert_qcone_results_in_db(qcone_results_collection=qcone_results)
 
 
-def add_or_upsert_qcone_results_in_db(qcone_results_collection: Collection[QCOneResults]):
+def add_or_upsert_qcone_results_in_db(qcone_results_collection: Collection[QCOneResults]) -> None:
     """
     Adds or upserts provided iterable of QCOneResults to DB.
     Must be executed within AppContext.
 
     :param qcone_results_collection:
     :type qcone_results_collection: Iterable[Datachunk]
-    :return:
-    :rtype:
+    :return: None
+    :rtype: NoneType
     """
     for results in qcone_results_collection:
 
@@ -349,35 +417,45 @@ def add_or_upsert_qcone_results_in_db(qcone_results_collection: Collection[QCOne
     return
 
 
-def calculate_qcone_for_gps_and_stats(avg_soh_gps, datachunk, qcone_config, stats):
+def calculate_qcone_results(
+        datachunk: Datachunk,
+        qcone_config: QCOneConfig,
+        stats: DatachunkStats,
+        avg_soh_gps: Optional[AveragedSohGps],
+) -> QCOneResults:
+    """
+    Performs all checks of the QCOne step. It compares values in the :class:`noiz.models.datachunk.DatachunkStats`
+     and :class:`noiz.models.soh.AveragedSohGps` against :class:`noiz.models.qc.QCOneConfig` and saves the values in
+     :class:`noiz.models.qc.QCOneResults` instance that can be added to db afterwards.
+
+    :param datachunk: Datachunk to be compared
+    :type datachunk: Datachunk
+    :param qcone_config: QCOneConfig to have reference values to compare against
+    :type qcone_config: QCOneConfig
+    :param stats: Statistics of the provided Datachunk
+    :type stats: DatachunkStats
+    :param avg_soh_gps: Object with values of AveragedSohGps data
+    :type avg_soh_gps: Optional[AveragedSohGps]
+    :return: Object containing values of all performed comparisons
+    :rtype: QCOneResults
+    """
     qcone_res = QCOneResults(datachunk_id=datachunk.id, qcone_config_id=qcone_config.id)
-    qcone_res = determine_qcone_time(
-        results=qcone_res,
-        datachunk=datachunk,
-        config=qcone_config,
-    )
-    qcone_res = determine_qcone_gps(result=qcone_res, config=qcone_config, avg_soh_gps=avg_soh_gps)
-    qcone_res = determine_qcone_stats(results=qcone_res, stats=stats, config=qcone_config)
+
+    qcone_res = _determine_qcone_time(results=qcone_res,  datachunk=datachunk, config=qcone_config)
+    qcone_res = _determine_qcone_gps(result=qcone_res, config=qcone_config, avg_soh_gps=avg_soh_gps)
+    qcone_res = _determine_qcone_stats(results=qcone_res, stats=stats, config=qcone_config)
+
     return qcone_res
 
 
-def calculate_qcone_for_stats_only(datachunk, qcone_config, stats):
-    qcone_res = QCOneResults(datachunk_id=datachunk.id, qcone_config_id=qcone_config.id)
-    qcone_res = determine_qcone_time(
-        results=qcone_res,
-        datachunk=datachunk,
-        config=qcone_config,
-    )
-    qcone_res = determine_qcone_gps(result=qcone_res, config=qcone_config, avg_soh_gps=None)
-    qcone_res = determine_qcone_stats(results=qcone_res, stats=stats, config=qcone_config)
-    return qcone_res
-
-
-def determine_qcone_time(
+def _determine_qcone_time(
         results: QCOneResults,
         datachunk: Datachunk,
         config: QCOneConfig,
 ) -> QCOneResults:
+    """
+    filldocs
+    """
 
     if not isinstance(datachunk.timespan, Timespan):
         raise ValueError('You should load timespan together with the Datachunk.')
@@ -390,11 +468,14 @@ def determine_qcone_time(
     return results
 
 
-def determine_qcone_stats(
+def _determine_qcone_stats(
         results: QCOneResults,
         stats: DatachunkStats,
         config: QCOneConfig,
 ) -> QCOneResults:
+    """
+    filldocs
+    """
 
     results.signal_energy_max = compare_vals_null_safe(
         config.signal_energy_max, stats.energy, ope.le, config.null_value)
@@ -428,11 +509,28 @@ def determine_qcone_stats(
     return results
 
 
-def determine_qcone_gps(
+def _determine_qcone_gps(
         result: QCOneResults,
         config: QCOneConfig,
         avg_soh_gps: Optional[AveragedSohGps]
 ) -> QCOneResults:
+    """
+    Compares values of provided instance of :class:`noiz.models.soh.AveragedSohGps` with values defined in
+    :class:`noiz.models.qc.QCOneConfig`. If as :paramref:`noiz.api.qc.determine_qcone_gps.avg_soh_gps` will me provided
+    None, all values will be set to the :py:attr:`noiz.models.qc.QCOneConfig.null_value`.
+    If any of the config or real data values will also be None, the result of comparison will be set to
+    :py:attr:`noiz.models.qc.QCOneConfig.null_value`.
+
+    :param result: Object to which the results of comparisons will be saved
+    :type result: QCOneResults,
+    :param config: Object to take the reference values to compare against
+    :type config: QCOneConfig,
+    :param avg_soh_gps: Real data values that will be used in comparison
+    :type avg_soh_gps: Optional[AveragedSohGps]
+    :return: Object that will include results of the comparison
+    :rtype: QCOneResults
+    """
+
     if avg_soh_gps is not None:
         result.avg_gps_time_error_max = compare_vals_null_safe(
             config.avg_gps_time_error_max, avg_soh_gps.time_error, ope.ge, config.null_value)
@@ -451,6 +549,23 @@ def determine_qcone_gps(
 
 
 def compare_vals_null_safe(a: Any, b: Any, op: Callable[[Any, Any], bool], null_value: bool):
+    """
+    Compares two values with provided callable. Callable, should be coming from the :py:mod:`operator`.
+    It first checks if any of provided values is None and if yes, returns a provided
+    :paramref:`noiz.api.qc.compare_vals_null_safe.null_value`.
+
+    :param a: First value to compare
+    :type a: Any
+    :param b: Second value to compare
+    :type b: Any
+    :param op: Callable to perform comparison with.
+    :type op: Callable[[Any, Any], bool]
+    :param null_value:
+    :type null_value: bool
+    :return: Returns result of a call or a value of :paramref:`noiz.api.qc.compare_vals_null_safe.null_value`
+    :rtype: bool
+    """
+
     if a is None or b is None:
         return null_value
     else:
@@ -470,6 +585,7 @@ def insert_qconeconfig_into_db(params: QCOneConfig) -> None:
     """
     db.session.add(params)
     db.session.commit()
+    logger.info(f"Succesfully added to db QCOneConfig object with id={params.id}")
     return
 
 

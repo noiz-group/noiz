@@ -64,8 +64,9 @@ flake8:
   image: registry.gitlab.com/noiz-group/noiz:docsbuilding
   stage: documentation
   script:
-  - cd docs
-  - make html
+    - python -m pip install sphinx-paramlinks~=0.4.3
+    - cd docs
+    - make html
   artifacts:
     paths:
     - docs/_build/html/
