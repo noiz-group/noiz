@@ -485,14 +485,16 @@ def _determine_qcone_accepted_times(
         raise ValueError('You should load timespan together with the Datachunk.')
 
     reject_checks = [True, ]
-    for rej in config.time_periods_rejected:
-        if not rej.component_id == datachunk.component_id:
-            continue
 
-        reject_checks.append(
-                (rej.starttime <= datachunk.timespan.endtime) and (datachunk.timespan.starttime <= rej.endtime)
-        )
-        # This check is adaptation of https://stackoverflow.com/a/13513973/4308541
+    if datachunk.component_id in config.component_ids_rejected_times:
+        for rej in config.time_periods_rejected:
+            if not rej.component_id == datachunk.component_id:
+                continue
+
+            reject_checks.append(
+                    (rej.starttime <= datachunk.timespan.endtime) and (datachunk.timespan.starttime <= rej.endtime)
+            )
+            # This check is adaptation of https://stackoverflow.com/a/13513973/4308541
 
     results.accepted_time = all(reject_checks)
 
