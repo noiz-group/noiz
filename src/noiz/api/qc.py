@@ -226,7 +226,7 @@ def process_qcone(
         used_ids = []
         for datachunk, stats, avg_soh_gps in fetched_results:
             used_ids.append(datachunk.id)
-            qcone_res = calculate_qcone_for_gps_and_stats(avg_soh_gps, datachunk, qcone_config, stats)
+            qcone_res = calculate_qcone_for_gps_and_stats(datachunk, qcone_config, stats, avg_soh_gps)
             qcone_results.append(qcone_res)
 
         if not strict_gps:
@@ -240,7 +240,7 @@ def process_qcone(
             topup_fetched_results = topup_query.all()
 
             for datachunk, stats in topup_fetched_results:
-                qcone_res = calculate_qcone_for_stats_only(datachunk, qcone_config, stats)
+                qcone_res = calculate_qcone_for_gps_and_stats(datachunk, qcone_config, stats, avg_soh_gps=None)
                 qcone_results.append(qcone_res)
 
     else:
@@ -254,7 +254,7 @@ def process_qcone(
         qcone_results = []
 
         for datachunk, stats in fetched_results:
-            qcone_res = calculate_qcone_for_stats_only(datachunk, qcone_config, stats)
+            qcone_res = calculate_qcone_for_gps_and_stats(datachunk, qcone_config, stats, avg_soh_gps=None)
             qcone_results.append(qcone_res)
 
     add_or_upsert_qcone_results_in_db(qcone_results_collection=qcone_results)
@@ -349,7 +349,12 @@ def add_or_upsert_qcone_results_in_db(qcone_results_collection: Collection[QCOne
     return
 
 
-def calculate_qcone_for_gps_and_stats(avg_soh_gps, datachunk, qcone_config, stats):
+def calculate_qcone_for_gps_and_stats(
+        datachunk: Datachunk,
+        qcone_config: QCOneConfig,
+        stats: DatachunkStats,
+        avg_soh_gps: Optional[AveragedSohGps],
+) -> QCOneResults:
     qcone_res = QCOneResults(datachunk_id=datachunk.id, qcone_config_id=qcone_config.id)
     qcone_res = determine_qcone_time(
         results=qcone_res,
@@ -357,18 +362,6 @@ def calculate_qcone_for_gps_and_stats(avg_soh_gps, datachunk, qcone_config, stat
         config=qcone_config,
     )
     qcone_res = determine_qcone_gps(result=qcone_res, config=qcone_config, avg_soh_gps=avg_soh_gps)
-    qcone_res = determine_qcone_stats(results=qcone_res, stats=stats, config=qcone_config)
-    return qcone_res
-
-
-def calculate_qcone_for_stats_only(datachunk, qcone_config, stats):
-    qcone_res = QCOneResults(datachunk_id=datachunk.id, qcone_config_id=qcone_config.id)
-    qcone_res = determine_qcone_time(
-        results=qcone_res,
-        datachunk=datachunk,
-        config=qcone_config,
-    )
-    qcone_res = determine_qcone_gps(result=qcone_res, config=qcone_config, avg_soh_gps=None)
     qcone_res = determine_qcone_stats(results=qcone_res, stats=stats, config=qcone_config)
     return qcone_res
 
