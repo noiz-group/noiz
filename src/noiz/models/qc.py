@@ -1,5 +1,5 @@
 from functools import cached_property
-from typing import List, Union
+from typing import List, Union, Optional
 
 import datetime
 from pydantic.dataclasses import dataclass
@@ -151,22 +151,22 @@ class QCOneHolder:
     null_treatment_policy: NullTreatmentPolicy
     starttime: Union[datetime.datetime, datetime.date]
     endtime: Union[datetime.datetime, datetime.date]
-    avg_gps_time_error_min: float
-    avg_gps_time_error_max: float
-    avg_gps_time_uncertainty_min: float
-    avg_gps_time_uncertainty_max: float
+    avg_gps_time_error_min: Optional[float]
+    avg_gps_time_error_max: Optional[float]
+    avg_gps_time_uncertainty_min: Optional[float]
+    avg_gps_time_uncertainty_max: Optional[float]
     rejected_times: List[QCOneRejectedTimeHolder]
-    signal_energy_min: float
-    signal_energy_max: float
-    signal_min_value_min: float
-    signal_min_value_max: float
-    signal_max_value_min: float
-    signal_max_value_max: float
-    signal_mean_value_min: float
-    signal_mean_value_max: float
-    signal_variance_min: float
-    signal_variance_max: float
-    signal_skewness_min: float
-    signal_skewness_max: float
-    signal_kurtosis_min: float
-    signal_kurtosis_max: float
+    signal_energy_min: Optional[float]
+    signal_energy_max: Optional[float]
+    signal_min_value_min: Optional[float]
+    signal_min_value_max: Optional[float]
+    signal_max_value_min: Optional[float]
+    signal_max_value_max: Optional[float]
+    signal_mean_value_min: Optional[float]
+    signal_mean_value_max: Optional[float]
+    signal_variance_min: Optional[float]
+    signal_variance_max: Optional[float]
+    signal_skewness_min: Optional[float]
+    signal_skewness_max: Optional[float]
+    signal_kurtosis_min: Optional[float]
+    signal_kurtosis_max: Optional[float]
