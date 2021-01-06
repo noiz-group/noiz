@@ -33,7 +33,7 @@ def parse_single_config_toml(filepath: Path, config_type: Optional[Union[str, De
 
     single_keyed_dict = len(loaded_dict.keys()) == 1
 
-    if len(loaded_dict.keys()) != 1 and config_type is None:
+    if not single_keyed_dict and config_type is None:
         raise ValueError(f"You have to provide either a config_type argument or indicate in your toml type of config."
                          f"Allowed config types are: {list(DefinedConfigs)}")
 
