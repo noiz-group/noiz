@@ -1,3 +1,4 @@
+from noiz.models.qc import QCOneConfig, QCOneHolder
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -63,7 +64,7 @@ def create_datachunkparams(
     return params
 
 
-def insert_qc_one_config_into_db(params: DatachunkParams):
+def insert_params_into_db(params: DatachunkParams):
     """
     This is method simply adding an instance of :class:`~noiz.models.DatachunkParams` to DB and committing changes.
 
@@ -79,7 +80,7 @@ def insert_qc_one_config_into_db(params: DatachunkParams):
     return
 
 
-def create_and_add_qc_one_config_from_toml(
+def create_and_add_datachunk_params_config_from_toml(
         filepath: Path,
         add_to_db: bool = False
 ) -> Optional[Tuple[DatachunkParamsHolder, DatachunkParams]]:
@@ -102,7 +103,7 @@ def create_and_add_qc_one_config_from_toml(
     datchunk_params = create_datachunkparams(params_holder=params_holder)
 
     if add_to_db:
-        insert_qc_one_config_into_db(params=datchunk_params)
+        insert_params_into_db(params=datchunk_params)
     else:
         return (params_holder, datchunk_params)
     return None

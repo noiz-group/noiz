@@ -1,4 +1,5 @@
-from typing import List
+from functools import cached_property
+from typing import List, Union
 
 import datetime
 from pydantic.dataclasses import dataclass
@@ -10,6 +11,24 @@ from noiz.globals import ExtendedEnum
 class NullTreatmentPolicy(ExtendedEnum):
     FAIL = "fail"
     PASS = "pass"
+
+
+class QCOneRejectedTime(db.Model):
+    __tablename__ = "qcone_rejected_time_periods"
+    id = db.Column("id", db.Integer, primary_key=True)
+
+    qcone_config_id = db.Column("qcone_config_id", db.Integer, db.ForeignKey("qcone_config.id"))
+    component_id = db.Column("component_id", db.Integer, db.ForeignKey("component.id"))
+    starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
+    endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
+
+    qcone_config = db.relationship(
+        "QCOneConfig",
+        uselist=False,
+        back_populates="time_periods_rejected",
+        foreign_keys=[qcone_config_id]
+    )
+    component = db.relationship("Component", foreign_keys=[component_id])
 
 
 class QCOneConfig(db.Model):
@@ -39,25 +58,46 @@ class QCOneConfig(db.Model):
     signal_kurtosis_min = db.Column("signal_kurtosis_min", db.Float, nullable=True)
     signal_kurtosis_max = db.Column("signal_kurtosis_max", db.Float, nullable=True)
 
-    time_periods_rejected = db.relationship("QCOneRejectedTime", back_populates="qcone_config", lazy="joined")
+    time_periods_rejected: List[QCOneRejectedTime] = db.relationship(
+        "QCOneRejectedTime",
+        uselist=True,
+        back_populates="qcone_config",
+        lazy="joined"
+    )
 
+    def uses_gps(self) -> bool:
+        """
+        Checks if any of the GPS checks is defined.
 
-class QCOneRejectedTime(db.Model):
-    __tablename__ = "qcone_rejected_time_periods"
-    id = db.Column("id", db.Integer, primary_key=True)
+        :return: If any of GPS checks is defines
+        :rtype: bool
+        """
+        res = any([x is not None for x in (
+            self.avg_gps_time_error_min,
+            self.avg_gps_time_error_max,
+            self.avg_gps_time_uncertainty_max,
+            self.avg_gps_time_uncertainty_min
+        )])
+        return res
 
-    qcone_config_id = db.Column("qcone_config_id", db.Integer, db.ForeignKey("qcone_config.id"))
-    component_id = db.Column("component_id", db.Integer, db.ForeignKey("component.id"))
-    starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
-    endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
-
-    qcone_config = db.relationship("QCOneConfig", back_populates="time_periods_rejected",
-                                   foreign_keys=[qcone_config_id])
-    component = db.relationship("Component", foreign_keys=[component_id])
+    # py38 only. If you want to go below, use just standard property
+    @cached_property
+    def null_value(self) -> bool:
+        if self.null_policy is NullTreatmentPolicy.PASS or self.null_policy == NullTreatmentPolicy.PASS.value:
+            return True
+        elif self.null_policy is NullTreatmentPolicy.FAIL or self.null_policy == NullTreatmentPolicy.FAIL.value:
+            return False
+        else:
+            raise NotImplementedError(f"I did not expect this value of null_policy {self.null_policy}")
 
 
 class QCOneResults(db.Model):
     __tablename__ = "qcone_results"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "datachunk_id", "qcone_config_id", name="unique_qcone_results_per_config_per_datachunk"
+        ),
+    )
 
     id = db.Column("id", db.BigInteger, primary_key=True)
 
@@ -98,8 +138,8 @@ class QCOneRejectedTimeHolder:
     network: str
     station: str
     component: str
-    starttime: datetime.datetime
-    endtime: datetime.datetime
+    starttime: Union[datetime.datetime, datetime.date]
+    endtime: Union[datetime.datetime, datetime.date]
 
 
 @dataclass
@@ -109,8 +149,8 @@ class QCOneHolder:
     """
 
     null_treatment_policy: NullTreatmentPolicy
-    starttime: datetime.datetime
-    endtime: datetime.datetime
+    starttime: Union[datetime.datetime, datetime.date]
+    endtime: Union[datetime.datetime, datetime.date]
     avg_gps_time_error_min: float
     avg_gps_time_error_max: float
     avg_gps_time_uncertainty_min: float

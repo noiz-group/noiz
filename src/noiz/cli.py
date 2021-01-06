@@ -77,12 +77,33 @@ def add_datachunk_params(
 ):
     """Read a TOML file with DatachunkParams config and add to db."""
 
-    from noiz.api.processing_config import create_and_add_qc_one_config_from_toml
+    from noiz.api.processing_config import create_and_add_datachunk_params_config_from_toml
 
     if add_to_db:
-        create_and_add_qc_one_config_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
+        create_and_add_datachunk_params_config_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
     else:
-        parsing_results, _ = create_and_add_qc_one_config_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
+        parsing_results, _ = create_and_add_datachunk_params_config_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
+        click.echo("\n")
+        click.echo(parsing_results)
+
+
+@configs_group.command("add_qcone_config")
+@with_appcontext
+@click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
+@click.option('--add_to_db', is_flag=True, expose_value=True,
+              prompt='Are you sure you want to add QCOneConfig to DB? `N` will just preview it. ')
+def add_qcone_config(
+        filepath: str,
+        add_to_db: bool,
+):
+    """Read a TOML file with DatachunkParams config and add to db."""
+
+    from noiz.api.qc import create_and_add_qcone_config_from_toml
+
+    if add_to_db:
+        create_and_add_qcone_config_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
+    else:
+        parsing_results, _ = create_and_add_qcone_config_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
         click.echo("\n")
         click.echo(parsing_results)
 
@@ -339,6 +360,39 @@ def average_soh_gps(
         networks=network,
         starttime=startdate,
         endtime=enddate,
+    )
+
+
+@processing_group.command("run_qcone")
+@with_appcontext
+@click.option("-s", "--station", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-c", "--component", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-c", "--qcone_config_id", nargs=1, type=int, default=1, show_default=True)
+@click.option('--use_gps/--no-use_gps', default=True)
+@click.option('--strict_gps', is_flag=True)
+def run_qcone(
+        station,
+        component,
+        startdate,
+        enddate,
+        qcone_config_id,
+        use_gps,
+        strict_gps,
+):
+    """Estimate qcone results """
+
+    from noiz.api.qc import process_qcone
+
+    process_qcone(
+        stations=station,
+        components=component,
+        starttime=startdate,
+        endtime=enddate,
+        qcone_config_id=qcone_config_id,
+        use_gps=use_gps,
+        strict_gps=strict_gps,
     )
 
 
