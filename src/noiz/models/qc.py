@@ -1,5 +1,5 @@
 from functools import cached_property
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Tuple
 
 import datetime
 from pydantic.dataclasses import dataclass
@@ -90,6 +90,11 @@ class QCOneConfig(db.Model):
         else:
             raise NotImplementedError(f"I did not expect this value of null_policy {self.null_policy}")
 
+    # py38 only. If you want to go below, use just standard property
+    @cached_property
+    def component_ids_rejected_times(self) -> Tuple[int, ...]:
+        return tuple([x.component_id for x in self.time_periods_rejected])
+
 
 class QCOneResults(db.Model):
     __tablename__ = "qcone_results"
@@ -106,6 +111,7 @@ class QCOneResults(db.Model):
 
     starttime = db.Column("starttime", db.Boolean, nullable=False)
     endtime = db.Column("endtime", db.Boolean, nullable=False)
+    accepted_time = db.Column("accepted_time", db.Boolean, nullable=False)
     avg_gps_time_error_min = db.Column("avg_gps_time_error_min", db.Boolean, nullable=False)
     avg_gps_time_error_max = db.Column("avg_gps_time_error_max", db.Boolean, nullable=False)
     avg_gps_time_uncertainty_min = db.Column("avg_gps_time_uncertainty_min", db.Boolean, nullable=False)
