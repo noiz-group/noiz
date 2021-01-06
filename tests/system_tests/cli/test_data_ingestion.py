@@ -1,4 +1,5 @@
 import pytest
+from noiz.models.qc import QCOneResults
 
 from noiz.models.component import ComponentFile
 
@@ -299,5 +300,13 @@ class TestDataIngestionRoutines:
         result = runner.invoke(cli, ["processing", "run_qcone",
                                      "-c", "1",
                                      "-sd", "2019-09-30",
-                                     "-ed", "2019-10-03"])
+                                     "-ed", "2019-10-03",
+                                     "--use_gps",
+                                     ])
         assert result.exit_code == 0
+
+        with noiz_app.app_context():
+            datachunk_count = Datachunk.query.count()
+            qcone_count = QCOneResults.query.count()
+
+        assert qcone_count == datachunk_count
