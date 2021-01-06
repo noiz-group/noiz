@@ -470,6 +470,7 @@ def insert_qconeconfig_into_db(params: QCOneConfig) -> None:
     """
     db.session.add(params)
     db.session.commit()
+    logger.info(f"Succesfully added to db QCOneConfig object with id={params.id}")
     return
 
 
