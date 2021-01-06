@@ -106,6 +106,7 @@ class QCOneResults(db.Model):
 
     starttime = db.Column("starttime", db.Boolean, nullable=False)
     endtime = db.Column("endtime", db.Boolean, nullable=False)
+    rejected_time = db.Column("rejected_time", db.Boolean, nullable=False)
     avg_gps_time_error_min = db.Column("avg_gps_time_error_min", db.Boolean, nullable=False)
     avg_gps_time_error_max = db.Column("avg_gps_time_error_max", db.Boolean, nullable=False)
     avg_gps_time_uncertainty_min = db.Column("avg_gps_time_uncertainty_min", db.Boolean, nullable=False)
