@@ -20,3 +20,7 @@ class UnparsableDateTimeException(NoizBaseException):
 
 class NoSOHPresentException(NoizBaseException):
     pass
+
+
+class EmptyResultException(NoizBaseException):
+    pass
