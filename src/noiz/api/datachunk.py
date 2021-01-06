@@ -18,6 +18,7 @@ from noiz.exceptions import NoDataException
 from noiz.models.component import Component
 from noiz.models.datachunk import Datachunk, DatachunkStats
 from noiz.models.processing_params import DatachunkParams
+from noiz.models.soh import AveragedSohGps
 from noiz.models.timespan import Timespan
 from noiz.processing.datachunk import create_datachunks_for_component
 
@@ -158,7 +159,7 @@ def fetch_datachunks_without_stats(
     return query.filter(~Datachunk.stats.has()).all()
 
 
-def fetch_datachunks_without_qcone(
+def query_datachunks_without_qcone(
         qc_one: QCOneConfig,
         components: Optional[Collection[Component]] = None,
         timespans: Optional[Collection[Timespan]] = None,
@@ -168,24 +169,28 @@ def fetch_datachunks_without_qcone(
         load_stats: bool = False,
         load_timespan: bool = False,
         load_processing_params: bool = False,
-) -> List[Datachunk]:
-    query = _query_datachunks(
+) -> Query:
+
+    filters, opts = _determine_filters_and_opts_for_datachunk(
         components=components,
-        timespans=timespans,
-        datachunk_processing_config=datachunk_processing_config,
         datachunk_ids=datachunk_ids,
+        datachunk_processing_config=datachunk_processing_config,
         load_component=load_component,
+        load_processing_params=load_processing_params,
         load_stats=load_stats,
         load_timespan=load_timespan,
-        load_processing_params=load_processing_params,
+        timespans=timespans,
     )
+    objects_to_query = [Datachunk, DatachunkStats]
+    if qc_one.uses_gps():
+        objects_to_query.append(AveragedSohGps)
 
-    res = query.filter(
-        ~Datachunk.qcones.any(
-            QCOneResults.qcone_config.has(
-                QCOneConfig.id == qc_one.id)))
+    query = (db.session
+             .query(*tuple(objects_to_query))
+             .join(DatachunkStats, Datachunk.id == DatachunkStats.datachunk_id)
+             .filter(*filters).options(opts))
 
-    return res.all()
+    return query
 
 
 def _query_datachunks(
@@ -199,8 +204,32 @@ def _query_datachunks(
         load_processing_params: bool = False,
 ) -> Query:
 
-    filters = []
+    filters, opts = _determine_filters_and_opts_for_datachunk(
+        components=components,
+        datachunk_ids=datachunk_ids,
+        datachunk_processing_config=datachunk_processing_config,
+        load_component=load_component,
+        load_processing_params=load_processing_params,
+        load_stats=load_stats,
+        load_timespan=load_timespan,
+        timespans=timespans,
+    )
 
+    return Datachunk.query.filter(*filters).options(opts)
+
+
+def _determine_filters_and_opts_for_datachunk(
+        components: Optional[Collection[Component]] = None,
+        timespans: Optional[Collection[Timespan]] = None,
+        datachunk_processing_config: Optional[DatachunkParams] = None,
+        datachunk_ids: Optional[Collection[int]] = None,
+        load_component: bool = False,
+        load_stats: bool = False,
+        load_timespan: bool = False,
+        load_processing_params: bool = False,
+) -> Tuple[List, List]:
+
+    filters = []
     if components is not None:
         component_ids = extract_object_ids(components)
         filters.append(Datachunk.component_id.in_(component_ids))
@@ -213,9 +242,7 @@ def _query_datachunks(
         filters.append(Datachunk.id.in_(datachunk_ids))
     if len(filters) == 0:
         filters.append(True)
-
     opts = []
-
     if load_timespan:
         opts.append(subqueryload(Datachunk.timespan))
     if load_stats:
@@ -225,7 +252,7 @@ def _query_datachunks(
     if load_processing_params:
         opts.append(subqueryload(Datachunk.params))
 
-    return Datachunk.query.filter(*filters).options(opts)
+    return filters, opts
 
 
 def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):

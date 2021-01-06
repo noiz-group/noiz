@@ -1,4 +1,5 @@
 import pytest
+from noiz.models.qc import QCOneResults
 
 from noiz.models.component import ComponentFile
 
@@ -160,6 +161,40 @@ class TestDataIngestionRoutines:
         assert isinstance(fetched_config, DatachunkParams)
         assert len(all_configs) == 1
 
+    def test_add_qcone_config(self, workdir_with_content, noiz_app):
+
+        config_path = workdir_with_content.joinpath('QCOneConfig.toml')
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["configs", "add_qcone_config", "--add_to_db", "-f", str(config_path)])
+
+        assert result.exit_code == 0
+
+        import toml
+        import pytest_check as check
+        from noiz.api.qc import fetch_qc_one_single
+        from noiz.models.qc import QCOneConfig
+
+        with noiz_app.app_context():
+            fetched_config = fetch_qc_one_single(id=1)
+            all_configs = QCOneConfig.query.all()
+
+        assert isinstance(fetched_config, QCOneConfig)
+        assert len(all_configs) == 1
+
+        with open(config_path, 'r') as f:
+            original_config = toml.load(f)
+
+        for key, value in original_config['QCOne'].items():
+            if key in ("null_treatment_policy", "rejected_times"):
+                continue
+            if key in ("starttime", "endtime"):
+                check.equal(fetched_config.__getattribute__(key).date(), value)
+                continue
+            check.almost_equal(fetched_config.__getattribute__(key), value)
+
+        check.equal(len(original_config['QCOne']['rejected_times']), len(fetched_config.time_periods_rejected))
+
     def test_insert_timespans(self, workdir_with_content, noiz_app):
 
         startdate = datetime.datetime(2019, 9, 30)
@@ -259,3 +294,19 @@ class TestDataIngestionRoutines:
             datachunks = db.session.query(Datachunk).all()
         assert len(datachunks_without_stats) == 0
         assert len(datachunks) == len(stats)
+
+    def test_run_qcone(self, noiz_app):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["processing", "run_qcone",
+                                     "-c", "1",
+                                     "-sd", "2019-09-30",
+                                     "-ed", "2019-10-03",
+                                     "--use_gps",
+                                     ])
+        assert result.exit_code == 0
+
+        with noiz_app.app_context():
+            datachunk_count = Datachunk.query.count()
+            qcone_count = QCOneResults.query.count()
+
+        assert qcone_count == datachunk_count
