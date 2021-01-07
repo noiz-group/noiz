@@ -15,11 +15,9 @@ class DefinedConfigs(ExtendedEnum):
     QCONE = "QCOne"
 
 
-def select_validator_for_config_type(config_type: DefinedConfigs):
+def _select_validator_for_config_type(config_type: DefinedConfigs):
     """
     filldocs
-    TODO convert to private
-    TODO add else clause with NotImplementedError
     """
     if config_type is DefinedConfigs.DATACHUNKPARAMS:
         return validate_config_dict_as_datachunkparams
@@ -27,6 +25,8 @@ def select_validator_for_config_type(config_type: DefinedConfigs):
         return validate_config_dict_as_processeddatachunkparams
     elif config_type is DefinedConfigs.QCONE:
         return validate_dict_as_qcone_holder
+    else:
+        raise NotImplementedError(f"There is no validator specified for {config_type}")
 
 
 def parse_single_config_toml(filepath: Path, config_type: Optional[Union[str, DefinedConfigs]] = None):
@@ -75,7 +75,7 @@ def parse_single_config_toml(filepath: Path, config_type: Optional[Union[str, De
 
     config_type_selected = [x for x in (config_type_read, config_type_provided) if x is not None][0]
 
-    validator = select_validator_for_config_type(config_type=config_type_selected)
+    validator = _select_validator_for_config_type(config_type=config_type_selected)
 
     return validator(loaded_dict)
 
