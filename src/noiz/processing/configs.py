@@ -23,6 +23,8 @@ def select_validator_for_config_type(config_type: DefinedConfigs):
     """
     if config_type is DefinedConfigs.DATACHUNKPARAMS:
         return validate_config_dict_as_datachunkparams
+    elif config_type is DefinedConfigs.PROCESSEDDATACHUNKPARAMS:
+        return validate_config_dict_as_processeddatachunkparams
     elif config_type is DefinedConfigs.QCONE:
         return validate_dict_as_qcone_holder
 
