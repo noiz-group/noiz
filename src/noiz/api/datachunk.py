@@ -467,6 +467,7 @@ def run_paralel_chunk_preparation(
 def run_chunk_preparation(
         app, station, component, execution_date, processed_data_dir, processing_config_id=1
 ):
+    # TODO DELETE this method. It's legacy method that was used only in the airflow. Gitlab#153
     year = execution_date.year
     day_of_year = execution_date.timetuple().tm_yday
 
