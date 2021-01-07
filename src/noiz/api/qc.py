@@ -339,6 +339,10 @@ def add_or_upsert_qcone_results_in_db(qcone_results_collection: Collection[QCOne
     :return: None
     :rtype: NoneType
     """
+    # TODO OPTIMIZE the inserts. there could be extracted datachunk_ids to query for (the qcone_config_id does not
+    #  change within this call). Then, the upsert could be executed on the existing only, insert on all the rest.
+    #  Gitlab #143
+
     for results in qcone_results_collection:
 
         if not isinstance(results, QCOneResults):
