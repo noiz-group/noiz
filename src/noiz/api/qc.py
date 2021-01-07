@@ -20,13 +20,14 @@ from noiz.processing.configs import validate_dict_as_qcone_holder, load_qc_one_c
 from noiz.processing.qc import calculate_qcone_results
 
 
-def fetch_qcone_configs(ids: Union[int, Collection[int]]) -> List[QCOneConfig]:
+def fetch_qcone_config(ids: Union[int, Collection[int]]) -> List[QCOneConfig]:
     """
-    Fetches the QCOne from db based on id.
+    Fetches the QCOneConfig from db based on id. Can be either a single id or some collection of ids.
+    It always returns a list of instances, can also be an empty list.
 
     :param ids: IDs to be fetched
     :type ids: Union[int, Collection[int]]
-    :return: Fetched QCones
+    :return: Fetched QConeConfig objects
     :rtype: List[QCOneConfig]
     """
 
