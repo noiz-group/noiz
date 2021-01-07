@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic.dataclasses import dataclass
 import datetime
 import numpy as np
@@ -17,51 +18,33 @@ class DatachunkParams(db.Model):
     __tablename__ = "datachunk_params"
 
     id = db.Column("id", db.Integer, primary_key=True)
+
     _sampling_rate = db.Column("sampling_rate", db.Float, default=24, nullable=False)
-    _prefiltering_low = db.Column(
-        "prefiltering_low", db.Float, default=0.01, nullable=False
-    )
-    _prefiltering_high = db.Column(
-        "prefiltering_high", db.Float, default=12.0, nullable=False
-    )
-    _prefiltering_order = db.Column(
-        "prefiltering_order", db.Integer, default=4, nullable=False
-    )
-    _preprocessing_taper_type = db.Column(
-        "preprocessing_taper_type", db.UnicodeText, default="cosine", nullable=False
-    )
-    _preprocessing_taper_side = db.Column(
-        "preprocessing_taper_side", db.UnicodeText, default="both", nullable=False
-    )
-    _preprocessing_taper_max_length = db.Column(
-        "preprocessing_taper_max_length", db.Float, nullable=False
-    )
-    _preprocessing_taper_max_percentage = db.Column(
-        "preprocessing_taper_max_percentage", db.Float, nullable=False
-    )
-    _remove_response = db.Column(
-        "remove_response", db.Boolean, default=True, nullable=False
-    )
-    _spectral_whitening = db.Column(
-        "spectral_whitening", db.Boolean, default=True, nullable=False
-    )
-    _one_bit = db.Column("one_bit", db.Boolean, default=True, nullable=False)
-    _datachunk_sample_tolerance = db.Column(
-        "datachunk_sample_threshold", db.Float, default=0.98, nullable=False
-    )
 
-    _correlation_max_lag = db.Column("correlation_max_lag", db.Float, nullable=True)
+    _prefiltering_low = db.Column("prefiltering_low", db.Float, default=0.01, nullable=False)
+    _prefiltering_high = db.Column("prefiltering_high", db.Float, default=12.0, nullable=False)
+    _prefiltering_order = db.Column("prefiltering_order", db.Integer, default=4, nullable=False)
 
+    _preprocessing_taper_type = db.Column("preprocessing_taper_type", db.UnicodeText, default="cosine", nullable=False)
+    _preprocessing_taper_side = db.Column("preprocessing_taper_side", db.UnicodeText, default="both", nullable=False)
+    _preprocessing_taper_max_length = db.Column("preprocessing_taper_max_length", db.Float, nullable=False)
+    _preprocessing_taper_max_percentage = db.Column("preprocessing_taper_max_percentage", db.Float, nullable=False)
+
+    _remove_response = db.Column("remove_response", db.Boolean, default=True, nullable=False)
+
+    _datachunk_sample_tolerance = db.Column("datachunk_sample_threshold", db.Float, default=0.98, nullable=False)
     _max_gap_for_merging = db.Column("max_gap_for_merging", db.Integer, default=10, nullable=False)
 
-    _padding_method = db.Column(
-        "padding_method", db.UnicodeText, default="padding_with_tapering", nullable=False
-    )
+    _padding_method = db.Column("padding_method", db.UnicodeText, default="padding_with_tapering", nullable=False)
     _padding_taper_type = db.Column("padding_taper_type", db.UnicodeText, nullable=True)
     _padding_taper_max_length = db.Column("padding_taper_max_length", db.Float, nullable=True)
     _padding_taper_max_percentage = db.Column("padding_taper_max_percentage", db.Float, nullable=True)
 
-    # TODO add a relationship field with all datachunks
+    _correlation_max_lag = db.Column("correlation_max_lag", db.Float, nullable=True)
+
+    processed_datachunk_params = db.relationship(
+        "ProcessedDatachunkParams", uselist=True, back_populates="datachunk_params"
+    )
 
     def __init__(self, **kwargs):
         self._sampling_rate = kwargs.get("sampling_rate", 24)
@@ -227,6 +210,52 @@ class DatachunkParamsHolder:
     padding_taper_max_percentage: float
 
 
+@dataclass
+class ProcessedDatachunkParamsHolder:
+    """
+        This simple dataclass is just helping to validate :py:class:`~noiz.models.ProcessedDatachunkParams`
+        values loaded from the TOML file
+    """
+    datachunk_params_id: int
+    qcone_config_id: Optional[int]
+    spectral_whitening: bool
+    one_bit: bool
+
+
+class ProcessedDatachunkParams(db.Model):
+    __tablename__ = "processed_datachunk_params"
+
+    id = db.Column("id", db.Integer, primary_key=True)
+    datachunk_params_id = db.Column(
+        "datachunk_params_id", db.Integer, db.ForeignKey("datachunk_params.id"), nullable=False
+    )
+    qcone_config_id = db.Column("qcone_config_id", db.Integer, db.ForeignKey("qcone_config.id"), nullable=False)
+
+    _spectral_whitening = db.Column("spectral_whitening", db.Boolean, default=True, nullable=False)
+    _one_bit = db.Column("one_bit", db.Boolean, default=True, nullable=False)
+
+    datachunk_params = db.relationship(
+        "DatachunkParams", foreign_keys=[datachunk_params_id], back_populates="processed_datachunk_params"
+    )
+    qcone_config = db.relationship(
+        "QCOneConfig", foreign_keys=[qcone_config_id], back_populates="processed_datachunk_params"
+    )
+
+    def __init__(self, **kwargs):
+        self.datachunk_params_id = kwargs.get("datachunk_params_id")
+        self.qcone_config_id = kwargs.get("qcone_config_id")
+        self._spectral_whitening = kwargs.get("spectral_whitening", True)
+        self._one_bit = kwargs.get("one_bit", True)
+
+    @property
+    def spectral_whitening(self):
+        return self._spectral_whitening
+
+    @property
+    def one_bit(self):
+        return self._one_bit
+
+
 class BeamformingParams(db.Model):
     __tablename__ = "beamforming_params"
     id = db.Column("id", db.Integer, primary_key=True)
@@ -237,7 +266,6 @@ class BeamformingParams(db.Model):
     slowness_step = db.Column("slowness_step", db.Float, nullable=False)
     window_length = db.Column("window_length", db.Float, nullable=False)
     window_step = db.Column("window_step", db.Float, nullable=False)
-    window_length = db.Column("window_length", db.Float, nullable=False)
 
     # use_winter_time = db.Column("use_winter_time", db.Boolean)
     # f_sampling_out = db.Column("f_sampling_out", db.Integer)
