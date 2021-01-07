@@ -1,9 +1,11 @@
+from loguru import logger
+
 from noiz.models.qc import QCOneConfig, QCOneHolder
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 from noiz.database import db
-from noiz.models.processing_params import DatachunkParams, DatachunkParamsHolder
+from noiz.models.processing_params import DatachunkParams, DatachunkParamsHolder, ProcessedDatachunkParams
 from noiz.processing.configs import validate_config_dict_as_datachunkparams, parse_single_config_toml, DefinedConfigs
 
 
@@ -64,7 +66,7 @@ def create_datachunkparams(
     return params
 
 
-def insert_params_into_db(params: DatachunkParams):
+def insert_params_into_db(params: Union[DatachunkParams, ProcessedDatachunkParams]):
     """
     This is method simply adding an instance of :class:`~noiz.models.DatachunkParams` to DB and committing changes.
 
@@ -75,8 +77,10 @@ def insert_params_into_db(params: DatachunkParams):
     :return: None
     :rtype: NoneType
     """
+    # TODO make this return id of inserted object and cli to be printing it out
     db.session.add(params)
     db.session.commit()
+    logger.info(f"Inserted {type(params)} to db with id {params.id}")
     return
 
 
@@ -100,10 +104,10 @@ def create_and_add_datachunk_params_config_from_toml(
     """
 
     params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.DATACHUNKPARAMS)
-    datchunk_params = create_datachunkparams(params_holder=params_holder)
+    datachunk_params = create_datachunkparams(params_holder=params_holder)
 
     if add_to_db:
-        insert_params_into_db(params=datchunk_params)
+        insert_params_into_db(params=datachunk_params)
     else:
-        return (params_holder, datchunk_params)
+        return (params_holder, datachunk_params)
     return None
