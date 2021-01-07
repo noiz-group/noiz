@@ -65,6 +65,12 @@ class QCOneConfig(db.Model):
         lazy="joined"
     )
 
+    processed_datachunk_params = db.relationship(
+        "ProcessedDatachunkParams",
+        uselist=True,
+        back_populates="qcone_config",
+    )
+
     def uses_gps(self) -> bool:
         """
         Checks if any of the GPS checks is defined.
