@@ -4,13 +4,14 @@ from typing import Dict, Optional, Union
 from pathlib import Path
 
 from noiz.globals import ExtendedEnum
-from noiz.models.processing_params import DatachunkParamsHolder
+from noiz.models.processing_params import DatachunkParamsHolder, ProcessedDatachunkParamsHolder
 from noiz.models.qc import QCOneRejectedTimeHolder, QCOneHolder
 
 
 class DefinedConfigs(ExtendedEnum):
     # filldocs
     DATACHUNKPARAMS = "DatachunkParams"
+    PROCESSEDDATACHUNKPARAMS = "ProcessedDatachunkParams"
     QCONE = "QCOne"
 
 
@@ -114,3 +115,8 @@ def validate_dict_as_qcone_holder(loaded_dict: Dict) -> QCOneHolder:
 def validate_config_dict_as_datachunkparams(loaded_dict: Dict) -> DatachunkParamsHolder:
     # filldocs
     return DatachunkParamsHolder(**loaded_dict)
+
+
+def validate_config_dict_as_processeddatachunkparams(loaded_dict: Dict) -> ProcessedDatachunkParamsHolder:
+    # filldocs
+    return ProcessedDatachunkParamsHolder(**loaded_dict)
