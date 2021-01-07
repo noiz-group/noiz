@@ -12,7 +12,7 @@ from noiz.api.helpers import extract_object_ids
 from noiz.api.component import fetch_components
 from noiz.api.timeseries import fetch_raw_timeseries
 from noiz.api.timespan import fetch_timespans_for_doy
-from noiz.api.processing_config import fetch_processing_config_by_id
+from noiz.api.processing_config import fetch_datachunkparams_by_id
 from noiz.database import db
 from noiz.exceptions import NoDataException
 from noiz.models.component import Component
@@ -363,7 +363,7 @@ def prepare_datachunk_preparation_parameter_lists(
     date_period = pendulum.period(startdate, enddate)
 
     logger.info("Fetching processing config, timespans and componsents from db. ")
-    processing_params = fetch_processing_config_by_id(id=processing_config_id)
+    processing_params = fetch_datachunkparams_by_id(id=processing_config_id)
 
     all_timespans = [(date, fetch_timespans_for_doy(
         year=date.year, doy=date.day_of_year
@@ -503,7 +503,7 @@ def run_stats_calculation(
 ):
     from noiz.api.timespan import fetch_timespans_between_dates
     from noiz.api.component import fetch_components
-    from noiz.api.processing_config import fetch_processing_config_by_id
+    from noiz.api.processing_config import fetch_datachunkparams_by_id
     from noiz.processing.datachunk import calculate_datachunk_stats
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
     fetched_components = fetch_components(
@@ -512,7 +512,7 @@ def run_stats_calculation(
         components=components,
         component_ids=component_ids
     )
-    fetched_datachunk_params = fetch_processing_config_by_id(id=datachunk_params_id)
+    fetched_datachunk_params = fetch_datachunkparams_by_id(id=datachunk_params_id)
     fetched_datachunks = fetch_datachunks_without_stats(
         timespans=fetched_timespans,
         components=fetched_components,
