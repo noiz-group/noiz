@@ -426,6 +426,7 @@ def run_paralel_chunk_preparation(
         processing_config_id: int,
 
 ):
+    # TODO rename this method to run_parallel_datachunk_preparation Gitlab#151
     logger.info("Preparing jobs for execution")
     joblist = prepare_datachunk_preparation_parameter_lists(stations,
                                                             components,
