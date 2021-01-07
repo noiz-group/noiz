@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic.dataclasses import dataclass
 import datetime
 import numpy as np
@@ -216,6 +217,7 @@ class ProcessedDatachunkParamsHolder:
         values loaded from the TOML file
     """
     datachunk_params_id: int
+    qcone_id: Optional[int]
     spectral_whitening: bool
     one_bit_normalization: bool
 
@@ -224,12 +226,20 @@ class ProcessedDatachunkParams(db.Model):
     __tablename__ = "processed_datachunk_params"
 
     id = db.Column("id", db.Integer, primary_key=True)
-    datachunk_params_id = db.Column("id", db.Integer, db.ForeignKey("datachunk_params.id"), nullable=False)
+    datachunk_params_id = db.Column(
+        "datachunk_params_id", db.Integer, db.ForeignKey("datachunk_params.id"), nullable=False
+    )
+    qcone_config_id = db.Column("qcone_config_id", db.Integer, db.ForeignKey("qcone_config.id"), nullable=False)
 
     _spectral_whitening = db.Column("spectral_whitening", db.Boolean, default=True, nullable=False)
     _one_bit = db.Column("one_bit", db.Boolean, default=True, nullable=False)
 
-    datachunk_params = db.relationship("Datachunk", foreign_keys=[datachunk_params_id], back_populates="stats")
+    datachunk_params = db.relationship(
+        "DatachunkParams", foreign_keys=[datachunk_params_id], back_populates="processed_datachunk_params"
+    )
+    qcone_config = db.relationship(
+        "QCOneConfig", foreign_keys=[qcone_config_id], back_populates="processed_datachunk_params"
+    )
 
 
 class BeamformingParams(db.Model):
