@@ -9,7 +9,7 @@ from pathlib import Path
 
 from noiz.api.component import fetch_components
 from noiz.api.datachunk import fetch_datachunks
-from noiz.api.processing_config import fetch_processing_config_by_id
+from noiz.api.processing_config import fetch_datachunkparams_by_id
 from noiz.api.timespan import fetch_timespans_between_dates
 
 
@@ -51,7 +51,7 @@ def plot_datachunk_availability(
                                           stations=stations,
                                           components=components)
 
-    processing_params = fetch_processing_config_by_id(id=datachunk_processing_params_id)
+    processing_params = fetch_datachunkparams_by_id(id=datachunk_processing_params_id)
     datachunks = fetch_datachunks(components=fetched_components,
                                   timespans=fetched_timespans,
                                   datachunk_processing_config=processing_params,
