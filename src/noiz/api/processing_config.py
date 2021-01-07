@@ -5,8 +5,10 @@ from pathlib import Path
 from typing import Optional, Tuple, Union
 
 from noiz.database import db
-from noiz.models.processing_params import DatachunkParams, DatachunkParamsHolder, ProcessedDatachunkParams
-from noiz.processing.configs import validate_config_dict_as_datachunkparams, parse_single_config_toml, DefinedConfigs
+from noiz.models.processing_params import DatachunkParams, DatachunkParamsHolder, ProcessedDatachunkParams, \
+    ProcessedDatachunkParamsHolder
+from noiz.processing.configs import validate_config_dict_as_datachunkparams, parse_single_config_toml, DefinedConfigs, \
+    validate_config_dict_as_processeddatachunkparams
 
 
 def fetch_datachunkparams_by_id(id: int) -> DatachunkParams:
@@ -35,8 +37,6 @@ def create_datachunkparams(
     Optionally, it can create the instance of :class:`~noiz.models.processing_params.DatachunkParamsHolder` from
     provided kwargs, but why dont you do it on your own to ensure that it will get everything it needs?
 
-    Has to be executed within `app_context`
-
     :param params_holder: Object containing all required elements to create a DatachunkParams instance
     :type params_holder: DatachunkParamsHolder
     :param kwargs: Optional kwargs to create DatachunkParamsHolder
@@ -62,6 +62,36 @@ def create_datachunkparams(
         padding_taper_type=params_holder.padding_taper_type,
         padding_taper_max_length=params_holder.padding_taper_max_length,
         padding_taper_max_percentage=params_holder.padding_taper_max_percentage,
+    )
+    return params
+
+
+def create_processed_datachunk_params(
+        params_holder: Optional[ProcessedDatachunkParamsHolder] = None,
+        **kwargs,
+) -> ProcessedDatachunkParams:
+    """
+    This method takes a :py:class:`~noiz.models.processing_params.ProcessedDatachunkParamsHolder` instance and based on
+    it creates an instance of database model :py:class:`~noiz.models.processing_params.ProcessedDatachunkParams`.
+
+    Optionally, it can create the instance of :py:class:`~noiz.models.processing_params.ProcessedDatachunkParamsHolder`
+    from provided kwargs, but why dont you do it on your own to ensure that it will get everything it needs?
+
+    :param params_holder: Object containing all required elements to create a ProcessedDatachunkParams instance
+    :type params_holder: ProcessedDatachunkParamsHolder
+    :param kwargs: Optional kwargs to create ProcessedDatachunkParamsHolder
+    :return: Working ProcessedDatachunkParams model that needs to be inserted into db
+    :rtype: ProcessedDatachunkParams
+    """
+
+    if params_holder is None:
+        params_holder = validate_config_dict_as_processeddatachunkparams(kwargs)
+
+    params = ProcessedDatachunkParams(
+        datachunk_params_id=params_holder.datachunk_params_id,
+        qcone_config_id=params_holder.qcone_config_id,
+        spectral_whitening=params_holder.spectral_whitening,
+        one_bit=params_holder.one_bit,
     )
     return params
 
@@ -105,6 +135,35 @@ def create_and_add_datachunk_params_config_from_toml(
 
     params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.DATACHUNKPARAMS)
     datachunk_params = create_datachunkparams(params_holder=params_holder)
+
+    if add_to_db:
+        insert_params_into_db(params=datachunk_params)
+    else:
+        return (params_holder, datachunk_params)
+    return None
+
+
+def create_and_add_processed_datachunk_params_from_toml(
+        filepath: Path,
+        add_to_db: bool = False
+) -> Optional[Tuple[ProcessedDatachunkParamsHolder, ProcessedDatachunkParams]]:
+    """
+    This method takes a filepath to a TOML file with valid parameters
+    to create a :class:`~noiz.processing.qc.QCOneHolder` and subsequently :class:`~noiz.models.QCOneConfig`.
+    It can also add the created object to the database. By default it does not add it to db.
+    If chosen not to add the result to db, a tuple containing both :class:`~noiz.processing.qc.QCOneHolder`
+    and :class:`~noiz.models.QCOneConfig` will be returned for manual check.
+
+    :param filepath: Path to existing TOML file
+    :type filepath: Path
+    :param add_to_db: If the result of parsing of TOML should be added to DB
+    :type add_to_db: bool
+    :return: It can return QCOneHolder object for manual validation
+    :rtype: Optional[QCOneHolder]
+    """
+
+    params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.PROCESSEDDATACHUNKPARAMS)
+    datachunk_params = create_processed_datachunk_params(params_holder=params_holder)
 
     if add_to_db:
         insert_params_into_db(params=datachunk_params)
