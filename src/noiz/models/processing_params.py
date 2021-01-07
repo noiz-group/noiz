@@ -241,6 +241,20 @@ class ProcessedDatachunkParams(db.Model):
         "QCOneConfig", foreign_keys=[qcone_config_id], back_populates="processed_datachunk_params"
     )
 
+    def __init__(self, **kwargs):
+        self.datachunk_params_id = kwargs.get("datachunk_params_id")
+        self.qcone_config_id = kwargs.get("qcone_config_id")
+        self._spectral_whitening = kwargs.get("spectral_whitening", True)
+        self._one_bit = kwargs.get("one_bit", True)
+
+    @property
+    def spectral_whitening(self):
+        return self._spectral_whitening
+
+    @property
+    def one_bit(self):
+        return self._one_bit
+
 
 class BeamformingParams(db.Model):
     __tablename__ = "beamforming_params"
