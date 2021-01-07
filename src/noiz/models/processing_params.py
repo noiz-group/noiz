@@ -217,9 +217,9 @@ class ProcessedDatachunkParamsHolder:
         values loaded from the TOML file
     """
     datachunk_params_id: int
-    qcone_id: Optional[int]
+    qcone_config_id: Optional[int]
     spectral_whitening: bool
-    one_bit_normalization: bool
+    one_bit: bool
 
 
 class ProcessedDatachunkParams(db.Model):
