@@ -40,7 +40,7 @@ def fetch_processed_datachunk_params_by_id(id: int) -> ProcessedDatachunkParams:
     return fetched_params
 
 
-def insert_params_into_db(params: Union[DatachunkParams, ProcessedDatachunkParams]):
+def _insert_params_into_db(params: Union[DatachunkParams, ProcessedDatachunkParams]):
     """
     This is method simply adding an instance of :py:class:`~noiz.models.DatachunkParams`
     or :py:class:`~noiz.models.ProcessedDatachunkParams` to DB and committing changes.
@@ -83,7 +83,7 @@ def create_and_add_datachunk_params_config_from_toml(
     datachunk_params = create_datachunkparams(params_holder=params_holder)
 
     if add_to_db:
-        insert_params_into_db(params=datachunk_params)
+        _insert_params_into_db(params=datachunk_params)
     else:
         return (params_holder, datachunk_params)
     return None
@@ -101,7 +101,7 @@ def create_and_add_processed_datachunk_params_from_toml(
     datachunk_params = create_processed_datachunk_params(params_holder=params_holder)
 
     if add_to_db:
-        insert_params_into_db(params=datachunk_params)
+        _insert_params_into_db(params=datachunk_params)
     else:
         return (params_holder, datachunk_params)
     return None
