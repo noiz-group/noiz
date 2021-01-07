@@ -40,7 +40,7 @@ def fetch_qcone_config(ids: Union[int, Collection[int]]) -> List[QCOneConfig]:
     return fetched
 
 
-def fetch_qc_one_single(id: int) -> QCOneConfig:
+def fetch_qcone_config_single(id: int) -> QCOneConfig:
     """
     Fetches a single :class:`noiz.models.qc.QCOneConfig` from db based on id.
 
@@ -243,7 +243,7 @@ def process_qcone(
     :rtype:
     """
     try:
-        qcone_config: QCOneConfig = fetch_qc_one_single(id=qcone_config_id)
+        qcone_config: QCOneConfig = fetch_qcone_config_single(id=qcone_config_id)
     except EmptyResultException as e:
         logger.error(e)
         raise e
