@@ -7,7 +7,7 @@ from noiz.models.processing_params import DatachunkParams, DatachunkParamsHolder
 from noiz.processing.configs import validate_config_dict_as_datachunkparams, parse_single_config_toml, DefinedConfigs
 
 
-def fetch_processing_config_by_id(id: int) -> DatachunkParams:
+def fetch_datachunkparams_by_id(id: int) -> DatachunkParams:
     """
     Fetches a DatachunkParams objects by its ID.
     :param id: ID of processing params to be fetched

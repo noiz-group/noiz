@@ -11,7 +11,7 @@ from pathlib import Path
 import shutil
 
 from noiz.api.component import fetch_components
-from noiz.api.processing_config import fetch_processing_config_by_id
+from noiz.api.processing_config import fetch_datachunkparams_by_id
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.app import create_app
 from noiz.cli import cli
@@ -155,7 +155,7 @@ class TestDataIngestionRoutines:
         assert result.exit_code == 0
 
         with noiz_app.app_context():
-            fetched_config = fetch_processing_config_by_id(id=1)
+            fetched_config = fetch_datachunkparams_by_id(id=1)
             all_configs = DatachunkParams.query.all()
 
         assert isinstance(fetched_config, DatachunkParams)
