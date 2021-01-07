@@ -6,8 +6,8 @@ from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models.processing_params import DatachunkParams, DatachunkParamsHolder, ProcessedDatachunkParams, \
     ProcessedDatachunkParamsHolder
-from noiz.processing.configs import validate_config_dict_as_datachunkparams, parse_single_config_toml, DefinedConfigs, \
-    validate_config_dict_as_processeddatachunkparams
+from noiz.processing.configs import parse_single_config_toml, DefinedConfigs, \
+    create_datachunkparams, create_processed_datachunk_params
 
 
 def fetch_datachunkparams_by_id(id: int) -> DatachunkParams:
@@ -38,76 +38,6 @@ def fetch_processed_datachunk_params_by_id(id: int) -> ProcessedDatachunkParams:
     if fetched_params is None:
         raise EmptyResultException(f"ProcessedDatachunkParams object of id {id} does not exist.")
     return fetched_params
-
-
-def create_datachunkparams(
-        params_holder: Optional[DatachunkParamsHolder] = None,
-        **kwargs,
-) -> DatachunkParams:
-    """
-    This method takes a :class:`~noiz.models.processing_params.DatachunkParamsHolder` instance and based on it creates
-    an instance of database model :class:`~noiz.models.processing_params.DatachunkParams`.
-
-    Optionally, it can create the instance of :class:`~noiz.models.processing_params.DatachunkParamsHolder` from
-    provided kwargs, but why dont you do it on your own to ensure that it will get everything it needs?
-
-    :param params_holder: Object containing all required elements to create a DatachunkParams instance
-    :type params_holder: DatachunkParamsHolder
-    :param kwargs: Optional kwargs to create DatachunkParamsHolder
-    :return: Working DatachunkParams model that needs to be inserted into db
-    :rtype: DatachunkParams
-    """
-
-    if params_holder is None:
-        params_holder = validate_config_dict_as_datachunkparams(kwargs)
-
-    params = DatachunkParams(
-        sampling_rate=params_holder.sampling_rate,
-        prefiltering_low=params_holder.prefiltering_low,
-        prefiltering_high=params_holder.prefiltering_high,
-        prefiltering_order=params_holder.prefiltering_order,
-        preprocessing_taper_type=params_holder.preprocessing_taper_type,
-        preprocessing_taper_side=params_holder.preprocessing_taper_side,
-        preprocessing_taper_max_length=params_holder.preprocessing_taper_max_length,
-        preprocessing_taper_max_percentage=params_holder.preprocessing_taper_max_percentage,
-        remove_response=params_holder.remove_response,
-        datachunk_sample_tolerance=params_holder.datachunk_sample_tolerance,
-        zero_padding_method=params_holder.zero_padding_method,
-        padding_taper_type=params_holder.padding_taper_type,
-        padding_taper_max_length=params_holder.padding_taper_max_length,
-        padding_taper_max_percentage=params_holder.padding_taper_max_percentage,
-    )
-    return params
-
-
-def create_processed_datachunk_params(
-        params_holder: Optional[ProcessedDatachunkParamsHolder] = None,
-        **kwargs,
-) -> ProcessedDatachunkParams:
-    """
-    This method takes a :py:class:`~noiz.models.processing_params.ProcessedDatachunkParamsHolder` instance and based on
-    it creates an instance of database model :py:class:`~noiz.models.processing_params.ProcessedDatachunkParams`.
-
-    Optionally, it can create the instance of :py:class:`~noiz.models.processing_params.ProcessedDatachunkParamsHolder`
-    from provided kwargs, but why dont you do it on your own to ensure that it will get everything it needs?
-
-    :param params_holder: Object containing all required elements to create a ProcessedDatachunkParams instance
-    :type params_holder: ProcessedDatachunkParamsHolder
-    :param kwargs: Optional kwargs to create ProcessedDatachunkParamsHolder
-    :return: Working ProcessedDatachunkParams model that needs to be inserted into db
-    :rtype: ProcessedDatachunkParams
-    """
-
-    if params_holder is None:
-        params_holder = validate_config_dict_as_processeddatachunkparams(kwargs)
-
-    params = ProcessedDatachunkParams(
-        datachunk_params_id=params_holder.datachunk_params_id,
-        qcone_config_id=params_holder.qcone_config_id,
-        spectral_whitening=params_holder.spectral_whitening,
-        one_bit=params_holder.one_bit,
-    )
-    return params
 
 
 def insert_params_into_db(params: Union[DatachunkParams, ProcessedDatachunkParams]):
