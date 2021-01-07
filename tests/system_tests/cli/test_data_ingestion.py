@@ -11,12 +11,12 @@ from pathlib import Path
 import shutil
 
 from noiz.api.component import fetch_components
-from noiz.api.processing_config import fetch_datachunkparams_by_id
+from noiz.api.processing_config import fetch_datachunkparams_by_id, fetch_processed_datachunk_params_by_id
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.app import create_app
 from noiz.cli import cli
 from noiz.database import db
-from noiz.models.processing_params import DatachunkParams
+from noiz.models.processing_params import DatachunkParams, ProcessedDatachunkParams
 from noiz.models.datachunk import Datachunk, DatachunkStats
 from noiz.models.timespan import Timespan
 from noiz.models.soh import SohGps, SohInstrument
@@ -194,6 +194,22 @@ class TestDataIngestionRoutines:
             check.almost_equal(fetched_config.__getattribute__(key), value)
 
         check.equal(len(original_config['QCOne']['rejected_times']), len(fetched_config.time_periods_rejected))
+
+    def test_insert_processed_datachunk_params(self, workdir_with_content, noiz_app):
+
+        config_path = workdir_with_content.joinpath('processed_datachunk_params.toml')
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["configs", "add_processed_datachunk_params", "--add_to_db", "-f", str(config_path)])
+
+        assert result.exit_code == 0
+
+        with noiz_app.app_context():
+            fetched_config = fetch_processed_datachunk_params_by_id(id=1)
+            all_configs = ProcessedDatachunkParams.query.all()
+
+        assert isinstance(fetched_config, ProcessedDatachunkParams)
+        assert len(all_configs) == 1
 
     def test_insert_timespans(self, workdir_with_content, noiz_app):
 
