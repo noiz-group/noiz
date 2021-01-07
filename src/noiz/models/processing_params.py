@@ -17,50 +17,32 @@ class DatachunkParams(db.Model):
     __tablename__ = "datachunk_params"
 
     id = db.Column("id", db.Integer, primary_key=True)
+
     _sampling_rate = db.Column("sampling_rate", db.Float, default=24, nullable=False)
-    _prefiltering_low = db.Column(
-        "prefiltering_low", db.Float, default=0.01, nullable=False
-    )
-    _prefiltering_high = db.Column(
-        "prefiltering_high", db.Float, default=12.0, nullable=False
-    )
-    _prefiltering_order = db.Column(
-        "prefiltering_order", db.Integer, default=4, nullable=False
-    )
-    _preprocessing_taper_type = db.Column(
-        "preprocessing_taper_type", db.UnicodeText, default="cosine", nullable=False
-    )
-    _preprocessing_taper_side = db.Column(
-        "preprocessing_taper_side", db.UnicodeText, default="both", nullable=False
-    )
-    _preprocessing_taper_max_length = db.Column(
-        "preprocessing_taper_max_length", db.Float, nullable=False
-    )
-    _preprocessing_taper_max_percentage = db.Column(
-        "preprocessing_taper_max_percentage", db.Float, nullable=False
-    )
-    _remove_response = db.Column(
-        "remove_response", db.Boolean, default=True, nullable=False
-    )
-    _spectral_whitening = db.Column(
-        "spectral_whitening", db.Boolean, default=True, nullable=False
-    )
-    _one_bit = db.Column("one_bit", db.Boolean, default=True, nullable=False)
-    _datachunk_sample_tolerance = db.Column(
-        "datachunk_sample_threshold", db.Float, default=0.98, nullable=False
-    )
 
-    _correlation_max_lag = db.Column("correlation_max_lag", db.Float, nullable=True)
+    _prefiltering_low = db.Column("prefiltering_low", db.Float, default=0.01, nullable=False)
+    _prefiltering_high = db.Column("prefiltering_high", db.Float, default=12.0, nullable=False)
+    _prefiltering_order = db.Column("prefiltering_order", db.Integer, default=4, nullable=False)
 
+    _preprocessing_taper_type = db.Column("preprocessing_taper_type", db.UnicodeText, default="cosine", nullable=False)
+    _preprocessing_taper_side = db.Column("preprocessing_taper_side", db.UnicodeText, default="both", nullable=False)
+    _preprocessing_taper_max_length = db.Column("preprocessing_taper_max_length", db.Float, nullable=False)
+    _preprocessing_taper_max_percentage = db.Column("preprocessing_taper_max_percentage", db.Float, nullable=False)
+
+    _remove_response = db.Column("remove_response", db.Boolean, default=True, nullable=False)
+
+    _datachunk_sample_tolerance = db.Column("datachunk_sample_threshold", db.Float, default=0.98, nullable=False)
     _max_gap_for_merging = db.Column("max_gap_for_merging", db.Integer, default=10, nullable=False)
 
-    _padding_method = db.Column(
-        "padding_method", db.UnicodeText, default="padding_with_tapering", nullable=False
-    )
+    _padding_method = db.Column("padding_method", db.UnicodeText, default="padding_with_tapering", nullable=False)
     _padding_taper_type = db.Column("padding_taper_type", db.UnicodeText, nullable=True)
     _padding_taper_max_length = db.Column("padding_taper_max_length", db.Float, nullable=True)
     _padding_taper_max_percentage = db.Column("padding_taper_max_percentage", db.Float, nullable=True)
 
+    _spectral_whitening = db.Column("spectral_whitening", db.Boolean, default=True, nullable=False)
+    _one_bit = db.Column("one_bit", db.Boolean, default=True, nullable=False)
+
+    _correlation_max_lag = db.Column("correlation_max_lag", db.Float, nullable=True)
     # TODO add a relationship field with all datachunks
 
     def __init__(self, **kwargs):
