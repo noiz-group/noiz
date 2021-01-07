@@ -39,11 +39,11 @@ class DatachunkParams(db.Model):
     _padding_taper_max_length = db.Column("padding_taper_max_length", db.Float, nullable=True)
     _padding_taper_max_percentage = db.Column("padding_taper_max_percentage", db.Float, nullable=True)
 
-    _spectral_whitening = db.Column("spectral_whitening", db.Boolean, default=True, nullable=False)
-    _one_bit = db.Column("one_bit", db.Boolean, default=True, nullable=False)
-
     _correlation_max_lag = db.Column("correlation_max_lag", db.Float, nullable=True)
-    # TODO add a relationship field with all datachunks
+
+    processed_datachunk_params = db.relationship(
+        "ProcessedDatachunkParams", uselist=True, back_populates="datachunk_params"
+    )
 
     def __init__(self, **kwargs):
         self._sampling_rate = kwargs.get("sampling_rate", 24)
@@ -215,8 +215,21 @@ class ProcessedDatachunkParamsHolder:
         This simple dataclass is just helping to validate :py:class:`~noiz.models.ProcessedDatachunkParams`
         values loaded from the TOML file
     """
+    datachunk_params_id: int
     spectral_whitening: bool
     one_bit_normalization: bool
+
+
+class ProcessedDatachunkParams(db.Model):
+    __tablename__ = "processed_datachunk_params"
+
+    id = db.Column("id", db.Integer, primary_key=True)
+    datachunk_params_id = db.Column("id", db.Integer, db.ForeignKey("datachunk_params.id"), nullable=False)
+
+    _spectral_whitening = db.Column("spectral_whitening", db.Boolean, default=True, nullable=False)
+    _one_bit = db.Column("one_bit", db.Boolean, default=True, nullable=False)
+
+    datachunk_params = db.relationship("Datachunk", foreign_keys=[datachunk_params_id], back_populates="stats")
 
 
 class BeamformingParams(db.Model):
