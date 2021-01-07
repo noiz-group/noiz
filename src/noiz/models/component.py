@@ -21,7 +21,7 @@ class Device(db.Model):
     network = db.Column("network", db.UnicodeText)
     station = db.Column("station", db.UnicodeText)
     components = db.relationship("Component", uselist=True, back_populates="device")
-    avg_soh_gps = db.relationship("Component", uselist=True, back_populates="device")
+    avg_soh_gps = db.relationship("AveragedSohGps", uselist=True, back_populates="device")
 
 
 class Component(db.Model):
