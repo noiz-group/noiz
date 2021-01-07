@@ -252,7 +252,6 @@ class BeamformingParams(db.Model):
     slowness_step = db.Column("slowness_step", db.Float, nullable=False)
     window_length = db.Column("window_length", db.Float, nullable=False)
     window_step = db.Column("window_step", db.Float, nullable=False)
-    window_length = db.Column("window_length", db.Float, nullable=False)
 
     # use_winter_time = db.Column("use_winter_time", db.Boolean)
     # f_sampling_out = db.Column("f_sampling_out", db.Integer)
