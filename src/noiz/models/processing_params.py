@@ -227,6 +227,16 @@ class DatachunkParamsHolder:
     padding_taper_max_percentage: float
 
 
+@dataclass
+class ProcessedDatachunkParamsHolder:
+    """
+        This simple dataclass is just helping to validate :py:class:`~noiz.models.ProcessedDatachunkParams`
+        values loaded from the TOML file
+    """
+    spectral_whitening: bool
+    one_bit_normalization: bool
+
+
 class BeamformingParams(db.Model):
     __tablename__ = "beamforming_params"
     id = db.Column("id", db.Integer, primary_key=True)
