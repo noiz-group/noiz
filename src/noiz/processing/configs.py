@@ -16,6 +16,11 @@ class DefinedConfigs(ExtendedEnum):
 
 
 def select_validator_for_config_type(config_type: DefinedConfigs):
+    """
+    filldocs
+    TODO convert to private
+    TODO add else clause with NotImplementedError
+    """
     if config_type is DefinedConfigs.DATACHUNKPARAMS:
         return validate_config_dict_as_datachunkparams
     elif config_type is DefinedConfigs.QCONE:
@@ -23,6 +28,9 @@ def select_validator_for_config_type(config_type: DefinedConfigs):
 
 
 def parse_single_config_toml(filepath: Path, config_type: Optional[Union[str, DefinedConfigs]] = None):
+    """
+    # filldocs
+    """
     config_type_read = None
     config_type_provided = None
 
