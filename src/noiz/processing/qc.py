@@ -1,4 +1,5 @@
 import operator as ope
+from loguru import logger
 from typing import Optional, Any, Callable
 
 from noiz.models import Datachunk, QCOneConfig, QCOneResults, Timespan
@@ -28,12 +29,17 @@ def calculate_qcone_results(
     :return: Object containing values of all performed comparisons
     :rtype: QCOneResults
     """
+    logger.debug("Creating an empty QCOneResults")
     qcone_res = QCOneResults(datachunk_id=datachunk.id, qcone_config_id=qcone_config.id)
-
+    logger.debug("Checking datachunk for main time bounds")
     qcone_res = _determine_qcone_time(results=qcone_res,  datachunk=datachunk, config=qcone_config)
+    logger.debug("Checking if datachunk within rejected time")
     qcone_res = _determine_qcone_accepted_times(results=qcone_res, datachunk=datachunk, config=qcone_config)
+    logger.debug("Checking datachunk gps params")
     qcone_res = _determine_qcone_gps(result=qcone_res, config=qcone_config, avg_soh_gps=avg_soh_gps)
+    logger.debug("Checking datachunk stats")
     qcone_res = _determine_qcone_stats(results=qcone_res, stats=stats, config=qcone_config)
+    logger.info(f"QCOneResults calculation finished for datachunk_id {datachunk.id}, qcone_config_id {qcone_config.id}")
 
     return qcone_res
 

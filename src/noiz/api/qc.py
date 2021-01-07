@@ -262,6 +262,8 @@ def process_qcone(
         load_stats=False,
     )
 
+    qcone_results = []
+    used_ids = []
     if qcone_config.uses_gps() and use_gps:
         query = (db.session
                  .query(Datachunk, DatachunkStats, AveragedSohGps)
@@ -275,9 +277,8 @@ def process_qcone(
                  .filter(*filters).options(opts))
         fetched_results = query.all()
 
-        logger.error(len(fetched_results))
-        qcone_results = []
-        used_ids = []
+        logger.info(f"Starting QCOneResults calculations with GPS for {len(fetched_results)} elements")
+
         for datachunk, stats, avg_soh_gps in fetched_results:
             used_ids.append(datachunk.id)
             qcone_res = calculate_qcone_results(
@@ -288,8 +289,11 @@ def process_qcone(
             )
             qcone_results.append(qcone_res)
 
+        logger.info("Calculations done for all elements with GPS info associated.")
+
         if not strict_gps:
             # Topping up by calculating QCOneResult for those Datachunks that do not have an AvgGpsSoh
+            logger.info("Searching for datachunks that do not have GPS data associated to top up.")
             filters.append(~Datachunk.id.in_(used_ids))
             topup_query = (db.session
                            .query(Datachunk, DatachunkStats)
@@ -298,6 +302,8 @@ def process_qcone(
                            .filter(*filters).options(opts))
             topup_fetched_results = topup_query.all()
 
+            logger.info(f"Starting topping up QCOneResults calculations without GPS for "
+                        f"{len(topup_fetched_results)} elements")
             for datachunk, stats in topup_fetched_results:
                 qcone_res = calculate_qcone_results(
                     datachunk=datachunk,
@@ -306,6 +312,7 @@ def process_qcone(
                     avg_soh_gps=None
                 )
                 qcone_results.append(qcone_res)
+            logger.info("Topping up calculations finished.")
 
     else:
         query = (db.session
@@ -315,8 +322,7 @@ def process_qcone(
                  .filter(*filters).options(opts))
         fetched_results = query.all()
 
-        qcone_results = []
-
+        logger.info(f"Starting QCOneResults calculations without GPS for {len(fetched_results)} elements")
         for datachunk, stats in fetched_results:
             qcone_res = calculate_qcone_results(
                 datachunk=datachunk,
@@ -325,7 +331,9 @@ def process_qcone(
                 avg_soh_gps=None
             )
             qcone_results.append(qcone_res)
+        logger.info("Calculations done for all elements without GPS info associated.")
 
+    logger.info("All processing finished. Trying to insert data into db.")
     add_or_upsert_qcone_results_in_db(qcone_results_collection=qcone_results)
 
 
@@ -343,6 +351,7 @@ def add_or_upsert_qcone_results_in_db(qcone_results_collection: Collection[QCOne
     #  change within this call). Then, the upsert could be executed on the existing only, insert on all the rest.
     #  Gitlab #143
 
+    logger.info(f"Starting insertion procedure. There are {len(qcone_results_collection)} elements to be processed.")
     for results in qcone_results_collection:
 
         if not isinstance(results, QCOneResults):
