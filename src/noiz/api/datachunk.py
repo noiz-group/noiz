@@ -754,16 +754,21 @@ def _select_datachunks_for_processing(
             continue
 
 
-def add_or_upsert_processed_datachunks_in_db(processed_datachunks: Iterable[ProcessedDatachunk]):
+def add_or_upsert_processed_datachunks_in_db(
+        processed_datachunks: Union[ProcessedDatachunk, Iterable[ProcessedDatachunk]]
+):
     """
     Adds or upserts provided iterable of ProcessedDatachunk to DB.
     Must be executed within AppContext.
 
     :param processed_datachunks:
-    :type processed_datachunks: Iterable[ProcessedDatachunk]
+    :type processed_datachunks: Union[ProcessedDatachunk, Iterable[ProcessedDatachunk]]
     :return:
     :rtype:
     """
+    if isinstance(processed_datachunks, ProcessedDatachunk):
+        processed_datachunks = (processed_datachunks,)
+
     for proc_datachunk in processed_datachunks:
 
         if not isinstance(proc_datachunk, ProcessedDatachunk):
