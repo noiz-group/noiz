@@ -147,22 +147,6 @@ def create_qcone_config(
     return qcone
 
 
-def insert_qc_one_config_into_db(qcone_config: QCOneConfig):
-    """
-    This is method simply adding an instance of :class:`~noiz.models.QCOneConfig` to DB and committing changes.
-
-    Has to be executed within `app_context`
-
-    :param qcone_config: Instance of QCOne to be added to db
-    :type qcone_config: QCOneConfig
-    :return: None
-    :rtype: NoneType
-    """
-    db.session.add(qcone_config)
-    db.session.commit()
-    return
-
-
 def create_and_add_qc_one_config_from_toml(
         filepath: Path,
         add_to_db: bool = False
@@ -186,7 +170,7 @@ def create_and_add_qc_one_config_from_toml(
     qcone_config = create_qcone_config(qcone_holder=qcone_holder)
 
     if add_to_db:
-        insert_qc_one_config_into_db(qcone_config=qcone_config)
+        insert_qcone_config_into_db(config=qcone_config)
     else:
         return (qcone_holder, qcone_config)
     return None
@@ -432,20 +416,20 @@ def add_or_upsert_qcone_results_in_db(qcone_results_collection: Collection[QCOne
     return
 
 
-def insert_qconeconfig_into_db(params: QCOneConfig) -> None:
+def insert_qcone_config_into_db(config: QCOneConfig) -> None:
     """
-    This is method simply adding an instance of :class:`~noiz.models.DatachunkParams` to DB and committing changes.
+    This is method simply adding an instance of :class:`~noiz.models.QCOneConfig` to DB and committing changes.
 
     Has to be executed within `app_context`
 
-    :param params: Instance of DatachunkParams to be added to db
-    :type params: DatachunkParams
+    :param qcone_config: Instance of QCOne to be added to db
+    :type qcone_config: QCOneConfig
     :return: None
     :rtype: NoneType
     """
-    db.session.add(params)
+    db.session.add(config)
     db.session.commit()
-    logger.info(f"Succesfully added to db QCOneConfig object with id={params.id}")
+    logger.info(f"Succesfully added to db {type(config)} object with id={config.id}")
     return
 
 
@@ -472,7 +456,7 @@ def create_and_add_qcone_config_from_toml(
     qcone = create_qcone_config(qcone_holder=params_holder)
 
     if add_to_db:
-        insert_qconeconfig_into_db(params=qcone)
+        insert_qcone_config_into_db(config=qcone)
     else:
         return (params_holder, qcone)
     return None
