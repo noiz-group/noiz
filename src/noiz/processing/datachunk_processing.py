@@ -44,36 +44,6 @@ def one_bit_normalization(tr: obspy.Trace) -> obspy.Trace:
     return tr
 
 
-def run_chunk_processing(
-    app, station, component, execution_date, processed_data_dir, processing_params_id=1
-):
-    with app.app_context():
-        year = execution_date.year
-        day_of_year = execution_date.timetuple().tm_yday
-
-        processing_params = DatachunkParams.query.filter(
-            DatachunkParams.id == processing_params_id
-        ).first()
-        datachunks = (
-            Datachunk.query.join(Timespan)
-            .join(Component)
-            .filter(
-                Timespan.starttime_year == year,
-                Timespan.starttime_doy == day_of_year,
-                Component.station == station,
-                Component.component == component,
-            )
-            .all()
-        )
-        no_datachunks = len(datachunks)
-
-        for i, dc in enumerate(datachunks):
-            logger.info(f"Processing datachunk {i}/{no_datachunks}")
-            process_datachunk(dc, processing_params)
-
-    return
-
-
 def process_datachunk(datachunk, processing_params):
     logger.info(f"Loading data for {datachunk}")
     st = datachunk.load_data()
