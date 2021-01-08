@@ -334,4 +334,5 @@ class TestDataIngestionRoutines:
                                      "-ed", "2019-10-03",
                                      ])
         assert result.exit_code == 0
-        assert 570 == ProcessedDatachunk.query.count()
+        with noiz_app.app_context():
+            assert 570 == ProcessedDatachunk.query.count()
