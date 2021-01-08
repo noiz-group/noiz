@@ -26,24 +26,6 @@ from noiz.processing.datachunk_processing import process_datachunk
 from loguru import logger
 
 
-def fetch_datachunks_for_timespan(
-        timespans: Collection[Timespan]
-) -> List[Datachunk]:
-    """
-    DEPRECATED. Use noiz.api.datachunkfetch_datachunks instead
-
-    Fetches all datachunks associated with provided timespans.
-    Timespan can be a single one or Iterable of timespans.
-
-    :param timespans: Instances of timespans to be checked
-    :type timespans: Collection[Timespan]
-    :return: List of Datachunks
-    :rtype: List[Datachunk]
-    """
-    logger.warning("Method deprected. Use noiz.api.datachunkfetch_datachunks instead.")
-    return fetch_datachunks(timespans=timespans)
-
-
 def count_datachunks(
         components: Optional[Collection[Component]] = None,
         timespans: Optional[Collection[Timespan]] = None,
