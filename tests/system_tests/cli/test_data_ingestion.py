@@ -17,7 +17,7 @@ from noiz.app import create_app
 from noiz.cli import cli
 from noiz.database import db
 from noiz.models.processing_params import DatachunkParams, ProcessedDatachunkParams
-from noiz.models.datachunk import Datachunk, DatachunkStats
+from noiz.models.datachunk import Datachunk, DatachunkStats, ProcessedDatachunk
 from noiz.models.timespan import Timespan
 from noiz.models.soh import SohGps, SohInstrument
 
@@ -334,3 +334,4 @@ class TestDataIngestionRoutines:
                                      "-ed", "2019-10-03",
                                      ])
         assert result.exit_code == 0
+        assert 570 == ProcessedDatachunk.query.count()
