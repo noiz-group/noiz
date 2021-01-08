@@ -4,11 +4,12 @@ from pathlib import Path
 
 from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import Query
 from typing import List, Collection, Union, Optional, Tuple
 
 from noiz.api.component import fetch_components
 from noiz.api.datachunk import _determine_filters_and_opts_for_datachunk
-from noiz.api.helpers import validate_to_tuple
+from noiz.api.helpers import validate_to_tuple, extract_object_ids
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
@@ -20,13 +21,14 @@ from noiz.processing.configs import validate_dict_as_qcone_holder, load_qc_one_c
 from noiz.processing.qc import calculate_qcone_results
 
 
-def fetch_qc_ones(ids: Union[int, Collection[int]]) -> List[QCOneConfig]:
+def fetch_qcone_config(ids: Union[int, Collection[int]]) -> List[QCOneConfig]:
     """
-    Fetches the QCOne from db based on id.
+    Fetches the QCOneConfig from db based on id. Can be either a single id or some collection of ids.
+    It always returns a list of instances, can also be an empty list.
 
     :param ids: IDs to be fetched
     :type ids: Union[int, Collection[int]]
-    :return: Fetched QCones
+    :return: Fetched QConeConfig objects
     :rtype: List[QCOneConfig]
     """
 
@@ -39,7 +41,7 @@ def fetch_qc_ones(ids: Union[int, Collection[int]]) -> List[QCOneConfig]:
     return fetched
 
 
-def fetch_qc_one_single(id: int) -> QCOneConfig:
+def fetch_qcone_config_single(id: int) -> QCOneConfig:
     """
     Fetches a single :class:`noiz.models.qc.QCOneConfig` from db based on id.
 
@@ -60,6 +62,71 @@ def fetch_qc_one_single(id: int) -> QCOneConfig:
     return fetched
 
 
+def fetch_qcone_results(
+        qcone_config: Optional[QCOneConfig] = None,
+        qcone_config_id: Optional[int] = None,
+        datachunks: Optional[Collection[Datachunk]] = None,
+        datachunk_ids: Optional[Collection[int]] = None,
+) -> List[QCOneResults]:
+
+    query = _query_qcone_results(
+        qcone_config=qcone_config,
+        qcone_config_id=qcone_config_id,
+        datachunks=datachunks,
+        datachunk_ids=datachunk_ids,
+    )
+    return query.all()
+
+
+def count_qcone_results(
+        qcone_config: Optional[QCOneConfig] = None,
+        qcone_config_id: Optional[int] = None,
+        datachunks: Optional[Collection[Datachunk]] = None,
+        datachunk_ids: Optional[Collection[int]] = None,
+) -> List[QCOneResults]:
+
+    query = _query_qcone_results(
+        qcone_config=qcone_config,
+        qcone_config_id=qcone_config_id,
+        datachunks=datachunks,
+        datachunk_ids=datachunk_ids,
+    )
+    return query.count()
+
+
+def _query_qcone_results(
+        qcone_config: Optional[QCOneConfig] = None,
+        qcone_config_id: Optional[int] = None,
+        datachunks: Optional[Collection[Datachunk]] = None,
+        datachunk_ids: Optional[Collection[int]] = None,
+) -> Query:
+
+    if datachunks is not None and datachunk_ids is not None:
+        raise ValueError("Both datachunks and datachunk_ids parameters were provided. "
+                         "You have to provide maximum one of them.")
+    if qcone_config is not None and qcone_config_id is not None:
+        raise ValueError("Both qcone_config and qcone_config_id parameters were provided. "
+                         "You have to provide maximum one of them.")
+
+    filters = []
+    if qcone_config is not None:
+        filters.append(QCOneResults.qcone_config_id.in_((qcone_config.id,)))
+    if qcone_config_id is not None:
+        qcone_config_ids = validate_to_tuple(val=qcone_config_id, accepted_type=int)
+        filters.append(QCOneResults.qcone_config_id.in_(qcone_config_ids))
+    if datachunks is not None:
+        extracted_datachunk_ids = extract_object_ids(datachunks)
+        filters.append(QCOneResults.datachunk_id.in_(extracted_datachunk_ids))
+    if datachunk_ids is not None:
+        filters.append(QCOneResults.datachunk_id.in_(datachunk_ids))
+    if len(filters) == 0:
+        filters.append(True)
+
+    query = QCOneResults.query.filter(*filters)
+
+    return query
+
+
 def create_qcone_rejected_time(
         holder: QCOneRejectedTimeHolder,
 ) -> List[QCOneRejectedTime]:
@@ -75,6 +142,8 @@ def create_qcone_rejected_time(
     :return: Instance of a model, ready to be added to to the database
     :rtype: QCOneRejectedTime
     """
+
+    # TODO move that method to processing Gitlab#156
 
     fetched_components = fetch_components(
         networks=holder.network,
@@ -112,6 +181,8 @@ def create_qcone_config(
     :rtype: QCOneConfig
     """
 
+    # TODO move that method to processing Gitlab#156
+
     if qcone_holder is None:
         qcone_holder = validate_dict_as_qcone_holder(kwargs)
 
@@ -146,22 +217,6 @@ def create_qcone_config(
     return qcone
 
 
-def insert_qc_one_config_into_db(qcone_config: QCOneConfig):
-    """
-    This is method simply adding an instance of :class:`~noiz.models.QCOneConfig` to DB and committing changes.
-
-    Has to be executed within `app_context`
-
-    :param qcone_config: Instance of QCOne to be added to db
-    :type qcone_config: QCOneConfig
-    :return: None
-    :rtype: NoneType
-    """
-    db.session.add(qcone_config)
-    db.session.commit()
-    return
-
-
 def create_and_add_qc_one_config_from_toml(
         filepath: Path,
         add_to_db: bool = False
@@ -185,7 +240,7 @@ def create_and_add_qc_one_config_from_toml(
     qcone_config = create_qcone_config(qcone_holder=qcone_holder)
 
     if add_to_db:
-        insert_qc_one_config_into_db(qcone_config=qcone_config)
+        insert_qcone_config_into_db(config=qcone_config)
     else:
         return (qcone_holder, qcone_config)
     return None
@@ -242,7 +297,7 @@ def process_qcone(
     :rtype:
     """
     try:
-        qcone_config: QCOneConfig = fetch_qc_one_single(id=qcone_config_id)
+        qcone_config: QCOneConfig = fetch_qcone_config_single(id=qcone_config_id)
     except EmptyResultException as e:
         logger.error(e)
         raise e
@@ -431,20 +486,20 @@ def add_or_upsert_qcone_results_in_db(qcone_results_collection: Collection[QCOne
     return
 
 
-def insert_qconeconfig_into_db(params: QCOneConfig) -> None:
+def insert_qcone_config_into_db(config: QCOneConfig) -> None:
     """
-    This is method simply adding an instance of :class:`~noiz.models.DatachunkParams` to DB and committing changes.
+    This is method simply adding an instance of :class:`~noiz.models.QCOneConfig` to DB and committing changes.
 
     Has to be executed within `app_context`
 
-    :param params: Instance of DatachunkParams to be added to db
-    :type params: DatachunkParams
+    :param qcone_config: Instance of QCOne to be added to db
+    :type qcone_config: QCOneConfig
     :return: None
     :rtype: NoneType
     """
-    db.session.add(params)
+    db.session.add(config)
     db.session.commit()
-    logger.info(f"Succesfully added to db QCOneConfig object with id={params.id}")
+    logger.info(f"Succesfully added to db {type(config)} object with id={config.id}")
     return
 
 
@@ -471,7 +526,7 @@ def create_and_add_qcone_config_from_toml(
     qcone = create_qcone_config(qcone_holder=params_holder)
 
     if add_to_db:
-        insert_qconeconfig_into_db(params=qcone)
+        insert_qcone_config_into_db(config=qcone)
     else:
         return (params_holder, qcone)
     return None
