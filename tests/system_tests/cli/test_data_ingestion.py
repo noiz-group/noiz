@@ -17,7 +17,7 @@ from noiz.app import create_app
 from noiz.cli import cli
 from noiz.database import db
 from noiz.models.processing_params import DatachunkParams, ProcessedDatachunkParams
-from noiz.models.datachunk import Datachunk, DatachunkStats
+from noiz.models.datachunk import Datachunk, DatachunkStats, ProcessedDatachunk
 from noiz.models.timespan import Timespan
 from noiz.models.soh import SohGps, SohInstrument
 
@@ -326,3 +326,14 @@ class TestDataIngestionRoutines:
             qcone_count = QCOneResults.query.count()
 
         assert qcone_count == datachunk_count
+
+    def test_run_datachunk_processing(self, noiz_app):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["processing", "process_datachunks",
+                                     "-sd", "2019-09-30",
+                                     "-ed", "2019-10-03",
+                                     ])
+        assert result.exit_code == 0
+        with noiz_app.app_context():
+            processed_datachunk_count = ProcessedDatachunk.query.count()
+        assert 570 == processed_datachunk_count
