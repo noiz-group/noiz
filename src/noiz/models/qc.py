@@ -187,9 +187,9 @@ class QCOneRejectedTimeHolder:
 
 
 @dataclass
-class QCOneHolder:
+class QCOneConfigHolder:
     """
-    This simple dataclass is just helping to validate :class:`~noiz.models.QCOne` values loaded from the TOML file
+    This simple dataclass is just helping to validate :class:`~noiz.models.QCOneConfig` values loaded from the TOML file
     """
 
     null_treatment_policy: NullTreatmentPolicy = NullTreatmentPolicy.PASS
