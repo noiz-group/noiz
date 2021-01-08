@@ -632,10 +632,58 @@ def run_datachunk_processing(
     )
 
     processed_datachunks = []
-    for datachunk, params in datachunks_to_process:
-        processed_datachunks.append(process_datachunk(datachunk=datachunk, params=params))
+    for jobkwargs in datachunks_to_process:
+        processed_datachunks.append(process_datachunk(**jobkwargs))
 
     add_or_upsert_processed_datachunks_in_db(processed_datachunks=processed_datachunks)
+
+    return
+
+
+def run_datachunk_processing_parallel(
+        processed_datachunk_params_id: int,
+        starttime: Union[datetime.date, datetime.datetime],
+        endtime: Union[datetime.date, datetime.datetime],
+        networks: Optional[Union[Collection[str], str]] = None,
+        stations: Optional[Union[Collection[str], str]] = None,
+        components: Optional[Union[Collection[str], str]] = None,
+        component_ids: Optional[Union[Collection[int], int]] = None,
+):
+    # filldocs
+    datachunks_to_process = _select_datachunks_for_processing(
+        processed_datachunk_params_id=processed_datachunk_params_id,
+        starttime=starttime,
+        endtime=endtime,
+        networks=networks,
+        stations=stations,
+        components=components,
+        component_ids=component_ids,
+    )
+
+    from dask.distributed import Client, as_completed
+    client = Client()
+
+    logger.info(f'Dask client started succesfully. '
+                f'You can monitor execution on {client.dashboard_link}')
+
+    logger.info("Submitting tasks to Dask client")
+    futures = []
+    try:
+        for jobkwargs in datachunks_to_process:
+            future = client.submit(create_datachunks_for_component, **jobkwargs)
+            futures.append(future)
+    except ValueError as e:
+        logger.error(e)
+        raise e
+
+    logger.info(f"There are {len(futures)} tasks to be executed")
+
+    logger.info("Starting execution. Results will be saved to database on the fly. ")
+
+    for future, result in as_completed(futures, with_results=True, raise_errors=False):
+        add_or_upsert_processed_datachunks_in_db(result)
+
+    client.close()
 
     return
 
@@ -648,7 +696,7 @@ def _select_datachunks_for_processing(
         stations: Optional[Union[Collection[str], str]] = None,
         components: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
-) -> Generator[Tuple[Datachunk, ProcessedDatachunkParams], None, None]:
+) -> Generator[Dict[str, Union[ProcessedDatachunk, ProcessedDatachunkParams]], None, None]:
     # filldocs
     params = fetch_processed_datachunk_params_by_id(processed_datachunk_params_id)
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
@@ -677,7 +725,7 @@ def _select_datachunks_for_processing(
     for chunk in fetched_datachunks:
         if chunk.id in valid_chunks[True]:
             logger.info(f"There QCOneResult was True for datachunk with id {chunk.id}")
-            yield (chunk, params)
+            yield {"datachunk": chunk, "params": params}
 
         elif chunk.id in valid_chunks[False]:
             logger.info(f"There QCOneResult was False for datachunk with id {chunk.id}")
