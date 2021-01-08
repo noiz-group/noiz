@@ -4,11 +4,12 @@ from pathlib import Path
 
 from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import Query
 from typing import List, Collection, Union, Optional, Tuple
 
 from noiz.api.component import fetch_components
 from noiz.api.datachunk import _determine_filters_and_opts_for_datachunk
-from noiz.api.helpers import validate_to_tuple
+from noiz.api.helpers import validate_to_tuple, extract_object_ids
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
@@ -59,6 +60,71 @@ def fetch_qcone_config_single(id: int) -> QCOneConfig:
         raise EmptyResultException(f"There was no QCOneConfig with if={id} in the database.")
 
     return fetched
+
+
+def fetch_qcone_results(
+        qcone_config: Optional[QCOneConfig] = None,
+        qcone_config_id: Optional[int] = None,
+        datachunks: Optional[Collection[Datachunk]] = None,
+        datachunk_ids: Optional[Collection[int]] = None,
+) -> List[QCOneResults]:
+
+    query = _query_qcone_results(
+        qcone_config=qcone_config,
+        qcone_config_id=qcone_config_id,
+        datachunks=datachunks,
+        datachunk_ids=datachunk_ids,
+    )
+    return query.all()
+
+
+def count_qcone_results(
+        qcone_config: Optional[QCOneConfig] = None,
+        qcone_config_id: Optional[int] = None,
+        datachunks: Optional[Collection[Datachunk]] = None,
+        datachunk_ids: Optional[Collection[int]] = None,
+) -> List[QCOneResults]:
+
+    query = _query_qcone_results(
+        qcone_config=qcone_config,
+        qcone_config_id=qcone_config_id,
+        datachunks=datachunks,
+        datachunk_ids=datachunk_ids,
+    )
+    return query.count()
+
+
+def _query_qcone_results(
+        qcone_config: Optional[QCOneConfig] = None,
+        qcone_config_id: Optional[int] = None,
+        datachunks: Optional[Collection[Datachunk]] = None,
+        datachunk_ids: Optional[Collection[int]] = None,
+) -> Query:
+
+    if datachunks is not None and datachunk_ids is not None:
+        raise ValueError("Both datachunks and datachunk_ids parameters were provided. "
+                         "You have to provide maximum one of them.")
+    if qcone_config is not None and qcone_config_id is not None:
+        raise ValueError("Both qcone_config and qcone_config_id parameters were provided. "
+                         "You have to provide maximum one of them.")
+
+    filters = []
+    if qcone_config is not None:
+        filters.append(QCOneResults.qcone_config_id.in_((qcone_config.id,)))
+    if qcone_config_id is not None:
+        qcone_config_ids = validate_to_tuple(val=qcone_config_id, accepted_type=int)
+        filters.append(QCOneResults.qcone_config_id.in_(qcone_config_ids))
+    if datachunks is not None:
+        extracted_datachunk_ids = extract_object_ids(datachunks)
+        filters.append(QCOneResults.datachunk_id.in_(extracted_datachunk_ids))
+    if datachunk_ids is not None:
+        filters.append(QCOneResults.datachunk_id.in_(datachunk_ids))
+    if len(filters) == 0:
+        filters.append(True)
+
+    query = QCOneResults.query.filter(*filters)
+
+    return query
 
 
 def create_qcone_rejected_time(
