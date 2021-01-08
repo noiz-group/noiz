@@ -77,6 +77,8 @@ def create_qcone_rejected_time(
     :rtype: QCOneRejectedTime
     """
 
+    # TODO move that method to processing Gitlab#156
+
     fetched_components = fetch_components(
         networks=holder.network,
         stations=holder.station,
@@ -112,6 +114,8 @@ def create_qcone_config(
     :return: Working QCOne model that needs to be inserted into db
     :rtype: QCOneConfig
     """
+
+    # TODO move that method to processing Gitlab#156
 
     if qcone_holder is None:
         qcone_holder = validate_dict_as_qcone_holder(kwargs)
