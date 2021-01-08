@@ -698,12 +698,15 @@ def _select_datachunks_for_processing(
         component_ids: Optional[Union[Collection[int], int]] = None,
 ) -> Generator[Dict[str, Union[ProcessedDatachunk, ProcessedDatachunkParams]], None, None]:
     # filldocs
+
     logger.debug(f"Fetching ProcessedDatachunkParams with id {processed_datachunk_params_id}")
     params = fetch_processed_datachunk_params_by_id(processed_datachunk_params_id)
     logger.debug(f"Fetching ProcessedDatachunkParams successful. {params}")
+
     logger.debug(f"Fetching timespans for {starttime} - {endtime}")
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
     logger.debug(f"Fetched {len(fetched_timespans)} timespans")
+
     logger.debug("Fetching components")
     fetched_components = fetch_components(
         networks=networks,
@@ -712,6 +715,7 @@ def _select_datachunks_for_processing(
         component_ids=component_ids,
     )
     logger.debug(f"Fetched {len(fetched_components)} components")
+
     logger.debug("Fetching datachunks")
     fetched_datachunks = fetch_datachunks(
         timespans=fetched_timespans,
@@ -737,6 +741,7 @@ def _select_datachunks_for_processing(
             valid_chunks[qcone_res.is_passing()].append(datchnk_id)
         logger.info(f"There were {len(valid_chunks[True])} valid QCOneResults. "
                     f"There were {len(valid_chunks[False])} invalid QCOneResults.")
+
     else:
         logger.info("QCOne is not used for selection of Datachunks. All fetched Datachunks will be processed.")
         valid_chunks[True].extend(fetched_datachunks_ids)
@@ -772,11 +777,11 @@ def add_or_upsert_processed_datachunks_in_db(
     for proc_datachunk in processed_datachunks:
 
         if not isinstance(proc_datachunk, ProcessedDatachunk):
-            logger.warning(f'Provided object is not an instance of ProcessedDatachunk. '
-                           f'Provided object was an {type(proc_datachunk)}. Skipping.')
+            logger.error(f'Provided object is not an instance of ProcessedDatachunk. '
+                         f'Provided object was an {type(proc_datachunk)}. Skipping.')
             continue
 
-        logger.info("Querrying db if the datachunk already exists.")
+        logger.debug("Querrying db if the datachunk already exists.")
         existing_chunks = (
             db.session.query(ProcessedDatachunk)
             .filter(
@@ -787,10 +792,10 @@ def add_or_upsert_processed_datachunks_in_db(
         )
 
         if len(existing_chunks) == 0:
-            logger.info("No existing chunks found. Adding Datachunk to DB.")
+            logger.info("No existing ProcessedDatachunks found. Adding Datachunk to DB.")
             db.session.add(proc_datachunk)
         else:
-            logger.info("The datachunk already exists in db. Updating.")
+            logger.info("ProcessedDatachunks already exists in db. Updating.")
             insert_command = (
                 insert(ProcessedDatachunk)
                 .values(
