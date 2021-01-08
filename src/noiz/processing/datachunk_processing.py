@@ -94,7 +94,7 @@ def process_datachunk(datachunk: Datachunk, params: ProcessedDatachunkParams) ->
     st.write(proc_datachunk_file.filepath, format="mseed")
 
     processed_datachunk = ProcessedDatachunk(
-        processing_params_id=params.id,
+        processed_datachunk_params_id=params.id,
         datachunk_id=datachunk.id,
         processed_datachunk_file=proc_datachunk_file,
     )
