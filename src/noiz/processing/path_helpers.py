@@ -79,9 +79,9 @@ def directory_exists_or_create(filepath: Path) -> bool:
     :rtype: bool
     """
     directory = filepath.parent
-    logger.info(f"Checking if directory {directory} exists")
+    logger.debug(f"Checking if directory {directory} exists")
     if not directory.exists():
-        logger.info(f"Directory {directory} does not exists, trying to create.")
+        logger.debug(f"Directory {directory} does not exists, trying to create.")
         directory.mkdir(parents=True)
     return directory.exists()
 

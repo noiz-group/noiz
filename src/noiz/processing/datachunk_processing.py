@@ -49,11 +49,17 @@ def process_datachunk(datachunk: Datachunk, params: ProcessedDatachunkParams) ->
     """
 
     if not isinstance(datachunk.timespan, Timespan):
-        raise ValueError('The Timespan is not loaded with the Datachunk. Correct that.')
+        msg = 'The Timespan is not loaded with the Datachunk. Correct that.'
+        logger.error('The Timespan is not loaded with the Datachunk. Correct that.')
+        raise ValueError(msg)
     if not isinstance(datachunk.component, Component):
-        raise ValueError('The Component is not loaded with the Datachunk. Correct that.')
+        msg = 'The Component is not loaded with the Datachunk. Correct that.'
+        logger.error(msg)
+        raise ValueError(msg)
 
-    logger.info(f"Loading data for {datachunk}")
+    logger.info(f"Starting processing of {datachunk}")
+
+    logger.debug("Loading data")
     st = datachunk.load_data()
 
     if len(st) != 1:
@@ -62,11 +68,11 @@ def process_datachunk(datachunk: Datachunk, params: ProcessedDatachunkParams) ->
         raise ValueError(msg)
 
     if params.spectral_whitening:
-        logger.info("Performing spectral whitening")
+        logger.debug("Performing spectral whitening")
         st[0] = whiten_trace(st[0])
 
     if params.one_bit:
-        logger.info("Performing one bit normalization")
+        logger.debug("Performing one bit normalization")
         st[0] = one_bit_normalization(st[0])
 
     filepath = assembly_filepath(
@@ -81,17 +87,18 @@ def process_datachunk(datachunk: Datachunk, params: ProcessedDatachunkParams) ->
     )
 
     if filepath.exists():
-        logger.info(f'Filepath {filepath} exists. '
-                    f'Trying to find next free one.')
+        logger.debug(f"Filepath {filepath} exists. Trying to find next free one.")
         filepath = increment_filename_counter(filepath=filepath)
-        logger.info(f"Free filepath found. "
-                    f"Datachunk will be saved to {filepath}")
+        logger.debug(f"Free filepath found. Datachunk will be saved to {filepath}")
 
     logger.info(f"Chunk will be written to {str(filepath)}")
     directory_exists_or_create(filepath)
 
     proc_datachunk_file = ProcessedDatachunkFile(filepath=str(filepath))
+
+    logger.debug("Trying to write mseed file.")
     st.write(proc_datachunk_file.filepath, format="mseed")
+    logger.info("File written succesfully")
 
     processed_datachunk = ProcessedDatachunk(
         processed_datachunk_params_id=params.id,
