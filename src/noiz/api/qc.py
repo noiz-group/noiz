@@ -137,14 +137,13 @@ def create_qcone_rejected_time(
     Since the holder itself is focused on the single component inputs, it should never return more than a
     single element list but for safety, it will return a list instead of single object.
 
+    Has to be executed within `app_context`
+
     :param holder: Holder to be processed
     :type holder: QCOneConfigRejectedTimeHolder
     :return: Instance of a model, ready to be added to to the database
     :rtype: QCOneRejectedTime
     """
-
-    # TODO move that method to processing Gitlab#156
-
     fetched_components = fetch_components(
         networks=holder.network,
         stations=holder.station,
@@ -180,8 +179,6 @@ def create_qcone_config(
     :return: Working QCOne model that needs to be inserted into db
     :rtype: QCOneConfig
     """
-
-    # TODO move that method to processing Gitlab#156
 
     if qcone_holder is None:
         qcone_holder = validate_dict_as_qcone_holder(kwargs)
