@@ -709,7 +709,9 @@ def _select_datachunks_for_processing(
     fetched_datachunks = fetch_datachunks(
         timespans=fetched_timespans,
         components=fetched_components,
-        datachunk_processing_config=params.datachunk_params
+        datachunk_processing_config=params.datachunk_params,
+        load_timespan=True,
+        load_component=True,
     )
     fetched_datachunks_ids = extract_object_ids(fetched_datachunks)
     valid_chunks: Dict[bool, List[int]] = {True: [], False: []}
