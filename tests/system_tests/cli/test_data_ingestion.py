@@ -172,11 +172,11 @@ class TestDataIngestionRoutines:
 
         import toml
         import pytest_check as check
-        from noiz.api.qc import fetch_qc_one_single
+        from noiz.api.qc import fetch_qcone_config_single
         from noiz.models.qc import QCOneConfig
 
         with noiz_app.app_context():
-            fetched_config = fetch_qc_one_single(id=1)
+            fetched_config = fetch_qcone_config_single(id=1)
             all_configs = QCOneConfig.query.all()
 
         assert isinstance(fetched_config, QCOneConfig)
