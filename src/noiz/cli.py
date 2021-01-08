@@ -417,6 +417,45 @@ def run_qcone(
     )
 
 
+@processing_group.command("process_datachunks")
+@with_appcontext
+@click.option("-s", "--station", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-c", "--component", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-p", "--processed_datachunk_params_id", nargs=1, type=int,
+              default=1, show_default=True)
+@click.option('--parallel/--no_parallel', default=True)
+def process_datachunks(
+        station,
+        component,
+        startdate,
+        enddate,
+        processed_datachunk_params_id,
+        parallel,
+):
+    """Start processing of datachunks"""
+
+    if parallel:
+        from noiz.api.datachunk import run_datachunk_processing_parallel
+        run_datachunk_processing_parallel(
+            stations=station,
+            components=component,
+            starttime=startdate,
+            endtime=enddate,
+            processed_datachunk_params_id=processed_datachunk_params_id
+        )
+    else:
+        from noiz.api.datachunk import run_datachunk_processing
+        run_datachunk_processing(
+            stations=station,
+            components=component,
+            starttime=startdate,
+            endtime=enddate,
+            processed_datachunk_params_id=processed_datachunk_params_id
+        )
+
+
 @plotting_group.group("plot")
 def plotting_group():  # type: ignore
     """Plotting routines"""
