@@ -1,12 +1,9 @@
 from loguru import logger
 import obspy
 import numpy as np
-from pathlib import Path
-from sqlalchemy.dialects.postgresql import insert
 
-from noiz.database import db
 from noiz.models.datachunk import Datachunk, ProcessedDatachunk, ProcessedDatachunkFile
-from noiz.models.processing_params import DatachunkParams, ProcessedDatachunkParams
+from noiz.models.processing_params import ProcessedDatachunkParams
 from noiz.models.timespan import Timespan
 from noiz.models.component import Component
 from noiz.processing.path_helpers import directory_exists_or_create, assembly_filepath, assembly_preprocessing_filename, \
@@ -47,6 +44,9 @@ def one_bit_normalization(tr: obspy.Trace) -> obspy.Trace:
 
 
 def process_datachunk(datachunk: Datachunk, params: ProcessedDatachunkParams) -> ProcessedDatachunk:
+    """
+    filldocs
+    """
 
     if not isinstance(datachunk.timespan, Timespan):
         raise ValueError('The Timespan is not loaded with the Datachunk. Correct that.')
