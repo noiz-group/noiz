@@ -104,7 +104,7 @@ class ProcessedDatachunk(db.Model):
         db.UniqueConstraint(
             "datachunk_id",
             "datachunk_processing_config_id",
-            name="unique_processing_per_datachunk",
+            name="unique_processing_per_datachunk_per_config",
         ),
     )
 
