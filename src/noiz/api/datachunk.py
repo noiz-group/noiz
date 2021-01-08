@@ -780,7 +780,7 @@ def add_or_upsert_processed_datachunks_in_db(
         existing_chunks = (
             db.session.query(ProcessedDatachunk)
             .filter(
-                ProcessedDatachunk.processing_params_id == proc_datachunk.processing_params_id,
+                ProcessedDatachunk.processed_datachunk_params_id == proc_datachunk.processed_datachunk_params_id,
                 ProcessedDatachunk.datachunk_id == proc_datachunk.datachunk_id,
             )
             .all()
@@ -794,7 +794,7 @@ def add_or_upsert_processed_datachunks_in_db(
             insert_command = (
                 insert(ProcessedDatachunk)
                 .values(
-                    processing_params_id=proc_datachunk.processing_params_id,
+                    processed_datachunk_params_id=proc_datachunk.processed_datachunk_params_id,
                     datachunk_id=proc_datachunk.datachunk_id,
                     processed_datachunk_file_id=proc_datachunk.processed_datachunk_file_id,
                 )
