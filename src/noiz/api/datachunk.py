@@ -407,36 +407,6 @@ def run_paralel_chunk_preparation(
     # TODO Add summary printout.
 
 
-def run_chunk_preparation(
-        app, station, component, execution_date, processed_data_dir, processing_config_id=1
-):
-    # TODO DELETE this method. It's legacy method that was used only in the airflow. Gitlab#153
-    year = execution_date.year
-    day_of_year = execution_date.timetuple().tm_yday
-
-    logger.info("Fetching processing config, timespans and componsents from db")
-    with app.app_context():
-        processing_config = (
-            db.session.query(DatachunkParams)
-                      .filter(DatachunkParams.id == processing_config_id)
-                      .first()
-        )
-        timespans = fetch_timespans_for_doy(year=year, doy=day_of_year)
-
-        components = Component.query.filter(
-            Component.station == station, Component.component == component
-        ).all()
-
-    logger.info("Invoking chunc creation itself")
-    for component in components:
-        with app.app_context():
-            create_datachunks_for_component(component=component,
-                                            timespans=timespans,
-                                            time_series=None,  # type: ignore
-                                            processing_params=processing_config)
-    return
-
-
 def run_stats_calculation(
         starttime: Union[datetime.date, datetime.datetime],
         endtime: Union[datetime.date, datetime.datetime],
