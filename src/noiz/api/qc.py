@@ -14,7 +14,7 @@ from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models.datachunk import Datachunk, DatachunkStats
-from noiz.models.qc import QCOneConfig, QCOneRejectedTime, QCOneRejectedTimeHolder, QCOneHolder, QCOneResults
+from noiz.models.qc import QCOneConfig, QCOneRejectedTime, QCOneRejectedTimeHolder, QCOneConfigHolder, QCOneResults
 from noiz.models.soh import AveragedSohGps
 from noiz.processing.configs import validate_dict_as_qcone_holder, load_qc_one_config_toml, parse_single_config_toml, \
     DefinedConfigs
@@ -162,21 +162,21 @@ def create_qcone_rejected_time(
 
 
 def create_qcone_config(
-        qcone_holder: Optional[QCOneHolder] = None,
+        qcone_holder: Optional[QCOneConfigHolder] = None,
         **kwargs,
 ) -> QCOneConfig:
     """
-    This method takes a :class:`~noiz.processing.qc.QCOneHolder` instance and based on it creates an instance
+    This method takes a :class:`~noiz.processing.qc.QCOneConfigHolder` instance and based on it creates an instance
     of database model :class:`~noiz.models.QCOneConfig`.
 
-    Optionally, it can create the instance of :class:`~noiz.processing.qc.QCOneHolder` from provided kwargs, but
+    Optionally, it can create the instance of :class:`~noiz.processing.qc.QCOneConfigHolder` from provided kwargs, but
     why dont you do it on your own to ensure that it will get everything it needs?
 
     Has to be executed within `app_context`
 
     :param qcone_holder: Object containing all required elements to create a QCOne instance
-    :type qcone_holder: QCOneHolder
-    :param kwargs: Optional kwargs to create QCOneHolder
+    :type qcone_holder: QCOneConfigHolder
+    :param kwargs: Optional kwargs to create QCOneConfigHolder
     :return: Working QCOne model that needs to be inserted into db
     :rtype: QCOneConfig
     """
@@ -220,20 +220,20 @@ def create_qcone_config(
 def create_and_add_qc_one_config_from_toml(
         filepath: Path,
         add_to_db: bool = False
-) -> Optional[Tuple[QCOneHolder, QCOneConfig]]:
+) -> Optional[Tuple[QCOneConfigHolder, QCOneConfig]]:
     """
     This method takes a filepath to a TOML file with valid parameters
-    to create a :class:`~noiz.processing.qc.QCOneHolder` and subsequently :class:`~noiz.models.QCOneConfig`.
+    to create a :class:`~noiz.processing.qc.QCOneConfigHolder` and subsequently :class:`~noiz.models.QCOneConfig`.
     It can also add the created object to the database. By default it does not add it to db.
-    If chosen not to add the result to db, a tuple containing both :class:`~noiz.processing.qc.QCOneHolder`
+    If chosen not to add the result to db, a tuple containing both :class:`~noiz.processing.qc.QCOneConfigHolder`
     and :class:`~noiz.models.QCOneConfig` will be returned for manual check.
 
     :param filepath: Path to existing TOML file
     :type filepath: Path
     :param add_to_db: If the result of parsing of TOML should be added to DB
     :type add_to_db: bool
-    :return: It can return QCOneHolder object for manual validation
-    :rtype: Optional[QCOneHolder]
+    :return: It can return QCOneConfigHolder object for manual validation
+    :rtype: Optional[QCOneConfigHolder]
     """
 
     qcone_holder = load_qc_one_config_toml(filepath=filepath)
@@ -506,20 +506,20 @@ def insert_qcone_config_into_db(config: QCOneConfig) -> None:
 def create_and_add_qcone_config_from_toml(
         filepath: Path,
         add_to_db: bool = False
-) -> Optional[Tuple[QCOneHolder, QCOneConfig]]:
+) -> Optional[Tuple[QCOneConfigHolder, QCOneConfig]]:
     """
     This method takes a filepath to a TOML file with valid parameters
-    to create a :class:`~noiz.processing.qc.QCOneHolder` and subsequently :class:`~noiz.models.QCOneConfig`.
+    to create a :class:`~noiz.processing.qc.QCOneConfigHolder` and subsequently :class:`~noiz.models.QCOneConfig`.
     It can also add the created object to the database. By default it does not add it to db.
-    If chosen not to add the result to db, a tuple containing both :class:`~noiz.processing.qc.QCOneHolder`
+    If chosen not to add the result to db, a tuple containing both :class:`~noiz.processing.qc.QCOneConfigHolder`
     and :class:`~noiz.models.QCOneConfig` will be returned for manual check.
 
     :param filepath: Path to existing TOML file
     :type filepath: Path
     :param add_to_db: If the result of parsing of TOML should be added to DB
     :type add_to_db: bool
-    :return: It can return QCOneHolder object for manual validation
-    :rtype: Optional[QCOneHolder]
+    :return: It can return QCOneConfigHolder object for manual validation
+    :rtype: Optional[QCOneConfigHolder]
     """
 
     params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.QCONE)
