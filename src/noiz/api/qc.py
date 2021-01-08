@@ -14,7 +14,7 @@ from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models.datachunk import Datachunk, DatachunkStats
-from noiz.models.qc import QCOneConfig, QCOneRejectedTime, QCOneRejectedTimeHolder, QCOneConfigHolder, QCOneResults
+from noiz.models.qc import QCOneConfig, QCOneRejectedTime, QCOneConfigRejectedTimeHolder, QCOneConfigHolder, QCOneResults
 from noiz.models.soh import AveragedSohGps
 from noiz.processing.configs import validate_dict_as_qcone_holder, load_qc_one_config_toml, parse_single_config_toml, \
     DefinedConfigs
@@ -128,17 +128,17 @@ def _query_qcone_results(
 
 
 def create_qcone_rejected_time(
-        holder: QCOneRejectedTimeHolder,
+        holder: QCOneConfigRejectedTimeHolder,
 ) -> List[QCOneRejectedTime]:
     """
-    Based on provided :class:`~noiz.processing.qc.QCOneRejectedTimeHolder` creates instances of the
+    Based on provided :class:`~noiz.processing.qc.QCOneConfigRejectedTimeHolder` creates instances of the
     database models :class:`~noiz.models.QCOneRejectedTime`.
 
     Since the holder itself is focused on the single component inputs, it should never return more than a
     single element list but for safety, it will return a list instead of single object.
 
     :param holder: Holder to be processed
-    :type holder: QCOneRejectedTimeHolder
+    :type holder: QCOneConfigRejectedTimeHolder
     :return: Instance of a model, ready to be added to to the database
     :rtype: QCOneRejectedTime
     """

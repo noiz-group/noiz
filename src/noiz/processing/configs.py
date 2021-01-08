@@ -7,7 +7,7 @@ from noiz.globals import ExtendedEnum
 from noiz.models import DatachunkParams
 from noiz.models.processing_params import DatachunkParamsHolder, ProcessedDatachunkParamsHolder, \
     ProcessedDatachunkParams
-from noiz.models.qc import QCOneRejectedTimeHolder, QCOneConfigHolder
+from noiz.models.qc import QCOneConfigRejectedTimeHolder, QCOneConfigHolder
 
 
 class DefinedConfigs(ExtendedEnum):
@@ -118,7 +118,7 @@ def validate_dict_as_qcone_holder(loaded_dict: Dict) -> QCOneConfigHolder:
 
     validated_forbidden_channels = []
     for forb_chn in loaded_dict['rejected_times']:
-        validated_forbidden_channels.append(QCOneRejectedTimeHolder(**forb_chn))
+        validated_forbidden_channels.append(QCOneConfigRejectedTimeHolder(**forb_chn))
     processed_dict['rejected_times'] = validated_forbidden_channels
 
     return QCOneConfigHolder(**processed_dict)
