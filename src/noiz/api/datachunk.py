@@ -1,7 +1,6 @@
 import datetime
 import pendulum
 from noiz.models.qc import QCOneConfig, QCOneResults
-from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import subqueryload, Query
 from typing import List, Iterable, Tuple, Collection, Optional, Dict, Union, Generator
