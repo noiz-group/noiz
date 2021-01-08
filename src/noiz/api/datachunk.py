@@ -4,23 +4,24 @@ from noiz.models.qc import QCOneConfig, QCOneResults
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import subqueryload, Query
-from typing import List, Iterable, Tuple, Collection, Optional, Dict, Union
+from typing import List, Iterable, Tuple, Collection, Optional, Dict, Union, Generator
 
 import itertools
 
 from noiz.api.helpers import extract_object_ids
 from noiz.api.component import fetch_components
 from noiz.api.timeseries import fetch_raw_timeseries
-from noiz.api.timespan import fetch_timespans_for_doy
-from noiz.api.processing_config import fetch_datachunkparams_by_id
+from noiz.api.timespan import fetch_timespans_for_doy, fetch_timespans_between_dates
+from noiz.api.processing_config import fetch_datachunkparams_by_id, fetch_processed_datachunk_params_by_id
 from noiz.database import db
 from noiz.exceptions import NoDataException
 from noiz.models.component import Component
-from noiz.models.datachunk import Datachunk, DatachunkStats
-from noiz.models.processing_params import DatachunkParams
+from noiz.models.datachunk import Datachunk, DatachunkStats, ProcessedDatachunk
+from noiz.models.processing_params import DatachunkParams, ProcessedDatachunkParams
 from noiz.models.soh import AveragedSohGps
 from noiz.models.timespan import Timespan
 from noiz.processing.datachunk import create_datachunks_for_component
+from noiz.processing.datachunk_processing import process_datachunk
 
 from loguru import logger
 
@@ -319,6 +320,7 @@ def create_datachunks_add_to_db(
         processing_params: DatachunkParams,
         processed_data_dir: Path,
 ) -> None:
+    # TODO remove this method Gitlab#159
     no_datachunks = count_datachunks(
         components=(component,),
         timespans=timespans,
@@ -603,6 +605,210 @@ def add_or_upsert_datachunk_stats_in_db(datachunk_stats: DatachunkStats):
             )
         )
         db.session.execute(insert_command)
+
+    logger.debug('Commiting session.')
+    db.session.commit()
+    return
+
+
+def run_datachunk_processing(
+        processed_datachunk_params_id: int,
+        starttime: Union[datetime.date, datetime.datetime],
+        endtime: Union[datetime.date, datetime.datetime],
+        networks: Optional[Union[Collection[str], str]] = None,
+        stations: Optional[Union[Collection[str], str]] = None,
+        components: Optional[Union[Collection[str], str]] = None,
+        component_ids: Optional[Union[Collection[int], int]] = None,
+):
+    # filldocs
+    datachunks_to_process = _select_datachunks_for_processing(
+        processed_datachunk_params_id=processed_datachunk_params_id,
+        starttime=starttime,
+        endtime=endtime,
+        networks=networks,
+        stations=stations,
+        components=components,
+        component_ids=component_ids,
+    )
+
+    processed_datachunks = []
+    for jobkwargs in datachunks_to_process:
+        processed_datachunks.append(process_datachunk(**jobkwargs))
+
+    add_or_upsert_processed_datachunks_in_db(processed_datachunks=processed_datachunks)
+
+    return
+
+
+def run_datachunk_processing_parallel(
+        processed_datachunk_params_id: int,
+        starttime: Union[datetime.date, datetime.datetime],
+        endtime: Union[datetime.date, datetime.datetime],
+        networks: Optional[Union[Collection[str], str]] = None,
+        stations: Optional[Union[Collection[str], str]] = None,
+        components: Optional[Union[Collection[str], str]] = None,
+        component_ids: Optional[Union[Collection[int], int]] = None,
+):
+    # filldocs
+    datachunks_to_process = _select_datachunks_for_processing(
+        processed_datachunk_params_id=processed_datachunk_params_id,
+        starttime=starttime,
+        endtime=endtime,
+        networks=networks,
+        stations=stations,
+        components=components,
+        component_ids=component_ids,
+    )
+
+    from dask.distributed import Client, as_completed
+    client = Client()
+
+    logger.info(f'Dask client started succesfully. '
+                f'You can monitor execution on {client.dashboard_link}')
+
+    logger.info("Submitting tasks to Dask client")
+    futures = []
+    try:
+        for jobkwargs in datachunks_to_process:
+            future = client.submit(process_datachunk, **jobkwargs)
+            futures.append(future)
+    except ValueError as e:
+        logger.error(e)
+        raise e
+
+    logger.info(f"There are {len(futures)} tasks to be executed")
+
+    logger.info("Starting execution. Results will be saved to database on the fly. ")
+
+    for future, result in as_completed(futures, with_results=True, raise_errors=False):
+        add_or_upsert_processed_datachunks_in_db(result)
+
+    client.close()
+
+    return
+
+
+def _select_datachunks_for_processing(
+        processed_datachunk_params_id: int,
+        starttime: Union[datetime.date, datetime.datetime],
+        endtime: Union[datetime.date, datetime.datetime],
+        networks: Optional[Union[Collection[str], str]] = None,
+        stations: Optional[Union[Collection[str], str]] = None,
+        components: Optional[Union[Collection[str], str]] = None,
+        component_ids: Optional[Union[Collection[int], int]] = None,
+) -> Generator[Dict[str, Union[ProcessedDatachunk, ProcessedDatachunkParams]], None, None]:
+    # filldocs
+
+    logger.debug(f"Fetching ProcessedDatachunkParams with id {processed_datachunk_params_id}")
+    params = fetch_processed_datachunk_params_by_id(processed_datachunk_params_id)
+    logger.debug(f"Fetching ProcessedDatachunkParams successful. {params}")
+
+    logger.debug(f"Fetching timespans for {starttime} - {endtime}")
+    fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
+    logger.debug(f"Fetched {len(fetched_timespans)} timespans")
+
+    logger.debug("Fetching components")
+    fetched_components = fetch_components(
+        networks=networks,
+        stations=stations,
+        components=components,
+        component_ids=component_ids,
+    )
+    logger.debug(f"Fetched {len(fetched_components)} components")
+
+    logger.debug("Fetching datachunks")
+    fetched_datachunks = fetch_datachunks(
+        timespans=fetched_timespans,
+        components=fetched_components,
+        datachunk_processing_config=params.datachunk_params,
+        load_timespan=True,
+        load_component=True,
+    )
+    logger.debug(f"Fetched {len(fetched_datachunks)} datachunks")
+
+    fetched_datachunks_ids = extract_object_ids(fetched_datachunks)
+    valid_chunks: Dict[bool, List[int]] = {True: [], False: []}
+
+    if params.qcone_config_id is not None:
+        logger.debug("Fetching QCOneResults associated with fetched datachunks")
+        logger.info("QCOne will be used for selection of Datachunks for processing")
+        fetched_qcone_results = db.session.query(QCOneResults.datachunk_id, QCOneResults).filter(
+            QCOneResults.qcone_config_id == params.qcone_config_id,
+            QCOneResults.datachunk_id.in_(fetched_datachunks_ids)).all()
+
+        logger.debug(f"Fetched {len(fetched_qcone_results)} QCOneResults")
+        for datchnk_id, qcone_res in fetched_qcone_results:
+            valid_chunks[qcone_res.is_passing()].append(datchnk_id)
+        logger.info(f"There were {len(valid_chunks[True])} valid QCOneResults. "
+                    f"There were {len(valid_chunks[False])} invalid QCOneResults.")
+
+    else:
+        logger.info("QCOne is not used for selection of Datachunks. All fetched Datachunks will be processed.")
+        valid_chunks[True].extend(fetched_datachunks_ids)
+
+    for chunk in fetched_datachunks:
+        if chunk.id in valid_chunks[True]:
+            logger.debug(f"There QCOneResult was True for datachunk with id {chunk.id}")
+            yield {"datachunk": chunk, "params": params}
+
+        elif chunk.id in valid_chunks[False]:
+            logger.debug(f"There QCOneResult was False for datachunk with id {chunk.id}")
+            continue
+        else:
+            logger.debug(f"There was no QCOneResult for datachunk with id {chunk.id}")
+            continue
+
+
+def add_or_upsert_processed_datachunks_in_db(
+        processed_datachunks: Union[ProcessedDatachunk, Iterable[ProcessedDatachunk]]
+):
+    """
+    Adds or upserts provided iterable of ProcessedDatachunk to DB.
+    Must be executed within AppContext.
+
+    :param processed_datachunks:
+    :type processed_datachunks: Union[ProcessedDatachunk, Iterable[ProcessedDatachunk]]
+    :return:
+    :rtype:
+    """
+    if isinstance(processed_datachunks, ProcessedDatachunk):
+        processed_datachunks = (processed_datachunks,)
+
+    for proc_datachunk in processed_datachunks:
+
+        if not isinstance(proc_datachunk, ProcessedDatachunk):
+            logger.error(f'Provided object is not an instance of ProcessedDatachunk. '
+                         f'Provided object was an {type(proc_datachunk)}. Skipping.')
+            continue
+
+        logger.debug("Querrying db if the datachunk already exists.")
+        existing_chunks = (
+            db.session.query(ProcessedDatachunk)
+            .filter(
+                ProcessedDatachunk.processed_datachunk_params_id == proc_datachunk.processed_datachunk_params_id,
+                ProcessedDatachunk.datachunk_id == proc_datachunk.datachunk_id,
+            )
+            .all()
+        )
+
+        if len(existing_chunks) == 0:
+            logger.info("No existing ProcessedDatachunks found. Adding Datachunk to DB.")
+            db.session.add(proc_datachunk)
+        else:
+            logger.info("ProcessedDatachunks already exists in db. Updating.")
+            insert_command = (
+                insert(ProcessedDatachunk)
+                .values(
+                    processed_datachunk_params_id=proc_datachunk.processed_datachunk_params_id,
+                    datachunk_id=proc_datachunk.datachunk_id,
+                    processed_datachunk_file_id=proc_datachunk.processed_datachunk_file_id,
+                )
+                .on_conflict_do_update(
+                    constraint="unique_processing_per_datachunk_per_config",
+                    set_=dict(processed_datachunk_file_id=proc_datachunk.processed_datachunk_file_id),
+                )
+            )
+            db.session.execute(insert_command)
 
     logger.debug('Commiting session.')
     db.session.commit()
