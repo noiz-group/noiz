@@ -698,14 +698,21 @@ def _select_datachunks_for_processing(
         component_ids: Optional[Union[Collection[int], int]] = None,
 ) -> Generator[Dict[str, Union[ProcessedDatachunk, ProcessedDatachunkParams]], None, None]:
     # filldocs
+    logger.debug(f"Fetching ProcessedDatachunkParams with id {processed_datachunk_params_id}")
     params = fetch_processed_datachunk_params_by_id(processed_datachunk_params_id)
+    logger.debug(f"Fetching ProcessedDatachunkParams successful. {params}")
+    logger.debug(f"Fetching timespans for {starttime} - {endtime}")
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
+    logger.debug(f"Fetched {len(fetched_timespans)} timespans")
+    logger.debug("Fetching components")
     fetched_components = fetch_components(
         networks=networks,
         stations=stations,
         components=components,
         component_ids=component_ids,
     )
+    logger.debug(f"Fetched {len(fetched_components)} components")
+    logger.debug("Fetching datachunks")
     fetched_datachunks = fetch_datachunks(
         timespans=fetched_timespans,
         components=fetched_components,
@@ -713,27 +720,37 @@ def _select_datachunks_for_processing(
         load_timespan=True,
         load_component=True,
     )
+    logger.debug(f"Fetched {len(fetched_datachunks)} datachunks")
+
     fetched_datachunks_ids = extract_object_ids(fetched_datachunks)
     valid_chunks: Dict[bool, List[int]] = {True: [], False: []}
+
     if params.qcone_config_id is not None:
+        logger.debug("Fetching QCOneResults associated with fetched datachunks")
+        logger.info("QCOne will be used for selection of Datachunks for processing")
         fetched_qcone_results = db.session.query(QCOneResults.datachunk_id, QCOneResults).filter(
             QCOneResults.qcone_config_id == params.qcone_config_id,
             QCOneResults.datachunk_id.in_(fetched_datachunks_ids)).all()
+
+        logger.debug(f"Fetched {len(fetched_qcone_results)} QCOneResults")
         for datchnk_id, qcone_res in fetched_qcone_results:
             valid_chunks[qcone_res.is_passing()].append(datchnk_id)
+        logger.info(f"There were {len(valid_chunks[True])} valid QCOneResults. "
+                    f"There were {len(valid_chunks[False])} invalid QCOneResults.")
     else:
+        logger.info("QCOne is not used for selection of Datachunks. All fetched Datachunks will be processed.")
         valid_chunks[True].extend(fetched_datachunks_ids)
 
     for chunk in fetched_datachunks:
         if chunk.id in valid_chunks[True]:
-            logger.info(f"There QCOneResult was True for datachunk with id {chunk.id}")
+            logger.debug(f"There QCOneResult was True for datachunk with id {chunk.id}")
             yield {"datachunk": chunk, "params": params}
 
         elif chunk.id in valid_chunks[False]:
-            logger.info(f"There QCOneResult was False for datachunk with id {chunk.id}")
+            logger.debug(f"There QCOneResult was False for datachunk with id {chunk.id}")
             continue
         else:
-            logger.info(f"There was no QCOneResult for datachunk with id {chunk.id}")
+            logger.debug(f"There was no QCOneResult for datachunk with id {chunk.id}")
             continue
 
 
