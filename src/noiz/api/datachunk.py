@@ -295,47 +295,6 @@ def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
     return
 
 
-def create_datachunks_add_to_db(
-        execution_date: datetime.datetime,
-        component: Component,
-        timespans: Collection[Timespan],
-        processing_params: DatachunkParams,
-        processed_data_dir: Path,
-) -> None:
-    # TODO remove this method Gitlab#159
-    no_datachunks = count_datachunks(
-        components=(component,),
-        timespans=timespans,
-        datachunk_processing_config=processing_params
-    )
-
-    timespans_count = len(timespans)
-
-    logger.info(
-        f"There are {no_datachunks} datachunks for {execution_date} in db")
-
-    if no_datachunks == timespans_count:
-        logger.info("There is enough of datachunks in the db (no_datachunks == no_timespans)")
-        return
-
-    logger.info(f"Fetching timeseries for {execution_date} {component}")
-    try:
-        time_series = fetch_raw_timeseries(
-            component=component, execution_date=execution_date
-        )
-    except NoDataException as e:
-        logger.error(e)
-        raise e
-
-    finished_datachunks = create_datachunks_for_component(component=component,
-                                                          timespans=timespans,
-                                                          time_series=time_series,
-                                                          processing_params=processing_params)
-    add_or_upsert_datachunks_in_db(finished_datachunks)
-
-    return
-
-
 def prepare_datachunk_preparation_parameter_lists(
         stations: Optional[Tuple[str]],
         components: Optional[Tuple[str]],
