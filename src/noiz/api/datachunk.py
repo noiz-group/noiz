@@ -16,11 +16,12 @@ from noiz.api.processing_config import fetch_datachunkparams_by_id, fetch_proces
 from noiz.database import db
 from noiz.exceptions import NoDataException
 from noiz.models.component import Component
-from noiz.models.datachunk import Datachunk, DatachunkStats
+from noiz.models.datachunk import Datachunk, DatachunkStats, ProcessedDatachunk
 from noiz.models.processing_params import DatachunkParams
 from noiz.models.soh import AveragedSohGps
 from noiz.models.timespan import Timespan
 from noiz.processing.datachunk import create_datachunks_for_component
+from noiz.processing.datachunk_processing import process_datachunk
 
 from loguru import logger
 
@@ -638,18 +639,78 @@ def run_datachunk_processing(
     valid_chunks: Dict[bool, List[int]] = {True: [], False: []}
 
     if params.qcone_config_id is not None:
-        fetched_qcone_results = db.session.query(QCOneResults.datachunk_id, QCOneResults).filter(QCOneResults.qcone_config_id == params.qcone_config_id, QCOneResults.datachunk_id.in_(fetched_datachunks_ids)).all()
+        fetched_qcone_results = db.session.query(QCOneResults.datachunk_id, QCOneResults).filter(
+            QCOneResults.qcone_config_id == params.qcone_config_id, QCOneResults.datachunk_id.in_(fetched_datachunks_ids)).all()
         for datchnk_id, qcone_res in fetched_qcone_results:
             valid_chunks[qcone_res.is_passing()].append(datchnk_id)
     else:
         valid_chunks[True].extend(fetched_datachunks_ids)
 
+    processed_datachunks = []
+
     for chunk in fetched_datachunks:
         if chunk.id in valid_chunks[True]:
             logger.info(f"There QCOneResult was True for datachunk with id {chunk.id}")
+            processed_datachunks.append(process_datachunk(datachunk=chunk, params=params))
+
         elif chunk.id in valid_chunks[False]:
             logger.info(f"There QCOneResult was False for datachunk with id {chunk.id}")
             continue
         else:
             logger.info(f"There was no QCOneResult for datachunk with id {chunk.id}")
             continue
+
+    add_or_upsert_processed_datachunks_in_db(processed_datachunks=processed_datachunks)
+
+    return
+
+
+def add_or_upsert_processed_datachunks_in_db(processed_datachunks: Iterable[ProcessedDatachunk]):
+    """
+    Adds or upserts provided iterable of ProcessedDatachunk to DB.
+    Must be executed within AppContext.
+
+    :param processed_datachunks:
+    :type processed_datachunks: Iterable[ProcessedDatachunk]
+    :return:
+    :rtype:
+    """
+    for proc_datachunk in processed_datachunks:
+
+        if not isinstance(proc_datachunk, ProcessedDatachunk):
+            logger.warning(f'Provided object is not an instance of ProcessedDatachunk. '
+                           f'Provided object was an {type(proc_datachunk)}. Skipping.')
+            continue
+
+        logger.info("Querrying db if the datachunk already exists.")
+        existing_chunks = (
+            db.session.query(ProcessedDatachunk)
+            .filter(
+                ProcessedDatachunk.processing_params_id == proc_datachunk.processing_params_id,
+                ProcessedDatachunk.datachunk_id == proc_datachunk.datachunk_id,
+            )
+            .all()
+        )
+
+        if len(existing_chunks) == 0:
+            logger.info("No existing chunks found. Adding Datachunk to DB.")
+            db.session.add(proc_datachunk)
+        else:
+            logger.info("The datachunk already exists in db. Updating.")
+            insert_command = (
+                insert(ProcessedDatachunk)
+                .values(
+                    processing_params_id=proc_datachunk.processing_params_id,
+                    datachunk_id=proc_datachunk.datachunk_id,
+                    processed_datachunk_file_id=proc_datachunk.processed_datachunk_file_id,
+                )
+                .on_conflict_do_update(
+                    constraint="unique_processing_per_datachunk_per_config",
+                    set_=dict(processed_datachunk_file_id=proc_datachunk.processed_datachunk_file_id),
+                )
+            )
+            db.session.execute(insert_command)
+
+    logger.debug('Commiting session.')
+    db.session.commit()
+    return
