@@ -174,7 +174,7 @@ class QCOneResults(db.Model):
 
 
 @dataclass
-class QCOneRejectedTimeHolder:
+class QCOneConfigRejectedTimeHolder:
     """
         This simple dataclass is just helping to validate :class:`~noiz.models.QCOneRejectedTime` values loaded
         from the TOML file
@@ -199,7 +199,7 @@ class QCOneConfigHolder:
     avg_gps_time_error_max: Optional[float] = None
     avg_gps_time_uncertainty_min: Optional[float] = None
     avg_gps_time_uncertainty_max: Optional[float] = None
-    rejected_times: Collection[QCOneRejectedTimeHolder] = tuple()
+    rejected_times: Collection[QCOneConfigRejectedTimeHolder] = tuple()
     signal_energy_min: Optional[float] = None
     signal_energy_max: Optional[float] = None
     signal_min_value_min: Optional[float] = None
