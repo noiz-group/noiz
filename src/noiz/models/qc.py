@@ -140,6 +140,38 @@ class QCOneResults(db.Model):
     qcone_config = db.relationship("QCOneConfig", foreign_keys=[qcone_config_id])
     datachunk = db.relationship("Datachunk", foreign_keys=[datachunk_id])
 
+    def is_passing(self) -> bool:
+        """
+        Checks if all values of QCOne are True.
+
+        :return: If QCOne is passing for that chunk
+        :rtype: bool
+        """
+        ret = all((
+            self.starttime,
+            self.endtime,
+            self.accepted_time,
+            self.avg_gps_time_error_min,
+            self.avg_gps_time_error_max,
+            self.avg_gps_time_uncertainty_min,
+            self.avg_gps_time_uncertainty_max,
+            self.signal_energy_min,
+            self.signal_energy_max,
+            self.signal_min_value_min,
+            self.signal_min_value_max,
+            self.signal_max_value_min,
+            self.signal_max_value_max,
+            self.signal_mean_value_min,
+            self.signal_mean_value_max,
+            self.signal_variance_min,
+            self.signal_variance_max,
+            self.signal_skewness_min,
+            self.signal_skewness_max,
+            self.signal_kurtosis_min,
+            self.signal_kurtosis_max,
+        ))
+        return ret
+
 
 @dataclass
 class QCOneRejectedTimeHolder:
