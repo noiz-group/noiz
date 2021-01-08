@@ -199,7 +199,7 @@ class QCOneConfigHolder:
     avg_gps_time_error_max: Optional[float] = None
     avg_gps_time_uncertainty_min: Optional[float] = None
     avg_gps_time_uncertainty_max: Optional[float] = None
-    rejected_times: Collection[QCOneConfigRejectedTimeHolder] = tuple()
+    rejected_times: Union[Tuple[QCOneConfigRejectedTimeHolder, ...], List[QCOneConfigRejectedTimeHolder]] = tuple()
     signal_energy_min: Optional[float] = None
     signal_energy_max: Optional[float] = None
     signal_min_value_min: Optional[float] = None
