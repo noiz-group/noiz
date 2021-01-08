@@ -7,7 +7,7 @@ from noiz.globals import ExtendedEnum
 from noiz.models import DatachunkParams
 from noiz.models.processing_params import DatachunkParamsHolder, ProcessedDatachunkParamsHolder, \
     ProcessedDatachunkParams
-from noiz.models.qc import QCOneRejectedTimeHolder, QCOneHolder
+from noiz.models.qc import QCOneConfigRejectedTimeHolder, QCOneConfigHolder
 
 
 class DefinedConfigs(ExtendedEnum):
@@ -82,15 +82,15 @@ def parse_single_config_toml(filepath: Path, config_type: Optional[Union[str, De
     return validator(loaded_dict)
 
 
-def load_qc_one_config_toml(filepath: Path) -> QCOneHolder:
+def load_qc_one_config_toml(filepath: Path) -> QCOneConfigHolder:
     """
-    This method loads the TOML config file, validates it and returns a :class:`~noiz.models.QCOneHolder` that is
+    This method loads the TOML config file, validates it and returns a :class:`~noiz.models.QCOneConfigHolder` that is
     compatible with constructor of :class:`~noiz.models.QCOneConfig`
 
     :param filepath: Path to existing QCOne config TOML file
     :type filepath: Path
-    :return: QCOneHolder compatible with constructor of QCOne model
-    :rtype: QCOneHolder
+    :return: QCOneConfigHolder compatible with constructor of QCOne model
+    :rtype: QCOneConfigHolder
     """
     import warnings
     warnings.warn(DeprecationWarning("this method is deprecated, use more general `parse_single_config_toml`"))
@@ -104,24 +104,24 @@ def load_qc_one_config_toml(filepath: Path) -> QCOneHolder:
     return validate_dict_as_qcone_holder(loaded_config)
 
 
-def validate_dict_as_qcone_holder(loaded_dict: Dict) -> QCOneHolder:
+def validate_dict_as_qcone_holder(loaded_dict: Dict) -> QCOneConfigHolder:
     """
-    Takes a dict, or an output from TOML parser and tries to convert it into a :class:`~noiz.models.QCOneHolder` object
+    Takes a dict, or an output from TOML parser and tries to convert it into a :class:`~noiz.models.QCOneConfigHolder` object
 
-    :param loaded_dict: Dictionary to be parsed and validated as QCOneHolder
+    :param loaded_dict: Dictionary to be parsed and validated as QCOneConfigHolder
     :type loaded_dict: Dict
-    :return: Valid QCOneHolder object
-    :rtype: QCOneHolder
+    :return: Valid QCOneConfigHolder object
+    :rtype: QCOneConfigHolder
     """
 
     processed_dict = loaded_dict.copy()
 
     validated_forbidden_channels = []
     for forb_chn in loaded_dict['rejected_times']:
-        validated_forbidden_channels.append(QCOneRejectedTimeHolder(**forb_chn))
+        validated_forbidden_channels.append(QCOneConfigRejectedTimeHolder(**forb_chn))
     processed_dict['rejected_times'] = validated_forbidden_channels
 
-    return QCOneHolder(**processed_dict)
+    return QCOneConfigHolder(**processed_dict)
 
 
 def validate_config_dict_as_datachunkparams(loaded_dict: Dict) -> DatachunkParamsHolder:
