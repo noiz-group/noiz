@@ -319,6 +319,7 @@ def create_datachunks_add_to_db(
         processing_params: DatachunkParams,
         processed_data_dir: Path,
 ) -> None:
+    # TODO remove this method Gitlab#159
     no_datachunks = count_datachunks(
         components=(component,),
         timespans=timespans,
