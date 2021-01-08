@@ -670,7 +670,7 @@ def run_datachunk_processing_parallel(
     futures = []
     try:
         for jobkwargs in datachunks_to_process:
-            future = client.submit(create_datachunks_for_component, **jobkwargs)
+            future = client.submit(process_datachunk, **jobkwargs)
             futures.append(future)
     except ValueError as e:
         logger.error(e)
