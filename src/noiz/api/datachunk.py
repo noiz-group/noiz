@@ -4,7 +4,7 @@ from noiz.models.qc import QCOneConfig, QCOneResults
 from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import subqueryload, Query
-from typing import List, Iterable, Tuple, Collection, Optional, Dict, Union
+from typing import List, Iterable, Tuple, Collection, Optional, Dict, Union, Generator
 
 import itertools
 
@@ -17,7 +17,7 @@ from noiz.database import db
 from noiz.exceptions import NoDataException
 from noiz.models.component import Component
 from noiz.models.datachunk import Datachunk, DatachunkStats, ProcessedDatachunk
-from noiz.models.processing_params import DatachunkParams
+from noiz.models.processing_params import DatachunkParams, ProcessedDatachunkParams
 from noiz.models.soh import AveragedSohGps
 from noiz.models.timespan import Timespan
 from noiz.processing.datachunk import create_datachunks_for_component
@@ -621,6 +621,35 @@ def run_datachunk_processing(
         component_ids: Optional[Union[Collection[int], int]] = None,
 ):
     # filldocs
+    datachunks_to_process = _select_datachunks_for_processing(
+        processed_datachunk_params_id=processed_datachunk_params_id,
+        starttime=starttime,
+        endtime=endtime,
+        networks=networks,
+        stations=stations,
+        components=components,
+        component_ids=component_ids,
+    )
+
+    processed_datachunks = []
+    for datachunk, params in datachunks_to_process:
+        processed_datachunks.append(process_datachunk(datachunk=datachunk, params=params))
+
+    add_or_upsert_processed_datachunks_in_db(processed_datachunks=processed_datachunks)
+
+    return
+
+
+def _select_datachunks_for_processing(
+        processed_datachunk_params_id: int,
+        starttime: Union[datetime.date, datetime.datetime],
+        endtime: Union[datetime.date, datetime.datetime],
+        networks: Optional[Union[Collection[str], str]] = None,
+        stations: Optional[Union[Collection[str], str]] = None,
+        components: Optional[Union[Collection[str], str]] = None,
+        component_ids: Optional[Union[Collection[int], int]] = None,
+) -> Generator[Tuple[Datachunk, ProcessedDatachunkParams], None, None]:
+    # filldocs
     params = fetch_processed_datachunk_params_by_id(processed_datachunk_params_id)
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
     fetched_components = fetch_components(
@@ -629,30 +658,26 @@ def run_datachunk_processing(
         components=components,
         component_ids=component_ids,
     )
-
     fetched_datachunks = fetch_datachunks(
         timespans=fetched_timespans,
         components=fetched_components,
         datachunk_processing_config=params.datachunk_params
     )
     fetched_datachunks_ids = extract_object_ids(fetched_datachunks)
-
     valid_chunks: Dict[bool, List[int]] = {True: [], False: []}
-
     if params.qcone_config_id is not None:
         fetched_qcone_results = db.session.query(QCOneResults.datachunk_id, QCOneResults).filter(
-            QCOneResults.qcone_config_id == params.qcone_config_id, QCOneResults.datachunk_id.in_(fetched_datachunks_ids)).all()
+            QCOneResults.qcone_config_id == params.qcone_config_id,
+            QCOneResults.datachunk_id.in_(fetched_datachunks_ids)).all()
         for datchnk_id, qcone_res in fetched_qcone_results:
             valid_chunks[qcone_res.is_passing()].append(datchnk_id)
     else:
         valid_chunks[True].extend(fetched_datachunks_ids)
 
-    processed_datachunks = []
-
     for chunk in fetched_datachunks:
         if chunk.id in valid_chunks[True]:
             logger.info(f"There QCOneResult was True for datachunk with id {chunk.id}")
-            processed_datachunks.append(process_datachunk(datachunk=chunk, params=params))
+            yield (chunk, params)
 
         elif chunk.id in valid_chunks[False]:
             logger.info(f"There QCOneResult was False for datachunk with id {chunk.id}")
@@ -660,10 +685,6 @@ def run_datachunk_processing(
         else:
             logger.info(f"There was no QCOneResult for datachunk with id {chunk.id}")
             continue
-
-    add_or_upsert_processed_datachunks_in_db(processed_datachunks=processed_datachunks)
-
-    return
 
 
 def add_or_upsert_processed_datachunks_in_db(processed_datachunks: Iterable[ProcessedDatachunk]):
