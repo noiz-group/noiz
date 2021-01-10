@@ -1,7 +1,6 @@
 import datetime
 import pendulum
 from noiz.models.qc import QCOneConfig, QCOneResults
-from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import subqueryload, Query
 from typing import List, Iterable, Tuple, Collection, Optional, Dict, Union, Generator
@@ -24,24 +23,6 @@ from noiz.processing.datachunk import create_datachunks_for_component
 from noiz.processing.datachunk_processing import process_datachunk
 
 from loguru import logger
-
-
-def fetch_datachunks_for_timespan(
-        timespans: Collection[Timespan]
-) -> List[Datachunk]:
-    """
-    DEPRECATED. Use noiz.api.datachunkfetch_datachunks instead
-
-    Fetches all datachunks associated with provided timespans.
-    Timespan can be a single one or Iterable of timespans.
-
-    :param timespans: Instances of timespans to be checked
-    :type timespans: Collection[Timespan]
-    :return: List of Datachunks
-    :rtype: List[Datachunk]
-    """
-    logger.warning("Method deprected. Use noiz.api.datachunkfetch_datachunks instead.")
-    return fetch_datachunks(timespans=timespans)
 
 
 def count_datachunks(
@@ -313,47 +294,6 @@ def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
     return
 
 
-def create_datachunks_add_to_db(
-        execution_date: datetime.datetime,
-        component: Component,
-        timespans: Collection[Timespan],
-        processing_params: DatachunkParams,
-        processed_data_dir: Path,
-) -> None:
-    # TODO remove this method Gitlab#159
-    no_datachunks = count_datachunks(
-        components=(component,),
-        timespans=timespans,
-        datachunk_processing_config=processing_params
-    )
-
-    timespans_count = len(timespans)
-
-    logger.info(
-        f"There are {no_datachunks} datachunks for {execution_date} in db")
-
-    if no_datachunks == timespans_count:
-        logger.info("There is enough of datachunks in the db (no_datachunks == no_timespans)")
-        return
-
-    logger.info(f"Fetching timeseries for {execution_date} {component}")
-    try:
-        time_series = fetch_raw_timeseries(
-            component=component, execution_date=execution_date
-        )
-    except NoDataException as e:
-        logger.error(e)
-        raise e
-
-    finished_datachunks = create_datachunks_for_component(component=component,
-                                                          timespans=timespans,
-                                                          time_series=time_series,
-                                                          processing_params=processing_params)
-    add_or_upsert_datachunks_in_db(finished_datachunks)
-
-    return
-
-
 def prepare_datachunk_preparation_parameter_lists(
         stations: Optional[Tuple[str]],
         components: Optional[Tuple[str]],
@@ -464,36 +404,6 @@ def run_paralel_chunk_preparation(
 
     client.close()
     # TODO Add summary printout.
-
-
-def run_chunk_preparation(
-        app, station, component, execution_date, processed_data_dir, processing_config_id=1
-):
-    # TODO DELETE this method. It's legacy method that was used only in the airflow. Gitlab#153
-    year = execution_date.year
-    day_of_year = execution_date.timetuple().tm_yday
-
-    logger.info("Fetching processing config, timespans and componsents from db")
-    with app.app_context():
-        processing_config = (
-            db.session.query(DatachunkParams)
-                      .filter(DatachunkParams.id == processing_config_id)
-                      .first()
-        )
-        timespans = fetch_timespans_for_doy(year=year, doy=day_of_year)
-
-        components = Component.query.filter(
-            Component.station == station, Component.component == component
-        ).all()
-
-    logger.info("Invoking chunc creation itself")
-    for component in components:
-        with app.app_context():
-            create_datachunks_for_component(component=component,
-                                            timespans=timespans,
-                                            time_series=None,  # type: ignore
-                                            processing_params=processing_config)
-    return
 
 
 def run_stats_calculation(
