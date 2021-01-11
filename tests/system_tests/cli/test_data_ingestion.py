@@ -13,7 +13,8 @@ from pathlib import Path
 import shutil
 
 from noiz.api.component import fetch_components
-from noiz.api.processing_config import fetch_datachunkparams_by_id, fetch_processed_datachunk_params_by_id
+from noiz.api.processing_config import fetch_datachunkparams_by_id, fetch_processed_datachunk_params_by_id, \
+    fetch_crosscorrelation_params_by_id
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.app import create_app
 from noiz.cli import cli
