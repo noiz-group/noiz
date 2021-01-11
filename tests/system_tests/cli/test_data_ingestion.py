@@ -1,4 +1,6 @@
 import pytest
+
+from noiz.api.component_pair import fetch_componentpairs
 from noiz.models.qc import QCOneResults
 
 from noiz.models.component import ComponentFile
@@ -61,9 +63,11 @@ class TestDataIngestionRoutines:
         with noiz_app.app_context():
             fetched_components = fetch_components()
             fetched_component_files = db.session.query(ComponentFile).all()
+            fetched_componentpairs = fetch_componentpairs()
 
         assert len(fetched_components) == 9
         assert len(fetched_component_files) == 9
+        assert len(fetched_componentpairs) == 54
 
     @pytest.mark.xfail
     def test_add_soh_files(self, noiz_app):
