@@ -235,10 +235,16 @@ class ProcessedDatachunkParams(db.Model):
     _one_bit = db.Column("one_bit", db.Boolean, default=True, nullable=False)
 
     datachunk_params = db.relationship(
-        "DatachunkParams", foreign_keys=[datachunk_params_id], back_populates="processed_datachunk_params"
+        "DatachunkParams",
+        foreign_keys=[datachunk_params_id],
+        back_populates="processed_datachunk_params",
+        lazy="joined",
     )
     qcone_config = db.relationship(
-        "QCOneConfig", foreign_keys=[qcone_config_id], back_populates="processed_datachunk_params"
+        "QCOneConfig",
+        foreign_keys=[qcone_config_id],
+        back_populates="processed_datachunk_params",
+        lazy="joined",
     )
 
     def __init__(self, **kwargs):
@@ -279,7 +285,8 @@ class CrosscorrelationParams(db.Model):
     processed_datachunk_params = db.relationship(
         "ProcessedDatachunkParams",
         foreign_keys=[processed_datachunk_params_id],
-        back_populates="crosscorrelation_params"
+        back_populates="crosscorrelation_params",
+        lazy="joined",
     )
 
     def __init__(self, **kwargs):
