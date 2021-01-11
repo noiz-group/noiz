@@ -18,7 +18,7 @@ from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.app import create_app
 from noiz.cli import cli
 from noiz.database import db
-from noiz.models.processing_params import DatachunkParams, ProcessedDatachunkParams
+from noiz.models.processing_params import DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams
 from noiz.models.datachunk import Datachunk, DatachunkStats, ProcessedDatachunk
 from noiz.models.timespan import Timespan
 from noiz.models.soh import SohGps, SohInstrument
@@ -225,6 +225,24 @@ class TestDataIngestionRoutines:
 
         assert isinstance(fetched_config, ProcessedDatachunkParams)
         assert len(all_configs) == 1
+
+    def test_insert_crosscorrelation_params(self, workdir_with_content, noiz_app):
+
+        config_path = workdir_with_content.joinpath('crosscorrelation_params.toml')
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["configs", "add_crosscorrelation_params", "--add_to_db", "-f", str(config_path)])
+
+        assert result.exit_code == 0
+
+        with noiz_app.app_context():
+            fetched_config = fetch_crosscorrelation_params_by_id(id=1)
+            all_configs = CrosscorrelationParams.query.all()
+
+        assert isinstance(fetched_config, CrosscorrelationParams)
+        assert len(all_configs) == 1
+        assert fetched_config.sampling_rate == 24
+        assert fetched_config.correlation_max_lag == 20
 
     def test_insert_timespans(self, workdir_with_content, noiz_app):
 
