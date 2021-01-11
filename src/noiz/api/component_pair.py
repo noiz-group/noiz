@@ -1,4 +1,3 @@
-import itertools
 from loguru import logger
 from typing import Iterable, Optional, List
 from sqlalchemy.dialects.postgresql import insert
@@ -8,60 +7,8 @@ from noiz.database import db
 from noiz.models.component import Component
 from noiz.models.component_pair import ComponentPair
 from noiz.processing.component_pair import (
-    is_autocorrelation,
-    is_intrastation_correlation,
-    is_east_to_west,
-    calculate_distance_azimuths,
+    prepare_componentpairs,
 )
-
-
-def prepare_componentpairs(components: List[Component]) -> List[ComponentPair]:
-    """
-    Takes iterable of Components and creates all possible ComponentPairs including autocorrelations
-    and intrastation correlations.
-
-    :param components: Iterable of Component objects
-    :type components: Iterable[Component]
-    :return: Iterable with ComponentPairs
-    :rtype: Iterable[ComponentPair]
-    """
-    component_pairs: List[ComponentPair] = []
-    potential_pairs = list(itertools.product(components, repeat=2))
-    no = len(potential_pairs)
-    logger.info(f"There are {no} potential pairs to be checked.")
-    for i, (cmp_a, cmp_b) in enumerate(potential_pairs):
-        logger.debug(f"Starting with potential pair {i}/{no - 1}")
-
-        component_pair = ComponentPair(
-            component_a_id=cmp_a.id,
-            component_b_id=cmp_b.id,
-            component_names="".join([cmp_a.component, cmp_b.component]),
-        )
-
-        if is_autocorrelation(cmp_a, cmp_b):
-            logger.debug(f"Pair {component_pair} is autocorrelation")
-            component_pair.set_autocorrelation()
-            component_pairs.append(component_pair)
-            continue
-
-        if is_intrastation_correlation(cmp_a, cmp_b):
-            logger.debug(f"Pair {component_pair} is intracorrelation")
-            component_pair.set_intracorrelation()
-            component_pairs.append(component_pair)
-            continue
-
-        if not is_east_to_west(cmp_a, cmp_b):
-            logger.debug(f"Pair {component_pair} is not east to west, skipping")
-            continue
-
-        logger.debug(
-            f"Pair {component_pair} is east to west, calculating distance and backazimuths"
-        )
-        distaz = calculate_distance_azimuths(cmp_a, cmp_b)
-        component_pair.set_params_from_distaz(distaz)
-        component_pairs.append(component_pair)
-    logger.info(f"There were {len(component_pairs)} component pairs created.")
-    return component_pairs
 
 
 def upsert_component_pairs(component_pairs: List[ComponentPair]) -> None:
