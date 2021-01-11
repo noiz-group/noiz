@@ -1,4 +1,6 @@
 import pytest
+
+from noiz.api.component_pair import fetch_componentpairs
 from noiz.models.qc import QCOneResults
 
 from noiz.models.component import ComponentFile
@@ -61,9 +63,22 @@ class TestDataIngestionRoutines:
         with noiz_app.app_context():
             fetched_components = fetch_components()
             fetched_component_files = db.session.query(ComponentFile).all()
+            fetched_componentpairs_normal = fetch_componentpairs(intracorrelation=False, autocorrelation=False)
 
         assert len(fetched_components) == 9
         assert len(fetched_component_files) == 9
+        assert len(fetched_componentpairs_normal) == 27
+
+    @pytest.mark.xfail
+    def test_adding_componentpairs(self, noiz_app):
+
+        with noiz_app.app_context():
+            fetched_componentpairs_all = fetch_componentpairs(intracorrelation=True, autocorrelation=True)
+            fetched_componentpairs_intra = fetch_componentpairs(intracorrelation=True, autocorrelation=False)
+            fetched_componentpairs_auto = fetch_componentpairs(intracorrelation=False, autocorrelation=True)
+        assert len(fetched_componentpairs_all) == 57
+        assert len(fetched_componentpairs_intra) == 36
+        assert len(fetched_componentpairs_auto) == 36
 
     @pytest.mark.xfail
     def test_add_soh_files(self, noiz_app):

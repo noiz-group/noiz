@@ -159,14 +159,18 @@ def add_seismic_data(basedir, filename_pattern):
 @click.option("-t", "--filetype", default="stationxml", show_default=True)
 @click.option('--upsert/--no-upsert', default=False)
 def add_inventory(filepath, filetype, upsert):
-    """Read the stationxml file and add components to database"""
+    """Read the stationxml file and add components to database.
+    Also creates all components pairs for added components."""
 
     from noiz.api.component import parse_inventory_insert_stations_and_components_into_db
+    from noiz.api.component_pair import create_all_componentpairs
 
     if upsert:
         raise NotImplementedError("This option is not implemented yet. You cannot update the inventory entries in DB.")
 
     parse_inventory_insert_stations_and_components_into_db(inventory_path=filepath, filetype=filetype)
+
+    create_all_componentpairs()
     return
 
 
