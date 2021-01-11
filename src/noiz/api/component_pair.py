@@ -30,7 +30,7 @@ def prepare_componentpairs(components: List[Component]) -> List[ComponentPair]:
     no = len(potential_pairs)
     logger.info(f"There are {no} potential pairs to be checked.")
     for i, (cmp_a, cmp_b) in enumerate(potential_pairs):
-        logger.info(f"Starting with potential pair {i}/{no - 1}")
+        logger.debug(f"Starting with potential pair {i}/{no - 1}")
 
         component_pair = ComponentPair(
             component_a_id=cmp_a.id,
@@ -39,28 +39,28 @@ def prepare_componentpairs(components: List[Component]) -> List[ComponentPair]:
         )
 
         if is_autocorrelation(cmp_a, cmp_b):
-            logger.info(f"Pair {component_pair} is autocorrelation")
+            logger.debug(f"Pair {component_pair} is autocorrelation")
             component_pair.set_autocorrelation()
             component_pairs.append(component_pair)
             continue
 
         if is_intrastation_correlation(cmp_a, cmp_b):
-            logger.info(f"Pair {component_pair} is intracorrelation")
+            logger.debug(f"Pair {component_pair} is intracorrelation")
             component_pair.set_intracorrelation()
             component_pairs.append(component_pair)
             continue
 
         if not is_east_to_west(cmp_a, cmp_b):
-            logger.info(f"Pair {component_pair} is not east to west, skipping")
+            logger.debug(f"Pair {component_pair} is not east to west, skipping")
             continue
 
-        logger.info(
+        logger.debug(
             f"Pair {component_pair} is east to west, calculating distance and backazimuths"
         )
         distaz = calculate_distance_azimuths(cmp_a, cmp_b)
         component_pair.set_params_from_distaz(distaz)
         component_pairs.append(component_pair)
-
+    logger.info(f"There were {len(component_pairs)} component pairs created.")
     return component_pairs
 
 
