@@ -13,7 +13,7 @@ from noiz.processing.component_pair import (
 )
 
 
-def upsert_component_pairs(component_pairs: List[ComponentPair]) -> None:
+def upsert_componentpairs(component_pairs: List[ComponentPair]) -> None:
     """
     Takes iterable of ComponentPairs and inserts it into database.
     In case of conflict on `single_component_pair` constraint, updates the entry.
@@ -61,7 +61,7 @@ def upsert_component_pairs(component_pairs: List[ComponentPair]) -> None:
     return
 
 
-def create_all_channelpairs() -> None:
+def create_all_componentpairs() -> None:
     """
     Fetches all components from the database, creates all component pairs possible and upserts them into db.
 
@@ -74,11 +74,11 @@ def create_all_channelpairs() -> None:
 
     component_pairs = prepare_componentpairs(components)
 
-    upsert_component_pairs(component_pairs)
+    upsert_componentpairs(component_pairs)
     return
 
 
-def fetch_component_pairs(
+def fetch_componentpairs(
         network_codes_a: Optional[Union[Collection[str], str]] = None,
         station_codes_a: Optional[Union[Collection[str], str]] = None,
         component_codes_a: Optional[Union[Collection[str], str]] = None,
