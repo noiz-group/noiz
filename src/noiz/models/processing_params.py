@@ -40,8 +40,7 @@ class DatachunkParams(db.Model):
     _padding_taper_max_length = db.Column("padding_taper_max_length", db.Float, nullable=True)
     _padding_taper_max_percentage = db.Column("padding_taper_max_percentage", db.Float, nullable=True)
 
-    _correlation_max_lag = db.Column("correlation_max_lag", db.Float, nullable=True)
-
+    # TODO explore if bac_populates here makes sense
     processed_datachunk_params = db.relationship(
         "ProcessedDatachunkParams", uselist=True, back_populates="datachunk_params"
     )
@@ -80,12 +79,12 @@ class DatachunkParams(db.Model):
                              f"You provided {padding_method}")
         self._padding_method = padding_method_valid.value
 
+        self._max_gap_for_merging = kwargs.get("max_gap_for_merging", 10)
         self._padding_taper_type = kwargs.get("padding_taper_type", "cosine")
         self._padding_taper_max_length = kwargs.get("padding_taper_max_length", 5)  # seconds
         self._padding_taper_max_percentage = kwargs.get("padding_taper_max_percentage", 0.1)  # percent
 
         self._correlation_max_lag = kwargs.get("correlation_max_lag", 60)  # deprecatethis
-        self._max_gap_for_merging = kwargs.get("max_gap_for_merging", 10)  # deprecatethis
 
     @property
     def sampling_rate(self):
@@ -178,6 +177,7 @@ class DatachunkParams(db.Model):
         Return a np.array containing time vector for cross correlation to required correlation max lag.
         Compatible with obspy's method to calculate correlation.
         It returns 2*(max_lag*sampling_rate)+1 samples.
+
         :return: Time vector for ccf
         :rtype: np.array
         """
@@ -254,6 +254,47 @@ class ProcessedDatachunkParams(db.Model):
     @property
     def one_bit(self):
         return self._one_bit
+
+
+@dataclass
+class CrosscorrelationParamsHolder:
+    """
+        This simple dataclass is just helping to validate :py:class:`~noiz.models.CrosscorrelationParams`
+        values loaded from the TOML file
+    """
+    processed_datachunk_params_id: int
+    correlation_max_lag: int
+
+
+class CrosscorrelationParams(db.Model):
+    __tablename__ = "crosscorrelation_params"
+
+    id = db.Column("id", db.Integer, primary_key=True)
+    processed_datachunk_params_id = db.Column(
+        "processed_datachunk_params_id", db.Integer, db.ForeignKey("processed_datachunk_params.id"), nullable=False
+    )
+    _correlation_max_lag = db.Column("correlation_max_lag", db.Float, nullable=False)
+    _sampling_rate = db.Column("sampling_rate", db.Float, default=24, nullable=False)
+
+    processed_datachunk_params = db.relationship(
+        "ProcessedDatachunkParams",
+        foreign_keys=[processed_datachunk_params_id],
+        back_populates="crosscorrelation_params"
+    )
+
+    def __init__(self, **kwargs):
+        self.processed_datachunk_params_id = kwargs.get("processed_datachunk_params_id")
+        # This is just duplication of the original param to avoid complications
+        self._sampling_rate = kwargs.get("sampling_rate")
+        self._correlation_max_lag = kwargs.get("correlation_max_lag", 60)
+
+    @property
+    def sampling_rate(self):
+        return self._sampling_rate
+
+    @property
+    def correlation_max_lag(self):
+        return self._correlation_max_lag
 
 
 class BeamformingParams(db.Model):
