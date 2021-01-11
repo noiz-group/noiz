@@ -1,70 +1,19 @@
-import itertools
 from loguru import logger
-from typing import Iterable, Optional, List
+from noiz.api.helpers import extract_object_ids
+from typing import Iterable, Optional, List, Union, Collection
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import aliased, subqueryload
 
+from noiz.api.component import fetch_components
 from noiz.database import db
 from noiz.models.component import Component
 from noiz.models.component_pair import ComponentPair
 from noiz.processing.component_pair import (
-    is_autocorrelation,
-    is_intrastation_correlation,
-    is_east_to_west,
-    calculate_distance_azimuths,
+    prepare_componentpairs,
 )
 
 
-def prepare_componentpairs(components: List[Component]) -> List[ComponentPair]:
-    """
-    Takes iterable of Components and creates all possible ComponentPairs including autocorrelations
-    and intrastation correlations.
-
-    :param components: Iterable of Component objects
-    :type components: Iterable[Component]
-    :return: Iterable with ComponentPairs
-    :rtype: Iterable[ComponentPair]
-    """
-    component_pairs: List[ComponentPair] = []
-    potential_pairs = list(itertools.product(components, repeat=2))
-    no = len(potential_pairs)
-    logger.info(f"There are {no} potential pairs to be checked.")
-    for i, (cmp_a, cmp_b) in enumerate(potential_pairs):
-        logger.info(f"Starting with potential pair {i}/{no - 1}")
-
-        component_pair = ComponentPair(
-            component_a_id=cmp_a.id,
-            component_b_id=cmp_b.id,
-            component_names="".join([cmp_a.component, cmp_b.component]),
-        )
-
-        if is_autocorrelation(cmp_a, cmp_b):
-            logger.info(f"Pair {component_pair} is autocorrelation")
-            component_pair.set_autocorrelation()
-            component_pairs.append(component_pair)
-            continue
-
-        if is_intrastation_correlation(cmp_a, cmp_b):
-            logger.info(f"Pair {component_pair} is intracorrelation")
-            component_pair.set_intracorrelation()
-            component_pairs.append(component_pair)
-            continue
-
-        if not is_east_to_west(cmp_a, cmp_b):
-            logger.info(f"Pair {component_pair} is not east to west, skipping")
-            continue
-
-        logger.info(
-            f"Pair {component_pair} is east to west, calculating distance and backazimuths"
-        )
-        distaz = calculate_distance_azimuths(cmp_a, cmp_b)
-        component_pair.set_params_from_distaz(distaz)
-        component_pairs.append(component_pair)
-
-    return component_pairs
-
-
-def upsert_component_pairs(component_pairs: List[ComponentPair]) -> None:
+def upsert_componentpairs(component_pairs: List[ComponentPair]) -> None:
     """
     Takes iterable of ComponentPairs and inserts it into database.
     In case of conflict on `single_component_pair` constraint, updates the entry.
@@ -72,8 +21,8 @@ def upsert_component_pairs(component_pairs: List[ComponentPair]) -> None:
     Warning: Used UPSERT operation is PostgreSQL specific due to used SQLAlchemy command.
     Warning: Has to be run within application context.
 
-    :param component_pairs: Iterable with ComponentPairs to be upserted into db
-    :type component_pairs:
+    :param component_pairs: List of ComponentPairs to be upserted into db
+    :type component_pairs: List[ComponentPair]
     :return: None
     :rtype: None
     """
@@ -108,17 +57,15 @@ def upsert_component_pairs(component_pairs: List[ComponentPair]) -> None:
         logger.info(f"Inserted {i}/{no - 1} component_pairs")
     logger.info("Commiting changes")
     db.session.commit()
-    logger.info("Commit successfull. Returning")
+    logger.info("Commit successfull")
     return
 
 
-def create_all_channelpairs() -> None:
+def create_all_componentpairs() -> None:
     """
-    Fetches all components from the database,
-    creates all component pairs possible
-    and upserts them into db.
+    Fetches all components from the database, creates all component pairs possible and upserts them into db.
 
-    Warning: Has to be run within application context.
+    Has to be run within app_context.
 
     :return: None
     :rtype: None
@@ -127,34 +74,64 @@ def create_all_channelpairs() -> None:
 
     component_pairs = prepare_componentpairs(components)
 
-    upsert_component_pairs(component_pairs)
+    upsert_componentpairs(component_pairs)
     return
 
 
-def fetch_component_pairs(
-    station_a: Iterable[str],
-    component_a: Iterable[str],
-    station_b: Optional[Iterable[str]],
-    component_b: Optional[Iterable[str]],
-) -> Iterable[ComponentPair]:
+def fetch_componentpairs(
+        network_codes_a: Optional[Union[Collection[str], str]] = None,
+        station_codes_a: Optional[Union[Collection[str], str]] = None,
+        component_codes_a: Optional[Union[Collection[str], str]] = None,
+        network_codes_b: Optional[Union[Collection[str], str]] = None,
+        station_codes_b: Optional[Union[Collection[str], str]] = None,
+        component_codes_b: Optional[Union[Collection[str], str]] = None,
+        autocorrelation: Optional[bool] = False,
+        intracorrelation: Optional[bool] = False,
+) -> List[ComponentPair]:
     """
-    Fetches from db requested channelpairs
-    :param station_a:
-    :type station_a:
-    :param component_a:
-    :type component_a:
-    :param station_b:
-    :type station_b:
-    :param component_b:
-    :type component_b:
-    :return:
-    :rtype:
+    Fetched requested component pairs.
+    You can pass either selection for both station A and station B or just for A.
+    By default, if none of selectors for station A will be provided, all ComponentPairs will be retrieved.
+    If you won't pass any values for any of the station B selectors, selectors for A will be used.
+    You can choose to fetch intracorrelation or autocorrelations.
+
+    :param network_codes_a: Selector for network code of A station in the pair
+    :type network_codes_a: Optional[Union[Collection[str], str]]
+    :param station_codes_a: Selector for station code of A station in the pair
+    :type station_codes_a: Optional[Union[Collection[str], str]]
+    :param component_codes_a: Selector for component code of A station in the pair
+    :type component_codes_a: Optional[Union[Collection[str], str]]
+    :param network_codes_b: Selector for network code of B station in the pair
+    :type network_codes_b: Optional[Union[Collection[str], str]]
+    :param station_codes_b: Selector for station code of B station in the pair
+    :type station_codes_b: Optional[Union[Collection[str], str]]
+    :param component_codes_b: Selector for component code of B station in the pair
+    :type component_codes_b: Optional[Union[Collection[str], str]]
+    :param autocorrelation: If autocorrelation pairs should be also included
+    :type autocorrelation: Optional[bool]
+    :param intracorrelation: If intracorrelation pairs should be also included
+    :type intracorrelation: Optional[bool]
+    :return: Selected ComponentPair objects
+    :rtype: List[ComponentPair]
     """
 
-    if station_b is None:
-        station_b = station_a
-    if component_b is None:
-        component_b = component_a
+    components_a = fetch_components(
+        networks=network_codes_a,
+        stations=station_codes_a,
+        components=component_codes_a,
+    )
+
+    if network_codes_b is None and station_codes_b is None and component_codes_b is None:
+        components_b = components_a
+    else:
+        components_b = fetch_components(
+            networks=network_codes_b,
+            stations=station_codes_b,
+            components=component_codes_b,
+        )
+
+    components_a_ids = extract_object_ids(components_a)
+    components_b_ids = extract_object_ids(components_b)
 
     cmp_a = aliased(Component)
     cmp_b = aliased(Component)
@@ -167,10 +144,10 @@ def fetch_component_pairs(
             subqueryload(ComponentPair.component_b),
         )
         .filter(
-            cmp_a.station.in_(station_a),
-            cmp_b.station.in_(station_b),
-            cmp_a.component.in_(component_a),
-            cmp_b.component.in_(component_b),
+            cmp_a.id.in_(components_a_ids),
+            cmp_b.id.in_(components_b_ids),
+            ComponentPair.autocorrelation == autocorrelation,
+            ComponentPair.intracorrelation == intracorrelation,
         )
         .all()
     )
