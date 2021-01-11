@@ -21,8 +21,8 @@ def upsert_component_pairs(component_pairs: List[ComponentPair]) -> None:
     Warning: Used UPSERT operation is PostgreSQL specific due to used SQLAlchemy command.
     Warning: Has to be run within application context.
 
-    :param component_pairs: Iterable with ComponentPairs to be upserted into db
-    :type component_pairs:
+    :param component_pairs: List of ComponentPairs to be upserted into db
+    :type component_pairs: List[ComponentPair]
     :return: None
     :rtype: None
     """
@@ -57,17 +57,15 @@ def upsert_component_pairs(component_pairs: List[ComponentPair]) -> None:
         logger.info(f"Inserted {i}/{no - 1} component_pairs")
     logger.info("Commiting changes")
     db.session.commit()
-    logger.info("Commit successfull. Returning")
+    logger.info("Commit successfull")
     return
 
 
 def create_all_channelpairs() -> None:
     """
-    Fetches all components from the database,
-    creates all component pairs possible
-    and upserts them into db.
+    Fetches all components from the database, creates all component pairs possible and upserts them into db.
 
-    Warning: Has to be run within application context.
+    Has to be run within app_context.
 
     :return: None
     :rtype: None
