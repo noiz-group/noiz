@@ -247,6 +247,10 @@ class ProcessedDatachunkParams(db.Model):
         lazy="joined",
     )
 
+    crosscorrelation_params = db.relationship(
+        "CrosscorrelationParams", uselist=True,
+    )
+
     def __init__(self, **kwargs):
         self.datachunk_params_id = kwargs.get("datachunk_params_id")
         self.qcone_config_id = kwargs.get("qcone_config_id")
