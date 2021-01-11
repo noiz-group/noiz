@@ -6,7 +6,7 @@ from pathlib import Path
 from noiz.globals import ExtendedEnum
 from noiz.models import DatachunkParams
 from noiz.models.processing_params import DatachunkParamsHolder, ProcessedDatachunkParamsHolder, \
-    ProcessedDatachunkParams
+    ProcessedDatachunkParams, CrosscorrelationParamsHolder, CrosscorrelationParams
 from noiz.models.qc import QCOneConfigRejectedTimeHolder, QCOneConfigHolder
 
 
@@ -14,6 +14,7 @@ class DefinedConfigs(ExtendedEnum):
     # filldocs
     DATACHUNKPARAMS = "DatachunkParams"
     PROCESSEDDATACHUNKPARAMS = "ProcessedDatachunkParams"
+    CROSSCORRELATIONPARAMS = "CrosscorrelationParams"
     QCONE = "QCOne"
 
 
@@ -25,6 +26,8 @@ def _select_validator_for_config_type(config_type: DefinedConfigs):
         return validate_config_dict_as_datachunkparams
     elif config_type is DefinedConfigs.PROCESSEDDATACHUNKPARAMS:
         return validate_config_dict_as_processeddatachunkparams
+    elif config_type is DefinedConfigs.CROSSCORRELATIONPARAMS:
+        return validate_config_dict_as_crosscorrelationparams
     elif config_type is DefinedConfigs.QCONE:
         return validate_dict_as_qcone_holder
     else:
@@ -134,6 +137,11 @@ def validate_config_dict_as_processeddatachunkparams(loaded_dict: Dict) -> Proce
     return ProcessedDatachunkParamsHolder(**loaded_dict)
 
 
+def validate_config_dict_as_crosscorrelationparams(loaded_dict: Dict) -> CrosscorrelationParamsHolder:
+    # filldocs
+    return CrosscorrelationParamsHolder(**loaded_dict)
+
+
 def create_datachunkparams(
         params_holder: Optional[DatachunkParamsHolder] = None,
         **kwargs,
@@ -200,5 +208,30 @@ def create_processed_datachunk_params(
         qcone_config_id=params_holder.qcone_config_id,
         spectral_whitening=params_holder.spectral_whitening,
         one_bit=params_holder.one_bit,
+    )
+    return params
+
+
+def create_crosscorrelation_params(
+        params_holder: CrosscorrelationParamsHolder,
+        processed_params: ProcessedDatachunkParams,
+) -> CrosscorrelationParams:
+    """
+    This method takes a :py:class:`~noiz.models.processing_params.CrosscorrelationParamsHolder` instance and based on
+    it creates an instance of database model :py:class:`~noiz.models.processing_params.CrosscorrelationParams`.
+
+    :param params_holder: Object containing all required elements to create a CrosscorrelationParams instance
+    :type params_holder: CrosscorrelationParamsHolder
+    :param processed_params: ProcessedDatachunkParams to be associated with this set of params. \
+    It has to include eager loaded DatachunkParams
+    :type processed_params: ProcessedDatachunkParams
+    :return: Working CrosscorrelationParams model that needs to be inserted into db
+    :rtype: CrosscorrelationParams
+    """
+
+    params = CrosscorrelationParams(
+        processed_datachunk_params_id=params_holder.processed_datachunk_params_id,
+        correlation_max_lag=params_holder.correlation_max_lag,
+        sampling_rate=processed_params.datachunk_params.sampling_rate,
     )
     return params

@@ -96,9 +96,30 @@ def add_processed_datachunk_params(
         filepath: str,
         add_to_db: bool,
 ):
-    """Read a TOML file with DatachunkParams config and add to db."""
+    """Read a TOML file with ProcessedDatachunkParams config and add to db."""
 
     from noiz.api.processing_config import create_and_add_processed_datachunk_params_from_toml as parse_and_add
+
+    if add_to_db:
+        parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
+    else:
+        parsing_results, _ = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
+        click.echo("\n")
+        click.echo(parsing_results)
+
+
+@configs_group.command("add_crosscorrelation_params")
+@with_appcontext
+@click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
+@click.option('--add_to_db', is_flag=True, expose_value=True,
+              prompt='Are you sure you want to add CrosscorrelationParams to DB? `N` will just preview it. ')
+def add_crosscorrelation_params(
+        filepath: str,
+        add_to_db: bool,
+):
+    """Read a TOML file with CrosscorrelationParams config and add to db."""
+
+    from noiz.api.processing_config import create_and_add_crosscorrelation_params_from_toml as parse_and_add
 
     if add_to_db:
         parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
@@ -117,7 +138,7 @@ def add_qcone_config(
         filepath: str,
         add_to_db: bool,
 ):
-    """Read a TOML file with DatachunkParams config and add to db."""
+    """Read a TOML file with QCOneConfig and add to db."""
 
     from noiz.api.qc import create_and_add_qcone_config_from_toml
 
