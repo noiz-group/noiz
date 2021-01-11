@@ -1,5 +1,5 @@
 from loguru import logger
-from noiz.api.helpers import extract_object_ids
+from noiz.api.helpers import extract_object_ids, validate_to_tuple
 from typing import Iterable, Optional, List, Union, Collection
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import aliased, subqueryload
@@ -85,6 +85,7 @@ def fetch_componentpairs(
         network_codes_b: Optional[Union[Collection[str], str]] = None,
         station_codes_b: Optional[Union[Collection[str], str]] = None,
         component_codes_b: Optional[Union[Collection[str], str]] = None,
+        accepted_component_code_pairs: Optional[Union[Collection[str], str]] = None,
         autocorrelation: Optional[bool] = False,
         intracorrelation: Optional[bool] = False,
 ) -> List[ComponentPair]:
@@ -114,27 +115,35 @@ def fetch_componentpairs(
     :return: Selected ComponentPair objects
     :rtype: List[ComponentPair]
     """
+    filters = []
+
+    cmp_a = aliased(Component)
+    cmp_b = aliased(Component)
 
     components_a = fetch_components(
         networks=network_codes_a,
         stations=station_codes_a,
         components=component_codes_a,
     )
+    filters.append(cmp_a.id.in_(extract_object_ids(components_a)))
 
     if network_codes_b is None and station_codes_b is None and component_codes_b is None:
-        components_b = components_a
+        filters.append(cmp_b.id.in_(extract_object_ids(components_a)))
     else:
         components_b = fetch_components(
             networks=network_codes_b,
             stations=station_codes_b,
             components=component_codes_b,
         )
+        filters.append(cmp_b.id.in_(extract_object_ids(components_b)))
 
-    components_a_ids = extract_object_ids(components_a)
-    components_b_ids = extract_object_ids(components_b)
+    if accepted_component_code_pairs is not None:
+        accepted_component_code_pairs = validate_to_tuple(accepted_component_code_pairs, str)
+        filters.append(ComponentPair.component_code_pair.in_(accepted_component_code_pairs))
 
-    cmp_a = aliased(Component)
-    cmp_b = aliased(Component)
+    filters.append(ComponentPair.autocorrelation == autocorrelation)
+    filters.append(ComponentPair.intracorrelation == intracorrelation)
+
     component_pairs = (
         db.session.query(ComponentPair)
         .join(cmp_a, ComponentPair.component_a)
@@ -143,12 +152,7 @@ def fetch_componentpairs(
             subqueryload(ComponentPair.component_a),
             subqueryload(ComponentPair.component_b),
         )
-        .filter(
-            cmp_a.id.in_(components_a_ids),
-            cmp_b.id.in_(components_b_ids),
-            ComponentPair.autocorrelation == autocorrelation,
-            ComponentPair.intracorrelation == intracorrelation,
-        )
+        .filter(*filters)
         .all()
     )
     return component_pairs
