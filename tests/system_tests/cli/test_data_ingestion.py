@@ -1,4 +1,5 @@
 import pytest
+from noiz.models.crosscorrelation import Crosscorrelation
 
 from noiz.api.component_pair import fetch_componentpairs
 from noiz.models.qc import QCOneResults
@@ -371,3 +372,15 @@ class TestDataIngestionRoutines:
         with noiz_app.app_context():
             processed_datachunk_count = ProcessedDatachunk.query.count()
         assert 570 == processed_datachunk_count
+
+    def test_run_crosscorrelations(self, noiz_app):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["processing", "run_crosscorrelations",
+                                     "-sd", "2019-09-30",
+                                     "-ed", "2019-10-03",
+                                     "-c", "ZZ",
+                                     ])
+        assert result.exit_code == 0
+        with noiz_app.app_context():
+            crosscorrelation_count = Crosscorrelation.query.count()
+        assert 570 == crosscorrelation_count
