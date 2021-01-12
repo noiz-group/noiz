@@ -1,9 +1,10 @@
 from collections import defaultdict
 import numpy as np
 import obspy
-from typing import Tuple, Dict, DefaultDict, Collection
+from typing import Tuple, Dict, DefaultDict, Collection, List
 
 from noiz.exceptions import CorruptedDataException
+from noiz.models import ComponentPair
 from noiz.models.datachunk import ProcessedDatachunk
 
 
@@ -85,3 +86,20 @@ def validate_component_code_pairs(component_pairs: Collection[str]) -> Tuple[str
                              f"String of `{x}` was provided.")
 
     return tuple(set(component_pairs))
+
+
+def extract_component_ids_from_component_pairs(fetched_component_pairs: Collection[ComponentPair]) -> Tuple[int, ...]:
+    """
+    Takes a collection of :py:class:`noiz.models.component_pair.ComponentPair` and extracts ids of all components that
+    are included in them. Resulting tuple does not contain repetitions of values.
+
+    :param fetched_component_pairs: ComponentPairs to be processed
+    :type fetched_component_pairs: Collection[ComponentPair]
+    :return: Ids of all components that are in input pairs
+    :rtype: Tuple[int, ...]
+    """
+
+    single_component_ids_pre: List[int] = [pair.component_a_id for pair in fetched_component_pairs]
+    single_component_ids_pre.extend([pair.component_b_id for pair in fetched_component_pairs])
+    single_component_ids: Tuple[int, ...] = tuple(set(single_component_ids_pre))
+    return single_component_ids
