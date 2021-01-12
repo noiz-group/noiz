@@ -1,3 +1,5 @@
+from functools import cached_property
+
 from typing import Optional
 from pydantic.dataclasses import dataclass
 import datetime
@@ -306,6 +308,26 @@ class CrosscorrelationParams(db.Model):
     @property
     def correlation_max_lag(self):
         return self._correlation_max_lag
+
+    @cached_property
+    def correlation_max_lag_samples(self) -> int:
+        return int(self.correlation_max_lag * self.sampling_rate)
+
+    @cached_property
+    def correlation_time_vector(self) -> np.array:
+        """
+        Return a np.array containing time vector for cross correlation to required correlation max lag.
+        Compatible with obspy's method to calculate correlation.
+        It returns 2*(max_lag*sampling_rate)+1 samples.
+
+        :return: Time vector for ccf
+        :rtype: np.array
+        """
+        step = 1 / self.sampling_rate
+        start = -self.correlation_max_lag
+        stop = self.correlation_max_lag + step
+
+        return np.arange(start=start, stop=stop, step=step)
 
 
 class BeamformingParams(db.Model):
