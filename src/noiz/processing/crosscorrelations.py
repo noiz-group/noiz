@@ -1,7 +1,7 @@
 from collections import defaultdict
 import numpy as np
 import obspy
-from typing import Tuple, Iterable, Dict, DefaultDict
+from typing import Tuple, Iterable, Dict, DefaultDict, Collection
 
 from noiz.models.component_pair import ComponentPair
 from noiz.models.datachunk import ProcessedDatachunk
@@ -108,9 +108,18 @@ def load_data_for_chunks(
     return streams
 
 
-def split_component_pairs_to_components(component_pairs):
-    total = []
-    for x in component_pairs:
-        total.extend(list(x))
+def validate_component_code_pairs(component_pairs: Collection[str]) -> Tuple[str, ...]:
+    """
+    Checks if provided component_code_pairs are strings with two characters only and removes duplicates.
 
-    return tuple(set(total))
+    :param component_pairs: Collection of component_code_pairs strings to check
+    :type component_pairs: Collection[str]
+    :return: Validated and deduplicated tuple of component_code_pairs
+    :rtype: Tuple[str]
+    """
+    for x in component_pairs:
+        if len(x) != 2:
+            raise ValueError(f"Component_pairs accept only 2 character long strings such as `ZZ` or `NE`. "
+                             f"String of `{x}` was provided.")
+
+    return tuple(set(component_pairs))
