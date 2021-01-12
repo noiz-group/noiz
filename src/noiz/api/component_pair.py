@@ -34,6 +34,7 @@ def upsert_componentpairs(component_pairs: List[ComponentPair]) -> None:
             .values(
                 component_a_id=component_pair.component_a_id,
                 component_b_id=component_pair.component_b_id,
+                component_code_pair=component_pair.component_code_pair,
                 autocorrelation=component_pair.autocorrelation,
                 intracorrelation=component_pair.intracorrelation,
                 azimuth=component_pair.azimuth,
@@ -44,6 +45,7 @@ def upsert_componentpairs(component_pairs: List[ComponentPair]) -> None:
             .on_conflict_do_update(
                 constraint="single_component_pair",
                 set_=dict(
+                    component_code_pair=component_pair.component_code_pair,
                     autocorrelation=component_pair.autocorrelation,
                     intracorrelation=component_pair.intracorrelation,
                     azimuth=component_pair.azimuth,
