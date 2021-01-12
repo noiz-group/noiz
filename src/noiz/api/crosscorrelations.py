@@ -1,37 +1,26 @@
-from collections import defaultdict
-
 import datetime
 from loguru import logger
-from noiz.api.component_pair import fetch_componentpairs
-
-from noiz.api.helpers import extract_object_ids, validate_to_tuple
-from noiz.api.processing_config import fetch_crosscorrelation_params_by_id
-
-from noiz.api.timespan import fetch_timespans_between_dates
-from noiz.exceptions import InconsistentDataException, CorruptedDataException
-
 from obspy.signal.cross_correlation import correlate
-from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import subqueryload
 from typing import Iterable, List, Tuple, Union, Optional, Collection
 
+from noiz.api.component_pair import fetch_componentpairs
+from noiz.api.helpers import extract_object_ids, validate_to_tuple
+from noiz.api.processing_config import fetch_crosscorrelation_params_by_id
+from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.database import db
-from noiz.models.component import Component
+from noiz.exceptions import InconsistentDataException, CorruptedDataException
 from noiz.models.component_pair import ComponentPair
 from noiz.models.crosscorrelation import Crosscorrelation
 from noiz.models.datachunk import Datachunk, ProcessedDatachunk
-from noiz.models.processing_params import DatachunkParams
 from noiz.models.timespan import Timespan
 from noiz.processing.crosscorrelations import (
     validate_component_code_pairs,
-    group_componentpairs_by_componenta_componentb,
     group_chunks_by_timespanid_componentid,
-    find_correlations_in_chunks,
     load_data_for_chunks,
 )
-from noiz.processing.time_utils import get_year_doy
 
 
 def bulk_add_crosscorrelations(crosscorrelations: Iterable[Crosscorrelation]) -> None:
@@ -194,23 +183,3 @@ def perform_crosscorrelations(
 
     logger.info("Success!")
     return
-
-
-def fetch_processeddatachunks_a_day(
-    date: datetime.datetime,
-) -> List[Tuple[ProcessedDatachunk, int, int]]:
-
-    year, day_of_year = get_year_doy(date)
-    processed_datachunks_day: List[Tuple[ProcessedDatachunk, int, int]] = (
-        db.session.query(ProcessedDatachunk, Component.id, Timespan.id)
-        .join(Datachunk)
-        .join(Timespan)
-        .join(Component)
-        .options(
-            subqueryload(ProcessedDatachunk.datachunk).subqueryload(Datachunk.component)
-        )
-        .filter(Timespan.starttime_year == year, Timespan.starttime_doy == day_of_year)
-        .order_by(Timespan.id)
-        .all()
-    )
-    return processed_datachunks_day
