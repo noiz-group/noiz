@@ -82,7 +82,7 @@ def perform_crosscorrelations(
         autocorrelations: bool = False,
         intrastation_correlations: bool = False,
         bulk_insert: bool = True,
-        skip_errors: bool = True
+        raise_errors: bool = False
 ):
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
     fetched_timespans_ids = extract_object_ids(fetched_timespans)
@@ -125,10 +125,10 @@ def perform_crosscorrelations(
             streams = load_data_for_chunks(chunks=processed_chunks)
         except CorruptedDataException as e:
             logger.error(e)
-            if skip_errors:
-                continue
-            else:
+            if raise_errors:
                 raise CorruptedDataException(e)
+            else:
+                continue
 
         for pair in fetched_component_pairs:
             cmp_a_id = pair.component_a_id
@@ -145,10 +145,10 @@ def perform_crosscorrelations(
                       f"Shapes: {cmp_a_id} is {streams[cmp_a_id].data.shape} " \
                       f"{cmp_b_id} is {streams[cmp_b_id].data.shape} "
                 logger.error(msg)
-                if skip_errors:
-                    continue
-                else:
+                if raise_errors:
                     raise InconsistentDataException(msg)
+                else:
+                    continue
 
             ccf_data = correlate(
                 a=streams[cmp_a_id],
