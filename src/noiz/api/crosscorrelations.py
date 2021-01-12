@@ -1,10 +1,12 @@
 import datetime
 from loguru import logger
+
+from noiz.models.processing_params import CrosscorrelationParams
 from obspy.signal.cross_correlation import correlate
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import subqueryload
-from typing import Iterable, List, Union, Optional, Collection
+from typing import Iterable, List, Union, Optional, Collection, Dict
 
 from noiz.api.component_pair import fetch_componentpairs
 from noiz.api.helpers import extract_object_ids, validate_to_tuple
@@ -102,7 +104,7 @@ def perform_crosscorrelations(
     params = fetch_crosscorrelation_params_by_id(id=crosscorrelation_params_id)
 
     fetched_processed_datachunks = (
-        db.session.query(Timespan, ProcessedDatachunk)
+        db.session.query(ProcessedDatachunk)
         .join(Datachunk, Timespan.id == Datachunk.timespan_id)
         .join(ProcessedDatachunk, Datachunk.id == ProcessedDatachunk.datachunk_id)
         .filter(
@@ -118,52 +120,31 @@ def perform_crosscorrelations(
     grouped_datachunks = group_chunks_by_timespanid_componentid(processed_datachunks=fetched_processed_datachunks)
 
     xcorrs = []
-    for i, (timespan, processed_chunks) in enumerate(grouped_datachunks.items()):
-
-        logger.info("Loading data for {timespan}")
+    for timespan_id, groupped_processed_chunks in grouped_datachunks.items():
         try:
-            streams = load_data_for_chunks(chunks=processed_chunks)
+            xcorr = crosscorrelate_for_timespan(
+                timespan_id=timespan_id,
+                params=params,
+                groupped_processed_chunks=groupped_processed_chunks,
+                component_pairs=fetched_component_pairs
+            )
         except CorruptedDataException as e:
-            logger.error(e)
             if raise_errors:
+                logger.error(f"Cought error {e}. Finishing execution.")
                 raise CorruptedDataException(e)
             else:
+                logger.error(f"Cought error {e}. Skipping to next timespan.")
+                continue
+        except InconsistentDataException as e:
+            if raise_errors:
+                logger.error(f"Cought error {e}. Finishing execution.")
+                raise InconsistentDataException(e)
+            else:
+                logger.error(f"Cought error {e}. Skipping to next timespan.")
                 continue
 
-        for pair in fetched_component_pairs:
-            cmp_a_id = pair.component_a_id
-            cmp_b_id = pair.component_b_id
-
-            if cmp_a_id not in processed_chunks.keys() and cmp_b_id not in processed_chunks.keys():
-                logger.debug(f"No data for pair {pair}")
-                continue
-
-            logger.debug(f"Processed chunks for {pair} are present. Starting processing.")
-
-            if streams[cmp_a_id].data.shape != streams[cmp_b_id].data.shape:
-                msg = f"The shapes of data arrays for {cmp_a_id} and {cmp_b_id} are different. " \
-                      f"Shapes: {cmp_a_id} is {streams[cmp_a_id].data.shape} " \
-                      f"{cmp_b_id} is {streams[cmp_b_id].data.shape} "
-                logger.error(msg)
-                if raise_errors:
-                    raise InconsistentDataException(msg)
-                else:
-                    continue
-
-            ccf_data = correlate(
-                a=streams[cmp_a_id],
-                b=streams[cmp_b_id],
-                shift=params.correlation_max_lag_samples,
-            )
-
-            xcorr = Crosscorrelation(
-                crosscorrelation_params_id=params.id,
-                componentpair_id=pair.id,
-                timespan_id=timespan,
-                ccf=ccf_data,
-            )
-            xcorrs.append(xcorr)
-        logger.debug(f"Correlations for timespan {timespan} done")
+        xcorrs.extend(xcorr)
+        logger.debug(f"Correlations for timespan_id {timespan_id} done")
 
     if bulk_insert:
         logger.info("Trying to do bulk insert")
@@ -181,3 +162,51 @@ def perform_crosscorrelations(
 
     logger.info("Success!")
     return
+
+
+def crosscorrelate_for_timespan(
+        timespan_id: int,
+        params: CrosscorrelationParams,
+        groupped_processed_chunks: Dict[int, ProcessedDatachunk],
+        component_pairs: Collection[ComponentPair]
+) -> List[Crosscorrelation]:
+    logger.info("Loading data for {timespan}")
+    try:
+        streams = load_data_for_chunks(chunks=groupped_processed_chunks)
+    except CorruptedDataException as e:
+        logger.error(e)
+        raise CorruptedDataException(e)
+
+    xcorrs = []
+    for pair in component_pairs:
+        cmp_a_id = pair.component_a_id
+        cmp_b_id = pair.component_b_id
+
+        if cmp_a_id not in groupped_processed_chunks.keys() and cmp_b_id not in groupped_processed_chunks.keys():
+            logger.debug(f"No data for pair {pair}")
+            continue
+
+        logger.debug(f"Processed chunks for {pair} are present. Starting processing.")
+
+        if streams[cmp_a_id].data.shape != streams[cmp_b_id].data.shape:
+            msg = f"The shapes of data arrays for {cmp_a_id} and {cmp_b_id} are different. " \
+                  f"Shapes: {cmp_a_id} is {streams[cmp_a_id].data.shape} " \
+                  f"{cmp_b_id} is {streams[cmp_b_id].data.shape} "
+            logger.error(msg)
+            raise InconsistentDataException(msg)
+
+        ccf_data = correlate(
+            a=streams[cmp_a_id],
+            b=streams[cmp_b_id],
+            shift=params.correlation_max_lag_samples,
+        )
+
+        xcorr = Crosscorrelation(
+            crosscorrelation_params_id=params.id,
+            componentpair_id=pair.id,
+            timespan_id=timespan_id,
+            ccf=ccf_data,
+        )
+
+        xcorrs.append(xcorr)
+    return xcorrs
