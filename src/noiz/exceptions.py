@@ -10,6 +10,10 @@ class NoDataException(NoizBaseException):
     pass
 
 
+class CorruptedDataException(NoizBaseException):
+    pass
+
+
 class SohParsingException(NoizBaseException):
     pass
 

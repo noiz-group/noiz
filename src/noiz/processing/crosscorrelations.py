@@ -3,6 +3,7 @@ import numpy as np
 import obspy
 from typing import Tuple, Iterable, Dict, DefaultDict, Collection
 
+from noiz.exceptions import CorruptedDataException
 from noiz.models.component_pair import ComponentPair
 from noiz.models.datachunk import ProcessedDatachunk
 
@@ -26,19 +27,21 @@ def get_time_vector_ccf(max_lag: float, sampling_rate: float) -> np.array:
 
 
 def group_chunks_by_timespanid_componentid(
-    processed_datachunks: Iterable[Tuple[ProcessedDatachunk, int, int]]
+    processed_datachunks: Collection[ProcessedDatachunk]
 ) -> DefaultDict[int, Dict[int, ProcessedDatachunk]]:
     """
-    Groups provided processed datachunks by first timespan id and then by component id
-    :param processed_datachunks: Iterable of tuples with processed datachunks, timespan ids and component ids
-    :type processed_datachunks: Iterable[Tuple[ProcessedDatachunk, int, int]]
-    :return: Dict with Processed datachunks groupped by timespan id and then by component id
+    Groups provided :py:class:`~noiz.models.datachunk.ProcessedDatachunk` by timespan_id and then by component_id.
+    It has to come with preloaded :py:attr:`~noiz.models.datachunk.ProcessedDatachunk.datachunk`.
+
+    :param processed_datachunks: Collection fo ProcessedDatachunks
+    :type processed_datachunks: Collection[ProcessedDatachunk]
+    :return: Grouped processed datachunks
     :rtype: DefaultDict[int, Dict[int, ProcessedDatachunk]]
     """
 
     groupped_chunks: DefaultDict[int, Dict[int, ProcessedDatachunk]] = defaultdict(dict)
-    for chunk, component_id, timespan_id in processed_datachunks:
-        groupped_chunks[timespan_id][component_id] = chunk
+    for chunk in processed_datachunks:
+        groupped_chunks[chunk.datachunk.timespan_id][chunk.datachunk.component_id] = chunk
     return groupped_chunks
 
 
@@ -47,6 +50,7 @@ def group_componentpairs_by_componenta_componentb(
 ) -> DefaultDict[int, Dict[int, ComponentPair]]:
     """
     Groups provided component pairs by first, ID of a first pair and then by id of a second pair.
+
     :param component_pairs: Iterable of tuples with ComponentPair and ids of both component
     :type component_pairs: Iterable[Tuple[ComponentPair, int, int]]
     :return: Dict with component pairs grouped by first component id and then second component id
@@ -94,18 +98,27 @@ def find_correlations_in_chunks(
 
 def load_data_for_chunks(
     chunks: Dict[int, ProcessedDatachunk]
-) -> Dict[int, obspy.Stream]:
+) -> Dict[int, obspy.Trace]:
     """
-    Takes dict with ProcessedDatachunk objects and returns similar dict but with obspy.Streams
-    :param chunks: Dict with ProcessedDataChunks with their ids
+    Takes a dict of ProcessedDatachunks grouped by
+    :py:attr:`noiz.models.datachunk.ProcessedDatachunk.datachunk.component_id` and loads data for them.
+    Returns dictionary organized by the sam key but instead of ProcessedDatachunk instances with
+    :py:class:`obspy.Trace` loaded from disk.
+
+    :param chunks: Dict with ProcessedDataChunks grouped by some key
     :type chunks: Dict[int, ProcessedDatachunk]
-    :return: Dicts with loaded seismic data
-    :rtype: Dict[int, obspy.Stream]
+    :return: Dict with the same keys but Traces instead
+    :rtype: Dict[int, obspy.Trace]
     """
-    streams = {}
+    traces = {}
     for cmp_id, proc_chunk in chunks.items():
-        streams[cmp_id] = proc_chunk.load_data()
-    return streams
+        st = proc_chunk.load_data()
+        if len(st) != 1:
+            msg = f"Mseed file for ProcessedDatachunk {proc_chunk} has different number of traces than 1!" \
+                  f"Found number of traces: {len(st)}"
+            raise CorruptedDataException(msg)
+        traces[cmp_id] = st[0]
+    return traces
 
 
 def validate_component_code_pairs(component_pairs: Collection[str]) -> Tuple[str, ...]:
