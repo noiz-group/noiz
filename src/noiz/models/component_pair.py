@@ -16,6 +16,7 @@ class ComponentPair(db.Model):
     component_b_id = db.Column(
         "component_b_id", db.Integer, db.ForeignKey("component.id"), nullable=False
     )
+    component_code_pair = db.Column("component_code_pair", db.UnicodeText, nullable=False)
     autocorrelation = db.Column("autocorrelation", db.Boolean, nullable=False)
     intracorrelation = db.Column("intracorrelation", db.Boolean, nullable=False)
     azimuth = db.Column("azimuth", db.Float, nullable=False)
