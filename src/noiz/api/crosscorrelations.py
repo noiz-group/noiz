@@ -1,7 +1,6 @@
 import datetime
 from loguru import logger
 
-from noiz.models.processing_params import CrosscorrelationParams
 from obspy.signal.cross_correlation import correlate
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
@@ -17,6 +16,7 @@ from noiz.exceptions import InconsistentDataException, CorruptedDataException
 from noiz.models.component_pair import ComponentPair
 from noiz.models.crosscorrelation import Crosscorrelation
 from noiz.models.datachunk import Datachunk, ProcessedDatachunk
+from noiz.models.processing_params import CrosscorrelationParams
 from noiz.models.timespan import Timespan
 from noiz.processing.crosscorrelations import (
     validate_component_code_pairs,
