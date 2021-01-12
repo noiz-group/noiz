@@ -4,7 +4,7 @@ from obspy.signal.cross_correlation import correlate
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import subqueryload
-from typing import Iterable, List, Tuple, Union, Optional, Collection
+from typing import Iterable, List, Union, Optional, Collection
 
 from noiz.api.component_pair import fetch_componentpairs
 from noiz.api.helpers import extract_object_ids, validate_to_tuple
@@ -19,7 +19,7 @@ from noiz.models.timespan import Timespan
 from noiz.processing.crosscorrelations import (
     validate_component_code_pairs,
     group_chunks_by_timespanid_componentid,
-    load_data_for_chunks,
+    load_data_for_chunks, extract_component_ids_from_component_pairs,
 )
 
 
@@ -97,9 +97,7 @@ def perform_crosscorrelations(
         accepted_component_code_pairs=component_code_pairs,
     )
 
-    single_component_ids_pre: List[int] = [pair.component_a_id for pair in fetched_component_pairs]
-    single_component_ids_pre.extend([pair.component_b_id for pair in fetched_component_pairs])
-    single_component_ids: Tuple[int, ...] = tuple(set(single_component_ids_pre))
+    single_component_ids = extract_component_ids_from_component_pairs(fetched_component_pairs)
 
     params = fetch_crosscorrelation_params_by_id(id=crosscorrelation_params_id)
 
