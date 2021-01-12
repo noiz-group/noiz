@@ -481,6 +481,38 @@ def process_datachunks(
         )
 
 
+@processing_group.command("run_crosscorrelations")
+@with_appcontext
+@click.option("-s", "--station_code", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-c", "--component_code_pair", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-p", "--crosscorrelation_params_id", nargs=1, type=int,
+              default=1, show_default=True)
+@click.option('--parallel/--no_parallel', default=True)
+def run_crosscorrelations(
+        station_code,
+        component_code_pair,
+        startdate,
+        enddate,
+        crosscorrelation_params_id,
+        parallel,
+):
+    """Start processing of datachunks"""
+
+    if parallel:
+        click.echo("Not implemented yet")
+    else:
+        from noiz.api.crosscorrelations import perform_crosscorrelations
+        perform_crosscorrelations(
+            crosscorrelation_params_id=crosscorrelation_params_id,
+            starttime=startdate,
+            endtime=enddate,
+            station_codes=station_code,
+            component_code_pairs=component_code_pair,
+        )
+
+
 @plotting_group.group("plot")
 def plotting_group():  # type: ignore
     """Plotting routines"""
