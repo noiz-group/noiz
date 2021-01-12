@@ -24,3 +24,7 @@ class NoSOHPresentException(NoizBaseException):
 
 class EmptyResultException(NoizBaseException):
     pass
+
+
+class InconsistentDataException(NoizBaseException):
+    pass
