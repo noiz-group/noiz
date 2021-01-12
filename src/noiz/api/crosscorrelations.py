@@ -79,9 +79,9 @@ def perform_crosscorrelations(
         endtime: Union[datetime.date, datetime.datetime],
         station_codes: Optional[Union[Collection[str], str]] = None,
         component_code_pairs: Optional[Union[Collection[str], str]] = None,
-        autocorrelations=False,
-        intrastation_correlations=False,
-        bulk_insert=True,
+        autocorrelations: bool = False,
+        intrastation_correlations: bool = False,
+        bulk_insert: bool = True,
         skip_errors: bool = True
 ):
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
