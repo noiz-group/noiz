@@ -104,7 +104,7 @@ def perform_crosscorrelations(
     params = fetch_crosscorrelation_params_by_id(id=crosscorrelation_params_id)
 
     fetched_processed_datachunks = (
-        db.session.query(ProcessedDatachunk)
+        db.session.query(Timespan, ProcessedDatachunk)
         .join(Datachunk, Timespan.id == Datachunk.timespan_id)
         .join(ProcessedDatachunk, Datachunk.id == ProcessedDatachunk.datachunk_id)
         .filter(

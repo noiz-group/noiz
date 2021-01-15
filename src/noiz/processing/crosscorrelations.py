@@ -1,5 +1,7 @@
 from collections import defaultdict
 import numpy as np
+from noiz.models.timespan import Timespan
+
 import obspy
 from typing import Tuple, Dict, DefaultDict, Collection, List
 
@@ -28,7 +30,7 @@ def get_time_vector_ccf(max_lag: float, sampling_rate: float) -> np.array:
 
 
 def group_chunks_by_timespanid_componentid(
-    processed_datachunks: Collection[ProcessedDatachunk]
+    processed_datachunks: List[Tuple[Timespan, ProcessedDatachunk]]
 ) -> DefaultDict[int, Dict[int, ProcessedDatachunk]]:
     """
     Groups provided :py:class:`~noiz.models.datachunk.ProcessedDatachunk` by timespan_id and then by component_id.
@@ -41,8 +43,8 @@ def group_chunks_by_timespanid_componentid(
     """
 
     groupped_chunks: DefaultDict[int, Dict[int, ProcessedDatachunk]] = defaultdict(dict)
-    for chunk in processed_datachunks:
-        groupped_chunks[chunk.datachunk.timespan_id][chunk.datachunk.component_id] = chunk
+    for timespan, chunk in processed_datachunks:
+        groupped_chunks[timespan.id][chunk.datachunk.component_id] = chunk
     return groupped_chunks
 
 
