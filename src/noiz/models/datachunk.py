@@ -142,7 +142,8 @@ class ProcessedDatachunk(db.Model):
     def load_data(self):
         filepath = Path(self.processed_datachunk_file.filepath)
         if filepath.exists:
-            return obspy.read(filepath, "MSEED")
+            # FIXME when obspy will be released, str(Path) wont be necesary
+            return obspy.read(str(filepath), "MSEED")
         else:
             raise MissingDataFileException(f"Data file for chunk {self} is missing")
 
