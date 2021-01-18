@@ -184,17 +184,8 @@ def perform_crosscorrelations_parallel(
                 component_pairs=fetched_component_pairs
             )
 
-            for timespan_id, groupped_processed_chunks in grouped_datachunks.items():
-
-                kwargs_dict = dict(
-                    timespan_id=timespan_id,
-                    params=params,
-                    groupped_processed_chunks=groupped_processed_chunks,
-                    component_pairs=fetched_component_pairs
-                )
-
-                future = client.submit(crosscorrelate_for_timespan, **kwargs_dict)
-                futures.append(future)
+            future = client.submit(crosscorrelate_for_timespan, **kwargs_dict)
+            futures.append(future)
 
         except CorruptedDataException as e:
             if raise_errors:
