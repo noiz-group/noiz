@@ -1,13 +1,12 @@
 from collections import defaultdict
 import numpy as np
-from noiz.models.timespan import Timespan
-
 import obspy
 from typing import Tuple, Dict, DefaultDict, Collection, List
 
 from noiz.exceptions import CorruptedDataException
-from noiz.models import ComponentPair
+from noiz.models.component_pair import ComponentPair
 from noiz.models.datachunk import ProcessedDatachunk
+from noiz.models.timespan import Timespan
 
 
 def get_time_vector_ccf(max_lag: float, sampling_rate: float) -> np.array:
