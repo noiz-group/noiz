@@ -145,8 +145,102 @@ def perform_crosscorrelations(
     return
 
 
-def _prepare_inputs_for_crosscorrelating(crosscorrelation_params_id, starttime, endtime, station_codes,
-                                         component_code_pairs):
+def perform_crosscorrelations_parallel(
+        crosscorrelation_params_id: int,
+        starttime: Union[datetime.date, datetime.datetime],
+        endtime: Union[datetime.date, datetime.datetime],
+        station_codes: Optional[Union[Collection[str], str]] = None,
+        component_code_pairs: Optional[Union[Collection[str], str]] = None,
+        autocorrelations: bool = False,
+        intrastation_correlations: bool = False,
+        bulk_insert: bool = True,
+        raise_errors: bool = False
+):
+    fetched_component_pairs, grouped_datachunks, params = _prepare_inputs_for_crosscorrelating(
+        crosscorrelation_params_id=crosscorrelation_params_id,
+        starttime=starttime,
+        endtime=endtime,
+        station_codes=station_codes,
+        component_code_pairs=component_code_pairs
+    )
+
+    logger.info("Starting crosscorrelation process.")
+
+    from dask.distributed import Client, as_completed
+    client = Client()
+
+    logger.info(f'Dask client started succesfully. '
+                f'You can monitor execution on {client.dashboard_link}')
+
+    logger.info("Submitting tasks to Dask client")
+
+    futures = []
+    for timespan_id, groupped_processed_chunks in grouped_datachunks.items():
+        try:
+            kwargs_dict = dict(
+                timespan_id=timespan_id,
+                params=params,
+                groupped_processed_chunks=groupped_processed_chunks,
+                component_pairs=fetched_component_pairs
+            )
+
+            for timespan_id, groupped_processed_chunks in grouped_datachunks.items():
+
+                kwargs_dict = dict(
+                    timespan_id=timespan_id,
+                    params=params,
+                    groupped_processed_chunks=groupped_processed_chunks,
+                    component_pairs=fetched_component_pairs
+                )
+
+                future = client.submit(crosscorrelate_for_timespan, **kwargs_dict)
+                futures.append(future)
+
+        except CorruptedDataException as e:
+            if raise_errors:
+                logger.error(f"Cought error {e}. Finishing execution.")
+                raise CorruptedDataException(e)
+            else:
+                logger.error(f"Cought error {e}. Skipping to next timespan.")
+                continue
+        except InconsistentDataException as e:
+            if raise_errors:
+                logger.error(f"Cought error {e}. Finishing execution.")
+                raise InconsistentDataException(e)
+            else:
+                logger.error(f"Cought error {e}. Skipping to next timespan.")
+                continue
+    xcorrs = []
+    for future, result in as_completed(futures, with_results=True, raise_errors=False):
+        xcorrs.extend(result)
+
+    logger.info(f"There were {len(xcorrs)} crosscorrelations performed.")
+
+    if bulk_insert:
+        logger.info("Trying to do bulk insert")
+        try:
+            bulk_add_crosscorrelations(xcorrs)
+        except IntegrityError as e:
+            logger.warning(f"There was an integrity error thrown. {e}. Performing rollback.")
+            db.session.rollback()
+
+            logger.warning("Retrying with upsert")
+            upsert_crosscorrelations(xcorrs)
+    else:
+        logger.info(f"Starting to perform careful upsert. There are {len(xcorrs)} to insert")
+        upsert_crosscorrelations(xcorrs)
+
+    logger.info("Success!")
+    return
+
+
+def _prepare_inputs_for_crosscorrelating(
+        crosscorrelation_params_id,
+        starttime,
+        endtime,
+        station_codes,
+        component_code_pairs
+):
 
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
     fetched_timespans_ids = extract_object_ids(fetched_timespans)
