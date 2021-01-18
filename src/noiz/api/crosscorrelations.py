@@ -91,6 +91,7 @@ def perform_crosscorrelations(
 ):
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
     fetched_timespans_ids = extract_object_ids(fetched_timespans)
+    logger.info(f"There are {len(fetched_timespans_ids)} timespan to process")
 
     if component_code_pairs is not None:
         component_code_pairs = validate_component_code_pairs(
@@ -101,10 +102,13 @@ def perform_crosscorrelations(
         station_codes_a=station_codes,
         accepted_component_code_pairs=component_code_pairs,
     )
+    logger.info(f"There are {len(fetched_component_pairs)} component pairs to process.")
 
     single_component_ids = extract_component_ids_from_component_pairs(fetched_component_pairs)
+    logger.info(f"There are in total {len(single_component_ids)} unique components yo be fetched from db.")
 
     params = fetch_crosscorrelation_params_by_id(id=crosscorrelation_params_id)
+    logger.info(f"Fetched correlation_params object {params}")
 
     fetched_processed_datachunks = (
         db.session.query(Timespan, ProcessedDatachunk)
