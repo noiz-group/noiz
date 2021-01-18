@@ -89,41 +89,13 @@ def perform_crosscorrelations(
         bulk_insert: bool = True,
         raise_errors: bool = False
 ):
-    fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
-    fetched_timespans_ids = extract_object_ids(fetched_timespans)
-    logger.info(f"There are {len(fetched_timespans_ids)} timespan to process")
-
-    if component_code_pairs is not None:
-        component_code_pairs = validate_component_code_pairs(
-            component_pairs=validate_to_tuple(component_code_pairs, str)
-        )
-
-    fetched_component_pairs: List[ComponentPair] = fetch_componentpairs(
-        station_codes_a=station_codes,
-        accepted_component_code_pairs=component_code_pairs,
+    fetched_component_pairs, grouped_datachunks, params = _prepare_inputs_for_crosscorrelating(
+        crosscorrelation_params_id=crosscorrelation_params_id,
+        starttime=starttime,
+        endtime=endtime,
+        station_codes=station_codes,
+        component_code_pairs=component_code_pairs
     )
-    logger.info(f"There are {len(fetched_component_pairs)} component pairs to process.")
-
-    single_component_ids = extract_component_ids_from_component_pairs(fetched_component_pairs)
-    logger.info(f"There are in total {len(single_component_ids)} unique components to be fetched from db.")
-
-    params = fetch_crosscorrelation_params_by_id(id=crosscorrelation_params_id)
-    logger.info(f"Fetched correlation_params object {params}")
-
-    fetched_processed_datachunks = (
-        db.session.query(Timespan, ProcessedDatachunk)
-        .join(Datachunk, Timespan.id == Datachunk.timespan_id)
-        .join(ProcessedDatachunk, Datachunk.id == ProcessedDatachunk.datachunk_id)
-        .filter(
-            Timespan.id.in_(fetched_timespans_ids),  # type: ignore
-            ProcessedDatachunk.processed_datachunk_params_id == params.processed_datachunk_params_id,
-            Datachunk.component_id.in_(single_component_ids),
-        )
-        .options(
-            subqueryload(ProcessedDatachunk.datachunk)
-        )
-        .all())
-    grouped_datachunks = group_chunks_by_timespanid_componentid(processed_datachunks=fetched_processed_datachunks)
 
     logger.info("Starting crosscorrelation process.")
     xcorrs = []
@@ -171,6 +143,46 @@ def perform_crosscorrelations(
 
     logger.info("Success!")
     return
+
+
+def _prepare_inputs_for_crosscorrelating(crosscorrelation_params_id, starttime, endtime, station_codes,
+                                         component_code_pairs):
+
+    fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
+    fetched_timespans_ids = extract_object_ids(fetched_timespans)
+    logger.info(f"There are {len(fetched_timespans_ids)} timespan to process")
+
+    if component_code_pairs is not None:
+        component_code_pairs = validate_component_code_pairs(
+            component_pairs=validate_to_tuple(component_code_pairs, str)
+        )
+    fetched_component_pairs: List[ComponentPair] = fetch_componentpairs(
+        station_codes_a=station_codes,
+        accepted_component_code_pairs=component_code_pairs,
+    )
+    logger.info(f"There are {len(fetched_component_pairs)} component pairs to process.")
+
+    single_component_ids = extract_component_ids_from_component_pairs(fetched_component_pairs)
+    logger.info(f"There are in total {len(single_component_ids)} unique components to be fetched from db.")
+
+    params = fetch_crosscorrelation_params_by_id(id=crosscorrelation_params_id)
+    logger.info(f"Fetched correlation_params object {params}")
+    fetched_processed_datachunks = (
+        db.session.query(Timespan, ProcessedDatachunk)
+                  .join(Datachunk, Timespan.id == Datachunk.timespan_id)
+                  .join(ProcessedDatachunk, Datachunk.id == ProcessedDatachunk.datachunk_id)
+                  .filter(
+                      Timespan.id.in_(fetched_timespans_ids),  # type: ignore
+                      ProcessedDatachunk.processed_datachunk_params_id == params.processed_datachunk_params_id,
+                      Datachunk.component_id.in_(single_component_ids),
+        )
+        .options(
+            subqueryload(ProcessedDatachunk.datachunk)
+        )
+        .all())
+    grouped_datachunks = group_chunks_by_timespanid_componentid(processed_datachunks=fetched_processed_datachunks)
+
+    return fetched_component_pairs, grouped_datachunks, params
 
 
 def crosscorrelate_for_timespan(
