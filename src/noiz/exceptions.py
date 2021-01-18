@@ -10,6 +10,10 @@ class NoDataException(NoizBaseException):
     pass
 
 
+class CorruptedDataException(NoizBaseException):
+    pass
+
+
 class SohParsingException(NoizBaseException):
     pass
 
@@ -23,4 +27,8 @@ class NoSOHPresentException(NoizBaseException):
 
 
 class EmptyResultException(NoizBaseException):
+    pass
+
+
+class InconsistentDataException(NoizBaseException):
     pass

@@ -10,8 +10,8 @@ class Crosscorrelation(db.Model):
         db.UniqueConstraint(
             "timespan_id",
             "componentpair_id",
-            "datachunk_processing_config_id",
-            name="unique_ccf_per_timespan_per_componentpair_per_processing",
+            "crosscorrelation_params_id",
+            name="unique_ccf_per_timespan_per_componentpair_per_config",
         ),
     )
 
@@ -25,18 +25,18 @@ class Crosscorrelation(db.Model):
     timespan_id = db.Column(
         "timespan_id", db.BigInteger, db.ForeignKey("timespan.id"), nullable=False
     )
-    datachunk_processing_config_id = db.Column(
-        "datachunk_processing_config_id",
+    crosscorrelation_params_id = db.Column(
+        "crosscorrelation_params_id",
         db.Integer,
-        db.ForeignKey("datachunk_params.id"),
+        db.ForeignKey("crosscorrelation_params.id"),
         nullable=False,
     )
     ccf = db.Column("ccf", ARRAY(db.Float))
 
     componentpair = db.relationship("ComponentPair", foreign_keys=[componentpair_id])
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
-    datachunk_processing_config = db.relationship(
-        "DatachunkParams", foreign_keys=[datachunk_processing_config_id]
+    crosscorrelation_params = db.relationship(
+        "CrosscorrelationParams", foreign_keys=[crosscorrelation_params_id]
     )
     stacks = db.relationship(
         "CCFStack", secondary=ccf_ccfstack_association_table, back_populates="ccfs"
