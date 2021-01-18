@@ -501,7 +501,14 @@ def run_crosscorrelations(
     """Start processing of datachunks"""
 
     if parallel:
-        click.echo("Not implemented yet")
+        from noiz.api.crosscorrelations import perform_crosscorrelations_parallel
+        perform_crosscorrelations_parallel(
+            crosscorrelation_params_id=crosscorrelation_params_id,
+            starttime=startdate,
+            endtime=enddate,
+            station_codes=station_code,
+            component_code_pairs=component_code_pair,
+        )
     else:
         from noiz.api.crosscorrelations import perform_crosscorrelations
         perform_crosscorrelations(
