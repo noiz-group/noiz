@@ -88,7 +88,33 @@ def perform_crosscorrelations(
         intrastation_correlations: bool = False,
         bulk_insert: bool = True,
         raise_errors: bool = False
-):
+) -> None:
+    """
+    Performs crosscorrelations according to provided set of selectors.
+    It does not use parallelism.
+
+    :param crosscorrelation_params_id: ID of CrosscorrelationParams object to be used as config
+    :type crosscorrelation_params_id: int
+    :param starttime: Date from where to start the query
+    :type starttime: Union[datetime.date, datetime.datetime]
+    :param endtime: Date on which finish the query
+    :type endtime: Union[datetime.date, datetime.datetime]
+    :param station_codes: Names of stations to use
+    :type station_codes: Optional[Union[Collection[str], str]]
+    :param component_code_pairs: Component code pairs to use (ex. "ZZ" or "ZE"). Order matters.
+    :type component_code_pairs: Optional[Union[Collection[str], str]]
+    :param autocorrelations:
+    :type autocorrelations: bool
+    :param intrastation_correlations:
+    :type intrastation_correlations: bool
+    :param bulk_insert: If bulk insert should be even attempted
+    :type bulk_insert: bool
+    :param raise_errors: If errors should be raised or just logged
+    :type raise_errors: bool
+    :return: None
+    :rtype: NoneType
+    """
+
     fetched_component_pairs, grouped_datachunks, params = _prepare_inputs_for_crosscorrelating(
         crosscorrelation_params_id=crosscorrelation_params_id,
         starttime=starttime,
@@ -155,7 +181,32 @@ def perform_crosscorrelations_parallel(
         intrastation_correlations: bool = False,
         bulk_insert: bool = True,
         raise_errors: bool = False
-):
+) -> None:
+    """
+    Performs crosscorrelations according to provided set of selectors.
+    Uses Dask.distributed for parallelism
+
+    :param crosscorrelation_params_id: ID of CrosscorrelationParams object to be used as config
+    :type crosscorrelation_params_id: int
+    :param starttime: Date from where to start the query
+    :type starttime: Union[datetime.date, datetime.datetime]
+    :param endtime: Date on which finish the query
+    :type endtime: Union[datetime.date, datetime.datetime]
+    :param station_codes: Names of stations to use
+    :type station_codes: Optional[Union[Collection[str], str]]
+    :param component_code_pairs: Component code pairs to use (ex. "ZZ" or "ZE"). Order matters.
+    :type component_code_pairs: Optional[Union[Collection[str], str]]
+    :param autocorrelations:
+    :type autocorrelations: bool
+    :param intrastation_correlations:
+    :type intrastation_correlations: bool
+    :param bulk_insert: If bulk insert should be even attempted
+    :type bulk_insert: bool
+    :param raise_errors: If errors should be raised or just logged
+    :type raise_errors: bool
+    :return: None
+    :rtype: NoneType
+    """
     fetched_component_pairs, grouped_datachunks, params = _prepare_inputs_for_crosscorrelating(
         crosscorrelation_params_id=crosscorrelation_params_id,
         starttime=starttime,
