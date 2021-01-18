@@ -384,4 +384,15 @@ class TestDataIngestionRoutines:
         assert result.exit_code == 0
         with noiz_app.app_context():
             crosscorrelation_count = Crosscorrelation.query.count()
-        assert 570 == crosscorrelation_count
+        assert 0 == crosscorrelation_count
+
+        result = runner.invoke(cli, ["processing", "run_crosscorrelations",
+                                     "-sd", "2019-09-30",
+                                     "-ed", "2019-10-03",
+                                     "-c", "ZE",
+                                     "--no_parallel"
+                                     ])
+        assert result.exit_code == 0
+        with noiz_app.app_context():
+            crosscorrelation_count = Crosscorrelation.query.count()
+        assert 124 == crosscorrelation_count
