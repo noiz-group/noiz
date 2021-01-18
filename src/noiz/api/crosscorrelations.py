@@ -226,12 +226,29 @@ def perform_crosscorrelations_parallel(
 
 
 def _prepare_inputs_for_crosscorrelating(
-        crosscorrelation_params_id,
-        starttime,
-        endtime,
-        station_codes,
-        component_code_pairs
+        crosscorrelation_params_id: int,
+        starttime: Union[datetime.date, datetime.datetime],
+        endtime: Union[datetime.date, datetime.datetime],
+        station_codes: Optional[Union[Collection[str], str]] = None,
+        component_code_pairs: Optional[Union[Collection[str], str]] = None,
 ):
+    """
+    Performs all the database queries to prepare all the data required for running crosscorrelations.
+    Returns a tuple of inputs specific for the further calculations.
+
+    :param crosscorrelation_params_id: ID of CrosscorrelationParams object to use
+    :type crosscorrelation_params_id: int
+    :param starttime: Date from where to start the query
+    :type starttime: Union[datetime.date, datetime.datetime]
+    :param endtime: Date on which finish the query
+    :type endtime: Union[datetime.date, datetime.datetime]
+    :param station_codes: Names of stations to use
+    :type station_codes: Optional[Union[Collection[str], str]] = None
+    :param component_code_pairs: Component code pairs to use (ex. "ZZ" or "ZE"). Order matters.
+    :type component_code_pairs: Optional[Union[Collection[str], str]] = None
+    :return:
+    :rtype:
+    """
 
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
     fetched_timespans_ids = extract_object_ids(fetched_timespans)
