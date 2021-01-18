@@ -379,6 +379,7 @@ class TestDataIngestionRoutines:
                                      "-sd", "2019-09-30",
                                      "-ed", "2019-10-03",
                                      "-c", "ZZ",
+                                     "--no_parallel"
                                      ])
         assert result.exit_code == 0
         with noiz_app.app_context():
