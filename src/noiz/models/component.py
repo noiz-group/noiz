@@ -93,7 +93,7 @@ class Component(db.Model):
         return f"{self.network}.{self.station}.{self.component}"
 
     def __str__(self):
-        return f"{self._make_station_string()}"
+        return f"{self.id}.{self._make_station_string()}"
 
     def __repr__(self):
         return f"Component {self.id}.{self._make_station_string()}"
