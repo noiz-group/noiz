@@ -83,7 +83,7 @@ def count_qcone_results(
         qcone_config_id: Optional[int] = None,
         datachunks: Optional[Collection[Datachunk]] = None,
         datachunk_ids: Optional[Collection[int]] = None,
-) -> List[QCOneResults]:
+) -> int:
 
     query = _query_qcone_results(
         qcone_config=qcone_config,
