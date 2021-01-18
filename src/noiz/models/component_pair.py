@@ -24,8 +24,14 @@ class ComponentPair(db.Model):
     distance = db.Column("distance", db.Float, nullable=False)
     arcdistance = db.Column("arcdistance", db.Float, nullable=False)
 
-    component_a = db.relationship("Component", foreign_keys=[component_a_id])
-    component_b = db.relationship("Component", foreign_keys=[component_b_id])
+    component_a = db.relationship("Component", foreign_keys=[component_a_id], lazy="joined", )
+    component_b = db.relationship("Component", foreign_keys=[component_b_id], lazy="joined", )
+
+    def __str__(self):
+        return f"{self.component_a}-{self.component_b}"
+
+    def __repr__(self):
+        return f"{self.component_a}-{self.component_b}"
 
     def _set_same_station(self) -> None:
         self.azimuth = 0
