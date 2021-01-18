@@ -57,13 +57,13 @@ def upsert_crosscorrelations(crosscorrelations: Iterable[Crosscorrelation]) -> N
         insert_command = (
             insert(Crosscorrelation)
             .values(
-                processing_params_id=xcorr.datachunk_processing_config_id,
+                crosscorrelation_params_id=xcorr.crosscorrelation_params_id,
                 componentpair_id=xcorr.componentpair_id,
                 timespan_id=xcorr.timespan_id,
                 ccf=xcorr.ccf,
             )
             .on_conflict_do_update(
-                constraint="unique_ccf_per_timespan_per_componentpair_per_processing",
+                constraint="unique_ccf_per_timespan_per_componentpair_per_config",
                 set_=dict(ccf=xcorr.ccf),
             )
         )
@@ -108,17 +108,15 @@ def perform_crosscorrelations(
         .join(Datachunk, Timespan.id == Datachunk.timespan_id)
         .join(ProcessedDatachunk, Datachunk.id == ProcessedDatachunk.datachunk_id)
         .filter(
+            Timespan.id.in_(fetched_timespans_ids),
             ProcessedDatachunk.processed_datachunk_params_id == params.processed_datachunk_params_id,
             Datachunk.component_id.in_(single_component_ids),
-            Datachunk.timespan_id.in_(fetched_timespans_ids),
         )
         .options(
             subqueryload(ProcessedDatachunk.datachunk)
         )
         .all())
-
     grouped_datachunks = group_chunks_by_timespanid_componentid(processed_datachunks=fetched_processed_datachunks)
-
     xcorrs = []
     for timespan_id, groupped_processed_chunks in grouped_datachunks.items():
         try:
@@ -170,19 +168,18 @@ def crosscorrelate_for_timespan(
         groupped_processed_chunks: Dict[int, ProcessedDatachunk],
         component_pairs: Collection[ComponentPair]
 ) -> List[Crosscorrelation]:
-    logger.info("Loading data for {timespan}")
+    logger.info(f"Loading data for timespan {timespan_id}")
     try:
         streams = load_data_for_chunks(chunks=groupped_processed_chunks)
     except CorruptedDataException as e:
         logger.error(e)
         raise CorruptedDataException(e)
-
     xcorrs = []
     for pair in component_pairs:
         cmp_a_id = pair.component_a_id
         cmp_b_id = pair.component_b_id
 
-        if cmp_a_id not in groupped_processed_chunks.keys() and cmp_b_id not in groupped_processed_chunks.keys():
+        if cmp_a_id not in groupped_processed_chunks.keys() or cmp_b_id not in groupped_processed_chunks.keys():
             logger.debug(f"No data for pair {pair}")
             continue
 
