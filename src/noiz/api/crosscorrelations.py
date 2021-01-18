@@ -53,6 +53,7 @@ def upsert_crosscorrelations(crosscorrelations: Iterable[Crosscorrelation]) -> N
     :rtype: None
     """
     logger.info("Starting upserting")
+    i = 0
     for i, xcorr in enumerate(crosscorrelations):
         insert_command = (
             insert(Crosscorrelation)
@@ -68,7 +69,9 @@ def upsert_crosscorrelations(crosscorrelations: Iterable[Crosscorrelation]) -> N
             )
         )
         db.session.execute(insert_command)
-        logger.info(f"{i + 1} Upserts done")
+        logger.debug(f"{i + 1} Upserts done")
+
+    logger.info(f"There were {i} upsert commands prepared.")
     logger.info("Commiting changes")
     db.session.commit()
     logger.info("Commit done")
@@ -108,7 +111,7 @@ def perform_crosscorrelations(
         .join(Datachunk, Timespan.id == Datachunk.timespan_id)
         .join(ProcessedDatachunk, Datachunk.id == ProcessedDatachunk.datachunk_id)
         .filter(
-            Timespan.id.in_(fetched_timespans_ids),
+            Timespan.id.in_(fetched_timespans_ids),  # type: ignore
             ProcessedDatachunk.processed_datachunk_params_id == params.processed_datachunk_params_id,
             Datachunk.component_id.in_(single_component_ids),
         )
@@ -117,6 +120,8 @@ def perform_crosscorrelations(
         )
         .all())
     grouped_datachunks = group_chunks_by_timespanid_componentid(processed_datachunks=fetched_processed_datachunks)
+
+    logger.info("Starting crosscorrelation process.")
     xcorrs = []
     for timespan_id, groupped_processed_chunks in grouped_datachunks.items():
         try:
@@ -144,6 +149,8 @@ def perform_crosscorrelations(
         xcorrs.extend(xcorr)
         logger.debug(f"Correlations for timespan_id {timespan_id} done")
 
+    logger.info(f"There were {len(xcorrs)} crosscorrelations performed.")
+
     if bulk_insert:
         logger.info("Trying to do bulk insert")
         try:
@@ -168,7 +175,7 @@ def crosscorrelate_for_timespan(
         groupped_processed_chunks: Dict[int, ProcessedDatachunk],
         component_pairs: Collection[ComponentPair]
 ) -> List[Crosscorrelation]:
-    logger.info(f"Loading data for timespan {timespan_id}")
+    logger.debug(f"Loading data for timespan {timespan_id}")
     try:
         streams = load_data_for_chunks(chunks=groupped_processed_chunks)
     except CorruptedDataException as e:
