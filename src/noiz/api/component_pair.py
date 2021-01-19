@@ -88,8 +88,10 @@ def fetch_componentpairs(
         station_codes_b: Optional[Union[Collection[str], str]] = None,
         component_codes_b: Optional[Union[Collection[str], str]] = None,
         accepted_component_code_pairs: Optional[Union[Collection[str], str]] = None,
-        autocorrelation: Optional[bool] = False,
-        intracorrelation: Optional[bool] = False,
+        include_autocorrelation: Optional[bool] = False,
+        include_intracorrelation: Optional[bool] = False,
+        only_autocorrelation: Optional[bool] = False,
+        only_intracorrelation: Optional[bool] = False,
 ) -> List[ComponentPair]:
     """
     Fetched requested component pairs.
@@ -110,13 +112,23 @@ def fetch_componentpairs(
     :type station_codes_b: Optional[Union[Collection[str], str]]
     :param component_codes_b: Selector for component code of B station in the pair
     :type component_codes_b: Optional[Union[Collection[str], str]]
-    :param autocorrelation: If autocorrelation pairs should be also included
-    :type autocorrelation: Optional[bool]
-    :param intracorrelation: If intracorrelation pairs should be also included
-    :type intracorrelation: Optional[bool]
+    :param include_autocorrelation: If autocorrelation pairs should be also included
+    :type include_autocorrelation: Optional[bool]
+    :param include_intracorrelation: If intracorrelation pairs should be also included
+    :type include_intracorrelation: Optional[bool]
+    :param only_autocorrelation: If only autocorrelation pairs should be selected
+    :type only_autocorrelation: Optional[bool]
+    :param only_intracorrelation: If only intracorrelation pairs should be selected
+    :type only_intracorrelation: Optional[bool]
     :return: Selected ComponentPair objects
     :rtype: List[ComponentPair]
     """
+    if only_autocorrelation and only_intracorrelation:
+        raise ValueError("You cannot use only_autocorrelation and only_intracorrelation at the same time")
+
+    if any((only_autocorrelation, only_intracorrelation)) and any((include_autocorrelation, include_intracorrelation)):
+        raise ValueError("You cannot use only_* and include_* arguments at the same time.")
+
     filters = []
 
     cmp_a = aliased(Component)
@@ -127,32 +139,45 @@ def fetch_componentpairs(
         stations=station_codes_a,
         components=component_codes_a,
     )
-    filters.append(cmp_a.id.in_(extract_object_ids(components_a)))
 
     if network_codes_b is None and station_codes_b is None and component_codes_b is None:
-        filters.append(cmp_b.id.in_(extract_object_ids(components_a)))
+        components_b = components_a.copy()
     else:
         components_b = fetch_components(
             networks=network_codes_b,
             stations=station_codes_b,
             components=component_codes_b,
         )
-        filters.append(cmp_b.id.in_(extract_object_ids(components_b)))
+    filters.append(cmp_a.id.in_(extract_object_ids(components_a)))
+    filters.append(cmp_b.id.in_(extract_object_ids(components_b)))
 
     if accepted_component_code_pairs is not None:
         accepted_component_code_pairs = validate_to_tuple(accepted_component_code_pairs, str)
         filters.append(ComponentPair.component_code_pair.in_(accepted_component_code_pairs))
 
-    filters.append(ComponentPair.autocorrelation == autocorrelation)
-    filters.append(ComponentPair.intracorrelation == intracorrelation)
+    if include_autocorrelation:
+        autocorr_filter = ComponentPair.autocorrelation.in_((True, False))
+    elif only_autocorrelation:
+        autocorr_filter = ComponentPair.autocorrelation.in_((True, ))
+    else:
+        autocorr_filter = ComponentPair.autocorrelation.in_((False, ))
+    filters.append(autocorr_filter)
+
+    if include_intracorrelation:
+        intracorr_filter = ComponentPair.intracorrelation.in_((True, False))
+    elif only_intracorrelation:
+        intracorr_filter = ComponentPair.intracorrelation.in_((True, ))
+    else:
+        intracorr_filter = ComponentPair.intracorrelation.in_((False, ))
+    filters.append(intracorr_filter)
 
     component_pairs = (
         db.session.query(ComponentPair)
-        .join(cmp_a, ComponentPair.component_a)
-        .join(cmp_b, ComponentPair.component_b)
-        .options(
-            subqueryload(ComponentPair.component_a),
-            subqueryload(ComponentPair.component_b),
+          .join(cmp_a, ComponentPair.component_a)
+          .join(cmp_b, ComponentPair.component_b)
+          .options(
+              subqueryload(ComponentPair.component_a),
+              subqueryload(ComponentPair.component_b),
         )
         .filter(*filters)
         .all()
