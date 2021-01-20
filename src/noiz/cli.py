@@ -150,6 +150,27 @@ def add_qcone_config(
         click.echo(parsing_results)
 
 
+@configs_group.command("add_stacking_schema")
+@with_appcontext
+@click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
+@click.option('--add_to_db', is_flag=True, expose_value=True,
+              prompt='Are you sure you want to add QCOneConfig to DB? `N` will just preview it. ')
+def add_stacking_schema(
+        filepath: str,
+        add_to_db: bool,
+):
+    """Read a TOML file with StackingSchema and add to db."""
+
+    from noiz.api.processing_config import create_and_add_stacking_schema_from_toml
+
+    if add_to_db:
+        create_and_add_stacking_schema_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
+    else:
+        parsing_results, _ = create_and_add_stacking_schema_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
+        click.echo("\n")
+        click.echo(parsing_results)
+
+
 @data_group.group("data")
 def data_group():  # type: ignore
     """Ingest raw data"""
