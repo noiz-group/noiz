@@ -65,22 +65,114 @@ class TestDataIngestionRoutines:
         with noiz_app.app_context():
             fetched_components = fetch_components()
             fetched_component_files = db.session.query(ComponentFile).all()
-            fetched_componentpairs_normal = fetch_componentpairs(intracorrelation=False, autocorrelation=False)
+            fetched_componentpairs_normal = fetch_componentpairs()
 
         assert len(fetched_components) == 9
         assert len(fetched_component_files) == 9
         assert len(fetched_componentpairs_normal) == 27
 
-    @pytest.mark.xfail
-    def test_adding_componentpairs(self, noiz_app):
+    def test_fetch_componentpairs(self, noiz_app):
+        # TODO remove that test once it's running through API system tests
+        kwargs = dict(
+            network_codes_a=None,
+            station_codes_a=None,
+            component_codes_a=None,
+            network_codes_b=None,
+            station_codes_b=None,
+            component_codes_b=None,
+            accepted_component_code_pairs=None,
+            include_autocorrelation=False,
+            include_intracorrelation=False,
+            only_autocorrelation=False,
+            only_intracorrelation=False,
+        )
 
         with noiz_app.app_context():
-            fetched_componentpairs_all = fetch_componentpairs(intracorrelation=True, autocorrelation=True)
-            fetched_componentpairs_intra = fetch_componentpairs(intracorrelation=True, autocorrelation=False)
-            fetched_componentpairs_auto = fetch_componentpairs(intracorrelation=False, autocorrelation=True)
-        assert len(fetched_componentpairs_all) == 57
-        assert len(fetched_componentpairs_intra) == 36
-        assert len(fetched_componentpairs_auto) == 36
+            kwargs_mod = kwargs.copy()
+            assert len(fetch_componentpairs(**kwargs_mod)) == 27
+
+        with noiz_app.app_context():
+            kwargs_mod = kwargs.copy()
+            kwargs_mod['include_autocorrelation'] = True
+            kwargs_mod['include_intracorrelation'] = True
+            assert len(fetch_componentpairs(**kwargs_mod)) == 54
+
+        with noiz_app.app_context():
+            kwargs_mod = kwargs.copy()
+            kwargs_mod['only_autocorrelation'] = True
+            assert len(fetch_componentpairs(**kwargs_mod)) == 9
+
+        with noiz_app.app_context():
+            kwargs_mod = kwargs.copy()
+            kwargs_mod['only_intracorrelation'] = True
+            assert len(fetch_componentpairs(**kwargs_mod)) == 18
+
+        with noiz_app.app_context():
+            kwargs_mod = kwargs.copy()
+            kwargs_mod['station_codes_a'] = ("SI11", "SI05")
+            assert len(fetch_componentpairs(**kwargs_mod)) == 9
+
+        with noiz_app.app_context():
+            kwargs_mod = kwargs.copy()
+            kwargs_mod['station_codes_a'] = ("SI11", "SI05")
+            kwargs_mod['only_autocorrelation'] = True
+            assert len(fetch_componentpairs(**kwargs_mod)) == 6
+
+        with noiz_app.app_context():
+            kwargs_mod = kwargs.copy()
+            kwargs_mod['station_codes_a'] = ("SI11",)
+            kwargs_mod['only_autocorrelation'] = True
+            assert len(fetch_componentpairs(**kwargs_mod)) == 3
+
+        with noiz_app.app_context():
+            kwargs_mod = kwargs.copy()
+            kwargs_mod['station_codes_a'] = ("SI11",)
+            kwargs_mod['only_intracorrelation'] = True
+            assert len(fetch_componentpairs(**kwargs_mod)) == 6
+
+        with noiz_app.app_context():
+            kwargs_mod = kwargs.copy()
+            kwargs_mod['station_codes_a'] = ("SI11", "SI05")
+            kwargs_mod['only_intracorrelation'] = True
+            assert len(fetch_componentpairs(**kwargs_mod)) == 12
+
+        with noiz_app.app_context():
+            kwargs_mod = kwargs.copy()
+            kwargs_mod['station_codes_a'] = ("SI11",)
+            kwargs_mod['include_autocorrelation'] = True
+            assert len(fetch_componentpairs(**kwargs_mod)) == 3
+
+        with noiz_app.app_context():
+            kwargs_mod = kwargs.copy()
+            kwargs_mod['station_codes_a'] = ("SI11",)
+            kwargs_mod['include_intracorrelation'] = True
+            assert len(fetch_componentpairs(**kwargs_mod)) == 6
+
+        with noiz_app.app_context():
+            kwargs_mod = kwargs.copy()
+            kwargs_mod['station_codes_a'] = ("SI11",)
+            kwargs_mod['include_autocorrelation'] = True
+            kwargs_mod['include_intracorrelation'] = True
+            assert len(fetch_componentpairs(**kwargs_mod)) == 9
+
+        with noiz_app.app_context():
+            kwargs_mod = kwargs.copy()
+            kwargs_mod['station_codes_a'] = ("SI11", "SI05")
+            kwargs_mod['include_autocorrelation'] = True
+            assert len(fetch_componentpairs(**kwargs_mod)) == 15
+
+        with noiz_app.app_context():
+            kwargs_mod = kwargs.copy()
+            kwargs_mod['station_codes_a'] = ("SI11", "SI05")
+            kwargs_mod['include_intracorrelation'] = True
+            assert len(fetch_componentpairs(**kwargs_mod)) == 21
+
+        with noiz_app.app_context():
+            kwargs_mod = kwargs.copy()
+            kwargs_mod['station_codes_a'] = ("SI11", "SI05")
+            kwargs_mod['include_autocorrelation'] = True
+            kwargs_mod['include_intracorrelation'] = True
+            assert len(fetch_componentpairs(**kwargs_mod)) == 27
 
     @pytest.mark.xfail
     def test_add_soh_files(self, noiz_app):
