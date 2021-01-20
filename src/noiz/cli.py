@@ -490,6 +490,8 @@ def process_datachunks(
 @click.option("-p", "--crosscorrelation_params_id", nargs=1, type=int,
               default=1, show_default=True)
 @click.option('--parallel/--no_parallel', default=True)
+@click.option('-ia', '--include_autocorrelation', is_flag=True)
+@click.option('-ii', '--include_intracorrelation', is_flag=True)
 def run_crosscorrelations(
         station_code,
         component_code_pair,
@@ -497,8 +499,10 @@ def run_crosscorrelations(
         enddate,
         crosscorrelation_params_id,
         parallel,
+        include_autocorrelation,
+        include_intracorrelation,
 ):
-    """Start processing of datachunks"""
+    """Start processing of crosscorrelations. Limited mount of pair selection arguments, use API directly if needed."""
 
     if parallel:
         from noiz.api.crosscorrelations import perform_crosscorrelations_parallel
@@ -506,8 +510,10 @@ def run_crosscorrelations(
             crosscorrelation_params_id=crosscorrelation_params_id,
             starttime=startdate,
             endtime=enddate,
-            station_codes=station_code,
-            component_code_pairs=component_code_pair,
+            station_codes_a=station_code,
+            accepted_component_code_pairs=component_code_pair,
+            include_autocorrelation=include_autocorrelation,
+            include_intracorrelation=include_intracorrelation,
         )
     else:
         from noiz.api.crosscorrelations import perform_crosscorrelations
@@ -515,8 +521,10 @@ def run_crosscorrelations(
             crosscorrelation_params_id=crosscorrelation_params_id,
             starttime=startdate,
             endtime=enddate,
-            station_codes=station_code,
-            component_code_pairs=component_code_pair,
+            station_codes_a=station_code,
+            accepted_component_code_pairs=component_code_pair,
+            include_autocorrelation=include_autocorrelation,
+            include_intracorrelation=include_intracorrelation,
         )
 
 
