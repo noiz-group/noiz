@@ -265,7 +265,7 @@ class QCTwoResults(db.Model):
     __tablename__ = "qctwo_results"
     __table_args__ = (
         db.UniqueConstraint(
-            "datachunk_id", "qctwo_config_id", name="unique_qctwo_results_per_config_per_datachunk"
+            "crosscorrelation_id", "qctwo_config_id", name="unique_qctwo_results_per_config_per_datachunk"
         ),
     )
 
