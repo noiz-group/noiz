@@ -6,7 +6,6 @@ from sqlalchemy.dialects.postgresql import ARRAY
 
 from noiz.models.timespan import TimespanModel
 from noiz.database import db
-from noiz.processing.timespan import generate_starttimes_endtimes
 
 
 class StackingTimespan(TimespanModel):
@@ -92,15 +91,6 @@ class StackingSchema(db.Model):
 
     def _calculate_stacking_step(self):
         self.stacking_step = self.stacking_length - self.stacking_overlap
-
-    def _generate_times(self):
-        return generate_starttimes_endtimes(
-            startdate=self.starttime,
-            enddate=self.endtime,
-            window_length=pd.Timedelta(self.stacking_length),
-            window_overlap=pd.Timedelta(self.stacking_overlap),
-            generate_midtimes=True,
-        )
 
 
 ccf_ccfstack_association_table = db.Table(
