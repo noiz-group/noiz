@@ -340,6 +340,40 @@ class TestDataIngestionRoutines:
         assert fetched_config.sampling_rate == 24
         assert fetched_config.correlation_max_lag == 20
 
+    def test_add_qctwo_config(self, workdir_with_content, noiz_app):
+
+        config_path = workdir_with_content.joinpath('QCTwoConfig.toml')
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["configs", "add_qctwo_config", "--add_to_db", "-f", str(config_path)])
+
+        assert result.exit_code == 0
+
+        import toml
+        import pytest_check as check
+        from noiz.api.qc import fetch_qctwo_config_single
+        from noiz.models.qc import QCTwoConfig
+
+        with noiz_app.app_context():
+            fetched_config = fetch_qctwo_config_single(id=1)
+            all_configs = QCTwoConfig.query.all()
+
+        assert isinstance(fetched_config, QCTwoConfig)
+        assert len(all_configs) == 1
+
+        with open(config_path, 'r') as f:
+            original_config = toml.load(f)
+
+        for key, value in original_config['QCTwo'].items():
+            if key in ("null_treatment_policy", "rejected_times"):
+                continue
+            if key in ("starttime", "endtime"):
+                check.equal(fetched_config.__getattribute__(key).date(), value)
+                continue
+            check.almost_equal(fetched_config.__getattribute__(key), value)
+
+        check.equal(len(original_config['QCTwo']['rejected_times']), len(fetched_config.time_periods_rejected))
+
     def test_insert_stacking_schema(self, workdir_with_content, noiz_app):
 
         config_path = workdir_with_content.joinpath('stacking_schema.toml')
