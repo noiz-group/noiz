@@ -359,7 +359,6 @@ class TestDataIngestionRoutines:
         assert isinstance(fetched_config.endtime, datetime.datetime)
         assert isinstance(fetched_config.stacking_overlap, datetime.timedelta)
         assert isinstance(fetched_config.stacking_length, datetime.timedelta)
-        assert isinstance(fetched_config.stacking_step, datetime.timedelta)
 
     def test_insert_timespans(self, workdir_with_content, noiz_app):
 
