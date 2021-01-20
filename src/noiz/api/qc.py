@@ -1,5 +1,6 @@
 import datetime
 from loguru import logger
+from noiz.models import Crosscorrelation
 
 from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import insert
@@ -68,7 +69,7 @@ def fetch_qcone_results(
         datachunks: Optional[Collection[Datachunk]] = None,
         datachunk_ids: Optional[Collection[int]] = None,
 ) -> List[QCOneResults]:
-
+    """filldocs"""
     query = _query_qcone_results(
         qcone_config=qcone_config,
         qcone_config_id=qcone_config_id,
@@ -84,6 +85,7 @@ def count_qcone_results(
         datachunks: Optional[Collection[Datachunk]] = None,
         datachunk_ids: Optional[Collection[int]] = None,
 ) -> int:
+    """filldocs"""
 
     query = _query_qcone_results(
         qcone_config=qcone_config,
@@ -123,6 +125,113 @@ def _query_qcone_results(
         filters.append(True)
 
     query = QCOneResults.query.filter(*filters)
+
+    return query
+
+
+def fetch_qctwo_config(ids: Union[int, Collection[int]]) -> List[QCTwoConfig]:
+    """
+    Fetches the QCTwoConfig from db based on id. Can be either a single id or some collection of ids.
+    It always returns a list of instances, can also be an empty list.
+
+    :param ids: IDs to be fetched
+    :type ids: Union[int, Collection[int]]
+    :return: Fetched QCTwoConfig objects
+    :rtype: List[QCTwoConfig]
+    """
+
+    ids = validate_to_tuple(val=ids, accepted_type=int)
+
+    fetched = db.session.query(QCTwoConfig).filter(
+        QCTwoConfig.id.in_(ids),
+    ).all()
+
+    return fetched
+
+
+def fetch_qctwo_config_single(id: int) -> QCTwoConfig:
+    """
+    Fetches a single :class:`noiz.models.qc.QCTwoConfig` from db based on id.
+
+    :param id: ID to be fetched
+    :type id: int
+    :return: Fetched config
+    :rtype: QCTwoConfig
+    :raises ValueError
+    """
+
+    fetched = db.session.query(QCTwoConfig).filter(
+        QCTwoConfig.id == id,
+    ).first()
+
+    if fetched is None:
+        raise EmptyResultException(f"There was no QCOneConfig with if={id} in the database.")
+
+    return fetched
+
+
+def fetch_qctwo_results(
+        qctwo_config: Optional[QCTwoConfig] = None,
+        qctwo_config_id: Optional[int] = None,
+        crosscorrelations: Optional[Collection[Crosscorrelation]] = None,
+        crosscorrelation_ids: Optional[Collection[int]] = None,
+) -> List[QCOneResults]:
+    """filldocs"""
+    query = _query_qctwo_results(
+        qctwo_config=qctwo_config,
+        qctwo_config_id=qctwo_config_id,
+        crosscorrelations=crosscorrelations,
+        crosscorrelation_ids=crosscorrelation_ids,
+    )
+    return query.all()
+
+
+def count_qctwo_results(
+        qctwo_config: Optional[QCTwoConfig] = None,
+        qctwo_config_id: Optional[int] = None,
+        crosscorrelations: Optional[Collection[Crosscorrelation]] = None,
+        crosscorrelation_ids: Optional[Collection[int]] = None,
+) -> List[QCOneResults]:
+    """filldocs"""
+    query = _query_qctwo_results(
+        qctwo_config=qctwo_config,
+        qctwo_config_id=qctwo_config_id,
+        crosscorrelations=crosscorrelations,
+        crosscorrelation_ids=crosscorrelation_ids,
+    )
+    return query.count()
+
+
+def _query_qctwo_results(
+        qctwo_config: Optional[QCOneConfig] = None,
+        qctwo_config_id: Optional[int] = None,
+        crosscorrelations: Optional[Collection[Datachunk]] = None,
+        crosscorrelation_ids: Optional[Collection[int]] = None,
+) -> Query:
+    """filldocs"""
+
+    if crosscorrelations is not None and crosscorrelation_ids is not None:
+        raise ValueError("Both crosscorrelations and crosscorrelation_ids parameters were provided. "
+                         "You have to provide maximum one of them.")
+    if qctwo_config is not None and qctwo_config_id is not None:
+        raise ValueError("Both qcone_config and qcone_config_id parameters were provided. "
+                         "You have to provide maximum one of them.")
+
+    filters = []
+    if qctwo_config is not None:
+        filters.append(QCTwoResults.qcone_config_id.in_((qctwo_config.id,)))
+    if qctwo_config_id is not None:
+        qcone_config_ids = validate_to_tuple(val=qctwo_config_id, accepted_type=int)
+        filters.append(QCTwoResults.qcone_config_id.in_(qcone_config_ids))
+    if crosscorrelations is not None:
+        extracted_datachunk_ids = extract_object_ids(crosscorrelations)
+        filters.append(QCTwoResults.datachunk_id.in_(extracted_datachunk_ids))
+    if crosscorrelation_ids is not None:
+        filters.append(QCTwoResults.datachunk_id.in_(crosscorrelation_ids))
+    if len(filters) == 0:
+        filters.append(True)
+
+    query = QCTwoResults.query.filter(*filters)
 
     return query
 
