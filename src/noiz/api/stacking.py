@@ -1,13 +1,48 @@
-from typing import Iterable
-
+from loguru import logger
 from sqlalchemy.dialects.postgresql import insert
+from typing import Collection
 
 from noiz.database import db
 from noiz.models.stacking import StackingTimespan
+from noiz.api.processing_config import fetch_stacking_schema_by_id
+from noiz.processing.stacking import generate_stacking_timespans
 
 
-def insert_stacking_timespans_into_db(
-    timespans: Iterable[StackingTimespan], bulk_insert: bool
+def create_stacking_timespans_add_to_db(
+        stacking_schema_id: int,
+        bulk_insert: bool = True,
+) -> None:
+    """
+    Fetches a :py:class:`~noiz.models.stacking.StackingSchema` with provided
+    :paramref:`noiz.api.stacking.create_stacking_timespans_add_to_db.stacking_schema_id` and based on it, creates
+    all possible StackingTimespans.
+    After creation, it tries to simply add all of them to database, in case of failure, an Upsert operation is
+    attempted.
+
+    :param stacking_schema_id: Id of existing StackingSchema object.
+    :type stacking_schema_id: int
+    :param bulk_insert: If a bulk insert should be attempted
+    :type bulk_insert: bool
+    :return:
+    :rtype:
+    """
+    logger.info(f"Fetching stacking schema with id {stacking_schema_id}")
+    stacking_schema = fetch_stacking_schema_by_id(id=stacking_schema_id)
+    logger.info("Stacking schema fetched")
+
+    logger.info("Generating StackingTimespan objects.")
+    stacking_timespans = list(generate_stacking_timespans(stacking_schema=stacking_schema))
+    logger.info(f"There were {len(stacking_timespans)} StackingTimespan generated.")
+
+    logger.info("Inserting/Upserting them to database.")
+    insert_upsert_stacking_timespans_into_db(timespans=stacking_timespans, bulk_insert=bulk_insert)
+    logger.info("All objects successfully added to database.")
+    return
+
+
+def insert_upsert_stacking_timespans_into_db(
+        timespans: Collection[StackingTimespan],
+        bulk_insert: bool,
 ) -> None:
     if bulk_insert:
         db.session.bulk_save_objects(timespans)
