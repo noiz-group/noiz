@@ -35,15 +35,28 @@ def create_stacking_timespans_add_to_db(
     logger.info(f"There were {len(stacking_timespans)} StackingTimespan generated.")
 
     logger.info("Inserting/Upserting them to database.")
-    insert_upsert_stacking_timespans_into_db(timespans=stacking_timespans, bulk_insert=bulk_insert)
+    _insert_upsert_stacking_timespans_into_db(timespans=stacking_timespans, bulk_insert=bulk_insert)
     logger.info("All objects successfully added to database.")
     return
 
 
-def insert_upsert_stacking_timespans_into_db(
+def _insert_upsert_stacking_timespans_into_db(
         timespans: Collection[StackingTimespan],
-        bulk_insert: bool,
+        bulk_insert: bool = True,
 ) -> None:
+    """
+    Inserts a collection of  :py:class:`~noiz.models.stacking.StackingSchema` objects to database.
+    By default it attempts to add all of the objects in the bulk insert action.
+    If the bulk_insert param is false, it tries to upsert all the objects one by one.
+
+    :param timespans: StackingTimespans to be added to db
+    :type timespans: Collection[StackingTimespan]
+    :param bulk_insert: If the bullk insert should be attempted.
+    :type bulk_insert: bool
+    :return: None
+    :rtype: NoneType
+    """
+    # FIXME Make bulk_insert path try to perform it but then in case of exception perform upsert. noiz#176
     if bulk_insert:
         db.session.bulk_save_objects(timespans)
         db.session.commit()
