@@ -261,6 +261,41 @@ class QCTwoConfig(db.Model):
     )
 
 
+class QCTwoResults(db.Model):
+    __tablename__ = "qctwo_results"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "datachunk_id", "qctwo_config_id", name="unique_qctwo_results_per_config_per_datachunk"
+        ),
+    )
+
+    id = db.Column("id", db.BigInteger, primary_key=True)
+
+    qctwo_config_id = db.Column("qctwo_config_id", db.Integer, db.ForeignKey("qctwo_config.id"))
+    crosscorrelation_id = db.Column("crosscorrelation_id", db.Integer, db.ForeignKey("crosscorrelation.id"))
+
+    starttime = db.Column("starttime", db.Boolean, nullable=False)
+    endtime = db.Column("endtime", db.Boolean, nullable=False)
+    accepted_time = db.Column("accepted_time", db.Boolean, nullable=False)
+
+    qctwo_config = db.relationship("QCTwoConfig", foreign_keys=[qctwo_config_id])
+    crosscorrelation = db.relationship("Crosscorrelation", foreign_keys=[crosscorrelation_id])
+
+    def is_passing(self) -> bool:
+        """
+        Checks if all values of QCTwo are True.
+
+        :return: If QCTwo is passing for that chunk
+        :rtype: bool
+        """
+        ret = all((
+            self.starttime,
+            self.endtime,
+            self.accepted_time,
+        ))
+        return ret
+
+
 @dataclass
 class QCTwoConfigRejectedTimeHolder:
     """
