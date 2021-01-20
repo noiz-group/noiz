@@ -162,9 +162,13 @@ def add_stacking_schema(
     """Read a TOML file with StackingSchema and add to db."""
 
     from noiz.api.processing_config import create_and_add_stacking_schema_from_toml
+    from noiz.api.stacking import create_stacking_timespans_add_to_db
 
     if add_to_db:
-        create_and_add_stacking_schema_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
+        params = create_and_add_stacking_schema_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
+        click.echo(f"The StackingSchema was added to db with if {params.id}")
+        click.echo("Proceeding with creation of StackingTimespans")
+        create_stacking_timespans_add_to_db(stacking_schema_id=params.id, bulk_insert=True)
     else:
         parsing_results, _ = create_and_add_stacking_schema_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
         click.echo("\n")
