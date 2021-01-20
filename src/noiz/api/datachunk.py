@@ -294,7 +294,7 @@ def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
     return
 
 
-def prepare_datachunk_preparation_parameter_lists(
+def _prepare_datachunk_preparation_parameter_lists(
         stations: Optional[Tuple[str]],
         components: Optional[Tuple[str]],
         startdate: pendulum.Pendulum,
@@ -370,10 +370,10 @@ def run_paralel_chunk_preparation(
 ):
     # TODO rename this method to run_parallel_datachunk_preparation Gitlab#151
     logger.info("Preparing jobs for execution")
-    joblist = prepare_datachunk_preparation_parameter_lists(stations,
-                                                            components,
-                                                            startdate, enddate,
-                                                            processing_config_id)
+    joblist = _prepare_datachunk_preparation_parameter_lists(stations,
+                                                             components,
+                                                             startdate, enddate,
+                                                             processing_config_id)
 
     # TODO add more checks for bad seed files because they are crashing.
     # And instead of datachunk id there was something weird produced. It was found on SI26 in
