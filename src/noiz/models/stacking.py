@@ -1,6 +1,6 @@
 import datetime
 import pandas as pd
-from typing import Iterable, Union, Optional
+from typing import Union, Optional
 from pydantic.dataclasses import dataclass
 from sqlalchemy.dialects.postgresql import ARRAY
 
@@ -101,18 +101,6 @@ class StackingSchema(db.Model):
             window_overlap=pd.Timedelta(self.stacking_overlap),
             generate_midtimes=True,
         )
-
-    def generate_stacking_timespans(self) -> Iterable[StackingTimespan]:
-
-        timespans = self._generate_times()
-
-        for starttime, midtime, endtime in zip(*timespans):
-            yield StackingTimespan(
-                starttime=starttime,
-                midtime=midtime,
-                endtime=endtime,
-                stacking_schema_id=self.id,
-            )
 
 
 ccf_ccfstack_association_table = db.Table(
