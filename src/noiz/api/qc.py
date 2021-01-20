@@ -16,7 +16,7 @@ from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models.datachunk import Datachunk, DatachunkStats
 from noiz.models.qc import QCOneConfig, QCOneRejectedTime, QCOneConfigRejectedTimeHolder, QCOneConfigHolder, \
-    QCOneResults, QCTwoConfigRejectedTimeHolder, QCTwoRejectedTime, QCTwoConfigHolder, QCTwoConfig
+    QCOneResults, QCTwoConfigRejectedTimeHolder, QCTwoRejectedTime, QCTwoConfigHolder, QCTwoConfig, QCTwoResults
 from noiz.models.soh import AveragedSohGps
 from noiz.processing.configs import validate_dict_as_qcone_holder, validate_dict_as_qctwo_holder
 from noiz.processing.qc import calculate_qcone_results
@@ -175,7 +175,7 @@ def fetch_qctwo_results(
         qctwo_config_id: Optional[int] = None,
         crosscorrelations: Optional[Collection[Crosscorrelation]] = None,
         crosscorrelation_ids: Optional[Collection[int]] = None,
-) -> List[QCOneResults]:
+) -> List[QCTwoResults]:
     """filldocs"""
     query = _query_qctwo_results(
         qctwo_config=qctwo_config,
@@ -191,7 +191,7 @@ def count_qctwo_results(
         qctwo_config_id: Optional[int] = None,
         crosscorrelations: Optional[Collection[Crosscorrelation]] = None,
         crosscorrelation_ids: Optional[Collection[int]] = None,
-) -> List[QCOneResults]:
+) -> int:
     """filldocs"""
     query = _query_qctwo_results(
         qctwo_config=qctwo_config,
@@ -219,15 +219,15 @@ def _query_qctwo_results(
 
     filters = []
     if qctwo_config is not None:
-        filters.append(QCTwoResults.qcone_config_id.in_((qctwo_config.id,)))
+        filters.append(QCTwoResults.qctwo_config_id.in_((qctwo_config.id,)))
     if qctwo_config_id is not None:
         qcone_config_ids = validate_to_tuple(val=qctwo_config_id, accepted_type=int)
-        filters.append(QCTwoResults.qcone_config_id.in_(qcone_config_ids))
+        filters.append(QCTwoResults.qctwo_config_id.in_(qcone_config_ids))
     if crosscorrelations is not None:
         extracted_datachunk_ids = extract_object_ids(crosscorrelations)
-        filters.append(QCTwoResults.datachunk_id.in_(extracted_datachunk_ids))
+        filters.append(QCTwoResults.crosscorrelation_id.in_(extracted_datachunk_ids))
     if crosscorrelation_ids is not None:
-        filters.append(QCTwoResults.datachunk_id.in_(crosscorrelation_ids))
+        filters.append(QCTwoResults.crosscorrelation_id.in_(crosscorrelation_ids))
     if len(filters) == 0:
         filters.append(True)
 
