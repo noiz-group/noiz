@@ -65,7 +65,6 @@ class StackingSchema(db.Model):
     stacking_overlap = db.Column("stacking_overlap", db.Interval, nullable=False)
 
     def __init__(self, **kwargs):
-        # self.id = kwargs.get('id', None)
         self.starttime = kwargs.get("starttime", None)
         self.endtime = kwargs.get("endtime", None)
         self.stacking_length = _validate_timedelta(
