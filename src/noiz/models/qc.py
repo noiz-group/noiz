@@ -214,3 +214,31 @@ class QCOneConfigHolder:
     signal_skewness_max: Optional[float] = None
     signal_kurtosis_min: Optional[float] = None
     signal_kurtosis_max: Optional[float] = None
+
+
+@dataclass
+class QCTwoConfigRejectedTimeHolder:
+    """
+        This simple dataclass is just helping to validate :class:`~noiz.models.QCOneRejectedTime` values loaded
+        from the TOML file
+    """
+    network_a: str
+    station_a: str
+    component_a: str
+    network_b: str
+    station_b: str
+    component_b: str
+    starttime: Union[datetime.datetime, datetime.date]
+    endtime: Union[datetime.datetime, datetime.date]
+
+
+@dataclass
+class QCTwoConfigHolder:
+    """
+    This simple dataclass is just helping to validate :class:`~noiz.models.QCOneConfig` values loaded from the TOML file
+    """
+
+    null_treatment_policy: NullTreatmentPolicy = NullTreatmentPolicy.PASS
+    starttime: Union[datetime.datetime, datetime.date] = datetime.date(2010, 1, 1)
+    endtime: Union[datetime.datetime, datetime.date] = datetime.date(2030, 1, 1)
+    rejected_times: Union[Tuple[QCTwoConfigRejectedTimeHolder, ...], List[QCTwoConfigRejectedTimeHolder]] = tuple()
