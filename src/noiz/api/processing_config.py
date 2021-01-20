@@ -77,7 +77,7 @@ def fetch_stacking_schema_by_id(id: int) -> StackingSchema:
 
 def _insert_params_into_db(
         params: Union[DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams, StackingSchema]
-) -> None:
+) -> Union[DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams, StackingSchema]:
     """
     This is method simply adding an instance of :py:class:`~noiz.models.DatachunkParams`,
     :py:class:`~noiz.models.ProcessedDatachunkParams`, :py:class:`~noiz.models.CrosscorrelationParams`,
@@ -91,17 +91,16 @@ def _insert_params_into_db(
     :return: None
     :rtype: NoneType
     """
-    # TODO make this return id of inserted object and cli to be printing it out
     db.session.add(params)
     db.session.commit()
     logger.info(f"Inserted {type(params)} to db with id {params.id}")
-    return
+    return params
 
 
 def create_and_add_datachunk_params_config_from_toml(
         filepath: Path,
         add_to_db: bool = False
-) -> Optional[Tuple[DatachunkParamsHolder, DatachunkParams]]:
+) -> Union[DatachunkParams, Tuple[DatachunkParamsHolder, DatachunkParams]]:
     """
     filldocs
     This method takes a filepath to a TOML file with valid parameters
@@ -122,16 +121,15 @@ def create_and_add_datachunk_params_config_from_toml(
     datachunk_params = create_datachunkparams(params_holder=params_holder)
 
     if add_to_db:
-        _insert_params_into_db(params=datachunk_params)
+        return _insert_params_into_db(params=datachunk_params)
     else:
         return (params_holder, datachunk_params)
-    return None
 
 
 def create_and_add_processed_datachunk_params_from_toml(
         filepath: Path,
         add_to_db: bool = False
-) -> Optional[Tuple[ProcessedDatachunkParamsHolder, ProcessedDatachunkParams]]:
+) -> Union[ProcessedDatachunkParams, Tuple[ProcessedDatachunkParamsHolder, ProcessedDatachunkParams]]:
     """
     filldocs
     """
@@ -148,16 +146,15 @@ def create_and_add_processed_datachunk_params_from_toml(
     params = create_processed_datachunk_params(params_holder=params_holder)
 
     if add_to_db:
-        _insert_params_into_db(params=params)
+        return _insert_params_into_db(params=params)
     else:
         return (params_holder, params)
-    return None
 
 
 def create_and_add_crosscorrelation_params_from_toml(
         filepath: Path,
         add_to_db: bool = False
-) -> Optional[Tuple[CrosscorrelationParamsHolder, CrosscorrelationParams]]:
+) -> Union[CrosscorrelationParams, Tuple[CrosscorrelationParamsHolder, CrosscorrelationParams]]:
     """
     filldocs
     """
@@ -175,16 +172,15 @@ def create_and_add_crosscorrelation_params_from_toml(
     params = create_crosscorrelation_params(params_holder=params_holder, processed_params=processed_datachunk_params)
 
     if add_to_db:
-        _insert_params_into_db(params=params)
+        return _insert_params_into_db(params=params)
     else:
         return (params_holder, params)
-    return None
 
 
 def create_and_add_stacking_schema_from_toml(
         filepath: Path,
         add_to_db: bool = False
-) -> Optional[Tuple[StackingSchemaHolder, StackingSchema]]:
+) -> Union[StackingSchema, Tuple[StackingSchemaHolder, StackingSchema]]:
     """
     filldocs
     """
@@ -193,7 +189,6 @@ def create_and_add_stacking_schema_from_toml(
     params = create_stacking_params(params_holder=params_holder)
 
     if add_to_db:
-        _insert_params_into_db(params=params)
+        return _insert_params_into_db(params=params)
     else:
         return (params_holder, params)
-    return None

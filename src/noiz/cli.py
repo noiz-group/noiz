@@ -80,7 +80,8 @@ def add_datachunk_params(
     from noiz.api.processing_config import create_and_add_datachunk_params_config_from_toml as parse_and_add
 
     if add_to_db:
-        parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
+        params = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
+        click.echo(f"The DatachunkParams were added to db with id {params.id}")
     else:
         parsing_results, _ = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
         click.echo("\n")
@@ -101,7 +102,8 @@ def add_processed_datachunk_params(
     from noiz.api.processing_config import create_and_add_processed_datachunk_params_from_toml as parse_and_add
 
     if add_to_db:
-        parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
+        params = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
+        click.echo(f"The ProcessedDatachunkParams were added to db with id {params.id}")
     else:
         parsing_results, _ = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
         click.echo("\n")
@@ -122,7 +124,8 @@ def add_crosscorrelation_params(
     from noiz.api.processing_config import create_and_add_crosscorrelation_params_from_toml as parse_and_add
 
     if add_to_db:
-        parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
+        params = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
+        click.echo(f"The CrosscorrelationParams were added to db with id {params.id}")
     else:
         parsing_results, _ = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
         click.echo("\n")
@@ -143,7 +146,8 @@ def add_qcone_config(
     from noiz.api.qc import create_and_add_qcone_config_from_toml
 
     if add_to_db:
-        create_and_add_qcone_config_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
+        params = create_and_add_qcone_config_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
+        click.echo(f"The QCOneConfig was added to db with id {params.id}")
     else:
         parsing_results, _ = create_and_add_qcone_config_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
         click.echo("\n")
@@ -162,9 +166,13 @@ def add_stacking_schema(
     """Read a TOML file with StackingSchema and add to db."""
 
     from noiz.api.processing_config import create_and_add_stacking_schema_from_toml
+    from noiz.api.stacking import create_stacking_timespans_add_to_db
 
     if add_to_db:
-        create_and_add_stacking_schema_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
+        params = create_and_add_stacking_schema_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
+        click.echo(f"The StackingSchema was added to db with if {params.id}")
+        click.echo("Proceeding with creation of StackingTimespans")
+        create_stacking_timespans_add_to_db(stacking_schema_id=params.id, bulk_insert=True)
     else:
         parsing_results, _ = create_and_add_stacking_schema_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
         click.echo("\n")
