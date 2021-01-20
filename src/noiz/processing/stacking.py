@@ -1,3 +1,6 @@
+from typing import Iterable, Generator
+
+import pandas as pd
 from loguru import logger
 import numpy as np
 import sqlalchemy
@@ -7,8 +10,9 @@ from noiz.models.component_pair import ComponentPair
 from noiz.models.crosscorrelation import Crosscorrelation
 from noiz.models.processing_params import DatachunkParams
 from noiz.models.timespan import Timespan
-from noiz.models.stacking import StackingTimespan, CCFStack
+from noiz.models.stacking import StackingSchema, StackingTimespan, CCFStack
 from noiz.processing.time_utils import get_year_doy
+from noiz.processing.timespan import generate_starttimes_endtimes
 
 
 def stack_crosscorrelation(
@@ -120,3 +124,22 @@ def stack_crosscorrelation(
                 db.session.commit()
             logger.info("Commit successful. Next")
         logger.info("That was everything. Finishing")
+
+
+def generate_stacking_timespans(stacking_schema: StackingSchema) -> Generator[StackingTimespan, None, None]:
+
+    timespans = generate_starttimes_endtimes(
+        startdate=stacking_schema.starttime,
+        enddate=stacking_schema.endtime,
+        window_length=pd.Timedelta(stacking_schema.stacking_length),
+        window_overlap=pd.Timedelta(stacking_schema.stacking_overlap),
+        generate_midtimes=True,
+    )
+
+    for starttime, midtime, endtime in zip(*timespans):
+        yield StackingTimespan(
+            starttime=starttime,
+            midtime=midtime,
+            endtime=endtime,
+            stacking_schema_id=stacking_schema.id,
+        )
