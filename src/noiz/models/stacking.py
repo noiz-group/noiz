@@ -52,6 +52,9 @@ class StackingSchema(db.Model):
             kwargs.get("stacking_overlap", None)
         )
 
+        if self.stacking_step is not None and self.stacking_overlap is not None:
+            raise ValueError("You cannot provide stacking_step and stacking overlap at the same time.")
+
         if self.stacking_step is not None and self.stacking_overlap is None:
             self._calclulate_overlap()
 
