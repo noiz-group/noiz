@@ -334,24 +334,36 @@ def processing_group():  # type: ignore
 @click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
 @click.option("-p", "--datachunk_params_id", nargs=1, type=int,
               default=1, show_default=True)
+@click.option('--parallel/--no_parallel', default=True)
 def prepare_datachunks(
         station,
         component,
         startdate,
         enddate,
-        datachunk_params_id
+        datachunk_params_id,
+        parallel,
 ):
-    """Start parallel processing of datachunks"""
+    """Start preparation of datachunks in linear or parallel fashion"""
 
-    from noiz.api.datachunk import run_paralel_chunk_preparation
+    if parallel:
+        from noiz.api.datachunk import run_datachunk_preparation_parallel
+        run_datachunk_preparation_parallel(
+            stations=station,
+            components=component,
+            startdate=startdate,
+            enddate=enddate,
+            processing_config_id=datachunk_params_id
+        )
 
-    run_paralel_chunk_preparation(
-        stations=station,
-        components=component,
-        startdate=startdate,
-        enddate=enddate,
-        processing_config_id=datachunk_params_id
-    )
+    else:
+        from noiz.api.datachunk import run_datachunk_preparation
+        run_datachunk_preparation(
+            stations=station,
+            components=component,
+            startdate=startdate,
+            enddate=enddate,
+            processing_config_id=datachunk_params_id
+        )
 
 
 @processing_group.command("calc_datachunk_stats")
