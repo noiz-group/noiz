@@ -8,6 +8,7 @@ from noiz.models import DatachunkParams
 from noiz.models.processing_params import DatachunkParamsHolder, ProcessedDatachunkParamsHolder, \
     ProcessedDatachunkParams, CrosscorrelationParamsHolder, CrosscorrelationParams
 from noiz.models.qc import QCOneConfigRejectedTimeHolder, QCOneConfigHolder
+from noiz.models.stacking import StackingSchemaHolder, StackingSchema
 
 
 class DefinedConfigs(ExtendedEnum):
@@ -16,6 +17,7 @@ class DefinedConfigs(ExtendedEnum):
     PROCESSEDDATACHUNKPARAMS = "ProcessedDatachunkParams"
     CROSSCORRELATIONPARAMS = "CrosscorrelationParams"
     QCONE = "QCOne"
+    STACKINGSCHEMA = "StackingSchema"
 
 
 def _select_validator_for_config_type(config_type: DefinedConfigs):
@@ -30,6 +32,8 @@ def _select_validator_for_config_type(config_type: DefinedConfigs):
         return validate_config_dict_as_crosscorrelationparams
     elif config_type is DefinedConfigs.QCONE:
         return validate_dict_as_qcone_holder
+    elif config_type is DefinedConfigs.STACKINGSCHEMA:
+        return validate_config_dict_as_stacking_schema
     else:
         raise NotImplementedError(f"There is no validator specified for {config_type}")
 
@@ -142,6 +146,11 @@ def validate_config_dict_as_crosscorrelationparams(loaded_dict: Dict) -> Crossco
     return CrosscorrelationParamsHolder(**loaded_dict)
 
 
+def validate_config_dict_as_stacking_schema(loaded_dict: Dict) -> StackingSchemaHolder:
+    # filldocs
+    return StackingSchemaHolder(**loaded_dict)
+
+
 def create_datachunkparams(
         params_holder: Optional[DatachunkParamsHolder] = None,
         **kwargs,
@@ -233,5 +242,31 @@ def create_crosscorrelation_params(
         processed_datachunk_params_id=params_holder.processed_datachunk_params_id,
         correlation_max_lag=params_holder.correlation_max_lag,
         sampling_rate=processed_params.datachunk_params.sampling_rate,
+    )
+    return params
+
+
+def create_stacking_params(
+        params_holder: StackingSchemaHolder,
+) -> StackingSchema:
+    """
+    This method takes a :py:class:`~noiz.models.processing_params.CrosscorrelationParamsHolder` instance and based on
+    it creates an instance of database model :py:class:`~noiz.models.processing_params.CrosscorrelationParams`.
+
+    :param params_holder: Object containing all required elements to create a CrosscorrelationParams instance
+    :type params_holder: CrosscorrelationParamsHolder
+    :param processed_params: ProcessedDatachunkParams to be associated with this set of params. \
+    It has to include eager loaded DatachunkParams
+    :type processed_params: ProcessedDatachunkParams
+    :return: Working CrosscorrelationParams model that needs to be inserted into db
+    :rtype: CrosscorrelationParams
+    """
+
+    params = StackingSchema(
+        starttime=params_holder.starttime,
+        endtime=params_holder.endtime,
+        stacking_length=params_holder.stacking_length,
+        stacking_step=params_holder.stacking_step,
+        stacking_overlap=params_holder.stacking_overlap,
     )
     return params

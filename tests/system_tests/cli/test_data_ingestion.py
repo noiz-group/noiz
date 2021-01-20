@@ -1,4 +1,6 @@
 import pytest
+from noiz.models import StackingSchema
+
 from noiz.models.crosscorrelation import Crosscorrelation
 
 from noiz.api.component_pair import fetch_componentpairs
@@ -15,7 +17,7 @@ import shutil
 
 from noiz.api.component import fetch_components
 from noiz.api.processing_config import fetch_datachunkparams_by_id, fetch_processed_datachunk_params_by_id, \
-    fetch_crosscorrelation_params_by_id
+    fetch_crosscorrelation_params_by_id, fetch_stacking_schema_by_id
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.app import create_app
 from noiz.cli import cli
@@ -337,6 +339,26 @@ class TestDataIngestionRoutines:
         assert len(all_configs) == 1
         assert fetched_config.sampling_rate == 24
         assert fetched_config.correlation_max_lag == 20
+
+    def test_insert_stacking_schema(self, workdir_with_content, noiz_app):
+
+        config_path = workdir_with_content.joinpath('stacking_schema.toml')
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["configs", "add_stacking_schema", "--add_to_db", "-f", str(config_path)])
+
+        assert result.exit_code == 0
+
+        with noiz_app.app_context():
+            fetched_config = fetch_stacking_schema_by_id(id=1)
+            all_configs = StackingSchema.query.all()
+
+        assert isinstance(fetched_config, StackingSchema)
+        assert len(all_configs) == 1
+        assert isinstance(fetched_config.starttime, datetime.datetime)
+        assert isinstance(fetched_config.endtime, datetime.datetime)
+        assert isinstance(fetched_config.stacking_overlap, datetime.timedelta)
+        assert isinstance(fetched_config.stacking_length, datetime.timedelta)
 
     def test_insert_timespans(self, workdir_with_content, noiz_app):
 

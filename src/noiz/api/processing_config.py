@@ -6,8 +6,9 @@ from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models.processing_params import DatachunkParams, DatachunkParamsHolder, ProcessedDatachunkParams, \
     ProcessedDatachunkParamsHolder, CrosscorrelationParams, CrosscorrelationParamsHolder
+from noiz.models.stacking import StackingSchemaHolder, StackingSchema
 from noiz.processing.configs import parse_single_config_toml, DefinedConfigs, \
-    create_datachunkparams, create_processed_datachunk_params, create_crosscorrelation_params
+    create_datachunkparams, create_processed_datachunk_params, create_crosscorrelation_params, create_stacking_params
 
 
 def fetch_datachunkparams_by_id(id: int) -> DatachunkParams:
@@ -58,16 +59,35 @@ def fetch_crosscorrelation_params_by_id(id: int) -> CrosscorrelationParams:
     return fetched_params
 
 
-def _insert_params_into_db(params: Union[DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams]):
+def fetch_stacking_schema_by_id(id: int) -> StackingSchema:
+    """
+    Fetches a StackingSchema objects by its ID.
+
+    :param id: ID of processing params to be fetched
+    :type id: int
+    :return: fetched StackingSchema object
+    :rtype: StackingSchema
+    :raises ValueError
+    """
+    fetched_params = StackingSchema.query.filter_by(id=id).first()
+    if fetched_params is None:
+        raise EmptyResultException(f"StackingSchema object of id {id} does not exist.")
+    return fetched_params
+
+
+def _insert_params_into_db(
+        params: Union[DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams, StackingSchema]
+) -> None:
     """
     This is method simply adding an instance of :py:class:`~noiz.models.DatachunkParams`,
-    :py:class:`~noiz.models.ProcessedDatachunkParams` or :py:class:`~noiz.models.CrosscorrelationParams`
+    :py:class:`~noiz.models.ProcessedDatachunkParams`, :py:class:`~noiz.models.CrosscorrelationParams`,
+    :py:class:`~noiz.models.StackingSchema`
     to DB and committing changes.
 
     Has to be executed within `app_context`
 
     :param params: Instance of supported params object to be added to db
-    :type params: Union[DatachunkParams, ProcessedDatachunkParams, EmptyResultException]
+    :type params: Union[DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams, StackingSchema]
     :return: None
     :rtype: NoneType
     """
@@ -153,6 +173,24 @@ def create_and_add_crosscorrelation_params_from_toml(
                                    f"{params_holder.processed_datachunk_params_id}")
 
     params = create_crosscorrelation_params(params_holder=params_holder, processed_params=processed_datachunk_params)
+
+    if add_to_db:
+        _insert_params_into_db(params=params)
+    else:
+        return (params_holder, params)
+    return None
+
+
+def create_and_add_stacking_schema_from_toml(
+        filepath: Path,
+        add_to_db: bool = False
+) -> Optional[Tuple[StackingSchemaHolder, StackingSchema]]:
+    """
+    filldocs
+    """
+
+    params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.STACKINGSCHEMA)
+    params = create_stacking_params(params_holder=params_holder)
 
     if add_to_db:
         _insert_params_into_db(params=params)
