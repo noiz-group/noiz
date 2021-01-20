@@ -221,7 +221,7 @@ class QCTwoRejectedTime(db.Model):
     id = db.Column("id", db.Integer, primary_key=True)
 
     qctwo_config_id = db.Column("qctwo_config_id", db.Integer, db.ForeignKey("qctwo_config.id"))
-    component_pair_id = db.Column("component_pair_id", db.Integer, db.ForeignKey("component_pair.id"))
+    componentpair_id = db.Column("componentpair_id", db.Integer, db.ForeignKey("componentpair.id"))
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
 
@@ -231,7 +231,7 @@ class QCTwoRejectedTime(db.Model):
         back_populates="time_periods_rejected",
         foreign_keys=[qctwo_config_id]
     )
-    component_pair = db.relationship("ComponentPair", foreign_keys=[component_pair_id])
+    component_pair = db.relationship("ComponentPair", foreign_keys=[componentpair_id])
 
 
 class QCTwoConfig(db.Model):
