@@ -367,7 +367,11 @@ class TestDataIngestionRoutines:
 
     def test_run_datachunk_creation(self, noiz_app):
         runner = CliRunner()
-        result = runner.invoke(cli, ["processing", "prepare_datachunks", "-sd", "2019-09-30", "-ed", "2019-10-03"])
+        result = runner.invoke(cli, ["processing", "prepare_datachunks",
+                                     "-sd", "2019-09-30",
+                                     "-ed", "2019-10-03",
+                                     "--no_parallel",
+                                     ])
         assert result.exit_code == 0
 
         from noiz.api.datachunk import fetch_datachunks
@@ -459,6 +463,7 @@ class TestDataIngestionRoutines:
         result = runner.invoke(cli, ["processing", "process_datachunks",
                                      "-sd", "2019-09-30",
                                      "-ed", "2019-10-03",
+                                     "--no_parallel",
                                      ])
         assert result.exit_code == 0
         with noiz_app.app_context():
@@ -471,7 +476,7 @@ class TestDataIngestionRoutines:
                                      "-sd", "2019-09-30",
                                      "-ed", "2019-10-03",
                                      "-c", "ZZ",
-                                     "--no_parallel"
+                                     "--no_parallel",
                                      ])
         assert result.exit_code == 0
         with noiz_app.app_context():
@@ -482,7 +487,7 @@ class TestDataIngestionRoutines:
                                      "-sd", "2019-09-30",
                                      "-ed", "2019-10-03",
                                      "-c", "ZE",
-                                     "--no_parallel"
+                                     "--no_parallel",
                                      ])
         assert result.exit_code == 0
         with noiz_app.app_context():
