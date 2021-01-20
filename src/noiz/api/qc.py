@@ -1,11 +1,10 @@
 import datetime
 from loguru import logger
-from pathlib import Path
 
 from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Query
-from typing import List, Collection, Union, Optional, Tuple
+from typing import List, Collection, Union, Optional
 
 from noiz.api.component import fetch_components
 from noiz.api.datachunk import _determine_filters_and_opts_for_datachunk
@@ -16,8 +15,7 @@ from noiz.exceptions import EmptyResultException
 from noiz.models.datachunk import Datachunk, DatachunkStats
 from noiz.models.qc import QCOneConfig, QCOneRejectedTime, QCOneConfigRejectedTimeHolder, QCOneConfigHolder, QCOneResults
 from noiz.models.soh import AveragedSohGps
-from noiz.processing.configs import validate_dict_as_qcone_holder, load_qc_one_config_toml, parse_single_config_toml, \
-    DefinedConfigs
+from noiz.processing.configs import validate_dict_as_qcone_holder
 from noiz.processing.qc import calculate_qcone_results
 
 
@@ -452,48 +450,3 @@ def add_or_upsert_qcone_results_in_db(qcone_results_collection: Collection[QCOne
     logger.debug('Commiting session.')
     db.session.commit()
     return
-
-
-def insert_qcone_config_into_db(config: QCOneConfig) -> QCOneConfig:
-    """
-    This is method simply adding an instance of :class:`~noiz.models.QCOneConfig` to DB and committing changes.
-
-    Has to be executed within `app_context`
-
-    :param qcone_config: Instance of QCOne to be added to db
-    :type qcone_config: QCOneConfig
-    :return: Object that was added to database.
-    :rtype: QCOneConfig
-    """
-    db.session.add(config)
-    db.session.commit()
-    logger.info(f"Succesfully added to db {type(config)} object with id={config.id}")
-    return config
-
-
-def create_and_add_qcone_config_from_toml(
-        filepath: Path,
-        add_to_db: bool = False
-) -> Union[QCOneConfig, Tuple[QCOneConfigHolder, QCOneConfig]]:
-    """
-    This method takes a filepath to a TOML file with valid parameters
-    to create a :class:`~noiz.processing.qc.QCOneConfigHolder` and subsequently :class:`~noiz.models.QCOneConfig`.
-    It can also add the created object to the database. By default it does not add it to db.
-    If chosen not to add the result to db, a tuple containing both :class:`~noiz.processing.qc.QCOneConfigHolder`
-    and :class:`~noiz.models.QCOneConfig` will be returned for manual check.
-
-    :param filepath: Path to existing TOML file
-    :type filepath: Path
-    :param add_to_db: If the result of parsing of TOML should be added to DB
-    :type add_to_db: bool
-    :return: It can return QCOneConfigHolder object for manual validation
-    :rtype: Optional[QCOneConfigHolder]
-    """
-
-    params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.QCONE)
-    qcone = create_qcone_config(qcone_holder=params_holder)
-
-    if add_to_db:
-        return insert_qcone_config_into_db(config=qcone)
-    else:
-        return (params_holder, qcone)

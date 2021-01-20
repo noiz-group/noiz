@@ -141,7 +141,7 @@ def add_qcone_config(
 ):
     """Read a TOML file with QCOneConfig and add to db."""
 
-    from noiz.api.qc import create_and_add_qcone_config_from_toml
+    from noiz.api.processing_config import create_and_add_qcone_config_from_toml
 
     if add_to_db:
         params = create_and_add_qcone_config_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
