@@ -56,7 +56,19 @@ class TestDataIngestionRoutines:
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            assert len(fetch_componentpairs(**kwargs_mod)) == 0
+            kwargs_mod['include_autocorrelation'] = True
+            kwargs_mod['include_intracorrelation'] = True
+            assert len(fetch_componentpairs(**kwargs_mod)) == 54
+
+        with noiz_app.app_context():
+            kwargs_mod = kwargs.copy()
+            kwargs_mod['only_autocorrelation'] = True
+            assert len(fetch_componentpairs(**kwargs_mod)) == 9
+
+        with noiz_app.app_context():
+            kwargs_mod = kwargs.copy()
+            kwargs_mod['only_intracorrelation'] = True
+            assert len(fetch_componentpairs(**kwargs_mod)) == 18
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
@@ -67,7 +79,7 @@ class TestDataIngestionRoutines:
             kwargs_mod = kwargs.copy()
             kwargs_mod['station_codes_a'] = ("SI11", "SI05")
             kwargs_mod['only_autocorrelation'] = True
-            assert len(fetch_componentpairs(**kwargs_mod)) == 9
+            assert len(fetch_componentpairs(**kwargs_mod)) == 6
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
