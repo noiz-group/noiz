@@ -100,7 +100,7 @@ def _insert_params_into_db(
 def create_and_add_datachunk_params_config_from_toml(
         filepath: Path,
         add_to_db: bool = False
-) -> Optional[Tuple[DatachunkParamsHolder, DatachunkParams]]:
+) -> Union[DatachunkParams, Tuple[DatachunkParamsHolder, DatachunkParams]]:
     """
     filldocs
     This method takes a filepath to a TOML file with valid parameters
@@ -121,16 +121,15 @@ def create_and_add_datachunk_params_config_from_toml(
     datachunk_params = create_datachunkparams(params_holder=params_holder)
 
     if add_to_db:
-        _insert_params_into_db(params=datachunk_params)
+        return _insert_params_into_db(params=datachunk_params)
     else:
         return (params_holder, datachunk_params)
-    return None
 
 
 def create_and_add_processed_datachunk_params_from_toml(
         filepath: Path,
         add_to_db: bool = False
-) -> Optional[Tuple[ProcessedDatachunkParamsHolder, ProcessedDatachunkParams]]:
+) -> Union[ProcessedDatachunkParams, Tuple[ProcessedDatachunkParamsHolder, ProcessedDatachunkParams]]:
     """
     filldocs
     """
@@ -147,16 +146,15 @@ def create_and_add_processed_datachunk_params_from_toml(
     params = create_processed_datachunk_params(params_holder=params_holder)
 
     if add_to_db:
-        _insert_params_into_db(params=params)
+        return _insert_params_into_db(params=params)
     else:
         return (params_holder, params)
-    return None
 
 
 def create_and_add_crosscorrelation_params_from_toml(
         filepath: Path,
         add_to_db: bool = False
-) -> Optional[Tuple[CrosscorrelationParamsHolder, CrosscorrelationParams]]:
+) -> Union[CrosscorrelationParams, Tuple[CrosscorrelationParamsHolder, CrosscorrelationParams]]:
     """
     filldocs
     """
@@ -174,10 +172,9 @@ def create_and_add_crosscorrelation_params_from_toml(
     params = create_crosscorrelation_params(params_holder=params_holder, processed_params=processed_datachunk_params)
 
     if add_to_db:
-        _insert_params_into_db(params=params)
+        return _insert_params_into_db(params=params)
     else:
         return (params_holder, params)
-    return None
 
 
 def create_and_add_stacking_schema_from_toml(

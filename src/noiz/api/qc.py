@@ -483,7 +483,7 @@ def add_or_upsert_qcone_results_in_db(qcone_results_collection: Collection[QCOne
     return
 
 
-def insert_qcone_config_into_db(config: QCOneConfig) -> None:
+def insert_qcone_config_into_db(config: QCOneConfig) -> QCOneConfig:
     """
     This is method simply adding an instance of :class:`~noiz.models.QCOneConfig` to DB and committing changes.
 
@@ -491,19 +491,19 @@ def insert_qcone_config_into_db(config: QCOneConfig) -> None:
 
     :param qcone_config: Instance of QCOne to be added to db
     :type qcone_config: QCOneConfig
-    :return: None
-    :rtype: NoneType
+    :return: Object that was added to database.
+    :rtype: QCOneConfig
     """
     db.session.add(config)
     db.session.commit()
     logger.info(f"Succesfully added to db {type(config)} object with id={config.id}")
-    return
+    return config
 
 
 def create_and_add_qcone_config_from_toml(
         filepath: Path,
         add_to_db: bool = False
-) -> Optional[Tuple[QCOneConfigHolder, QCOneConfig]]:
+) -> Union[QCOneConfig, Tuple[QCOneConfigHolder, QCOneConfig]]:
     """
     This method takes a filepath to a TOML file with valid parameters
     to create a :class:`~noiz.processing.qc.QCOneConfigHolder` and subsequently :class:`~noiz.models.QCOneConfig`.
@@ -523,7 +523,6 @@ def create_and_add_qcone_config_from_toml(
     qcone = create_qcone_config(qcone_holder=params_holder)
 
     if add_to_db:
-        insert_qcone_config_into_db(config=qcone)
+        return insert_qcone_config_into_db(config=qcone)
     else:
         return (params_holder, qcone)
-    return None
