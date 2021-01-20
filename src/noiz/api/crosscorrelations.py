@@ -82,10 +82,17 @@ def perform_crosscorrelations(
         crosscorrelation_params_id: int,
         starttime: Union[datetime.date, datetime.datetime],
         endtime: Union[datetime.date, datetime.datetime],
-        station_codes: Optional[Union[Collection[str], str]] = None,
-        component_code_pairs: Optional[Union[Collection[str], str]] = None,
-        autocorrelations: bool = False,
-        intrastation_correlations: bool = False,
+        network_codes_a: Optional[Union[Collection[str], str]] = None,
+        station_codes_a: Optional[Union[Collection[str], str]] = None,
+        component_codes_a: Optional[Union[Collection[str], str]] = None,
+        network_codes_b: Optional[Union[Collection[str], str]] = None,
+        station_codes_b: Optional[Union[Collection[str], str]] = None,
+        component_codes_b: Optional[Union[Collection[str], str]] = None,
+        accepted_component_code_pairs: Optional[Union[Collection[str], str]] = None,
+        include_autocorrelation: Optional[bool] = False,
+        include_intracorrelation: Optional[bool] = False,
+        only_autocorrelation: Optional[bool] = False,
+        only_intracorrelation: Optional[bool] = False,
         bulk_insert: bool = True,
         raise_errors: bool = False
 ) -> None:
@@ -99,14 +106,26 @@ def perform_crosscorrelations(
     :type starttime: Union[datetime.date, datetime.datetime]
     :param endtime: Date on which finish the query
     :type endtime: Union[datetime.date, datetime.datetime]
-    :param station_codes: Names of stations to use
-    :type station_codes: Optional[Union[Collection[str], str]]
-    :param component_code_pairs: Component code pairs to use (ex. "ZZ" or "ZE"). Order matters.
-    :type component_code_pairs: Optional[Union[Collection[str], str]]
-    :param autocorrelations:
-    :type autocorrelations: bool
-    :param intrastation_correlations:
-    :type intrastation_correlations: bool
+    :param network_codes_a: Selector for network code of A station in the pair
+    :type network_codes_a: Optional[Union[Collection[str], str]]
+    :param station_codes_a: Selector for station code of A station in the pair
+    :type station_codes_a: Optional[Union[Collection[str], str]]
+    :param component_codes_a: Selector for component code of A station in the pair
+    :type component_codes_a: Optional[Union[Collection[str], str]]
+    :param network_codes_b: Selector for network code of B station in the pair
+    :type network_codes_b: Optional[Union[Collection[str], str]]
+    :param station_codes_b: Selector for station code of B station in the pair
+    :type station_codes_b: Optional[Union[Collection[str], str]]
+    :param component_codes_b: Selector for component code of B station in the pair
+    :type component_codes_b: Optional[Union[Collection[str], str]]
+    :param include_autocorrelation: If autocorrelation pairs should be also included
+    :type include_autocorrelation: Optional[bool]
+    :param include_intracorrelation: If intracorrelation pairs should be also included
+    :type include_intracorrelation: Optional[bool]
+    :param only_autocorrelation: If only autocorrelation pairs should be selected
+    :type only_autocorrelation: Optional[bool]
+    :param only_intracorrelation: If only intracorrelation pairs should be selected
+    :type only_intracorrelation: Optional[bool]
     :param bulk_insert: If bulk insert should be even attempted
     :type bulk_insert: bool
     :param raise_errors: If errors should be raised or just logged
@@ -119,8 +138,17 @@ def perform_crosscorrelations(
         crosscorrelation_params_id=crosscorrelation_params_id,
         starttime=starttime,
         endtime=endtime,
-        station_codes=station_codes,
-        component_code_pairs=component_code_pairs
+        network_codes_a=network_codes_a,
+        station_codes_a=station_codes_a,
+        component_codes_a=component_codes_a,
+        network_codes_b=network_codes_b,
+        station_codes_b=station_codes_b,
+        component_codes_b=component_codes_b,
+        accepted_component_code_pairs=accepted_component_code_pairs,
+        include_autocorrelation=include_autocorrelation,
+        include_intracorrelation=include_intracorrelation,
+        only_autocorrelation=only_autocorrelation,
+        only_intracorrelation=only_intracorrelation,
     )
 
     logger.info("Starting crosscorrelation process.")
@@ -175,10 +203,17 @@ def perform_crosscorrelations_parallel(
         crosscorrelation_params_id: int,
         starttime: Union[datetime.date, datetime.datetime],
         endtime: Union[datetime.date, datetime.datetime],
-        station_codes: Optional[Union[Collection[str], str]] = None,
-        component_code_pairs: Optional[Union[Collection[str], str]] = None,
-        autocorrelations: bool = False,
-        intrastation_correlations: bool = False,
+        network_codes_a: Optional[Union[Collection[str], str]] = None,
+        station_codes_a: Optional[Union[Collection[str], str]] = None,
+        component_codes_a: Optional[Union[Collection[str], str]] = None,
+        network_codes_b: Optional[Union[Collection[str], str]] = None,
+        station_codes_b: Optional[Union[Collection[str], str]] = None,
+        component_codes_b: Optional[Union[Collection[str], str]] = None,
+        accepted_component_code_pairs: Optional[Union[Collection[str], str]] = None,
+        include_autocorrelation: Optional[bool] = False,
+        include_intracorrelation: Optional[bool] = False,
+        only_autocorrelation: Optional[bool] = False,
+        only_intracorrelation: Optional[bool] = False,
         bulk_insert: bool = True,
         raise_errors: bool = False
 ) -> None:
@@ -192,14 +227,26 @@ def perform_crosscorrelations_parallel(
     :type starttime: Union[datetime.date, datetime.datetime]
     :param endtime: Date on which finish the query
     :type endtime: Union[datetime.date, datetime.datetime]
-    :param station_codes: Names of stations to use
-    :type station_codes: Optional[Union[Collection[str], str]]
-    :param component_code_pairs: Component code pairs to use (ex. "ZZ" or "ZE"). Order matters.
-    :type component_code_pairs: Optional[Union[Collection[str], str]]
-    :param autocorrelations:
-    :type autocorrelations: bool
-    :param intrastation_correlations:
-    :type intrastation_correlations: bool
+    :param network_codes_a: Selector for network code of A station in the pair
+    :type network_codes_a: Optional[Union[Collection[str], str]]
+    :param station_codes_a: Selector for station code of A station in the pair
+    :type station_codes_a: Optional[Union[Collection[str], str]]
+    :param component_codes_a: Selector for component code of A station in the pair
+    :type component_codes_a: Optional[Union[Collection[str], str]]
+    :param network_codes_b: Selector for network code of B station in the pair
+    :type network_codes_b: Optional[Union[Collection[str], str]]
+    :param station_codes_b: Selector for station code of B station in the pair
+    :type station_codes_b: Optional[Union[Collection[str], str]]
+    :param component_codes_b: Selector for component code of B station in the pair
+    :type component_codes_b: Optional[Union[Collection[str], str]]
+    :param include_autocorrelation: If autocorrelation pairs should be also included
+    :type include_autocorrelation: Optional[bool]
+    :param include_intracorrelation: If intracorrelation pairs should be also included
+    :type include_intracorrelation: Optional[bool]
+    :param only_autocorrelation: If only autocorrelation pairs should be selected
+    :type only_autocorrelation: Optional[bool]
+    :param only_intracorrelation: If only intracorrelation pairs should be selected
+    :type only_intracorrelation: Optional[bool]
     :param bulk_insert: If bulk insert should be even attempted
     :type bulk_insert: bool
     :param raise_errors: If errors should be raised or just logged
@@ -207,12 +254,22 @@ def perform_crosscorrelations_parallel(
     :return: None
     :rtype: NoneType
     """
+
     fetched_component_pairs, grouped_datachunks, params = _prepare_inputs_for_crosscorrelating(
         crosscorrelation_params_id=crosscorrelation_params_id,
         starttime=starttime,
         endtime=endtime,
-        station_codes=station_codes,
-        component_code_pairs=component_code_pairs
+        network_codes_a=network_codes_a,
+        station_codes_a=station_codes_a,
+        component_codes_a=component_codes_a,
+        network_codes_b=network_codes_b,
+        station_codes_b=station_codes_b,
+        component_codes_b=component_codes_b,
+        accepted_component_code_pairs=accepted_component_code_pairs,
+        include_autocorrelation=include_autocorrelation,
+        include_intracorrelation=include_intracorrelation,
+        only_autocorrelation=only_autocorrelation,
+        only_intracorrelation=only_intracorrelation,
     )
 
     logger.info("Starting crosscorrelation process.")
@@ -280,8 +337,17 @@ def _prepare_inputs_for_crosscorrelating(
         crosscorrelation_params_id: int,
         starttime: Union[datetime.date, datetime.datetime],
         endtime: Union[datetime.date, datetime.datetime],
-        station_codes: Optional[Union[Collection[str], str]] = None,
-        component_code_pairs: Optional[Union[Collection[str], str]] = None,
+        network_codes_a: Optional[Union[Collection[str], str]] = None,
+        station_codes_a: Optional[Union[Collection[str], str]] = None,
+        component_codes_a: Optional[Union[Collection[str], str]] = None,
+        network_codes_b: Optional[Union[Collection[str], str]] = None,
+        station_codes_b: Optional[Union[Collection[str], str]] = None,
+        component_codes_b: Optional[Union[Collection[str], str]] = None,
+        accepted_component_code_pairs: Optional[Union[Collection[str], str]] = None,
+        include_autocorrelation: Optional[bool] = False,
+        include_intracorrelation: Optional[bool] = False,
+        only_autocorrelation: Optional[bool] = False,
+        only_intracorrelation: Optional[bool] = False,
 ):
     """
     Performs all the database queries to prepare all the data required for running crosscorrelations.
@@ -293,10 +359,26 @@ def _prepare_inputs_for_crosscorrelating(
     :type starttime: Union[datetime.date, datetime.datetime]
     :param endtime: Date on which finish the query
     :type endtime: Union[datetime.date, datetime.datetime]
-    :param station_codes: Names of stations to use
-    :type station_codes: Optional[Union[Collection[str], str]] = None
-    :param component_code_pairs: Component code pairs to use (ex. "ZZ" or "ZE"). Order matters.
-    :type component_code_pairs: Optional[Union[Collection[str], str]] = None
+    :param network_codes_a: Selector for network code of A station in the pair
+    :type network_codes_a: Optional[Union[Collection[str], str]]
+    :param station_codes_a: Selector for station code of A station in the pair
+    :type station_codes_a: Optional[Union[Collection[str], str]]
+    :param component_codes_a: Selector for component code of A station in the pair
+    :type component_codes_a: Optional[Union[Collection[str], str]]
+    :param network_codes_b: Selector for network code of B station in the pair
+    :type network_codes_b: Optional[Union[Collection[str], str]]
+    :param station_codes_b: Selector for station code of B station in the pair
+    :type station_codes_b: Optional[Union[Collection[str], str]]
+    :param component_codes_b: Selector for component code of B station in the pair
+    :type component_codes_b: Optional[Union[Collection[str], str]]
+    :param include_autocorrelation: If autocorrelation pairs should be also included
+    :type include_autocorrelation: Optional[bool]
+    :param include_intracorrelation: If intracorrelation pairs should be also included
+    :type include_intracorrelation: Optional[bool]
+    :param only_autocorrelation: If only autocorrelation pairs should be selected
+    :type only_autocorrelation: Optional[bool]
+    :param only_intracorrelation: If only intracorrelation pairs should be selected
+    :type only_intracorrelation: Optional[bool]
     :return:
     :rtype:
     """
@@ -305,13 +387,23 @@ def _prepare_inputs_for_crosscorrelating(
     fetched_timespans_ids = extract_object_ids(fetched_timespans)
     logger.info(f"There are {len(fetched_timespans_ids)} timespan to process")
 
-    if component_code_pairs is not None:
-        component_code_pairs = validate_component_code_pairs(
-            component_pairs=validate_to_tuple(component_code_pairs, str)
+    if accepted_component_code_pairs is not None:
+        accepted_component_code_pairs = validate_component_code_pairs(
+            component_pairs=validate_to_tuple(accepted_component_code_pairs, str)
         )
+
     fetched_component_pairs: List[ComponentPair] = fetch_componentpairs(
-        station_codes_a=station_codes,
-        accepted_component_code_pairs=component_code_pairs,
+        network_codes_a=network_codes_a,
+        station_codes_a=station_codes_a,
+        component_codes_a=component_codes_a,
+        network_codes_b=network_codes_b,
+        station_codes_b=station_codes_b,
+        component_codes_b=component_codes_b,
+        accepted_component_code_pairs=accepted_component_code_pairs,
+        include_autocorrelation=include_autocorrelation,
+        include_intracorrelation=include_intracorrelation,
+        only_autocorrelation=only_autocorrelation,
+        only_intracorrelation=only_intracorrelation,
     )
     logger.info(f"There are {len(fetched_component_pairs)} component pairs to process.")
 
