@@ -89,28 +89,6 @@ def parse_single_config_toml(filepath: Path, config_type: Optional[Union[str, De
     return validator(loaded_dict)
 
 
-def load_qc_one_config_toml(filepath: Path) -> QCOneConfigHolder:
-    """
-    This method loads the TOML config file, validates it and returns a :class:`~noiz.models.QCOneConfigHolder` that is
-    compatible with constructor of :class:`~noiz.models.QCOneConfig`
-
-    :param filepath: Path to existing QCOne config TOML file
-    :type filepath: Path
-    :return: QCOneConfigHolder compatible with constructor of QCOne model
-    :rtype: QCOneConfigHolder
-    """
-    import warnings
-    warnings.warn(DeprecationWarning("this method is deprecated, use more general `parse_single_config_toml`"))
-
-    if not filepath.exists() or not filepath.is_file():
-        raise ValueError("Provided filepath has to be a path to existing file")
-
-    with open(file=filepath, mode='r') as f:
-        loaded_config: Dict = toml.load(f=f)  # type: ignore
-
-    return validate_dict_as_qcone_holder(loaded_config)
-
-
 def validate_dict_as_qcone_holder(loaded_dict: Dict) -> QCOneConfigHolder:
     """
     Takes a dict, or an output from TOML parser and tries to convert it into a :class:`~noiz.models.QCOneConfigHolder` object
