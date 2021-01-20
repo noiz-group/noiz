@@ -59,6 +59,22 @@ def fetch_crosscorrelation_params_by_id(id: int) -> CrosscorrelationParams:
     return fetched_params
 
 
+def fetch_stacking_schema_by_id(id: int) -> StackingSchema:
+    """
+    Fetches a StackingSchema objects by its ID.
+
+    :param id: ID of processing params to be fetched
+    :type id: int
+    :return: fetched StackingSchema object
+    :rtype: StackingSchema
+    :raises ValueError
+    """
+    fetched_params = StackingSchema.query.filter_by(id=id).first()
+    if fetched_params is None:
+        raise EmptyResultException(f"StackingSchema object of id {id} does not exist.")
+    return fetched_params
+
+
 def _insert_params_into_db(
         params: Union[DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams, StackingSchema]
 ) -> None:
