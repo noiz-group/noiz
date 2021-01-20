@@ -216,6 +216,51 @@ class QCOneConfigHolder:
     signal_kurtosis_max: Optional[float] = None
 
 
+class QCTwoRejectedTime(db.Model):
+    __tablename__ = "qctwo_rejected_time_periods"
+    id = db.Column("id", db.Integer, primary_key=True)
+
+    qctwo_config_id = db.Column("qctwo_config_id", db.Integer, db.ForeignKey("qctwo_config.id"))
+    component_pair_id = db.Column("component_pair_id", db.Integer, db.ForeignKey("component_pair.id"))
+    starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
+    endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
+
+    qcone_config = db.relationship(
+        "QCTwoConfig",
+        uselist=False,
+        back_populates="time_periods_rejected",
+        foreign_keys=[qctwo_config_id]
+    )
+    component_pair = db.relationship("ComponentPair", foreign_keys=[component_pair_id])
+
+
+class QCTwoConfig(db.Model):
+    __tablename__ = "qctwo_config"
+
+    id = db.Column("id", db.Integer, primary_key=True)
+
+    crosscorrelation_params_id = db.Column(
+        "crosscorrelation_params_id",
+        db.Integer,
+        db.ForeignKey("crosscorrelation_params.id"))
+    null_policy = db.Column("null_policy", db.UnicodeText, default=NullTreatmentPolicy.PASS.value, nullable=False)
+    starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
+    endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
+
+    time_periods_rejected: List[QCTwoRejectedTime] = db.relationship(
+        "QCTwoRejectedTime",
+        uselist=True,
+        back_populates="qctwo_config",
+        lazy="joined"
+    )
+
+    crosscorrelation_params = db.relationship(
+        "CrosscorrelationParams",
+        uselist=True,
+        lazy="joined"
+    )
+
+
 @dataclass
 class QCTwoConfigRejectedTimeHolder:
     """
@@ -238,6 +283,7 @@ class QCTwoConfigHolder:
     This simple dataclass is just helping to validate :class:`~noiz.models.QCOneConfig` values loaded from the TOML file
     """
 
+    crosscorrelation_params_id: int
     null_treatment_policy: NullTreatmentPolicy = NullTreatmentPolicy.PASS
     starttime: Union[datetime.datetime, datetime.date] = datetime.date(2010, 1, 1)
     endtime: Union[datetime.datetime, datetime.date] = datetime.date(2030, 1, 1)
