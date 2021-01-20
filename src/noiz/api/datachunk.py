@@ -294,7 +294,7 @@ def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
     return
 
 
-def prepare_datachunk_preparation_parameter_lists(
+def _prepare_datachunk_preparation_parameter_lists(
         stations: Optional[Tuple[str]],
         components: Optional[Tuple[str]],
         startdate: pendulum.Pendulum,
@@ -360,7 +360,7 @@ def prepare_datachunk_preparation_parameter_lists(
         }
 
 
-def run_paralel_chunk_preparation(
+def run_datachunk_preparation(
         stations: Tuple[str],
         components: Tuple[str],
         startdate: pendulum.Pendulum,
@@ -368,12 +368,46 @@ def run_paralel_chunk_preparation(
         processing_config_id: int,
 
 ):
-    # TODO rename this method to run_parallel_datachunk_preparation Gitlab#151
     logger.info("Preparing jobs for execution")
-    joblist = prepare_datachunk_preparation_parameter_lists(stations,
-                                                            components,
-                                                            startdate, enddate,
-                                                            processing_config_id)
+    joblist = _prepare_datachunk_preparation_parameter_lists(stations,
+                                                             components,
+                                                             startdate, enddate,
+                                                             processing_config_id)
+
+    # TODO add more checks for bad seed files because they are crashing.
+    # And instead of datachunk id there was something weird produced. It was found on SI26 in
+    # 2019.04.~10-15
+
+    logger.info("Starting execution. Results will be saved to database after everything is done.")
+    datachunks: List[Datachunk] = []
+    for params in joblist:
+        try:
+            finished_chunks = create_datachunks_for_component(**params)
+            datachunks.extend(finished_chunks)
+        except ValueError as e:
+            logger.error(e)
+            raise e
+
+    logger.info(f"There were {len(datachunks)} created")
+    logger.info("Adding datachunks to db")
+
+    add_or_upsert_datachunks_in_db(datachunks)
+    return
+
+
+def run_datachunk_preparation_parallel(
+        stations: Tuple[str],
+        components: Tuple[str],
+        startdate: pendulum.Pendulum,
+        enddate: pendulum.Pendulum,
+        processing_config_id: int,
+
+):
+    logger.info("Preparing jobs for execution")
+    joblist = _prepare_datachunk_preparation_parameter_lists(stations,
+                                                             components,
+                                                             startdate, enddate,
+                                                             processing_config_id)
 
     # TODO add more checks for bad seed files because they are crashing.
     # And instead of datachunk id there was something weird produced. It was found on SI26 in
