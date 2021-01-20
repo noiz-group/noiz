@@ -2,13 +2,13 @@ from loguru import logger
 from pathlib import Path
 from typing import Optional, Tuple, Union
 
-from noiz.api.qc import create_qcone_config
+from noiz.api.qc import create_qcone_config, create_qctwo_config
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import QCOneConfig
 from noiz.models.processing_params import DatachunkParams, DatachunkParamsHolder, ProcessedDatachunkParams, \
     ProcessedDatachunkParamsHolder, CrosscorrelationParams, CrosscorrelationParamsHolder
-from noiz.models.qc import QCOneConfigHolder
+from noiz.models.qc import QCOneConfigHolder, QCTwoConfig, QCTwoConfigHolder
 from noiz.models.stacking import StackingSchemaHolder, StackingSchema
 from noiz.processing.configs import parse_single_config_toml, DefinedConfigs, \
     create_datachunkparams, create_processed_datachunk_params, create_crosscorrelation_params, create_stacking_params
@@ -78,9 +78,19 @@ def fetch_stacking_schema_by_id(id: int) -> StackingSchema:
     return fetched_params
 
 
+AllParamsObjects = Union[
+    DatachunkParams,
+    ProcessedDatachunkParams,
+    CrosscorrelationParams,
+    StackingSchema,
+    QCOneConfig,
+    QCTwoConfig,
+]
+
+
 def _insert_params_into_db(
-        params: Union[DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams, StackingSchema, QCOneConfig]
-) -> Union[DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams, StackingSchema, QCOneConfig]:
+        params: AllParamsObjects
+) -> AllParamsObjects:
     """
     This is method simply adding an instance of :py:class:`~noiz.models.DatachunkParams`,
     :py:class:`~noiz.models.ProcessedDatachunkParams`, :py:class:`~noiz.models.CrosscorrelationParams`,
@@ -213,7 +223,7 @@ def create_and_add_qcone_config_from_toml(
     :param add_to_db: If the result of parsing of TOML should be added to DB
     :type add_to_db: bool
     :return: It can return QCOneConfigHolder object for manual validation
-    :rtype: Optional[QCOneConfigHolder]
+    :rtype: Union[QCOneConfig, Tuple[QCOneConfigHolder, QCOneConfig]]
     """
 
     params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.QCONE)
@@ -223,3 +233,31 @@ def create_and_add_qcone_config_from_toml(
         return _insert_params_into_db(params=qcone)
     else:
         return (params_holder, qcone)
+
+
+def create_and_add_qctwo_config_from_toml(
+        filepath: Path,
+        add_to_db: bool = False
+) -> Union[QCTwoConfig, Tuple[QCTwoConfigHolder, QCTwoConfig]]:
+    """
+    This method takes a filepath to a TOML file with valid parameters
+    to create a :class:`~noiz.models.qc.QCTwoConfigHolder` and subsequently :class:`~noiz.models.qc.QCTwoConfig`.
+    It can also add the created object to the database. By default it does not add it to db.
+    If chosen not to add the result to db, a tuple containing both :class:`~noiz.models.qc.QCTwoConfigHolder`
+    and :class:`~noiz.models.qc.QCTwoConfig` will be returned for manual check.
+
+    :param filepath: Path to existing TOML file
+    :type filepath: Path
+    :param add_to_db: If the result of parsing of TOML should be added to DB
+    :type add_to_db: bool
+    :return: It can return QCTwoConfigHolder object for manual validation
+    :rtype: Union[QCTwoConfig, Tuple[QCTwoConfigHolder, QCTwoConfig]]
+    """
+
+    params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.QCTWO)
+    qqtwo = create_qctwo_config(qcone_holder=params_holder)
+
+    if add_to_db:
+        return _insert_params_into_db(params=qqtwo)
+    else:
+        return (params_holder, qqtwo)
