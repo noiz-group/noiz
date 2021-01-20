@@ -72,7 +72,7 @@ def create_all_componentpairs() -> None:
     :return: None
     :rtype: None
     """
-    components: List[Component] = Component.query.all()
+    components = fetch_components()
 
     component_pairs = prepare_componentpairs(components)
 
