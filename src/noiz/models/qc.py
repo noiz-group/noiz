@@ -225,7 +225,7 @@ class QCTwoRejectedTime(db.Model):
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
 
-    qcone_config = db.relationship(
+    qctwo_config = db.relationship(
         "QCTwoConfig",
         uselist=False,
         back_populates="time_periods_rejected",
