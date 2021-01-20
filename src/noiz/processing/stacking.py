@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Generator
 
 import pandas as pd
 from loguru import logger
@@ -126,7 +126,7 @@ def stack_crosscorrelation(
         logger.info("That was everything. Finishing")
 
 
-def generate_stacking_timespans(stacking_schema: StackingSchema) -> Iterable[StackingTimespan]:
+def generate_stacking_timespans(stacking_schema: StackingSchema) -> Generator[StackingTimespan, None, None]:
 
     timespans = generate_starttimes_endtimes(
         startdate=stacking_schema.starttime,
