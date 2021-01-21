@@ -1,6 +1,5 @@
 import datetime
 from loguru import logger
-from noiz.models import Crosscorrelation
 
 from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import insert
@@ -12,12 +11,12 @@ from noiz.api.component_pair import fetch_componentpairs
 from noiz.api.datachunk import _determine_filters_and_opts_for_datachunk
 from noiz.api.helpers import validate_to_tuple, extract_object_ids
 from noiz.api.timespan import fetch_timespans_between_dates
+
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
-from noiz.models.datachunk import Datachunk, DatachunkStats
-from noiz.models.qc import QCOneConfig, QCOneRejectedTime, QCOneConfigRejectedTimeHolder, QCOneConfigHolder, \
-    QCOneResults, QCTwoConfigRejectedTimeHolder, QCTwoRejectedTime, QCTwoConfigHolder, QCTwoConfig, QCTwoResults
-from noiz.models.soh import AveragedSohGps
+from noiz.models import Crosscorrelation, Datachunk, DatachunkStats, QCOneConfig, QCOneRejectedTime, \
+    QCOneConfigRejectedTimeHolder, QCOneConfigHolder, QCOneResults, QCTwoConfigRejectedTimeHolder, QCTwoRejectedTime,\
+    QCTwoConfigHolder, QCTwoConfig, QCTwoResults, AveragedSohGps
 from noiz.processing.configs import validate_dict_as_qcone_holder, validate_dict_as_qctwo_holder
 from noiz.processing.qc import calculate_qcone_results
 
