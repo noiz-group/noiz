@@ -68,6 +68,11 @@ class StackingSchema(db.Model):
     qctwo_config = db.relationship("QCTwoConfig", foreign_keys=[qctwo_config_id], uselist=False, lazy="joined")
 
     def __init__(self, **kwargs):
+        for key in ("qctwo_config_id", "starttime", "endtime", "stacking_length"):
+            if key not in kwargs.keys():
+                raise ValueError(f"Required value of {key} missing. You have to provide it.")
+
+        self.qctwo_config_id = kwargs.get("qctwo_config_id", None)
         self.starttime = kwargs.get("starttime", None)
         self.endtime = kwargs.get("endtime", None)
         self.stacking_length = _validate_timedelta(
