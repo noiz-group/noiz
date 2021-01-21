@@ -260,12 +260,27 @@ class QCTwoConfig(db.Model):
         lazy="joined"
     )
 
+    # py38 only. If you want to go below, use just standard property
+    @cached_property
+    def null_value(self) -> bool:
+        if self.null_policy is NullTreatmentPolicy.PASS or self.null_policy == NullTreatmentPolicy.PASS.value:
+            return True
+        elif self.null_policy is NullTreatmentPolicy.FAIL or self.null_policy == NullTreatmentPolicy.FAIL.value:
+            return False
+        else:
+            raise NotImplementedError(f"I did not expect this value of null_policy {self.null_policy}")
+
+    # py38 only. If you want to go below, use just standard property
+    @cached_property
+    def componentpair_ids_rejected_times(self) -> Tuple[int, ...]:
+        return tuple([x.componentpair_id for x in self.time_periods_rejected])
+
 
 class QCTwoResults(db.Model):
     __tablename__ = "qctwo_results"
     __table_args__ = (
         db.UniqueConstraint(
-            "crosscorrelation_id", "qctwo_config_id", name="unique_qctwo_results_per_config_per_datachunk"
+            "crosscorrelation_id", "qctwo_config_id", name="unique_qctwo_results_per_config_per_ccf"
         ),
     )
 
