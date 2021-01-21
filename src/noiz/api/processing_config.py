@@ -377,12 +377,29 @@ def create_qctwo_rejected_time(
         network_codes_b=holder.network_b,
         station_codes_b=holder.station_b,
         component_codes_b=holder.component_b,
-        accepted_component_code_pairs=f"{holder.component_a}{holder.component_b}",
         include_intracorrelation=True,
         include_autocorrelation=True,
     )
     if len(fetched_components_pairs) == 0:
-        raise EmptyResultException(f"There were no components found in db for that parameters. {holder}")
+        reversed_components_pair = fetch_componentpairs(
+            network_codes_b=holder.network_a,
+            station_codes_b=holder.station_a,
+            component_codes_b=holder.component_a,
+            network_codes_a=holder.network_b,
+            station_codes_a=holder.station_b,
+            component_codes_a=holder.component_b,
+            include_intracorrelation=True,
+            include_autocorrelation=True,
+        )
+        if len(reversed_components_pair) == 1:
+            raise EmptyResultException(f"There were no components found in db for that parameters. "
+                                       f"However, there is a pair that fits parameters you provided but in reversed"
+                                       f"order. Check if it satisfies you and change it in the file. "
+                                       f"{reversed_components_pair}")
+        else:
+            raise EmptyResultException(f"There were no components found in db for that parameters. "
+                                       f"Also, pair for reversed parameters do not exist. {holder}")
+
     if len(fetched_components_pairs) > 1:
         raise ValueError(f"There was more than one component_pair fetched for that query. "
                          f"Something is wrong with the fetcher. {fetched_components_pairs}")
