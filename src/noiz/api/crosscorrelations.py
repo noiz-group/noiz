@@ -155,7 +155,7 @@ def perform_crosscorrelations(
     xcorrs = []
     for timespan_id, groupped_processed_chunks in grouped_datachunks.items():
         try:
-            xcorr = crosscorrelate_for_timespan(
+            xcorr = _crosscorrelate_for_timespan(
                 timespan_id=timespan_id,
                 params=params,
                 groupped_processed_chunks=groupped_processed_chunks,
@@ -292,7 +292,7 @@ def perform_crosscorrelations_parallel(
                 component_pairs=fetched_component_pairs
             )
 
-            future = client.submit(crosscorrelate_for_timespan, **kwargs_dict)
+            future = client.submit(_crosscorrelate_for_timespan, **kwargs_dict)
             futures.append(future)
 
         except CorruptedDataException as e:
@@ -430,12 +430,13 @@ def _prepare_inputs_for_crosscorrelating(
     return fetched_component_pairs, grouped_datachunks, params
 
 
-def crosscorrelate_for_timespan(
+def _crosscorrelate_for_timespan(
         timespan_id: int,
         params: CrosscorrelationParams,
         groupped_processed_chunks: Dict[int, ProcessedDatachunk],
         component_pairs: Collection[ComponentPair]
 ) -> List[Crosscorrelation]:
+    """filldocs"""
     logger.debug(f"Loading data for timespan {timespan_id}")
     try:
         streams = load_data_for_chunks(chunks=groupped_processed_chunks)
