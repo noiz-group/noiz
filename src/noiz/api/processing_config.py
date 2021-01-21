@@ -258,7 +258,7 @@ def create_and_add_qctwo_config_from_toml(
     """
 
     params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.QCTWO)
-    qqtwo = create_qctwo_config(qcone_holder=params_holder)
+    qqtwo = create_qctwo_config(qctwo_holder=params_holder)
 
     if add_to_db:
         return _insert_params_into_db(params=qqtwo)
@@ -388,15 +388,14 @@ def create_qctwo_rejected_time(
                          f"Something is wrong with the fetcher. {fetched_components_pairs}")
 
     res = [
-        QCTwoRejectedTime(component_pair_id=cmp.id, starttime=holder.starttime, endtime=holder.endtime)
+        QCTwoRejectedTime(componentpair_id=cmp.id, starttime=holder.starttime, endtime=holder.endtime)
         for cmp in fetched_components_pairs
     ]
     return res
 
 
 def create_qctwo_config(
-        qctwo_holder: Optional[QCTwoConfigHolder] = None,
-        **kwargs,
+        qctwo_holder: QCTwoConfigHolder,
 ) -> QCTwoConfig:
     """
     This method takes a :class:`~noiz.models.qc.QCTwoConfigHolder` instance and based on it creates an instance
@@ -413,9 +412,6 @@ def create_qctwo_config(
     :return: Working QCOne model that needs to be inserted into db
     :rtype: QCTwoConfig
     """
-
-    if qctwo_holder is None:
-        qctwo_holder = validate_dict_as_qctwo_holder(kwargs)
 
     qc_two_rejected_times = []
     for rej_time in qctwo_holder.rejected_times:
