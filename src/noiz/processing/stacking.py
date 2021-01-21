@@ -126,7 +126,15 @@ def stack_crosscorrelation(
         logger.info("That was everything. Finishing")
 
 
-def generate_stacking_timespans(stacking_schema: StackingSchema) -> Generator[StackingTimespan, None, None]:
+def _generate_stacking_timespans(stacking_schema: StackingSchema) -> Generator[StackingTimespan, None, None]:
+    """
+    Generates StackingTimespan objects based on provided StackingSchema
+
+    :param stacking_schema: StackingSchema on which generation should be based
+    :type stacking_schema: StackingSchema
+    :return: Generator with all possible StackingTimespans for that schema
+    :rtype: Generator[StackingTimespan, None, None]
+    """
 
     timespans = generate_starttimes_endtimes(
         startdate=stacking_schema.starttime,

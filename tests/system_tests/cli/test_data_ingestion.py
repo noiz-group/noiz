@@ -1,13 +1,4 @@
 import pytest
-from noiz.models import StackingSchema
-
-from noiz.models.crosscorrelation import Crosscorrelation
-
-from noiz.api.component_pair import fetch_componentpairs
-from noiz.models.qc import QCOneResults, QCTwoResults
-
-from noiz.models.component import ComponentFile
-
 pytestmark = [pytest.mark.system, pytest.mark.cli]
 
 from click.testing import CliRunner
@@ -16,16 +7,17 @@ from pathlib import Path
 import shutil
 
 from noiz.api.component import fetch_components
+from noiz.api.component_pair import fetch_componentpairs
 from noiz.api.processing_config import fetch_datachunkparams_by_id, fetch_processed_datachunk_params_by_id, \
     fetch_crosscorrelation_params_by_id, fetch_stacking_schema_by_id
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.app import create_app
 from noiz.cli import cli
 from noiz.database import db
-from noiz.models.processing_params import DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams
-from noiz.models.datachunk import Datachunk, DatachunkStats, ProcessedDatachunk
-from noiz.models.timespan import Timespan
-from noiz.models.soh import SohGps, SohInstrument
+from noiz.models import StackingSchema, Crosscorrelation, QCOneResults, QCTwoResults, DatachunkParams, \
+    ProcessedDatachunkParams, CrosscorrelationParams, Datachunk, DatachunkStats, ProcessedDatachunk, \
+    SohGps, SohInstrument, Timespan
+from noiz.models.component import ComponentFile
 
 
 @pytest.fixture(scope="class")

@@ -11,11 +11,11 @@ from noiz.database import db
 class StackingTimespan(TimespanModel):
     __tablename__ = "stacking_timespan"
     __table_args__ = (
-        db.UniqueConstraint("starttime", name="unique_stack_starttime"),
-        db.UniqueConstraint("midtime", name="unique_stack_midtime"),
-        db.UniqueConstraint("endtime", name="unique_stack_endtime"),
+        db.UniqueConstraint("stacking_schema_id", "starttime", name="unique_stack_starttime_per_config"),
+        db.UniqueConstraint("stacking_schema_id", "midtime", name="unique_stack_midtime_per_config"),
+        db.UniqueConstraint("stacking_schema_id", "endtime", name="unique_stack_endtime_per_config"),
         db.UniqueConstraint(
-            "starttime", "midtime", "endtime", name="unique_stack_times"
+            "stacking_schema_id", "starttime", "midtime", "endtime", name="unique_stack_times_per_config"
         ),
     )
     stacking_schema_id = db.Column(
@@ -36,6 +36,7 @@ class StackingSchemaHolder:
         This simple dataclass is just helping to validate :py:class:`~noiz.models.StackingSchema` values loaded
         from the TOML file
     """
+    qctwo_config_id: int
     starttime: Union[datetime.datetime, datetime.date]
     endtime: Union[datetime.datetime, datetime.date]
     stacking_length: Union[pd.Timedelta, datetime.timedelta, str]
@@ -58,12 +59,20 @@ class StackingSchema(db.Model):
     __tablename__ = "stacking_schema"
 
     id = db.Column("id", db.Integer, primary_key=True)
+    qctwo_config_id = db.Column("qctwo_config_id", db.Integer, db.ForeignKey("qctwo_config.id"), nullable=False)
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
     stacking_length = db.Column("stacking_length", db.Interval, nullable=False)
     stacking_overlap = db.Column("stacking_overlap", db.Interval, nullable=False)
 
+    qctwo_config = db.relationship("QCTwoConfig", foreign_keys=[qctwo_config_id], uselist=False, lazy="joined")
+
     def __init__(self, **kwargs):
+        for key in ("qctwo_config_id", "starttime", "endtime", "stacking_length"):
+            if key not in kwargs.keys():
+                raise ValueError(f"Required value of {key} missing. You have to provide it.")
+
+        self.qctwo_config_id = kwargs.get("qctwo_config_id", None)
         self.starttime = kwargs.get("starttime", None)
         self.endtime = kwargs.get("endtime", None)
         self.stacking_length = _validate_timedelta(
