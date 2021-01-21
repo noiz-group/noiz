@@ -1,5 +1,6 @@
 from loguru import logger
 from pathlib import Path
+from sqlalchemy.exc import IntegrityError
 from typing import Optional, Tuple, Union, List
 
 from noiz.api.component import fetch_components
@@ -108,8 +109,13 @@ def _insert_params_into_db(
     :rtype: NoneType
     """
     db.session.add(params)
-    db.session.commit()
-    logger.info(f"Inserted {type(params)} to db with id {params.id}")
+    try:
+        db.session.commit()
+        logger.info(f"Inserted {type(params)} to db with id {params.id}")
+    except IntegrityError as e:
+        logger.error(f"There was an error during insertion of object {params}. Error: {e}")
+        db.session.rollback()
+        raise e
     return params
 
 
