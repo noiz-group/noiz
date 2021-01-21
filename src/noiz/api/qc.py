@@ -496,10 +496,10 @@ def process_qctwo(
     logger.info("Calculations of QCTwoResults done.")
 
     logger.info("All processing finished. Trying to insert data into db.")
-    add_or_upsert_qctwo_results_in_db(qctwo_results=qctwo_results)
+    _add_or_upsert_qctwo_results_in_db(qctwo_results=qctwo_results)
 
 
-def add_or_upsert_qctwo_results_in_db(qctwo_results: Collection[QCTwoResults]) -> None:
+def _add_or_upsert_qctwo_results_in_db(qctwo_results: Collection[QCTwoResults]) -> None:
     # TODO OPTIMIZE the inserts. there could be extracted datachunk_ids to query for (the qcone_config_id does not
     #  change within this call). Then, the upsert could be executed on the existing only, insert on all the rest.
     #  Gitlab #143
