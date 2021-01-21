@@ -11,11 +11,11 @@ from noiz.database import db
 class StackingTimespan(TimespanModel):
     __tablename__ = "stacking_timespan"
     __table_args__ = (
-        db.UniqueConstraint("starttime", name="unique_stack_starttime"),
-        db.UniqueConstraint("midtime", name="unique_stack_midtime"),
-        db.UniqueConstraint("endtime", name="unique_stack_endtime"),
+        db.UniqueConstraint("stacking_schema_id", "starttime", name="unique_stack_starttime_per_config"),
+        db.UniqueConstraint("stacking_schema_id", "midtime", name="unique_stack_midtime_per_config"),
+        db.UniqueConstraint("stacking_schema_id", "endtime", name="unique_stack_endtime_per_config"),
         db.UniqueConstraint(
-            "starttime", "midtime", "endtime", name="unique_stack_times"
+            "stacking_schema_id", "starttime", "midtime", "endtime", name="unique_stack_times_per_config"
         ),
     )
     stacking_schema_id = db.Column(
