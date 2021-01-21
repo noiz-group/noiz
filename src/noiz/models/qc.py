@@ -214,3 +214,127 @@ class QCOneConfigHolder:
     signal_skewness_max: Optional[float] = None
     signal_kurtosis_min: Optional[float] = None
     signal_kurtosis_max: Optional[float] = None
+
+
+class QCTwoRejectedTime(db.Model):
+    __tablename__ = "qctwo_rejected_time_periods"
+    id = db.Column("id", db.Integer, primary_key=True)
+
+    qctwo_config_id = db.Column("qctwo_config_id", db.Integer, db.ForeignKey("qctwo_config.id"))
+    componentpair_id = db.Column("componentpair_id", db.Integer, db.ForeignKey("componentpair.id"))
+    starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
+    endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
+
+    qctwo_config = db.relationship(
+        "QCTwoConfig",
+        uselist=False,
+        back_populates="time_periods_rejected",
+        foreign_keys=[qctwo_config_id]
+    )
+    component_pair = db.relationship("ComponentPair", foreign_keys=[componentpair_id])
+
+
+class QCTwoConfig(db.Model):
+    __tablename__ = "qctwo_config"
+
+    id = db.Column("id", db.Integer, primary_key=True)
+
+    crosscorrelation_params_id = db.Column(
+        "crosscorrelation_params_id",
+        db.Integer,
+        db.ForeignKey("crosscorrelation_params.id"))
+    null_policy = db.Column("null_policy", db.UnicodeText, default=NullTreatmentPolicy.PASS.value, nullable=False)
+    starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
+    endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
+
+    time_periods_rejected: List[QCTwoRejectedTime] = db.relationship(
+        "QCTwoRejectedTime",
+        uselist=True,
+        back_populates="qctwo_config",
+        lazy="joined"
+    )
+
+    crosscorrelation_params = db.relationship(
+        "CrosscorrelationParams",
+        uselist=True,
+        lazy="joined"
+    )
+
+    # py38 only. If you want to go below, use just standard property
+    @cached_property
+    def null_value(self) -> bool:
+        if self.null_policy is NullTreatmentPolicy.PASS or self.null_policy == NullTreatmentPolicy.PASS.value:
+            return True
+        elif self.null_policy is NullTreatmentPolicy.FAIL or self.null_policy == NullTreatmentPolicy.FAIL.value:
+            return False
+        else:
+            raise NotImplementedError(f"I did not expect this value of null_policy {self.null_policy}")
+
+    # py38 only. If you want to go below, use just standard property
+    @cached_property
+    def componentpair_ids_rejected_times(self) -> Tuple[int, ...]:
+        return tuple([x.componentpair_id for x in self.time_periods_rejected])
+
+
+class QCTwoResults(db.Model):
+    __tablename__ = "qctwo_results"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "crosscorrelation_id", "qctwo_config_id", name="unique_qctwo_results_per_config_per_ccf"
+        ),
+    )
+
+    id = db.Column("id", db.BigInteger, primary_key=True)
+
+    qctwo_config_id = db.Column("qctwo_config_id", db.Integer, db.ForeignKey("qctwo_config.id"))
+    crosscorrelation_id = db.Column("crosscorrelation_id", db.Integer, db.ForeignKey("crosscorrelation.id"))
+
+    starttime = db.Column("starttime", db.Boolean, nullable=False)
+    endtime = db.Column("endtime", db.Boolean, nullable=False)
+    accepted_time = db.Column("accepted_time", db.Boolean, nullable=False)
+
+    qctwo_config = db.relationship("QCTwoConfig", foreign_keys=[qctwo_config_id])
+    crosscorrelation = db.relationship("Crosscorrelation", foreign_keys=[crosscorrelation_id])
+
+    def is_passing(self) -> bool:
+        """
+        Checks if all values of QCTwo are True.
+
+        :return: If QCTwo is passing for that chunk
+        :rtype: bool
+        """
+        ret = all((
+            self.starttime,
+            self.endtime,
+            self.accepted_time,
+        ))
+        return ret
+
+
+@dataclass
+class QCTwoConfigRejectedTimeHolder:
+    """
+        This simple dataclass is just helping to validate :class:`~noiz.models.QCOneRejectedTime` values loaded
+        from the TOML file
+    """
+    network_a: str
+    station_a: str
+    component_a: str
+    network_b: str
+    station_b: str
+    component_b: str
+    starttime: Union[datetime.datetime, datetime.date]
+    endtime: Union[datetime.datetime, datetime.date]
+
+
+@dataclass
+class QCTwoConfigHolder:
+    """
+    This simple dataclass is just helping to validate :class:`~noiz.models.QCOneConfig` values loaded from the TOML file
+    """
+
+    crosscorrelation_params_id: int
+    null_treatment_policy: NullTreatmentPolicy = NullTreatmentPolicy.PASS
+    starttime: Union[datetime.datetime, datetime.date] = datetime.date(2010, 1, 1)
+    endtime: Union[datetime.datetime, datetime.date] = datetime.date(2030, 1, 1)
+    rejected_times: Union[Tuple[QCTwoConfigRejectedTimeHolder, ...], List[QCTwoConfigRejectedTimeHolder]] = tuple()

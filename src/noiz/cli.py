@@ -5,7 +5,6 @@ import os
 import pendulum
 
 from flask.cli import AppGroup, with_appcontext
-from flask import current_app
 from flask.cli import FlaskGroup
 from pendulum.date import Date
 from pathlib import Path
@@ -16,7 +15,6 @@ from noiz.app import create_app
 cli = AppGroup("noiz")
 configs_group = AppGroup("configs")  # type: ignore
 data_group = AppGroup("data")  # type: ignore
-qc_group = AppGroup("qc")  # type: ignore
 processing_group = AppGroup("processing")  # type: ignore
 plotting_group = AppGroup("plotting")  # type: ignore
 export_group = AppGroup("export")  # type: ignore
@@ -143,7 +141,7 @@ def add_qcone_config(
 ):
     """Read a TOML file with QCOneConfig and add to db."""
 
-    from noiz.api.qc import create_and_add_qcone_config_from_toml
+    from noiz.api.processing_config import create_and_add_qcone_config_from_toml
 
     if add_to_db:
         params = create_and_add_qcone_config_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
@@ -154,11 +152,33 @@ def add_qcone_config(
         click.echo(parsing_results)
 
 
+@configs_group.command("add_qctwo_config")
+@with_appcontext
+@click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
+@click.option('--add_to_db', is_flag=True, expose_value=True,
+              prompt='Are you sure you want to add QCTwoConfig to DB? `N` will just preview it. ')
+def add_qctwo_config(
+        filepath: str,
+        add_to_db: bool,
+):
+    """Read a TOML file with QCTwoConfig and add to db."""
+
+    from noiz.api.processing_config import create_and_add_qctwo_config_from_toml
+
+    if add_to_db:
+        params = create_and_add_qctwo_config_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
+        click.echo(f"The QCTwoConfig was added to db with id {params.id}")
+    else:
+        parsing_results, _ = create_and_add_qctwo_config_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
+        click.echo("\n")
+        click.echo(parsing_results)
+
+
 @configs_group.command("add_stacking_schema")
 @with_appcontext
 @click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
 @click.option('--add_to_db', is_flag=True, expose_value=True,
-              prompt='Are you sure you want to add QCOneConfig to DB? `N` will just preview it. ')
+              prompt='Are you sure you want to add StackingSchema to DB? `N` will just preview it. ')
 def add_stacking_schema(
         filepath: str,
         add_to_db: bool,
@@ -322,33 +342,6 @@ def add_soh_files(station, station_type, soh_type, paths, network):
     return
 
 
-@qc_group.group("qc")
-def qc_group():  # type: ignore
-    """Manage QCConfigs"""
-    pass
-
-
-@qc_group.command("read_qc_one_config")
-@with_appcontext
-@click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
-@click.option('--add_to_db', is_flag=True, expose_value=True,
-              prompt='Are you sure you want to add QCOneConfig to DB? `N` will just preview it. ')
-def read_qc_one_config(
-        filepath: str,
-        add_to_db: bool,
-):
-    """This command allows for reading a TOML file with QCOne config and adding it to database"""
-
-    from noiz.api.qc import create_and_add_qc_one_config_from_toml
-
-    if add_to_db:
-        create_and_add_qc_one_config_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
-    else:
-        parsing_results, _ = create_and_add_qc_one_config_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
-        click.echo("\n")
-        click.echo(parsing_results)
-
-
 @processing_group.group("processing")
 def processing_group():  # type: ignore
     """Data processing"""
@@ -468,7 +461,7 @@ def run_qcone(
         use_gps,
         strict_gps,
 ):
-    """Estimate qcone results """
+    """Calculate QCOne results """
 
     from noiz.api.qc import process_qcone
 
@@ -480,6 +473,21 @@ def run_qcone(
         qcone_config_id=qcone_config_id,
         use_gps=use_gps,
         strict_gps=strict_gps,
+    )
+
+
+@processing_group.command("run_qctwo")
+@with_appcontext
+@click.option("-c", "--qctwo_config_id", nargs=1, type=int, default=1, show_default=True)
+def run_qctwo(
+        qctwo_config_id,
+):
+    """Calculate QCTwo results """
+
+    from noiz.api.qc import process_qctwo
+
+    process_qctwo(
+        qctwo_config_id=qctwo_config_id,
     )
 
 
@@ -782,7 +790,6 @@ _register_subgroups_to_cli(
         configs_group,
         data_group,
         processing_group,
-        qc_group,
         plotting_group,
         export_group
     )

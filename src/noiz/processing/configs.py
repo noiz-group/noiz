@@ -7,7 +7,8 @@ from noiz.globals import ExtendedEnum
 from noiz.models import DatachunkParams
 from noiz.models.processing_params import DatachunkParamsHolder, ProcessedDatachunkParamsHolder, \
     ProcessedDatachunkParams, CrosscorrelationParamsHolder, CrosscorrelationParams
-from noiz.models.qc import QCOneConfigRejectedTimeHolder, QCOneConfigHolder
+from noiz.models.qc import QCOneConfigRejectedTimeHolder, QCOneConfigHolder, QCTwoConfigHolder, \
+    QCTwoConfigRejectedTimeHolder
 from noiz.models.stacking import StackingSchemaHolder, StackingSchema
 
 
@@ -17,6 +18,7 @@ class DefinedConfigs(ExtendedEnum):
     PROCESSEDDATACHUNKPARAMS = "ProcessedDatachunkParams"
     CROSSCORRELATIONPARAMS = "CrosscorrelationParams"
     QCONE = "QCOne"
+    QCTWO = "QCTwo"
     STACKINGSCHEMA = "StackingSchema"
 
 
@@ -32,6 +34,8 @@ def _select_validator_for_config_type(config_type: DefinedConfigs):
         return validate_config_dict_as_crosscorrelationparams
     elif config_type is DefinedConfigs.QCONE:
         return validate_dict_as_qcone_holder
+    elif config_type is DefinedConfigs.QCTWO:
+        return validate_dict_as_qctwo_holder
     elif config_type is DefinedConfigs.STACKINGSCHEMA:
         return validate_config_dict_as_stacking_schema
     else:
@@ -89,28 +93,6 @@ def parse_single_config_toml(filepath: Path, config_type: Optional[Union[str, De
     return validator(loaded_dict)
 
 
-def load_qc_one_config_toml(filepath: Path) -> QCOneConfigHolder:
-    """
-    This method loads the TOML config file, validates it and returns a :class:`~noiz.models.QCOneConfigHolder` that is
-    compatible with constructor of :class:`~noiz.models.QCOneConfig`
-
-    :param filepath: Path to existing QCOne config TOML file
-    :type filepath: Path
-    :return: QCOneConfigHolder compatible with constructor of QCOne model
-    :rtype: QCOneConfigHolder
-    """
-    import warnings
-    warnings.warn(DeprecationWarning("this method is deprecated, use more general `parse_single_config_toml`"))
-
-    if not filepath.exists() or not filepath.is_file():
-        raise ValueError("Provided filepath has to be a path to existing file")
-
-    with open(file=filepath, mode='r') as f:
-        loaded_config: Dict = toml.load(f=f)  # type: ignore
-
-    return validate_dict_as_qcone_holder(loaded_config)
-
-
 def validate_dict_as_qcone_holder(loaded_dict: Dict) -> QCOneConfigHolder:
     """
     Takes a dict, or an output from TOML parser and tries to convert it into a :class:`~noiz.models.QCOneConfigHolder` object
@@ -129,6 +111,26 @@ def validate_dict_as_qcone_holder(loaded_dict: Dict) -> QCOneConfigHolder:
     processed_dict['rejected_times'] = validated_forbidden_channels
 
     return QCOneConfigHolder(**processed_dict)
+
+
+def validate_dict_as_qctwo_holder(loaded_dict: Dict) -> QCTwoConfigHolder:
+    """
+    Takes a dict, or an output from TOML parser and tries to convert it into a :class:`~noiz.models.QCOneConfigHolder` object
+
+    :param loaded_dict: Dictionary to be parsed and validated as QCOneConfigHolder
+    :type loaded_dict: Dict
+    :return: Valid QCOneConfigHolder object
+    :rtype: QCOneConfigHolder
+    """
+
+    processed_dict = loaded_dict.copy()
+
+    validated_forbidden_channels = []
+    for forb_chn in loaded_dict['rejected_times']:
+        validated_forbidden_channels.append(QCTwoConfigRejectedTimeHolder(**forb_chn))
+    processed_dict['rejected_times'] = validated_forbidden_channels
+
+    return QCTwoConfigHolder(**processed_dict)
 
 
 def validate_config_dict_as_datachunkparams(loaded_dict: Dict) -> DatachunkParamsHolder:
