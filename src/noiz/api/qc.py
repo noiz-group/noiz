@@ -1,24 +1,21 @@
 import datetime
 from loguru import logger
-from pathlib import Path
 
 from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Query
-from typing import List, Collection, Union, Optional, Tuple
+from typing import List, Collection, Union, Optional
 
 from noiz.api.component import fetch_components
+from noiz.api.crosscorrelations import fetch_crosscorrelation
 from noiz.api.datachunk import _determine_filters_and_opts_for_datachunk
 from noiz.api.helpers import validate_to_tuple, extract_object_ids
 from noiz.api.timespan import fetch_timespans_between_dates
+
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
-from noiz.models.datachunk import Datachunk, DatachunkStats
-from noiz.models.qc import QCOneConfig, QCOneRejectedTime, QCOneConfigRejectedTimeHolder, QCOneConfigHolder, QCOneResults
-from noiz.models.soh import AveragedSohGps
-from noiz.processing.configs import validate_dict_as_qcone_holder, load_qc_one_config_toml, parse_single_config_toml, \
-    DefinedConfigs
-from noiz.processing.qc import calculate_qcone_results
+from noiz.models import Crosscorrelation, Datachunk, DatachunkStats, QCOneConfig, QCOneResults, QCTwoConfig, QCTwoResults, AveragedSohGps
+from noiz.processing.qc import calculate_qcone_results, calculate_qctwo_results
 
 
 def fetch_qcone_config(ids: Union[int, Collection[int]]) -> List[QCOneConfig]:
@@ -68,7 +65,7 @@ def fetch_qcone_results(
         datachunks: Optional[Collection[Datachunk]] = None,
         datachunk_ids: Optional[Collection[int]] = None,
 ) -> List[QCOneResults]:
-
+    """filldocs"""
     query = _query_qcone_results(
         qcone_config=qcone_config,
         qcone_config_id=qcone_config_id,
@@ -84,6 +81,7 @@ def count_qcone_results(
         datachunks: Optional[Collection[Datachunk]] = None,
         datachunk_ids: Optional[Collection[int]] = None,
 ) -> int:
+    """filldocs"""
 
     query = _query_qcone_results(
         qcone_config=qcone_config,
@@ -127,120 +125,111 @@ def _query_qcone_results(
     return query
 
 
-def create_qcone_rejected_time(
-        holder: QCOneConfigRejectedTimeHolder,
-) -> List[QCOneRejectedTime]:
+def fetch_qctwo_config(ids: Union[int, Collection[int]]) -> List[QCTwoConfig]:
     """
-    Based on provided :class:`~noiz.processing.qc.QCOneConfigRejectedTimeHolder` creates instances of the
-    database models :class:`~noiz.models.QCOneRejectedTime`.
+    Fetches the QCTwoConfig from db based on id. Can be either a single id or some collection of ids.
+    It always returns a list of instances, can also be an empty list.
 
-    Since the holder itself is focused on the single component inputs, it should never return more than a
-    single element list but for safety, it will return a list instead of single object.
-
-    Has to be executed within `app_context`
-
-    :param holder: Holder to be processed
-    :type holder: QCOneConfigRejectedTimeHolder
-    :return: Instance of a model, ready to be added to to the database
-    :rtype: QCOneRejectedTime
+    :param ids: IDs to be fetched
+    :type ids: Union[int, Collection[int]]
+    :return: Fetched QCTwoConfig objects
+    :rtype: List[QCTwoConfig]
     """
-    fetched_components = fetch_components(
-        networks=holder.network,
-        stations=holder.station,
-        components=holder.component,
+
+    ids = validate_to_tuple(val=ids, accepted_type=int)
+
+    fetched = db.session.query(QCTwoConfig).filter(
+        QCTwoConfig.id.in_(ids),
+    ).all()
+
+    return fetched
+
+
+def fetch_qctwo_config_single(id: int) -> QCTwoConfig:
+    """
+    Fetches a single :class:`noiz.models.qc.QCTwoConfig` from db based on id.
+
+    :param id: ID to be fetched
+    :type id: int
+    :return: Fetched config
+    :rtype: QCTwoConfig
+    :raises ValueError
+    """
+
+    fetched = db.session.query(QCTwoConfig).filter(
+        QCTwoConfig.id == id,
+    ).first()
+
+    if fetched is None:
+        raise EmptyResultException(f"There was no QCOneConfig with if={id} in the database.")
+
+    return fetched
+
+
+def fetch_qctwo_results(
+        qctwo_config: Optional[QCTwoConfig] = None,
+        qctwo_config_id: Optional[int] = None,
+        crosscorrelations: Optional[Collection[Crosscorrelation]] = None,
+        crosscorrelation_ids: Optional[Collection[int]] = None,
+) -> List[QCTwoResults]:
+    """filldocs"""
+    query = _query_qctwo_results(
+        qctwo_config=qctwo_config,
+        qctwo_config_id=qctwo_config_id,
+        crosscorrelations=crosscorrelations,
+        crosscorrelation_ids=crosscorrelation_ids,
     )
-    if len(fetched_components) == 0:
-        raise EmptyResultException(f"There were no components found in db for that parameters. "
-                                   f"{holder.network}.{holder.station}.{holder.component}")
-
-    res = [
-        QCOneRejectedTime(component_id=cmp.id, starttime=holder.starttime, endtime=holder.endtime)
-        for cmp in fetched_components
-    ]
-    return res
+    return query.all()
 
 
-def create_qcone_config(
-        qcone_holder: Optional[QCOneConfigHolder] = None,
-        **kwargs,
-) -> QCOneConfig:
-    """
-    This method takes a :class:`~noiz.processing.qc.QCOneConfigHolder` instance and based on it creates an instance
-    of database model :class:`~noiz.models.QCOneConfig`.
-
-    Optionally, it can create the instance of :class:`~noiz.processing.qc.QCOneConfigHolder` from provided kwargs, but
-    why dont you do it on your own to ensure that it will get everything it needs?
-
-    Has to be executed within `app_context`
-
-    :param qcone_holder: Object containing all required elements to create a QCOne instance
-    :type qcone_holder: QCOneConfigHolder
-    :param kwargs: Optional kwargs to create QCOneConfigHolder
-    :return: Working QCOne model that needs to be inserted into db
-    :rtype: QCOneConfig
-    """
-
-    if qcone_holder is None:
-        qcone_holder = validate_dict_as_qcone_holder(kwargs)
-
-    qc_one_rejected_times = []
-    for rej_time in qcone_holder.rejected_times:
-        qc_one_rejected_times.extend(create_qcone_rejected_time(holder=rej_time))
-
-    qcone = QCOneConfig(
-        null_policy=qcone_holder.null_treatment_policy.value,
-        starttime=qcone_holder.starttime,
-        endtime=qcone_holder.endtime,
-        avg_gps_time_error_min=qcone_holder.avg_gps_time_error_min,
-        avg_gps_time_error_max=qcone_holder.avg_gps_time_error_max,
-        avg_gps_time_uncertainty_min=qcone_holder.avg_gps_time_uncertainty_min,
-        avg_gps_time_uncertainty_max=qcone_holder.avg_gps_time_uncertainty_max,
-        signal_energy_min=qcone_holder.signal_energy_min,
-        signal_energy_max=qcone_holder.signal_energy_max,
-        signal_min_value_min=qcone_holder.signal_min_value_min,
-        signal_min_value_max=qcone_holder.signal_min_value_max,
-        signal_max_value_min=qcone_holder.signal_max_value_min,
-        signal_max_value_max=qcone_holder.signal_max_value_max,
-        signal_mean_value_min=qcone_holder.signal_mean_value_min,
-        signal_mean_value_max=qcone_holder.signal_mean_value_max,
-        signal_variance_min=qcone_holder.signal_variance_min,
-        signal_variance_max=qcone_holder.signal_variance_max,
-        signal_skewness_min=qcone_holder.signal_skewness_min,
-        signal_skewness_max=qcone_holder.signal_skewness_max,
-        signal_kurtosis_min=qcone_holder.signal_kurtosis_min,
-        signal_kurtosis_max=qcone_holder.signal_kurtosis_max,
+def count_qctwo_results(
+        qctwo_config: Optional[QCTwoConfig] = None,
+        qctwo_config_id: Optional[int] = None,
+        crosscorrelations: Optional[Collection[Crosscorrelation]] = None,
+        crosscorrelation_ids: Optional[Collection[int]] = None,
+) -> int:
+    """filldocs"""
+    query = _query_qctwo_results(
+        qctwo_config=qctwo_config,
+        qctwo_config_id=qctwo_config_id,
+        crosscorrelations=crosscorrelations,
+        crosscorrelation_ids=crosscorrelation_ids,
     )
-    qcone.time_periods_rejected = qc_one_rejected_times
-    return qcone
+    return query.count()
 
 
-def create_and_add_qc_one_config_from_toml(
-        filepath: Path,
-        add_to_db: bool = False
-) -> Optional[Tuple[QCOneConfigHolder, QCOneConfig]]:
-    """
-    This method takes a filepath to a TOML file with valid parameters
-    to create a :class:`~noiz.processing.qc.QCOneConfigHolder` and subsequently :class:`~noiz.models.QCOneConfig`.
-    It can also add the created object to the database. By default it does not add it to db.
-    If chosen not to add the result to db, a tuple containing both :class:`~noiz.processing.qc.QCOneConfigHolder`
-    and :class:`~noiz.models.QCOneConfig` will be returned for manual check.
+def _query_qctwo_results(
+        qctwo_config: Optional[QCOneConfig] = None,
+        qctwo_config_id: Optional[int] = None,
+        crosscorrelations: Optional[Collection[Crosscorrelation]] = None,
+        crosscorrelation_ids: Optional[Collection[int]] = None,
+) -> Query:
+    """filldocs"""
 
-    :param filepath: Path to existing TOML file
-    :type filepath: Path
-    :param add_to_db: If the result of parsing of TOML should be added to DB
-    :type add_to_db: bool
-    :return: It can return QCOneConfigHolder object for manual validation
-    :rtype: Optional[QCOneConfigHolder]
-    """
+    if crosscorrelations is not None and crosscorrelation_ids is not None:
+        raise ValueError("Both crosscorrelations and crosscorrelation_ids parameters were provided. "
+                         "You have to provide maximum one of them.")
+    if qctwo_config is not None and qctwo_config_id is not None:
+        raise ValueError("Both qcone_config and qcone_config_id parameters were provided. "
+                         "You have to provide maximum one of them.")
 
-    qcone_holder = load_qc_one_config_toml(filepath=filepath)
-    qcone_config = create_qcone_config(qcone_holder=qcone_holder)
+    filters = []
+    if qctwo_config is not None:
+        filters.append(QCTwoResults.qctwo_config_id.in_((qctwo_config.id,)))
+    if qctwo_config_id is not None:
+        qcone_config_ids = validate_to_tuple(val=qctwo_config_id, accepted_type=int)
+        filters.append(QCTwoResults.qctwo_config_id.in_(qcone_config_ids))
+    if crosscorrelations is not None:
+        extracted_datachunk_ids = extract_object_ids(crosscorrelations)
+        filters.append(QCTwoResults.crosscorrelation_id.in_(extracted_datachunk_ids))
+    if crosscorrelation_ids is not None:
+        filters.append(QCTwoResults.crosscorrelation_id.in_(crosscorrelation_ids))
+    if len(filters) == 0:
+        filters.append(True)
 
-    if add_to_db:
-        insert_qcone_config_into_db(config=qcone_config)
-    else:
-        return (qcone_holder, qcone_config)
-    return None
+    query = QCTwoResults.query.filter(*filters)
+
+    return query
 
 
 def process_qcone(
@@ -483,46 +472,81 @@ def add_or_upsert_qcone_results_in_db(qcone_results_collection: Collection[QCOne
     return
 
 
-def insert_qcone_config_into_db(config: QCOneConfig) -> QCOneConfig:
-    """
-    This is method simply adding an instance of :class:`~noiz.models.QCOneConfig` to DB and committing changes.
+def process_qctwo(
+        qctwo_config_id: int,
+):
+    try:
+        qctwo_config: QCTwoConfig = fetch_qctwo_config_single(id=qctwo_config_id)
+    except EmptyResultException as e:
+        logger.error(e)
+        raise e
 
-    Has to be executed within `app_context`
+    ccfs = fetch_crosscorrelation(
+        crosscorrelation_params_id=qctwo_config.crosscorrelation_params_id,
+        load_timespan=True,
+    )
+    qctwo_results = []
+    logger.info(f"Starting QCTwoResults calculations {len(ccfs)} elements.")
+    for ccf in ccfs:
+        qctwo_res = calculate_qctwo_results(
+            qctwo_config=qctwo_config,
+            crosscorrelation=ccf,
+        )
+        qctwo_results.append(qctwo_res)
+    logger.info("Calculations of QCTwoResults done.")
 
-    :param qcone_config: Instance of QCOne to be added to db
-    :type qcone_config: QCOneConfig
-    :return: Object that was added to database.
-    :rtype: QCOneConfig
-    """
-    db.session.add(config)
+    logger.info("All processing finished. Trying to insert data into db.")
+    _add_or_upsert_qctwo_results_in_db(qctwo_results=qctwo_results)
+
+
+def _add_or_upsert_qctwo_results_in_db(qctwo_results: Collection[QCTwoResults]) -> None:
+    # TODO OPTIMIZE the inserts. there could be extracted datachunk_ids to query for (the qcone_config_id does not
+    #  change within this call). Then, the upsert could be executed on the existing only, insert on all the rest.
+    #  Gitlab #143
+
+    logger.info(f"Starting insertion procedure. There are {len(qctwo_results)} elements to be processed.")
+    for results in qctwo_results:
+
+        if not isinstance(results, QCTwoResults):
+            logger.warning(f'Provided object is not an instance of QCTwoResults. '
+                           f'Provided object was an {type(results)}. Skipping.')
+            continue
+
+        logger.info("Querrying db if the QCTwoResults already exists.")
+        existing_chunks = (
+            db.session.query(QCTwoResults)
+            .filter(
+                QCTwoResults.crosscorrelation_id == results.crosscorrelation_id,
+                QCTwoResults.qctwo_config_id == results.qctwo_config_id,
+            )
+            .all()
+        )
+
+        if len(existing_chunks) == 0:
+            logger.info("No existing chunks found. Adding QCTwoResults to DB.")
+            db.session.add(results)
+        else:
+            logger.info("The QCOneResults already exists in db. Updating.")
+            insert_command = (
+                insert(QCTwoResults)
+                .values(
+                    starttime=results.starttime,
+                    endtime=results.endtime,
+                    accepted_time=results.accepted_time,
+                    qctwo_config_id=results.qctwo_config_id,
+                    crosscorrelation_id=results.crosscorrelation_id,
+                )
+                .on_conflict_do_update(
+                    constraint="unique_qctwo_results_per_config_per_ccf",
+                    set_=dict(
+                        starttime=results.starttime,
+                        endtime=results.endtime,
+                        accepted_time=results.accepted_time,
+                    ),
+                )
+            )
+            db.session.execute(insert_command)
+
+    logger.debug('Commiting session.')
     db.session.commit()
-    logger.info(f"Succesfully added to db {type(config)} object with id={config.id}")
-    return config
-
-
-def create_and_add_qcone_config_from_toml(
-        filepath: Path,
-        add_to_db: bool = False
-) -> Union[QCOneConfig, Tuple[QCOneConfigHolder, QCOneConfig]]:
-    """
-    This method takes a filepath to a TOML file with valid parameters
-    to create a :class:`~noiz.processing.qc.QCOneConfigHolder` and subsequently :class:`~noiz.models.QCOneConfig`.
-    It can also add the created object to the database. By default it does not add it to db.
-    If chosen not to add the result to db, a tuple containing both :class:`~noiz.processing.qc.QCOneConfigHolder`
-    and :class:`~noiz.models.QCOneConfig` will be returned for manual check.
-
-    :param filepath: Path to existing TOML file
-    :type filepath: Path
-    :param add_to_db: If the result of parsing of TOML should be added to DB
-    :type add_to_db: bool
-    :return: It can return QCOneConfigHolder object for manual validation
-    :rtype: Optional[QCOneConfigHolder]
-    """
-
-    params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.QCONE)
-    qcone = create_qcone_config(qcone_holder=params_holder)
-
-    if add_to_db:
-        return insert_qcone_config_into_db(config=qcone)
-    else:
-        return (params_holder, qcone)
+    return
