@@ -7,7 +7,8 @@ from noiz.globals import ExtendedEnum
 from noiz.models import DatachunkParams
 from noiz.models.processing_params import DatachunkParamsHolder, ProcessedDatachunkParamsHolder, \
     ProcessedDatachunkParams, CrosscorrelationParamsHolder, CrosscorrelationParams
-from noiz.models.qc import QCOneConfigRejectedTimeHolder, QCOneConfigHolder, QCTwoConfigHolder
+from noiz.models.qc import QCOneConfigRejectedTimeHolder, QCOneConfigHolder, QCTwoConfigHolder, \
+    QCTwoConfigRejectedTimeHolder
 from noiz.models.stacking import StackingSchemaHolder, StackingSchema
 
 
@@ -126,7 +127,7 @@ def validate_dict_as_qctwo_holder(loaded_dict: Dict) -> QCTwoConfigHolder:
 
     validated_forbidden_channels = []
     for forb_chn in loaded_dict['rejected_times']:
-        validated_forbidden_channels.append(QCOneConfigRejectedTimeHolder(**forb_chn))
+        validated_forbidden_channels.append(QCTwoConfigRejectedTimeHolder(**forb_chn))
     processed_dict['rejected_times'] = validated_forbidden_channels
 
     return QCTwoConfigHolder(**processed_dict)
