@@ -461,7 +461,7 @@ def run_qcone(
         use_gps,
         strict_gps,
 ):
-    """Estimate qcone results """
+    """Calculate QCOne results """
 
     from noiz.api.qc import process_qcone
 
@@ -473,6 +473,21 @@ def run_qcone(
         qcone_config_id=qcone_config_id,
         use_gps=use_gps,
         strict_gps=strict_gps,
+    )
+
+
+@processing_group.command("run_qctwo")
+@with_appcontext
+@click.option("-c", "--qctwo_config_id", nargs=1, type=int, default=1, show_default=True)
+def run_qctwo(
+        qctwo_config_id,
+):
+    """Calculate QCTwo results """
+
+    from noiz.api.qc import process_qctwo
+
+    process_qctwo(
+        qctwo_config_id=qctwo_config_id,
     )
 
 
