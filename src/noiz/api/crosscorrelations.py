@@ -29,6 +29,9 @@ def fetch_crosscorrelation(
         crosscorrelation_params_id: Optional[int] = None,
         componentpair_id: Optional[Collection[int]] = None,
         timespan_id: Optional[Collection[int]] = None,
+        load_componentpair: bool = False,
+        load_timespan: bool = False,
+        load_crosscorrelation_params: bool = False,
 ) -> List[Crosscorrelation]:
     """filldocs"""
 
@@ -36,6 +39,9 @@ def fetch_crosscorrelation(
         crosscorrelation_params_id=crosscorrelation_params_id,
         componentpair_id=componentpair_id,
         timespan_id=timespan_id,
+        load_componentpair=load_componentpair,
+        load_timespan=load_timespan,
+        load_crosscorrelation_params=load_crosscorrelation_params,
     )
 
     return query.all()
@@ -45,12 +51,18 @@ def count_crosscorrelation(
         crosscorrelation_params_id: Optional[int] = None,
         componentpair_id: Optional[Collection[int]] = None,
         timespan_id: Optional[Collection[int]] = None,
+        load_componentpair: bool = False,
+        load_timespan: bool = False,
+        load_crosscorrelation_params: bool = False,
 ) -> int:
     """filldocs"""
     query = _query_crosscorrelation(
         crosscorrelation_params_id=crosscorrelation_params_id,
         componentpair_id=componentpair_id,
         timespan_id=timespan_id,
+        load_componentpair=load_componentpair,
+        load_timespan=load_timespan,
+        load_crosscorrelation_params=load_crosscorrelation_params,
     )
 
     return query.count()
@@ -60,6 +72,9 @@ def _query_crosscorrelation(
         crosscorrelation_params_id: Optional[int] = None,
         componentpair_id: Optional[Collection[int]] = None,
         timespan_id: Optional[Collection[int]] = None,
+        load_componentpair: bool = False,
+        load_timespan: bool = False,
+        load_crosscorrelation_params: bool = False,
 ) -> Query:
     """filldocs"""
     filters = []
@@ -70,11 +85,18 @@ def _query_crosscorrelation(
         filters.append(Crosscorrelation.componentpair_id.in_(componentpair_id))
     if timespan_id is not None:
         filters.append(Crosscorrelation.timespan_id.in_(timespan_id))
-
     if len(filters) == 0:
         filters.append(True)
 
-    return db.session.query(Crosscorrelation).filter(*filters)
+    opts = []
+    if load_timespan:
+        opts.append(subqueryload(Crosscorrelation.timespan))
+    if load_componentpair:
+        opts.append(subqueryload(Crosscorrelation.componentpair))
+    if load_crosscorrelation_params:
+        opts.append(subqueryload(Crosscorrelation.crosscorrelation_params))
+
+    return db.session.query(Crosscorrelation).filter(*filters).options(opts)
 
 
 def bulk_add_crosscorrelations(crosscorrelations: Iterable[Crosscorrelation]) -> None:
