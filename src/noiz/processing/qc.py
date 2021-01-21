@@ -29,12 +29,17 @@ def calculate_qcone_results(
     :return: Object containing values of all performed comparisons
     :rtype: QCOneResults
     """
+
+    if not isinstance(datachunk.timespan, Timespan):
+        raise ValueError('You should load timespan together with the Datachunk.')
+
     logger.debug("Creating an empty QCOneResults")
     qcone_res = QCOneResults(datachunk_id=datachunk.id, qcone_config_id=qcone_config.id)
     logger.debug("Checking datachunk for main time bounds")
-    qcone_res = _determine_qcone_time(results=qcone_res,  datachunk=datachunk, config=qcone_config)
+    qcone_res = _determine_qc_time(results=qcone_res, timespan=datachunk.timespan, config=qcone_config)
     logger.debug("Checking if datachunk within rejected time")
-    qcone_res = _determine_qcone_accepted_times(results=qcone_res, datachunk=datachunk, config=qcone_config)
+    qcone_res = _determine_qcone_accepted_times(results=qcone_res, datachunk=datachunk,
+                                                timespan=datachunk.timespan, config=qcone_config)
     logger.debug("Checking datachunk gps params")
     qcone_res = _determine_qcone_gps(result=qcone_res, config=qcone_config, avg_soh_gps=avg_soh_gps)
     logger.debug("Checking datachunk stats")
@@ -44,22 +49,18 @@ def calculate_qcone_results(
     return qcone_res
 
 
-def _determine_qcone_time(
+def _determine_qc_time(
         results: QCOneResults,
-        datachunk: Datachunk,
+        timespan: Timespan,
         config: QCOneConfig,
 ) -> QCOneResults:
     """
     filldocs
     """
-
-    if not isinstance(datachunk.timespan, Timespan):
-        raise ValueError('You should load timespan together with the Datachunk.')
-
     results.starttime = compare_vals_null_safe(
-        config.starttime, datachunk.timespan.starttime, ope.le, null_value=config.null_value)
+        config.starttime, timespan.starttime, ope.le, null_value=config.null_value)
     results.endtime = compare_vals_null_safe(
-        config.endtime, datachunk.timespan.endtime, ope.ge, null_value=config.null_value)
+        config.endtime, timespan.endtime, ope.ge, null_value=config.null_value)
 
     return results
 
@@ -67,14 +68,12 @@ def _determine_qcone_time(
 def _determine_qcone_accepted_times(
         results: QCOneResults,
         datachunk: Datachunk,
+        timespan: Timespan,
         config: QCOneConfig,
 ) -> QCOneResults:
     """
     filldocs
     """
-
-    if not isinstance(datachunk.timespan, Timespan):
-        raise ValueError('You should load timespan together with the Datachunk.')
 
     reject_checks = [True, ]
 
@@ -84,7 +83,7 @@ def _determine_qcone_accepted_times(
                 continue
 
             reject_checks.append(
-                    (rej.starttime <= datachunk.timespan.endtime) and (datachunk.timespan.starttime <= rej.endtime)
+                    (rej.starttime <= timespan.endtime) and (timespan.starttime <= rej.endtime)
             )
             # This check is adaptation of https://stackoverflow.com/a/13513973/4308541
 
