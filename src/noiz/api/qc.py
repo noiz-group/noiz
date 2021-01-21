@@ -7,17 +7,13 @@ from sqlalchemy.orm import Query
 from typing import List, Collection, Union, Optional
 
 from noiz.api.component import fetch_components
-from noiz.api.component_pair import fetch_componentpairs
 from noiz.api.datachunk import _determine_filters_and_opts_for_datachunk
 from noiz.api.helpers import validate_to_tuple, extract_object_ids
 from noiz.api.timespan import fetch_timespans_between_dates
 
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
-from noiz.models import Crosscorrelation, Datachunk, DatachunkStats, QCOneConfig, QCOneRejectedTime, \
-    QCOneConfigRejectedTimeHolder, QCOneConfigHolder, QCOneResults, QCTwoConfigRejectedTimeHolder, QCTwoRejectedTime,\
-    QCTwoConfigHolder, QCTwoConfig, QCTwoResults, AveragedSohGps
-from noiz.processing.configs import validate_dict_as_qcone_holder, validate_dict_as_qctwo_holder
+from noiz.models import Crosscorrelation, Datachunk, DatachunkStats, QCOneConfig, QCOneResults, QCTwoConfig, QCTwoResults, AveragedSohGps
 from noiz.processing.qc import calculate_qcone_results
 
 
@@ -233,171 +229,6 @@ def _query_qctwo_results(
     query = QCTwoResults.query.filter(*filters)
 
     return query
-
-
-def create_qcone_rejected_time(
-        holder: QCOneConfigRejectedTimeHolder,
-) -> List[QCOneRejectedTime]:
-    """
-    Based on provided :class:`~noiz.processing.qc.QCOneConfigRejectedTimeHolder` creates instances of the
-    database models :class:`~noiz.models.QCOneRejectedTime`.
-
-    Since the holder itself is focused on the single component inputs, it should never return more than a
-    single element list but for safety, it will return a list instead of single object.
-
-    Has to be executed within `app_context`
-
-    :param holder: Holder to be processed
-    :type holder: QCOneConfigRejectedTimeHolder
-    :return: Instance of a model, ready to be added to to the database
-    :rtype: QCOneRejectedTime
-    """
-    fetched_components = fetch_components(
-        networks=holder.network,
-        stations=holder.station,
-        components=holder.component,
-    )
-    if len(fetched_components) == 0:
-        raise EmptyResultException(f"There were no components found in db for that parameters. "
-                                   f"{holder.network}.{holder.station}.{holder.component}")
-
-    res = [
-        QCOneRejectedTime(component_id=cmp.id, starttime=holder.starttime, endtime=holder.endtime)
-        for cmp in fetched_components
-    ]
-    return res
-
-
-def create_qcone_config(
-        qcone_holder: Optional[QCOneConfigHolder] = None,
-        **kwargs,
-) -> QCOneConfig:
-    """
-    This method takes a :class:`~noiz.processing.qc.QCOneConfigHolder` instance and based on it creates an instance
-    of database model :class:`~noiz.models.QCOneConfig`.
-
-    Optionally, it can create the instance of :class:`~noiz.processing.qc.QCOneConfigHolder` from provided kwargs, but
-    why dont you do it on your own to ensure that it will get everything it needs?
-
-    Has to be executed within `app_context`
-
-    :param qcone_holder: Object containing all required elements to create a QCOne instance
-    :type qcone_holder: QCOneConfigHolder
-    :param kwargs: Optional kwargs to create QCOneConfigHolder
-    :return: Working QCOne model that needs to be inserted into db
-    :rtype: QCOneConfig
-    """
-
-    if qcone_holder is None:
-        qcone_holder = validate_dict_as_qcone_holder(kwargs)
-
-    qc_one_rejected_times = []
-    for rej_time in qcone_holder.rejected_times:
-        qc_one_rejected_times.extend(create_qcone_rejected_time(holder=rej_time))
-
-    qcone = QCOneConfig(
-        null_policy=qcone_holder.null_treatment_policy.value,
-        starttime=qcone_holder.starttime,
-        endtime=qcone_holder.endtime,
-        avg_gps_time_error_min=qcone_holder.avg_gps_time_error_min,
-        avg_gps_time_error_max=qcone_holder.avg_gps_time_error_max,
-        avg_gps_time_uncertainty_min=qcone_holder.avg_gps_time_uncertainty_min,
-        avg_gps_time_uncertainty_max=qcone_holder.avg_gps_time_uncertainty_max,
-        signal_energy_min=qcone_holder.signal_energy_min,
-        signal_energy_max=qcone_holder.signal_energy_max,
-        signal_min_value_min=qcone_holder.signal_min_value_min,
-        signal_min_value_max=qcone_holder.signal_min_value_max,
-        signal_max_value_min=qcone_holder.signal_max_value_min,
-        signal_max_value_max=qcone_holder.signal_max_value_max,
-        signal_mean_value_min=qcone_holder.signal_mean_value_min,
-        signal_mean_value_max=qcone_holder.signal_mean_value_max,
-        signal_variance_min=qcone_holder.signal_variance_min,
-        signal_variance_max=qcone_holder.signal_variance_max,
-        signal_skewness_min=qcone_holder.signal_skewness_min,
-        signal_skewness_max=qcone_holder.signal_skewness_max,
-        signal_kurtosis_min=qcone_holder.signal_kurtosis_min,
-        signal_kurtosis_max=qcone_holder.signal_kurtosis_max,
-    )
-    qcone.time_periods_rejected = qc_one_rejected_times
-    return qcone
-
-
-def create_qctwo_rejected_time(
-        holder: QCTwoConfigRejectedTimeHolder,
-) -> List[QCTwoRejectedTime]:
-    """
-    Based on provided :class:`~noiz.models.qc.QCTwoConfigRejectedTimeHolder` creates instances of the
-    database models :class:`~noiz.models.qc.QCTwoRejectedTime`.
-
-    Since the holder itself is focused on the single component inputs, it should never return more than a
-    single element list but for safety, it will return a list instead of single object.
-
-    Has to be executed within `app_context`
-
-    :param holder: Holder to be processed
-    :type holder: QCTwoConfigRejectedTimeHolder
-    :return: Instance of a model, ready to be added to to the database
-    :rtype: QCTwoRejectedTime
-    """
-    fetched_components_pairs = fetch_componentpairs(
-        network_codes_a=holder.network_a,
-        station_codes_a=holder.station_a,
-        component_codes_a=holder.component_a,
-        network_codes_b=holder.network_b,
-        station_codes_b=holder.station_b,
-        component_codes_b=holder.component_b,
-        accepted_component_code_pairs=f"{holder.component_a}{holder.component_b}",
-        include_intracorrelation=True,
-        include_autocorrelation=True,
-    )
-    if len(fetched_components_pairs) == 0:
-        raise EmptyResultException(f"There were no components found in db for that parameters. {holder}")
-    if len(fetched_components_pairs) > 1:
-        raise ValueError(f"There was more than one component_pair fetched for that query. "
-                         f"Something is wrong with the fetcher. {fetched_components_pairs}")
-
-    res = [
-        QCTwoRejectedTime(component_pair_id=cmp.id, starttime=holder.starttime, endtime=holder.endtime)
-        for cmp in fetched_components_pairs
-    ]
-    return res
-
-
-def create_qctwo_config(
-        qctwo_holder: Optional[QCTwoConfigHolder] = None,
-        **kwargs,
-) -> QCTwoConfig:
-    """
-    This method takes a :class:`~noiz.models.qc.QCTwoConfigHolder` instance and based on it creates an instance
-    of database model :class:`~noiz.models.qc.QCTwoConfig`.
-
-    Optionally, it can create the instance of :class:`~noiz.models.qc.QCOneConfigHolder` from provided kwargs, but
-    why dont you do it on your own to ensure that it will get everything it needs?
-
-    Has to be executed within `app_context`
-
-    :param qctwo_holder: Object containing all required elements to create a QCTwoConfig instance
-    :type qctwo_holder: QCTwoConfigHolder
-    :param kwargs: Optional kwargs to create QCTwoConfigHolder
-    :return: Working QCOne model that needs to be inserted into db
-    :rtype: QCTwoConfig
-    """
-
-    if qctwo_holder is None:
-        qctwo_holder = validate_dict_as_qctwo_holder(kwargs)
-
-    qc_two_rejected_times = []
-    for rej_time in qctwo_holder.rejected_times:
-        qc_two_rejected_times.extend(create_qctwo_rejected_time(holder=rej_time))
-
-    qctwo = QCTwoConfig(
-        null_policy=qctwo_holder.null_treatment_policy.value,
-        crosscorrelation_params_id=qctwo_holder.crosscorrelation_params_id,
-        starttime=qctwo_holder.starttime,
-        endtime=qctwo_holder.endtime,
-    )
-    qctwo.time_periods_rejected = qc_two_rejected_times
-    return qctwo
 
 
 def process_qcone(
