@@ -5,7 +5,7 @@ from typing import Collection
 from noiz.database import db
 from noiz.models.stacking import StackingTimespan
 from noiz.api.processing_config import fetch_stacking_schema_by_id
-from noiz.processing.stacking import generate_stacking_timespans
+from noiz.processing.stacking import _generate_stacking_timespans
 
 
 def create_stacking_timespans_add_to_db(
@@ -31,7 +31,7 @@ def create_stacking_timespans_add_to_db(
     logger.info("Stacking schema fetched")
 
     logger.info("Generating StackingTimespan objects.")
-    stacking_timespans = list(generate_stacking_timespans(stacking_schema=stacking_schema))
+    stacking_timespans = list(_generate_stacking_timespans(stacking_schema=stacking_schema))
     logger.info(f"There were {len(stacking_timespans)} StackingTimespan generated.")
 
     logger.info("Inserting/Upserting them to database.")
