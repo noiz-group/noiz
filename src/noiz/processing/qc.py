@@ -1,8 +1,8 @@
 import operator as ope
 from loguru import logger
-from typing import Optional, Any, Callable
+from typing import Optional, Any, Callable, Union
 
-from noiz.models import Datachunk, QCOneConfig, QCOneResults, Timespan
+from noiz.models import Datachunk, QCOneConfig, QCOneResults, Timespan, QCTwoResults, QCTwoConfig, Crosscorrelation
 from noiz.models.datachunk import DatachunkStats
 from noiz.models.soh import AveragedSohGps
 
@@ -49,11 +49,39 @@ def calculate_qcone_results(
     return qcone_res
 
 
+def calculate_qctwo_results(
+        crosscorrelation: Crosscorrelation,
+        qctwo_config: QCTwoConfig,
+) -> QCTwoResults:
+    """
+
+    :param crosscorrelation: Crosscorrelation to be compared
+    :type crosscorrelation: Crosscorrelation
+    :param qctwo_config: QCTwoConfig to have reference values to compare against
+    :type qctwo_config: QCTwoConfig
+    :return: Object containing values of all performed comparisons
+    :rtype: QCTwoResults
+    """
+
+    if not isinstance(crosscorrelation.timespan, Timespan):
+        raise ValueError('You should load timespan together with the Datachunk.')
+
+    logger.debug("Creating an empty QCTwoResults")
+    qctwo_res = QCTwoResults(crosscorrelation_id=crosscorrelation.id, qctwo_config_id=qctwo_config.id)
+    logger.debug("Checking datachunk for main time bounds")
+    qctwo_res = _determine_qc_time(results=qctwo_res, timespan=crosscorrelation.timespan, config=qctwo_config)
+    logger.debug("Checking if datachunk within rejected time")
+    qctwo_res = _determine_qctwo_accepted_times(results=qctwo_res, crosscorrelation=crosscorrelation,
+                                                timespan=crosscorrelation.timespan, config=qctwo_config)
+
+    return qctwo_res
+
+
 def _determine_qc_time(
-        results: QCOneResults,
+        results: Union[QCOneResults, QCTwoResults],
         timespan: Timespan,
-        config: QCOneConfig,
-) -> QCOneResults:
+        config: Union[QCOneConfig, QCTwoConfig],
+) -> Union[QCOneResults, QCTwoResults]:
     """
     filldocs
     """
@@ -80,6 +108,33 @@ def _determine_qcone_accepted_times(
     if datachunk.component_id in config.component_ids_rejected_times:
         for rej in config.time_periods_rejected:
             if not rej.component_id == datachunk.component_id:
+                continue
+
+            reject_checks.append(
+                    (rej.starttime <= timespan.endtime) and (timespan.starttime <= rej.endtime)
+            )
+            # This check is adaptation of https://stackoverflow.com/a/13513973/4308541
+
+    results.accepted_time = all(reject_checks)
+
+    return results
+
+
+def _determine_qctwo_accepted_times(
+        results: QCTwoResults,
+        crosscorrelation: Crosscorrelation,
+        timespan: Timespan,
+        config: QCTwoConfig,
+) -> QCTwoResults:
+    """
+    filldocs
+    """
+
+    reject_checks = [True, ]
+
+    if crosscorrelation.componentpair_id in config.componentpair_ids_rejected_times:
+        for rej in config.time_periods_rejected:
+            if not rej.componentpair_id == crosscorrelation.componentpair_id:
                 continue
 
             reject_checks.append(
