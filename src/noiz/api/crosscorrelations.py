@@ -4,7 +4,7 @@ from loguru import logger
 from obspy.signal.cross_correlation import correlate
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import subqueryload
+from sqlalchemy.orm import subqueryload, Query
 from typing import Iterable, List, Union, Optional, Collection, Dict
 
 from noiz.api.component_pair import fetch_componentpairs
@@ -23,6 +23,58 @@ from noiz.processing.crosscorrelations import (
     group_chunks_by_timespanid_componentid,
     load_data_for_chunks, extract_component_ids_from_component_pairs,
 )
+
+
+def fetch_crosscorrelation(
+        crosscorrelation_params_id: Optional[int] = None,
+        componentpair_id: Optional[Collection[int]] = None,
+        timespan_id: Optional[Collection[int]] = None,
+) -> List[Crosscorrelation]:
+    """filldocs"""
+
+    query = _query_crosscorrelation(
+        crosscorrelation_params_id=crosscorrelation_params_id,
+        componentpair_id=componentpair_id,
+        timespan_id=timespan_id,
+    )
+
+    return query.all()
+
+
+def count_crosscorrelation(
+        crosscorrelation_params_id: Optional[int] = None,
+        componentpair_id: Optional[Collection[int]] = None,
+        timespan_id: Optional[Collection[int]] = None,
+) -> int:
+    """filldocs"""
+    query = _query_crosscorrelation(
+        crosscorrelation_params_id=crosscorrelation_params_id,
+        componentpair_id=componentpair_id,
+        timespan_id=timespan_id,
+    )
+
+    return query.count()
+
+
+def _query_crosscorrelation(
+        crosscorrelation_params_id: Optional[int] = None,
+        componentpair_id: Optional[Collection[int]] = None,
+        timespan_id: Optional[Collection[int]] = None,
+) -> Query:
+    """filldocs"""
+    filters = []
+
+    if crosscorrelation_params_id is not None:
+        filters.append(Crosscorrelation.crosscorrelation_params_id == crosscorrelation_params_id)
+    if componentpair_id is not None:
+        filters.append(Crosscorrelation.componentpair_id.in_(componentpair_id))
+    if timespan_id is not None:
+        filters.append(Crosscorrelation.timespan_id.in_(timespan_id))
+
+    if len(filters) == 0:
+        filters.append(True)
+
+    return db.session.query(Crosscorrelation).filter(*filters)
 
 
 def bulk_add_crosscorrelations(crosscorrelations: Iterable[Crosscorrelation]) -> None:
