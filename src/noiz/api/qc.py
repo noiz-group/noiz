@@ -7,6 +7,7 @@ from sqlalchemy.orm import Query
 from typing import List, Collection, Union, Optional
 
 from noiz.api.component import fetch_components
+from noiz.api.crosscorrelations import fetch_crosscorrelation
 from noiz.api.datachunk import _determine_filters_and_opts_for_datachunk
 from noiz.api.helpers import validate_to_tuple, extract_object_ids
 from noiz.api.timespan import fetch_timespans_between_dates
@@ -14,7 +15,7 @@ from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import Crosscorrelation, Datachunk, DatachunkStats, QCOneConfig, QCOneResults, QCTwoConfig, QCTwoResults, AveragedSohGps
-from noiz.processing.qc import calculate_qcone_results
+from noiz.processing.qc import calculate_qcone_results, calculate_qctwo_results
 
 
 def fetch_qcone_config(ids: Union[int, Collection[int]]) -> List[QCOneConfig]:
@@ -200,7 +201,7 @@ def count_qctwo_results(
 def _query_qctwo_results(
         qctwo_config: Optional[QCOneConfig] = None,
         qctwo_config_id: Optional[int] = None,
-        crosscorrelations: Optional[Collection[Datachunk]] = None,
+        crosscorrelations: Optional[Collection[Crosscorrelation]] = None,
         crosscorrelation_ids: Optional[Collection[int]] = None,
 ) -> Query:
     """filldocs"""
@@ -461,6 +462,86 @@ def add_or_upsert_qcone_results_in_db(qcone_results_collection: Collection[QCOne
                         signal_skewness_max=results.signal_skewness_max,
                         signal_kurtosis_min=results.signal_kurtosis_min,
                         signal_kurtosis_max=results.signal_kurtosis_max,
+                    ),
+                )
+            )
+            db.session.execute(insert_command)
+
+    logger.debug('Commiting session.')
+    db.session.commit()
+    return
+
+
+def process_qctwo(
+        qctwo_config_id: int,
+):
+    try:
+        qctwo_config: QCTwoConfig = fetch_qctwo_config_single(id=qctwo_config_id)
+    except EmptyResultException as e:
+        logger.error(e)
+        raise e
+
+    ccfs = fetch_crosscorrelation(
+        crosscorrelation_params_id=qctwo_config.crosscorrelation_params_id,
+        load_timespan=True,
+    )
+    qctwo_results = []
+    logger.info(f"Starting QCTwoResults calculations {len(ccfs)} elements.")
+    for ccf in ccfs:
+        qctwo_res = calculate_qctwo_results(
+            qctwo_config=qctwo_config,
+            crosscorrelation=ccf,
+        )
+        qctwo_results.append(qctwo_res)
+    logger.info("Calculations of QCTwoResults done.")
+
+    logger.info("All processing finished. Trying to insert data into db.")
+    add_or_upsert_qctwo_results_in_db(qctwo_results=qctwo_results)
+
+
+def add_or_upsert_qctwo_results_in_db(qctwo_results: Collection[QCTwoResults]) -> None:
+    # TODO OPTIMIZE the inserts. there could be extracted datachunk_ids to query for (the qcone_config_id does not
+    #  change within this call). Then, the upsert could be executed on the existing only, insert on all the rest.
+    #  Gitlab #143
+
+    logger.info(f"Starting insertion procedure. There are {len(qctwo_results)} elements to be processed.")
+    for results in qctwo_results:
+
+        if not isinstance(results, QCTwoResults):
+            logger.warning(f'Provided object is not an instance of QCTwoResults. '
+                           f'Provided object was an {type(results)}. Skipping.')
+            continue
+
+        logger.info("Querrying db if the QCTwoResults already exists.")
+        existing_chunks = (
+            db.session.query(QCTwoResults)
+            .filter(
+                QCTwoResults.crosscorrelation_id == results.crosscorrelation_id,
+                QCTwoResults.qctwo_config_id == results.qctwo_config_id,
+            )
+            .all()
+        )
+
+        if len(existing_chunks) == 0:
+            logger.info("No existing chunks found. Adding QCTwoResults to DB.")
+            db.session.add(results)
+        else:
+            logger.info("The QCOneResults already exists in db. Updating.")
+            insert_command = (
+                insert(QCTwoResults)
+                .values(
+                    starttime=results.starttime,
+                    endtime=results.endtime,
+                    accepted_time=results.accepted_time,
+                    qctwo_config_id=results.qctwo_config_id,
+                    crosscorrelation_id=results.crosscorrelation_id,
+                )
+                .on_conflict_do_update(
+                    constraint="unique_qctwo_results_per_config_per_ccf",
+                    set_=dict(
+                        starttime=results.starttime,
+                        endtime=results.endtime,
+                        accepted_time=results.accepted_time,
                     ),
                 )
             )
