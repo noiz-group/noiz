@@ -4,7 +4,7 @@ from noiz.models import StackingSchema
 from noiz.models.crosscorrelation import Crosscorrelation
 
 from noiz.api.component_pair import fetch_componentpairs
-from noiz.models.qc import QCOneResults
+from noiz.models.qc import QCOneResults, QCTwoResults
 
 from noiz.models.component import ComponentFile
 
@@ -549,3 +549,16 @@ class TestDataIngestionRoutines:
         with noiz_app.app_context():
             crosscorrelation_count = Crosscorrelation.query.count()
         assert 124 == crosscorrelation_count
+
+    def test_run_qctwo(self, noiz_app):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["processing", "run_qctwo",
+                                     "-c", "1",
+                                     ])
+        assert result.exit_code == 0
+
+        with noiz_app.app_context():
+            ccf_count = Crosscorrelation.query.count()
+            qctwo_count = QCTwoResults.query.count()
+
+        assert qctwo_count == ccf_count
