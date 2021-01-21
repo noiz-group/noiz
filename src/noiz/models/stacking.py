@@ -36,6 +36,7 @@ class StackingSchemaHolder:
         This simple dataclass is just helping to validate :py:class:`~noiz.models.StackingSchema` values loaded
         from the TOML file
     """
+    qctwo_config_id: int
     starttime: Union[datetime.datetime, datetime.date]
     endtime: Union[datetime.datetime, datetime.date]
     stacking_length: Union[pd.Timedelta, datetime.timedelta, str]
@@ -58,10 +59,13 @@ class StackingSchema(db.Model):
     __tablename__ = "stacking_schema"
 
     id = db.Column("id", db.Integer, primary_key=True)
+    qctwo_config_id = db.Column("qctwo_config_id", db.Integer, db.ForeignKey("qctwo_config.id"), nullable=False)
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
     stacking_length = db.Column("stacking_length", db.Interval, nullable=False)
     stacking_overlap = db.Column("stacking_overlap", db.Interval, nullable=False)
+
+    qctwo_config = db.relationship("QCTwoConfig", foreign_keys=[qctwo_config_id], uselist=False, lazy="joined")
 
     def __init__(self, **kwargs):
         self.starttime = kwargs.get("starttime", None)
