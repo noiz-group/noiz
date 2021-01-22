@@ -37,6 +37,7 @@ class StackingSchemaHolder:
         from the TOML file
     """
     qctwo_config_id: int
+    minimum_ccf_count: int
     starttime: Union[datetime.datetime, datetime.date]
     endtime: Union[datetime.datetime, datetime.date]
     stacking_length: Union[pd.Timedelta, datetime.timedelta, str]
@@ -60,6 +61,7 @@ class StackingSchema(db.Model):
 
     id = db.Column("id", db.Integer, primary_key=True)
     qctwo_config_id = db.Column("qctwo_config_id", db.Integer, db.ForeignKey("qctwo_config.id"), nullable=False)
+    minimum_ccf_count = db.Column("minimum_ccf_count", db.Integer, nullable=False)
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
     stacking_length = db.Column("stacking_length", db.Interval, nullable=False)
@@ -68,11 +70,12 @@ class StackingSchema(db.Model):
     qctwo_config = db.relationship("QCTwoConfig", foreign_keys=[qctwo_config_id], uselist=False, lazy="joined")
 
     def __init__(self, **kwargs):
-        for key in ("qctwo_config_id", "starttime", "endtime", "stacking_length"):
+        for key in ("qctwo_config_id", "starttime", "endtime", "stacking_length", "minimum_ccf_count"):
             if key not in kwargs.keys():
                 raise ValueError(f"Required value of {key} missing. You have to provide it.")
 
         self.qctwo_config_id = kwargs.get("qctwo_config_id", None)
+        self.minimum_ccf_count = kwargs.get("minimum_ccf_count", None)
         self.starttime = kwargs.get("starttime", None)
         self.endtime = kwargs.get("endtime", None)
         self.stacking_length = _validate_timedelta(

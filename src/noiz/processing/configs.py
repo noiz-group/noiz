@@ -266,6 +266,7 @@ def create_stacking_params(
 
     params = StackingSchema(
         qctwo_config_id=params_holder.qctwo_config_id,
+        minimum_ccf_count=params_holder.minimum_ccf_count,
         starttime=params_holder.starttime,
         endtime=params_holder.endtime,
         stacking_length=params_holder.stacking_length,
