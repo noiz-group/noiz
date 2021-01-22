@@ -1,4 +1,7 @@
-from typing import Iterable, Union, List, Tuple, Type, Any, Optional
+from typing import Iterable, Union, List, Tuple, Type, Any, Optional, Collection
+
+from noiz.database import db
+from noiz.models import Crosscorrelation, CCFStack
 
 
 def extract_object_ids(
@@ -107,3 +110,21 @@ def validate_exactly_one_argument_provided(
         raise ValueError('There has to be either main_filepath or filepaths provided.')
     else:
         return True
+
+
+BulkAddableObjects = Collection[Union[Crosscorrelation, CCFStack]]
+
+
+def bulk_add_objects(objects_to_add: BulkAddableObjects) -> None:
+    """
+    Tries to perform bulk insert of Crosscorrelation objects.
+    Warning: Must be executed within app_context
+
+    :param objects_to_add: Objects to be inserted to the db
+    :type objects_to_add: BulkAddableObjects
+    :return: None
+    :rtype: None
+    """
+    db.session.add_all(objects_to_add)
+    db.session.commit()
+    return
