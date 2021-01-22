@@ -1,22 +1,20 @@
 import datetime
 import itertools
 from loguru import logger
-import numpy as np
 from sqlalchemy.exc import IntegrityError
 
 from noiz.api.component_pair import fetch_componentpairs
 from sqlalchemy.dialects.postgresql import insert
 from typing import Collection, Union, List, Optional
 
-from noiz.api.crosscorrelations import fetch_crosscorrelation
-from noiz.api.qc import fetch_qctwo_config, fetch_qctwo_config_single
+from noiz.api.qc import fetch_qctwo_config_single
 from obspy import UTCDateTime
 
 from noiz.database import db
-from noiz.models import DatachunkParams, StackingTimespan, Crosscorrelation, Timespan, ComponentPair, CCFStack, \
+from noiz.models import StackingTimespan, Crosscorrelation, Timespan, CCFStack, \
     QCTwoResults
 from noiz.api.processing_config import fetch_stacking_schema_by_id
-from noiz.processing.stacking import _generate_stacking_timespans
+from noiz.processing.stacking import _generate_stacking_timespans, do_linear_stack_of_crosscorrelations
 
 
 def fetch_stacking_timespans(
@@ -244,8 +242,4 @@ def stack_crosscorrelation(
             db.session.commit()
         logger.info("Commit successful. Next")
         logger.info("That was everything. Finishing")
-
-
-def do_linear_stack_of_crosscorrelations(ccfs: Collection[Crosscorrelation]) -> np.array:
-    mean_ccf = np.array([x.ccf for x in ccfs]).mean(axis=0)
-    return mean_ccf
+    return
