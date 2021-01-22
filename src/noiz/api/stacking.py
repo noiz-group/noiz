@@ -1,9 +1,12 @@
 import datetime
 import itertools
 from loguru import logger
+
+from noiz.api.helpers import bulk_add_objects
 from obspy import UTCDateTime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.dialects.postgresql.dml import Insert as insert_type
 from typing import Collection, Union, List, Optional, Tuple, Generator, Dict, TypedDict
 
 from noiz.api.component_pair import fetch_componentpairs
@@ -155,8 +158,7 @@ def stack_crosscorrelation(
         include_intracorrelation: Optional[bool] = False,
         only_autocorrelation: Optional[bool] = False,
         only_intracorrelation: Optional[bool] = False,
-
-):
+) -> None:
     inputs_generator = _prepare_inputs_for_stacking_ccfs(
         stacking_schema_id=stacking_schema_id,
         starttime=starttime,
@@ -181,7 +183,7 @@ def stack_crosscorrelation(
             continue
         stacks.append(stack)
 
-    _upsert_ccfstacks(stacks)
+    _add_ccfstacks_to_db(stacks)
     return
 
 
@@ -325,7 +327,39 @@ def _validate_crosscorrelations_with_qctwo(
     return tuple(valid_ccfs)
 
 
-def _upsert_ccfstacks(stacks: Collection[CCFStack]) -> None:
+def _add_ccfstacks_to_db(
+        stacks: Collection[CCFStack],
+        bulk_insert: bool = True,
+) -> None:
+    """
+    Takes a collection of CCStack objects and tries to bulk insert them to db.
+    If it will raise an Exception, it will rollback and try to upsert it afterwards.
+
+    It can also omit bulk adding and directry try to upsert.
+
+    :param stacks: Stacks to be added to db
+    :type stacks: Collection[CCFStack]
+    :param bulk_insert: If bulk insert should be attempted
+    :type bulk_insert: bool
+    :return: None
+    :rtype: NoneType
+    """
+
+    if bulk_insert:
+        logger.info("Trying to do bulk insert")
+        try:
+            bulk_add_objects(objects_to_add=stacks)
+        except IntegrityError as e:
+            logger.warning(f"There was an integrity error thrown. {e}. Performing rollback.")
+            db.session.rollback()
+
+            logger.warning("Retrying with upsert")
+            _upsert_ccfstacks(ccfstacks=stacks)
+    else:
+        logger.info(f"Starting to perform careful upsert. There are {len(stacks)} to be upserted")
+        _upsert_ccfstacks(ccfstacks=stacks)
+
+    logger.info("Success!")
 
     logger.info("Inserting into db")
     for stack in stacks:
@@ -345,3 +379,60 @@ def _upsert_ccfstacks(stacks: Collection[CCFStack]) -> None:
             db.session.commit()
         logger.info("Commit successful. Next")
         logger.info("That was everything. Finishing")
+
+
+def _upsert_ccfstacks(ccfstacks: Collection[CCFStack]) -> None:
+    """
+    Upserts the CCFStack objects.
+    Tries to do insert, in case of conflict it updates existing entry by updating the stack itself and ccf count.
+
+    Warning: Must be executed within app_context
+    Warning: Uses Postgres specific insert command
+
+    :param ccfstacks: CCFStacks to be inserted
+    :type ccfstacks: Iterable[CCFStack]
+    :return: None
+    :rtype: None
+    """
+    logger.info("Starting upserting")
+
+    command_generator = _generate_ccfstack_upsert_command(ccfstacks)
+    for command in command_generator:
+        db.session.execute(command)
+
+    logger.info("Commiting changes")
+    db.session.commit()
+    logger.info("Commit done")
+    return
+
+
+def _generate_ccfstack_upsert_command(
+        ccfstacks: Collection[CCFStack]
+) -> Generator[insert_type, None, None]:
+    """
+    Generates Upsert commands for provided CCFStacks
+
+    :param ccfstacks: Stacks to have upsert commands prepared for
+    :type ccfstacks: Collection[CCFStack]
+    :return: Yields Postgres-specific upsert command, ready to be executed.
+    :rtype: Generator[insert_type, None, None]
+    """
+
+    for stack in ccfstacks:
+        insert_command = (
+            insert(CCFStack)
+            .values(
+                stacking_timespan_id=stack.stacking_timespan_id,
+                componentpair_id=stack.componentpair_id,
+                stack=stack.stack,
+                no_ccfs=stack.no_ccfs,
+            )
+            .on_conflict_do_update(
+                constraint="unique_stack_per_pair",
+                set_=dict(
+                    stack=stack.stack,
+                    no_ccfs=stack.no_ccfs,
+                ),
+            )
+        )
+        yield insert_command
