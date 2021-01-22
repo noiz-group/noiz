@@ -291,7 +291,7 @@ def _validate_and_stack_ccfs(
         )
         return None
 
-    logger.info("Calculating linear stack")
+    logger.debug(f"Calculating linear stack for {componentpair} {stacking_schema} {stacking_timespan}")
     mean_ccf = do_linear_stack_of_crosscorrelations(ccfs=valid_ccfs)
 
     stack = CCFStack(
@@ -299,7 +299,7 @@ def _validate_and_stack_ccfs(
         stack=mean_ccf,
         componentpair_id=componentpair.id,
         no_ccfs=no_ccfs,
-        ccfs=valid_ccfs,
+        ccfs=list(valid_ccfs),
     )
     return stack
 
