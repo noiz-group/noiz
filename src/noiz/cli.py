@@ -476,21 +476,6 @@ def run_qcone(
     )
 
 
-@processing_group.command("run_qctwo")
-@with_appcontext
-@click.option("-c", "--qctwo_config_id", nargs=1, type=int, default=1, show_default=True)
-def run_qctwo(
-        qctwo_config_id,
-):
-    """Calculate QCTwo results """
-
-    from noiz.api.qc import process_qctwo
-
-    process_qctwo(
-        qctwo_config_id=qctwo_config_id,
-    )
-
-
 @processing_group.command("process_datachunks")
 @with_appcontext
 @click.option("-s", "--station", multiple=True, type=str, callback=_validate_zero_length_as_none)
@@ -575,6 +560,21 @@ def run_crosscorrelations(
             include_autocorrelation=include_autocorrelation,
             include_intracorrelation=include_intracorrelation,
         )
+
+
+@processing_group.command("run_qctwo")
+@with_appcontext
+@click.option("-c", "--qctwo_config_id", nargs=1, type=int, default=1, show_default=True)
+def run_qctwo(
+        qctwo_config_id,
+):
+    """Calculate QCTwo results """
+
+    from noiz.api.qc import process_qctwo
+
+    process_qctwo(
+        qctwo_config_id=qctwo_config_id,
+    )
 
 
 @plotting_group.group("plot")
