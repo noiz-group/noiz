@@ -5,14 +5,14 @@ from sqlalchemy.exc import IntegrityError
 
 from noiz.api.component_pair import fetch_componentpairs
 from sqlalchemy.dialects.postgresql import insert
-from typing import Collection, Union, List, Optional
+from typing import Collection, Union, List, Optional, Tuple
 
 from noiz.api.qc import fetch_qctwo_config_single
 from obspy import UTCDateTime
 
 from noiz.database import db
 from noiz.models import StackingTimespan, Crosscorrelation, Timespan, CCFStack, \
-    QCTwoResults
+    QCTwoResults, ComponentPair, StackingSchema
 from noiz.api.processing_config import fetch_stacking_schema_by_id
 from noiz.processing.stacking import _generate_stacking_timespans, do_linear_stack_of_crosscorrelations
 
@@ -198,37 +198,88 @@ def stack_crosscorrelation(
         if len(fetched_qc_ccfs) == 0:
             continue
 
-        valid_ccfs = []
-        for qcres, ccf in fetched_qc_ccfs:
-            if not qcres.is_passing():
-                continue
-            valid_ccfs.append(ccf)
-
-        no_ccfs = len(valid_ccfs)
-        logger.debug(f"There are {no_ccfs} valid ccfs for that stack")
-
-        if no_ccfs < stacking_schema.minimum_ccf_count:
-            logger.debug(
-                f"There only {no_ccfs} ccfs to be stacked. "
-                f"The minimum number of ccfs for stack to be valid is {stacking_schema.minimum_ccf_count}."
-                f" Skipping."
-            )
+        stack = _validate_and_stack_ccfs(fetched_qc_ccfs, pair, stacking_schema, stacking_timespan)
+        if stack is None:
             continue
-
-        logger.info("Calculating linear stack")
-        mean_ccf = do_linear_stack_of_crosscorrelations(ccfs=valid_ccfs)
-
-        stack = CCFStack(
-            stacking_timespan_id=stacking_timespan.id,
-            stack=mean_ccf,
-            componentpair_id=pair.id,
-            no_ccfs=no_ccfs,
-            ccfs=valid_ccfs,
-        )
         stacks.append(stack)
 
     _upsert_ccfstacks(stacks)
     return
+
+
+def _validate_and_stack_ccfs(
+        qctwo_ccfs_container: List[Tuple[QCTwoResults, Crosscorrelation]],
+        componentpair: ComponentPair,
+        stacking_schema: StackingSchema,
+        stacking_timespan: StackingTimespan,
+) -> Optional[CCFStack]:
+    """
+    Takes container of tuples with QCTwoResults and Crosscorrelation (the same crosscorrelation_id),
+    verifies if Crosscorrelation is passing the QCTwo and if yes, it stacks it.
+
+    Before stacking it verifies if there is enough Crosscorrelations to be stacked, it can be adjusted by setting
+    a value of :paramref:`noiz.models.stacking.StackingSchema.minimum_ccf_count`.
+
+    It returns an instance of :py:class:`~noiz.models.stacking.CCFStack` that is ready to be inserted to the database.
+
+    :param qctwo_ccfs_container: Crosscorrelations to be stacked together with associated QCTwoResult instances
+    :type qctwo_ccfs_container: List[Tuple[QCTwoResults, Crosscorrelation]]
+    :param componentpair: ComponentPair for which the stack is done
+    :type componentpair: ComponentPair
+    :param stacking_schema: StackingSchema defining that stack
+    :type stacking_schema: StackingSchema
+    :param stacking_timespan: StackingTimespan that is defining that stack
+    :type stacking_timespan: StackingTimespan
+    :return: Returns None if Crosscorrelations cannot be stacked or CCFStack if they can
+    :rtype: Optional[CCFStack]
+    """
+
+    valid_ccfs = _validate_crosscorrelations_with_qctwo(qctwo_ccfs_container)
+
+    no_ccfs = len(valid_ccfs)
+    logger.debug(f"There are {no_ccfs} valid ccfs for that stack")
+    if no_ccfs < stacking_schema.minimum_ccf_count:
+        logger.debug(
+            f"There only {no_ccfs} ccfs to be stacked. "
+            f"The minimum number of ccfs for stack to be valid is {stacking_schema.minimum_ccf_count}."
+            f" Skipping."
+        )
+        return None
+
+    logger.info("Calculating linear stack")
+    mean_ccf = do_linear_stack_of_crosscorrelations(ccfs=valid_ccfs)
+
+    stack = CCFStack(
+        stacking_timespan_id=stacking_timespan.id,
+        stack=mean_ccf,
+        componentpair_id=componentpair.id,
+        no_ccfs=no_ccfs,
+        ccfs=valid_ccfs,
+    )
+    return stack
+
+
+def _validate_crosscorrelations_with_qctwo(
+        qctwo_ccfs_container: Collection[Tuple[QCTwoResults, Crosscorrelation]]
+) -> Tuple[Crosscorrelation, ...]:
+    """
+    Checks if which Crosscorrelations are passing QCTwo.
+    It accepts as input a Collection of Tuples with QCTwoResults and Crosscorrelation.
+    It outputs a tuple containing only those Crosscorrelation objects that are passing QCTwo.
+
+    :param qctwo_ccfs_container: Container of tuples with QCTwoResults and Crosscorrelations to be verified
+    :type qctwo_ccfs_container: Collection[Tuple[QCTwoResults, Crosscorrelation]]
+    :return: Valid Crosscorrelation objects
+    :rtype: Tuple[Crosscorrelation, ...]
+    """
+
+    valid_ccfs = []
+    for qcres, ccf in qctwo_ccfs_container:
+        if not qcres.is_passing():
+            continue
+        valid_ccfs.append(ccf)
+
+    return tuple(valid_ccfs)
 
 
 def _upsert_ccfstacks(stacks: Collection[CCFStack]) -> None:
