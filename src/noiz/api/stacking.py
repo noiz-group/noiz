@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 
 from noiz.api.component_pair import fetch_componentpairs
 from sqlalchemy.dialects.postgresql import insert
-from typing import Collection, Union, List, Optional, Tuple
+from typing import Collection, Union, List, Optional, Tuple, Generator, Dict
 
 from noiz.api.qc import fetch_qctwo_config_single
 from obspy import UTCDateTime
@@ -136,7 +136,7 @@ def _insert_upsert_stacking_timespans_into_db(
 
 
 def stack_crosscorrelation(
-        stacking_schema_id=1,
+        stacking_schema_id: int,
         starttime: Optional[Union[datetime.date, datetime.datetime]] = None,
         endtime: Optional[Union[datetime.date, datetime.datetime]] = None,
         network_codes_a: Optional[Union[Collection[str], str]] = None,
@@ -152,8 +152,51 @@ def stack_crosscorrelation(
         only_intracorrelation: Optional[bool] = False,
 
 ):
-    stacking_schema = fetch_stacking_schema_by_id(id=stacking_schema_id)
+    inputs_generator = _prepare_inputs_for_stacking_ccfs(
+        stacking_schema_id=stacking_schema_id,
+        starttime=starttime,
+        endtime=endtime,
+        network_codes_a=network_codes_a,
+        station_codes_a=station_codes_a,
+        component_codes_a=component_codes_a,
+        network_codes_b=network_codes_b,
+        station_codes_b=station_codes_b,
+        component_codes_b=component_codes_b,
+        accepted_component_code_pairs=accepted_component_code_pairs,
+        include_autocorrelation=include_autocorrelation,
+        include_intracorrelation=include_intracorrelation,
+        only_autocorrelation=only_autocorrelation,
+        only_intracorrelation=only_intracorrelation,
+    )
+    stacks = []
 
+    for inputs_dict in inputs_generator:
+        stack = _validate_and_stack_ccfs(**inputs_dict)
+        if stack is None:
+            continue
+        stacks.append(stack)
+
+    _upsert_ccfstacks(stacks)
+    return
+
+
+def _prepare_inputs_for_stacking_ccfs(
+        stacking_schema_id: int,
+        starttime: Optional[Union[datetime.date, datetime.datetime]] = None,
+        endtime: Optional[Union[datetime.date, datetime.datetime]] = None,
+        network_codes_a: Optional[Union[Collection[str], str]] = None,
+        station_codes_a: Optional[Union[Collection[str], str]] = None,
+        component_codes_a: Optional[Union[Collection[str], str]] = None,
+        network_codes_b: Optional[Union[Collection[str], str]] = None,
+        station_codes_b: Optional[Union[Collection[str], str]] = None,
+        component_codes_b: Optional[Union[Collection[str], str]] = None,
+        accepted_component_code_pairs: Optional[Union[Collection[str], str]] = None,
+        include_autocorrelation: Optional[bool] = False,
+        include_intracorrelation: Optional[bool] = False,
+        only_autocorrelation: Optional[bool] = False,
+        only_intracorrelation: Optional[bool] = False,
+):
+    stacking_schema = fetch_stacking_schema_by_id(id=stacking_schema_id)
     stacking_timespans = fetch_stacking_timespans(
         stacking_schema_id=stacking_schema.id,
         starttime=starttime,
@@ -161,9 +204,7 @@ def stack_crosscorrelation(
     )
     no_timespans = len(stacking_timespans)
     logger.info(f"There are {no_timespans} to stack for")
-
     qctwo_config = fetch_qctwo_config_single(id=stacking_schema.qctwo_config_id)
-
     componentpairs = fetch_componentpairs(
         network_codes_a=network_codes_a,
         station_codes_a=station_codes_a,
@@ -178,17 +219,14 @@ def stack_crosscorrelation(
         only_intracorrelation=only_intracorrelation,
     )
     logger.info(f"There are {len(componentpairs)} ComponentPairs to stack for")
-
-    stacks = []
-    for stacking_timespan, pair in itertools.product(stacking_timespans, componentpairs):
-
+    for stacking_timespan, componentpair in itertools.product(stacking_timespans, componentpairs):
         fetched_qc_ccfs = (
             db.session.query(QCTwoResults, Crosscorrelation)
             .filter(QCTwoResults.qctwo_config_id == qctwo_config.id)
             .join(Crosscorrelation, QCTwoResults.crosscorrelation_id == Crosscorrelation.id)
             .join(Timespan, Crosscorrelation.timespan_id == Timespan.id)
             .filter(
-                Crosscorrelation.componentpair_id == pair.id,
+                Crosscorrelation.componentpair_id == componentpair.id,
                 Timespan.starttime >= stacking_timespan.starttime,
                 Timespan.endtime <= stacking_timespan.endtime,
             )
@@ -198,13 +236,12 @@ def stack_crosscorrelation(
         if len(fetched_qc_ccfs) == 0:
             continue
 
-        stack = _validate_and_stack_ccfs(fetched_qc_ccfs, pair, stacking_schema, stacking_timespan)
-        if stack is None:
-            continue
-        stacks.append(stack)
-
-    _upsert_ccfstacks(stacks)
-    return
+        yield dict(
+            fetched_qc_ccfs=fetched_qc_ccfs,
+            componentpair=componentpair,
+            stacking_schema=stacking_schema,
+            stacking_timespan=stacking_timespan
+        )
 
 
 def _validate_and_stack_ccfs(
