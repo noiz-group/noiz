@@ -1,11 +1,55 @@
+import datetime
+import itertools
 from loguru import logger
+import numpy as np
+from sqlalchemy.exc import IntegrityError
+
+from noiz.api.component_pair import fetch_componentpairs
 from sqlalchemy.dialects.postgresql import insert
-from typing import Collection
+from typing import Collection, Union, List, Optional
+
+from noiz.api.crosscorrelations import fetch_crosscorrelation
+from noiz.api.qc import fetch_qctwo_config, fetch_qctwo_config_single
+from obspy import UTCDateTime
 
 from noiz.database import db
-from noiz.models.stacking import StackingTimespan
+from noiz.models import DatachunkParams, StackingTimespan, Crosscorrelation, Timespan, ComponentPair, CCFStack, \
+    QCTwoResults
 from noiz.api.processing_config import fetch_stacking_schema_by_id
 from noiz.processing.stacking import _generate_stacking_timespans
+
+
+def fetch_stacking_timespans(
+        stacking_schema_id: int,
+        starttime: Optional[Union[datetime.date, datetime.datetime, UTCDateTime]] = None,
+        endtime: Optional[Union[datetime.date, datetime.datetime, UTCDateTime]] = None,
+) -> List[StackingTimespan]:
+
+    if starttime is not None:
+        if isinstance(starttime, UTCDateTime):
+            starttime = starttime.datetime
+        elif not isinstance(starttime, (datetime.date, datetime.datetime)):
+            raise ValueError(f"And starttime was expecting either "
+                             f"datetime.date, datetime.datetime or UTCDateTime objects."
+                             f"Got instance of {type(starttime)}")
+
+    if endtime is not None:
+        if isinstance(endtime, UTCDateTime):
+            endtime = endtime.datetime
+        elif not isinstance(endtime, (datetime.date, datetime.datetime)):
+            raise ValueError(f"And endtime was expecting either "
+                             f"datetime.date, datetime.datetime or UTCDateTime objects."
+                             f"Got instance of {type(endtime)}")
+
+    filters = []
+
+    filters.append(StackingTimespan.stacking_schema_id == stacking_schema_id)
+    if starttime is not None:
+        filters.append(StackingTimespan.starttime >= starttime)
+    if endtime is not None:
+        filters.append(StackingTimespan.endtime <= endtime)
+
+    return StackingTimespan.query.filter(*filters).all()
 
 
 def create_stacking_timespans_add_to_db(
@@ -91,3 +135,119 @@ def _insert_upsert_stacking_timespans_into_db(
                 )
             )
             con.execute(insert_command)
+
+
+def stack_crosscorrelation(
+        stacking_schema_id=1,
+        pairs_to_correlate = None,
+        starttime: Optional[Union[datetime.date, datetime.datetime]] = None,
+        endtime: Optional[Union[datetime.date, datetime.datetime]] = None,
+        network_codes_a: Optional[Union[Collection[str], str]] = None,
+        station_codes_a: Optional[Union[Collection[str], str]] = None,
+        component_codes_a: Optional[Union[Collection[str], str]] = None,
+        network_codes_b: Optional[Union[Collection[str], str]] = None,
+        station_codes_b: Optional[Union[Collection[str], str]] = None,
+        component_codes_b: Optional[Union[Collection[str], str]] = None,
+        accepted_component_code_pairs: Optional[Union[Collection[str], str]] = None,
+        include_autocorrelation: Optional[bool] = False,
+        include_intracorrelation: Optional[bool] = False,
+        only_autocorrelation: Optional[bool] = False,
+        only_intracorrelation: Optional[bool] = False,
+
+):
+    stacking_schema = fetch_stacking_schema_by_id(id=stacking_schema_id)
+
+    stacking_timespans = fetch_stacking_timespans(
+        stacking_schema_id=stacking_schema.id,
+        starttime=starttime,
+        endtime=endtime,
+    )
+    no_timespans = len(stacking_timespans)
+
+    qctwo_config = fetch_qctwo_config_single(id=stacking_schema.qctwo_config_id)
+
+    componentpairs = fetch_componentpairs(
+        network_codes_a=network_codes_a,
+        station_codes_a=station_codes_a,
+        component_codes_a=component_codes_a,
+        network_codes_b=network_codes_b,
+        station_codes_b=station_codes_b,
+        component_codes_b=component_codes_b,
+        accepted_component_code_pairs=accepted_component_code_pairs,
+        include_autocorrelation=include_autocorrelation,
+        include_intracorrelation=include_intracorrelation,
+        only_autocorrelation=only_autocorrelation,
+        only_intracorrelation=only_intracorrelation,
+    )
+
+
+    fetch_crosscorrelation
+
+    logger.info(f"There are {no_timespans} to stack for")
+
+    for stacking_timespan, pair in itertools.product(stacking_timespans, componentpairs):
+
+        fetched_qc_ccfs = (
+            db.session.query(QCTwoResults, Crosscorrelation)
+                .filter(QCTwoResults.qctwo_config_id == qctwo_config.id)
+                .join(Crosscorrelation, QCTwoResults.crosscorrelation_id == Crosscorrelation.id)
+                .join(Timespan, Crosscorrelation.timespan_id == Timespan.id)
+                .filter(
+                Crosscorrelation.componentpair_id == pair.id,
+                Timespan.starttime >= stacking_timespan.starttime,
+                Timespan.endtime <= stacking_timespan.endtime,
+                )
+                .all()
+        )
+
+        if len(fetched_qc_ccfs) == 0:
+            continue
+
+        valid_ccfs = []
+        for qcres, ccf in fetched_qc_ccfs:
+            if not qcres.is_passing():
+                continue
+            valid_ccfs.append(ccf)
+
+        no_ccfs = len(valid_ccfs)
+        logger.debug(f"There were {no_ccfs} valid ccfs for that stack")
+
+        stacking_threshold = 648
+        logger.warning("USING HARDCODED STACKING LIMIT THRESHOLD!")
+        # TODO MAKE IT PARAMETRIZED THOURGH PROCESSING PARAMS!
+
+        if no_ccfs < stacking_threshold:
+            logger.info(
+                f"There only {no_ccfs} ccfs in stack. The minimum number of ccfs for stack is {stacking_threshold}."
+                f" Skipping."
+            )
+            continue
+
+        logger.info("Calculating linear stack")
+        mean_ccf = np.array([x.ccf for x in ccfs]).mean(axis=0)
+
+        stack = CCFStack(
+            stacking_timespan_id=stacking_timespan.id,
+            stack=mean_ccf,
+            componentpair_id=pair_id,
+            no_ccfs=no_ccfs,
+            ccfs=ccfs,
+        )
+
+        logger.info("Inserting into db")
+        try:
+            db.session.add(stack)
+            db.session.commit()
+        except IntegrityError:
+            logger.error(
+                "There was integrity error. Trying to update existing stack."
+            )
+            db.session.rollback()
+
+            db.session.query(CCFStack).filter(
+                CCFStack.stacking_timespan_id == stack.stacking_timespan_id,
+                CCFStack.componentpair_id == stack.componentpair_id,
+            ).update(dict(stack=stack.stack, no_ccfs=stack.no_ccfs))
+            db.session.commit()
+        logger.info("Commit successful. Next")
+        logger.info("That was everything. Finishing")
