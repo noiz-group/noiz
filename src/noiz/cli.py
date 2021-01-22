@@ -536,7 +536,7 @@ def run_crosscorrelations(
         include_autocorrelation,
         include_intracorrelation,
 ):
-    """Start processing of crosscorrelations. Limited mount of pair selection arguments, use API directly if needed."""
+    """Start processing of crosscorrelations. Limited amount of pair selection arguments, use API directly if needed."""
 
     if parallel:
         from noiz.api.crosscorrelations import perform_crosscorrelations_parallel
@@ -575,6 +575,54 @@ def run_qctwo(
     process_qctwo(
         qctwo_config_id=qctwo_config_id,
     )
+
+
+@processing_group.command("run_stacking")
+@with_appcontext
+@click.option("-s", "--station_code", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-c", "--component_code_pair", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-p", "--stacking_schema_id", nargs=1, type=int,
+              default=1, show_default=True)
+@click.option('--parallel/--no_parallel', default=True)
+@click.option('-ia', '--include_autocorrelation', is_flag=True)
+@click.option('-ii', '--include_intracorrelation', is_flag=True)
+def run_stacking(
+        station_code,
+        component_code_pair,
+        startdate,
+        enddate,
+        stacking_schema_id,
+        parallel,
+        include_autocorrelation,
+        include_intracorrelation,
+):
+    """Start stacking of crosscorrelations. Limited amount of pair selection arguments, use API directly if needed."""
+
+    if parallel:
+        raise NotImplementedError
+        # from noiz.api.stacking import stack_crosscorrelation_parallel
+        # stack_crosscorrelation_parallel(
+        #     stacking_schema_id=stacking_schema_id,
+        #     starttime=startdate,
+        #     endtime=enddate,
+        #     station_codes_a=station_code,
+        #     accepted_component_code_pairs=component_code_pair,
+        #     include_autocorrelation=include_autocorrelation,
+        #     include_intracorrelation=include_intracorrelation,
+        # )
+    else:
+        from noiz.api.stacking import stack_crosscorrelation
+        stack_crosscorrelation(
+            stacking_schema_id=stacking_schema_id,
+            starttime=startdate,
+            endtime=enddate,
+            station_codes_a=station_code,
+            accepted_component_code_pairs=component_code_pair,
+            include_autocorrelation=include_autocorrelation,
+            include_intracorrelation=include_intracorrelation,
+        )
 
 
 @plotting_group.group("plot")
