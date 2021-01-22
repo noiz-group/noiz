@@ -1,20 +1,25 @@
 import datetime
 import itertools
 from loguru import logger
+from obspy import UTCDateTime
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.dialects.postgresql import insert
+from typing import Collection, Union, List, Optional, Tuple, Generator, Dict, TypedDict
 
 from noiz.api.component_pair import fetch_componentpairs
-from sqlalchemy.dialects.postgresql import insert
-from typing import Collection, Union, List, Optional, Tuple, Generator, Dict
-
 from noiz.api.qc import fetch_qctwo_config_single
-from obspy import UTCDateTime
-
 from noiz.database import db
 from noiz.models import StackingTimespan, Crosscorrelation, Timespan, CCFStack, \
     QCTwoResults, ComponentPair, StackingSchema
 from noiz.api.processing_config import fetch_stacking_schema_by_id
 from noiz.processing.stacking import _generate_stacking_timespans, do_linear_stack_of_crosscorrelations
+
+
+class StackingInputs(TypedDict):
+    qctwo_ccfs_container: List[Tuple[QCTwoResults, Crosscorrelation]]
+    componentpair: ComponentPair
+    stacking_schema: StackingSchema
+    stacking_timespan: StackingTimespan
 
 
 def fetch_stacking_timespans(
@@ -195,7 +200,8 @@ def _prepare_inputs_for_stacking_ccfs(
         include_intracorrelation: Optional[bool] = False,
         only_autocorrelation: Optional[bool] = False,
         only_intracorrelation: Optional[bool] = False,
-):
+) -> Generator[StackingInputs, None, None]:
+
     stacking_schema = fetch_stacking_schema_by_id(id=stacking_schema_id)
     stacking_timespans = fetch_stacking_timespans(
         stacking_schema_id=stacking_schema.id,
@@ -236,8 +242,8 @@ def _prepare_inputs_for_stacking_ccfs(
         if len(fetched_qc_ccfs) == 0:
             continue
 
-        yield dict(
-            fetched_qc_ccfs=fetched_qc_ccfs,
+        yield StackingInputs(
+            qctwo_ccfs_container=fetched_qc_ccfs,
             componentpair=componentpair,
             stacking_schema=stacking_schema,
             stacking_timespan=stacking_timespan
