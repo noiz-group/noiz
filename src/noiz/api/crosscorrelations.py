@@ -8,7 +8,7 @@ from sqlalchemy.orm import subqueryload, Query
 from typing import Iterable, List, Union, Optional, Collection, Dict
 
 from noiz.api.component_pair import fetch_componentpairs
-from noiz.api.helpers import extract_object_ids, validate_to_tuple
+from noiz.api.helpers import extract_object_ids, validate_to_tuple, bulk_add_objects
 from noiz.api.processing_config import fetch_crosscorrelation_params_by_id
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.database import db
@@ -97,20 +97,6 @@ def _query_crosscorrelation(
         opts.append(subqueryload(Crosscorrelation.crosscorrelation_params))
 
     return db.session.query(Crosscorrelation).filter(*filters).options(opts)
-
-
-def bulk_add_crosscorrelations(crosscorrelations: Iterable[Crosscorrelation]) -> None:
-    """
-    Tries to perform bulk insert of Crosscorrelation objects.
-    Warning: Must be executed within app_context
-    :param crosscorrelations: Crosscorrelations to be inserted
-    :type crosscorrelations: Iterable[Crosscorrelation]
-    :return: None
-    :rtype: None
-    """
-    db.session.add_all(crosscorrelations)
-    db.session.commit()
-    return
 
 
 def upsert_crosscorrelations(crosscorrelations: Iterable[Crosscorrelation]) -> None:
@@ -258,7 +244,7 @@ def perform_crosscorrelations(
     if bulk_insert:
         logger.info("Trying to do bulk insert")
         try:
-            bulk_add_crosscorrelations(xcorrs)
+            bulk_add_objects(xcorrs)
         except IntegrityError as e:
             logger.warning(f"There was an integrity error thrown. {e}. Performing rollback.")
             db.session.rollback()
@@ -392,7 +378,7 @@ def perform_crosscorrelations_parallel(
     if bulk_insert:
         logger.info("Trying to do bulk insert")
         try:
-            bulk_add_crosscorrelations(xcorrs)
+            bulk_add_objects(xcorrs)
         except IntegrityError as e:
             logger.warning(f"There was an integrity error thrown. {e}. Performing rollback.")
             db.session.rollback()
