@@ -16,7 +16,7 @@ from noiz.cli import cli
 from noiz.database import db
 from noiz.models import StackingSchema, Crosscorrelation, QCOneResults, QCTwoResults, DatachunkParams, \
     ProcessedDatachunkParams, CrosscorrelationParams, Datachunk, DatachunkStats, ProcessedDatachunk, \
-    SohGps, SohInstrument, Timespan
+    SohGps, SohInstrument, Timespan, CCFStack
 from noiz.models.component import ComponentFile
 
 
@@ -554,3 +554,15 @@ class TestDataIngestionRoutines:
             qctwo_count = QCTwoResults.query.count()
 
         assert qctwo_count == ccf_count
+
+    def test_run_stacking(self, noiz_app):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["processing", "run_stacking",
+                                     "-sd", "2019-09-30",
+                                     "-ed", "2019-10-03",
+                                     "--no_parallel",
+                                     ])
+        assert result.exit_code == 0
+        with noiz_app.app_context():
+            stack_count = CCFStack.query.count()
+        assert 0 == stack_count
