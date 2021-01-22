@@ -358,27 +358,7 @@ def _add_ccfstacks_to_db(
     else:
         logger.info(f"Starting to perform careful upsert. There are {len(stacks)} to be upserted")
         _upsert_ccfstacks(ccfstacks=stacks)
-
-    logger.info("Success!")
-
-    logger.info("Inserting into db")
-    for stack in stacks:
-        try:
-            db.session.add(stack)
-            db.session.commit()
-        except IntegrityError:
-            logger.error(
-                "There was integrity error. Trying to update existing stack."
-            )
-            db.session.rollback()
-
-            db.session.query(CCFStack).filter(
-                CCFStack.stacking_timespan_id == stack.stacking_timespan_id,
-                CCFStack.componentpair_id == stack.componentpair_id,
-            ).update(dict(stack=stack.stack, no_ccfs=stack.no_ccfs))
-            db.session.commit()
-        logger.info("Commit successful. Next")
-        logger.info("That was everything. Finishing")
+    return
 
 
 def _upsert_ccfstacks(ccfstacks: Collection[CCFStack]) -> None:
