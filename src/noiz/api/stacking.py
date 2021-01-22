@@ -139,7 +139,6 @@ def _insert_upsert_stacking_timespans_into_db(
 
 def stack_crosscorrelation(
         stacking_schema_id=1,
-        pairs_to_correlate = None,
         starttime: Optional[Union[datetime.date, datetime.datetime]] = None,
         endtime: Optional[Union[datetime.date, datetime.datetime]] = None,
         network_codes_a: Optional[Union[Collection[str], str]] = None,
@@ -163,6 +162,7 @@ def stack_crosscorrelation(
         endtime=endtime,
     )
     no_timespans = len(stacking_timespans)
+    logger.info(f"There are {no_timespans} to stack for")
 
     qctwo_config = fetch_qctwo_config_single(id=stacking_schema.qctwo_config_id)
 
@@ -179,25 +179,21 @@ def stack_crosscorrelation(
         only_autocorrelation=only_autocorrelation,
         only_intracorrelation=only_intracorrelation,
     )
-
-
-    fetch_crosscorrelation
-
-    logger.info(f"There are {no_timespans} to stack for")
+    logger.info(f"There are {len(componentpairs)} ComponentPairs to stack for")
 
     for stacking_timespan, pair in itertools.product(stacking_timespans, componentpairs):
 
         fetched_qc_ccfs = (
             db.session.query(QCTwoResults, Crosscorrelation)
-                .filter(QCTwoResults.qctwo_config_id == qctwo_config.id)
-                .join(Crosscorrelation, QCTwoResults.crosscorrelation_id == Crosscorrelation.id)
-                .join(Timespan, Crosscorrelation.timespan_id == Timespan.id)
-                .filter(
+            .filter(QCTwoResults.qctwo_config_id == qctwo_config.id)
+            .join(Crosscorrelation, QCTwoResults.crosscorrelation_id == Crosscorrelation.id)
+            .join(Timespan, Crosscorrelation.timespan_id == Timespan.id)
+            .filter(
                 Crosscorrelation.componentpair_id == pair.id,
                 Timespan.starttime >= stacking_timespan.starttime,
                 Timespan.endtime <= stacking_timespan.endtime,
-                )
-                .all()
+            )
+            .all()
         )
 
         if len(fetched_qc_ccfs) == 0:
@@ -210,28 +206,25 @@ def stack_crosscorrelation(
             valid_ccfs.append(ccf)
 
         no_ccfs = len(valid_ccfs)
-        logger.debug(f"There were {no_ccfs} valid ccfs for that stack")
+        logger.debug(f"There are {no_ccfs} valid ccfs for that stack")
 
-        stacking_threshold = 648
-        logger.warning("USING HARDCODED STACKING LIMIT THRESHOLD!")
-        # TODO MAKE IT PARAMETRIZED THOURGH PROCESSING PARAMS!
-
-        if no_ccfs < stacking_threshold:
-            logger.info(
-                f"There only {no_ccfs} ccfs in stack. The minimum number of ccfs for stack is {stacking_threshold}."
+        if no_ccfs < stacking_schema.minimum_ccf_count:
+            logger.debug(
+                f"There only {no_ccfs} ccfs to be stacked. "
+                f"The minimum number of ccfs for stack to be valid is {stacking_schema.minimum_ccf_count}."
                 f" Skipping."
             )
             continue
 
         logger.info("Calculating linear stack")
-        mean_ccf = np.array([x.ccf for x in ccfs]).mean(axis=0)
+        mean_ccf = do_linear_stack_of_crosscorrelations(ccfs=valid_ccfs)
 
         stack = CCFStack(
             stacking_timespan_id=stacking_timespan.id,
             stack=mean_ccf,
-            componentpair_id=pair_id,
+            componentpair_id=pair.id,
             no_ccfs=no_ccfs,
-            ccfs=ccfs,
+            ccfs=valid_ccfs,
         )
 
         logger.info("Inserting into db")
@@ -251,3 +244,8 @@ def stack_crosscorrelation(
             db.session.commit()
         logger.info("Commit successful. Next")
         logger.info("That was everything. Finishing")
+
+
+def do_linear_stack_of_crosscorrelations(ccfs: Collection[Crosscorrelation]) -> np.array:
+    mean_ccf = np.array([x.ccf for x in ccfs]).mean(axis=0)
+    return mean_ccf
