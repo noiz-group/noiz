@@ -565,4 +565,4 @@ class TestDataIngestionRoutines:
         assert result.exit_code == 0
         with noiz_app.app_context():
             stack_count = CCFStack.query.count()
-        assert 0 == stack_count
+        assert 30 == stack_count
