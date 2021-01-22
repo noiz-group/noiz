@@ -179,6 +179,7 @@ def stack_crosscorrelation(
     )
     logger.info(f"There are {len(componentpairs)} ComponentPairs to stack for")
 
+    stacks = []
     for stacking_timespan, pair in itertools.product(stacking_timespans, componentpairs):
 
         fetched_qc_ccfs = (
@@ -224,8 +225,16 @@ def stack_crosscorrelation(
             no_ccfs=no_ccfs,
             ccfs=valid_ccfs,
         )
+        stacks.append(stack)
 
-        logger.info("Inserting into db")
+    _upsert_ccfstacks(stacks)
+    return
+
+
+def _upsert_ccfstacks(stacks: Collection[CCFStack]) -> None:
+
+    logger.info("Inserting into db")
+    for stack in stacks:
         try:
             db.session.add(stack)
             db.session.commit()
@@ -242,4 +251,3 @@ def stack_crosscorrelation(
             db.session.commit()
         logger.info("Commit successful. Next")
         logger.info("That was everything. Finishing")
-    return
