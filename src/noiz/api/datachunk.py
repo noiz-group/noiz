@@ -1,5 +1,7 @@
 import datetime
 import pendulum
+from sqlalchemy.exc import IntegrityError
+
 from noiz.models.qc import QCOneConfig, QCOneResults
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import subqueryload, Query
@@ -7,7 +9,7 @@ from typing import List, Iterable, Tuple, Collection, Optional, Dict, Union, Gen
 
 import itertools
 
-from noiz.api.helpers import extract_object_ids
+from noiz.api.helpers import extract_object_ids, bulk_add_objects
 from noiz.api.component import fetch_components
 from noiz.api.timeseries import fetch_raw_timeseries
 from noiz.api.timespan import fetch_timespans_for_doy, fetch_timespans_between_dates
@@ -488,13 +490,13 @@ def run_stats_calculation(
     logger.info("Starting execution. Results will be saved to database on the fly. ")
 
     for future, result in as_completed(futures, with_results=True, raise_errors=False):
-        add_or_upsert_datachunk_stats_in_db(result)
+        add_or_upsert_datachunk_stats_in_db(datachunk_stats=result)
 
     client.close()
     return
 
 
-def add_or_upsert_datachunk_stats_in_db(datachunk_stats: DatachunkStats):
+def add_or_upsert_datachunk_stats_in_db(datachunk_stats: DatachunkStats, bulk_insert: bool = True):
     """
     Adds or upserts provided iterable of Datachunks to DB.
     Must be executed within AppContext.
@@ -510,23 +512,41 @@ def add_or_upsert_datachunk_stats_in_db(datachunk_stats: DatachunkStats):
                        f'Provided object was an {type(datachunk_stats)}. Skipping.')
         return
 
-    logger.info("Querrying db if the datachunk already exists.")
-    existing_chunks = (
-        db.session.query(DatachunkStats)
-        .filter(
-            DatachunkStats.metadata == datachunk_stats.datachunk_id,
-        )
-        .all()
-    )
+    if bulk_insert:
+        logger.info("Trying to do bulk insert")
+        try:
+            # bulk_add_objects(datachunk_stats)
+            db.session.add(datachunk_stats)
+            db.session.commit()
+        except IntegrityError as e:
+            logger.warning(f"There was an integrity error thrown. {e}. Performing rollback.")
+            db.session.rollback()
 
-    if len(existing_chunks) == 0:
-        logger.info("No existing chunks found. Adding DatachunkStats to DB.")
-        db.session.add(datachunk_stats)
+            logger.warning("Retrying with upsert")
+            _upsert_datachunk_stats(datachunk_stats)
     else:
-        logger.info("The datachunk stats already exists in db. Updating.")
-        insert_command = (
-            insert(DatachunkStats)
-            .values(
+        # logger.info(f"Starting to perform careful upsert. There are {len(datachunk_stats)} to insert")
+        logger.info("Starting to perform careful upsert")
+        _upsert_datachunk_stats(datachunk_stats)
+    return
+
+
+def _upsert_datachunk_stats(datachunk_stats):
+    logger.info("The datachunk stats already exists in db. Updating.")
+    insert_command = (
+        insert(DatachunkStats)
+        .values(
+            energy=datachunk_stats.energy,
+            min=datachunk_stats.min,
+            max=datachunk_stats.max,
+            mean=datachunk_stats.mean,
+            variance=datachunk_stats.variance,
+            skewness=datachunk_stats.skewness,
+            kurtosis=datachunk_stats.kurtosis,
+        )
+        .on_conflict_do_update(
+            constraint="unique_stats_per_datachunk",
+            set_=dict(
                 energy=datachunk_stats.energy,
                 min=datachunk_stats.min,
                 max=datachunk_stats.max,
@@ -534,25 +554,12 @@ def add_or_upsert_datachunk_stats_in_db(datachunk_stats: DatachunkStats):
                 variance=datachunk_stats.variance,
                 skewness=datachunk_stats.skewness,
                 kurtosis=datachunk_stats.kurtosis,
-            )
-            .on_conflict_do_update(
-                constraint="unique_stats_per_datachunk",
-                set_=dict(
-                    energy=datachunk_stats.energy,
-                    min=datachunk_stats.min,
-                    max=datachunk_stats.max,
-                    mean=datachunk_stats.mean,
-                    variance=datachunk_stats.variance,
-                    skewness=datachunk_stats.skewness,
-                    kurtosis=datachunk_stats.kurtosis,
-                ),
-            )
+            ),
         )
-        db.session.execute(insert_command)
-
+    )
+    db.session.execute(insert_command)
     logger.debug('Commiting session.')
     db.session.commit()
-    return
 
 
 def run_datachunk_processing(
