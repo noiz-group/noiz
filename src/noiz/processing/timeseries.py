@@ -1,4 +1,5 @@
 import subprocess
+from loguru import logger
 from pathlib import Path
 
 
@@ -88,14 +89,20 @@ def _call_mseedindex_to_file(
         cmd.extend(["-dbuser", postgres_user])
         cmd.extend(["-dbpass", postgres_password])
         cmd.extend(["-dbname", postgres_db])
+        cmd.append("-v")
         cmd.append(str(filepath))
         # boolean options have a value of None
         cmd = [c for c in cmd if c is not None]
+        logger.debug(f"Running mseedindex command for file {filepath}")
         proc = subprocess.Popen(cmd,
                                 cwd=str(current_dir.absolute()),
                                 stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
+                                stderr=subprocess.PIPE,
+                                )
         out, err = proc.communicate()
+
+        for stdout_line in out.splitlines():
+            logger.info(f"mseedindex STDOUT: {stdout_line.strip().decode()}")
         return (mseedindex_executable, proc.returncode,
                 out.strip(), err.strip())
     except Exception as err:
