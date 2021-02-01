@@ -75,7 +75,7 @@ class QCOneConfig(db.Model):
         """
         Checks if any of the GPS checks is defined.
 
-        :return: If any of GPS checks is defines
+        :return: If any of GPS checks is defined
         :rtype: bool
         """
         res = any([x is not None for x in (
@@ -83,6 +83,32 @@ class QCOneConfig(db.Model):
             self.avg_gps_time_error_max,
             self.avg_gps_time_uncertainty_max,
             self.avg_gps_time_uncertainty_min
+        )])
+        return res
+
+    @cached_property
+    def uses_stats(self) -> bool:
+        """
+        Checks if any of the Stats checks is defined.
+
+        :return: Returns True if any of the Stats is defined
+        :rtype: bool
+        """
+        res = any([x is not None for x in (
+            self.signal_energy_min,
+            self.signal_energy_max,
+            self.signal_min_value_min,
+            self.signal_min_value_max,
+            self.signal_max_value_min,
+            self.signal_max_value_max,
+            self.signal_mean_value_min,
+            self.signal_mean_value_max,
+            self.signal_variance_min,
+            self.signal_variance_max,
+            self.signal_skewness_min,
+            self.signal_skewness_max,
+            self.signal_kurtosis_min,
+            self.signal_kurtosis_max,
         )])
         return res
 
