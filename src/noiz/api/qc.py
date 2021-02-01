@@ -375,7 +375,7 @@ def _generate_inputs_for_qcone_runner(
         load_stats=False,
     )
 
-    if top_up_gps is None and fetch_gps is True and fetch_stats is True:
+    if top_up_gps is None and fetch_gps is True:
         raise ValueError("If you are passing True for fetch_gps and fetch_stats, you have to provide also value for"
                          "top_up_gps.")
 
@@ -438,13 +438,35 @@ def _generate_inputs_for_qcone_runner(
         fetched_data = query.all()
 
         logger.info(f"Fetching done. There are {len(fetched_data)} items to process. Starting results generation.")
+        used_datachunk_ids = []
         for datachunk, avggps in fetched_data:
+            used_datachunk_ids.append(datachunk.id)
             yield dict(
                 datachunk=datachunk,
                 qcone_config=qcone_config,
                 stats=None,
                 avg_soh_gps=avggps
             )
+
+        if top_up_gps:
+            logger.info("Querrying for datachunks that do not have GPS but fit the query.")
+            filters.append(~Datachunk.id.in_(used_datachunk_ids))
+            topup_query = (db.session
+                           .query(Datachunk)
+                           .select_from(Datachunk)
+                           .filter(*filters).options(opts))
+            fetched_topup_data = topup_query.all()
+
+            logger.info(f"Fetching done. There are {len(fetched_topup_data)} items to process. "
+                        f"Starting results generation.")
+            for datachunk in fetched_topup_data:
+                yield dict(
+                    datachunk=datachunk,
+                    qcone_config=qcone_config,
+                    stats=None,
+                    avg_soh_gps=None
+                )
+
     elif fetch_stats and not fetch_gps:
         logger.info("Fetching Datachunk and DatachunkStats for the QCOne.")
 
@@ -491,7 +513,6 @@ def _upsert_qcone_results(qcone_results_collection: Collection[QCOneResults]) ->
     """
     Upserts provided collection of :py:class:`~noiz.models.qc.QCOneResults` to database.
 
-
     :param qcone_results_collection: Objects to be added to database
     :type qcone_results_collection: Collection[QCOneResults]
     :return: None
@@ -507,7 +528,7 @@ def _upsert_qcone_results(qcone_results_collection: Collection[QCOneResults]) ->
                            f'Provided object was an {type(results)}. Skipping.')
             continue
 
-        logger.debug(f"Generating upsert command for {QCOneResults}")
+        logger.debug(f"Generating upsert command for {results}")
         insert_command = (
             insert(QCOneResults)
             .values(
