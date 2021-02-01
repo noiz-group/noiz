@@ -2,15 +2,15 @@ import datetime
 import pendulum
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import UnmappedInstanceError
+from sqlalchemy.dialects.postgresql import Insert, insert
 
 from noiz.models.qc import QCOneConfig, QCOneResults
-from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import subqueryload, Query
 from typing import List, Iterable, Tuple, Collection, Optional, Dict, Union, Generator
 
 import itertools
 
-from noiz.api.helpers import extract_object_ids, bulk_add_objects
+from noiz.api.helpers import extract_object_ids, bulk_add_objects, bulk_add_or_upsert_objects
 from noiz.api.component import fetch_components
 from noiz.api.timeseries import fetch_raw_timeseries
 from noiz.api.timespan import fetch_timespans_for_doy, fetch_timespans_between_dates
@@ -456,6 +456,7 @@ def run_stats_calculation(
     from noiz.api.component import fetch_components
     from noiz.api.processing_config import fetch_datachunkparams_by_id
     from noiz.processing.datachunk import calculate_datachunk_stats
+
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
     fetched_components = fetch_components(
         networks=networks,
@@ -491,49 +492,17 @@ def run_stats_calculation(
     logger.info("Starting execution. Results will be saved to database on the fly. ")
 
     for future, result in as_completed(futures, with_results=True, raise_errors=False):
-        add_or_upsert_datachunk_stats_in_db(datachunk_stats=result)
+        bulk_add_or_upsert_objects(
+            objects_to_add=result,
+            upserter_callable=_prepare_upsert_command_datachunk_stats,
+            bulk_insert=True,
+        )
 
     client.close()
     return
 
 
-def add_or_upsert_datachunk_stats_in_db(datachunk_stats: DatachunkStats, bulk_insert: bool = True):
-    """
-    Adds or upserts provided iterable of Datachunks to DB.
-    Must be executed within AppContext.
-
-    :param datachunk_stats:
-    :type datachunk_stats: Iterable[Datachunk]
-    :return:
-    :rtype:
-    """
-
-    if not isinstance(datachunk_stats, DatachunkStats):
-        logger.warning(f'Provided object is not an instance of DatachunkStats. '
-                       f'Provided object was an {type(datachunk_stats)}. Skipping.')
-        return
-
-    if bulk_insert:
-        logger.info("Trying to do bulk insert")
-        try:
-            # bulk_add_objects(datachunk_stats)
-            db.session.add(datachunk_stats)
-            db.session.commit()
-        except IntegrityError as e:
-            logger.warning(f"There was an integrity error thrown. {e}. Performing rollback.")
-            db.session.rollback()
-
-            logger.warning("Retrying with upsert")
-            _upsert_datachunk_stats(datachunk_stats)
-    else:
-        # logger.info(f"Starting to perform careful upsert. There are {len(datachunk_stats)} to insert")
-        logger.info("Starting to perform careful upsert")
-        _upsert_datachunk_stats(datachunk_stats)
-    return
-
-
-def _upsert_datachunk_stats(datachunk_stats):
-    logger.info("The datachunk stats already exists in db. Updating.")
+def _prepare_upsert_command_datachunk_stats(datachunk_stats: DatachunkStats) -> Insert:
     insert_command = (
         insert(DatachunkStats)
         .values(
@@ -558,9 +527,7 @@ def _upsert_datachunk_stats(datachunk_stats):
             ),
         )
     )
-    db.session.execute(insert_command)
-    logger.debug('Commiting session.')
-    db.session.commit()
+    return insert_command
 
 
 def run_datachunk_processing(
