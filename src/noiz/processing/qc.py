@@ -44,7 +44,7 @@ def calculate_qcone_results(
     qcone_res = _determine_qcone_gps(result=qcone_res, config=qcone_config, avg_soh_gps=avg_soh_gps)
     logger.debug("Checking datachunk stats")
     qcone_res = _determine_qcone_stats(results=qcone_res, stats=stats, config=qcone_config)
-    logger.info(f"QCOneResults calculation finished for datachunk_id {datachunk.id}, qcone_config_id {qcone_config.id}")
+    logger.debug(f"QCOneResults calculation finished for datachunk_id {datachunk.id}, qcone_config_id {qcone_config.id}")
 
     return qcone_res
 

@@ -1,7 +1,7 @@
 from typing import Iterable, Union, List, Tuple, Type, Any, Optional, Collection
 
 from noiz.database import db
-from noiz.models import Crosscorrelation, CCFStack, DatachunkStats, ProcessedDatachunk
+from noiz.models import Crosscorrelation, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults
 
 
 def extract_object_ids(
@@ -112,7 +112,15 @@ def validate_exactly_one_argument_provided(
         return True
 
 
-BulkAddableObjects = Collection[Union[Crosscorrelation, CCFStack, DatachunkStats, ProcessedDatachunk]]
+BulkAddableObjects = Collection[
+    Union[
+        Crosscorrelation,
+        CCFStack,
+        DatachunkStats,
+        ProcessedDatachunk,
+        QCOneResults,
+    ]
+]
 
 
 def bulk_add_objects(objects_to_add: BulkAddableObjects) -> None:
