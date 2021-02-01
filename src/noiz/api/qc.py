@@ -507,7 +507,7 @@ def _upsert_qcone_results(qcone_results_collection: Collection[QCOneResults]) ->
                            f'Provided object was an {type(results)}. Skipping.')
             continue
 
-        logger.info("The QCOneResults already exists in db. Updating.")
+        logger.debug(f"Generating upsert command for {QCOneResults}")
         insert_command = (
             insert(QCOneResults)
             .values(
