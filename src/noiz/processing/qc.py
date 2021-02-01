@@ -10,7 +10,7 @@ from noiz.models.soh import AveragedSohGps
 def calculate_qcone_results(
         datachunk: Datachunk,
         qcone_config: QCOneConfig,
-        stats: DatachunkStats,
+        stats: Optional[DatachunkStats],
         avg_soh_gps: Optional[AveragedSohGps],
 ) -> QCOneResults:
     """
@@ -149,41 +149,56 @@ def _determine_qctwo_accepted_times(
 
 def _determine_qcone_stats(
         results: QCOneResults,
-        stats: DatachunkStats,
+        stats: Optional[DatachunkStats],
         config: QCOneConfig,
 ) -> QCOneResults:
     """
     filldocs
     """
-
-    results.signal_energy_max = compare_vals_null_safe(
-        config.signal_energy_max, stats.energy, ope.le, config.null_value)
-    results.signal_energy_min = compare_vals_null_safe(
-        config.signal_energy_min, stats.energy, ope.ge, config.null_value)
-    results.signal_min_value_max = compare_vals_null_safe(
-        config.signal_min_value_max, stats.min, ope.le, config.null_value)
-    results.signal_min_value_min = compare_vals_null_safe(
-        config.signal_min_value_min, stats.min, ope.ge, config.null_value)
-    results.signal_max_value_max = compare_vals_null_safe(
-        config.signal_max_value_max, stats.max, ope.le, config.null_value)
-    results.signal_max_value_min = compare_vals_null_safe(
-        config.signal_max_value_min, stats.max, ope.ge, config.null_value)
-    results.signal_mean_value_max = compare_vals_null_safe(
-        config.signal_mean_value_max, stats.mean, ope.le, config.null_value)
-    results.signal_mean_value_min = compare_vals_null_safe(
-        config.signal_mean_value_min, stats.mean, ope.ge, config.null_value)
-    results.signal_variance_max = compare_vals_null_safe(
-        config.signal_variance_max, stats.variance, ope.le, config.null_value)
-    results.signal_variance_min = compare_vals_null_safe(
-        config.signal_variance_min, stats.variance, ope.ge, config.null_value)
-    results.signal_skewness_max = compare_vals_null_safe(
-        config.signal_skewness_max, stats.skewness, ope.le, config.null_value)
-    results.signal_skewness_min = compare_vals_null_safe(
-        config.signal_skewness_min, stats.skewness, ope.ge, config.null_value)
-    results.signal_kurtosis_max = compare_vals_null_safe(
-        config.signal_kurtosis_max, stats.kurtosis, ope.le, config.null_value)
-    results.signal_kurtosis_min = compare_vals_null_safe(
-        config.signal_kurtosis_min, stats.kurtosis, ope.ge, config.null_value)
+    if stats is not None:
+        results.signal_energy_max = compare_vals_null_safe(
+            config.signal_energy_max, stats.energy, ope.le, config.null_value)
+        results.signal_energy_min = compare_vals_null_safe(
+            config.signal_energy_min, stats.energy, ope.ge, config.null_value)
+        results.signal_min_value_max = compare_vals_null_safe(
+            config.signal_min_value_max, stats.min, ope.le, config.null_value)
+        results.signal_min_value_min = compare_vals_null_safe(
+            config.signal_min_value_min, stats.min, ope.ge, config.null_value)
+        results.signal_max_value_max = compare_vals_null_safe(
+            config.signal_max_value_max, stats.max, ope.le, config.null_value)
+        results.signal_max_value_min = compare_vals_null_safe(
+            config.signal_max_value_min, stats.max, ope.ge, config.null_value)
+        results.signal_mean_value_max = compare_vals_null_safe(
+            config.signal_mean_value_max, stats.mean, ope.le, config.null_value)
+        results.signal_mean_value_min = compare_vals_null_safe(
+            config.signal_mean_value_min, stats.mean, ope.ge, config.null_value)
+        results.signal_variance_max = compare_vals_null_safe(
+            config.signal_variance_max, stats.variance, ope.le, config.null_value)
+        results.signal_variance_min = compare_vals_null_safe(
+            config.signal_variance_min, stats.variance, ope.ge, config.null_value)
+        results.signal_skewness_max = compare_vals_null_safe(
+            config.signal_skewness_max, stats.skewness, ope.le, config.null_value)
+        results.signal_skewness_min = compare_vals_null_safe(
+            config.signal_skewness_min, stats.skewness, ope.ge, config.null_value)
+        results.signal_kurtosis_max = compare_vals_null_safe(
+            config.signal_kurtosis_max, stats.kurtosis, ope.le, config.null_value)
+        results.signal_kurtosis_min = compare_vals_null_safe(
+            config.signal_kurtosis_min, stats.kurtosis, ope.ge, config.null_value)
+    else:
+        results.signal_energy_max = config.null_value
+        results.signal_energy_min = config.null_value
+        results.signal_min_value_max = config.null_value
+        results.signal_min_value_min = config.null_value
+        results.signal_max_value_max = config.null_value
+        results.signal_max_value_min = config.null_value
+        results.signal_mean_value_max = config.null_value
+        results.signal_mean_value_min = config.null_value
+        results.signal_variance_max = config.null_value
+        results.signal_variance_min = config.null_value
+        results.signal_skewness_max = config.null_value
+        results.signal_skewness_min = config.null_value
+        results.signal_kurtosis_max = config.null_value
+        results.signal_kurtosis_min = config.null_value
 
     return results
 
