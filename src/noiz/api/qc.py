@@ -503,14 +503,14 @@ def _generate_inputs_for_qcone_runner(
 
 def _prepare_upsert_command_qcone(results: QCOneResults) -> Insert:
     """
-    Private method that generates an :py:class:`~sqlalchemy.dialects.postgresql.dml.Insert` for
+    Private method that generates an :py:class:`~sqlalchemy.dialects.postgresql.Insert` for
     :py:class:`~noiz.models.qc.QCOneResults` to be upserted to db.
     Postgres specific because it's upsert.
 
     :param results: Instance which is to be upserted
     :type results: noiz.models.qc.QCOneResults
     :return: Postgres-specific upsert command
-    :rtype: sqlalchemy.dialects.postgresql.dml.Insert
+    :rtype: sqlalchemy.dialects.postgresql.Insert
     """
     insert_command = (
         insert(QCOneResults)

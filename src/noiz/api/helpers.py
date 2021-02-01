@@ -1,7 +1,7 @@
 from loguru import logger
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import UnmappedInstanceError
-from sqlalchemy.sql.dml import Insert
+from sqlalchemy.sql import Insert
 from typing import Iterable, Union, List, Tuple, Type, Any, Optional, Collection, Callable, get_args
 
 from noiz.database import db
