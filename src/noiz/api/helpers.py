@@ -1,4 +1,7 @@
-from typing import Iterable, Union, List, Tuple, Type, Any, Optional, Collection
+from loguru import logger
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.exc import UnmappedInstanceError
+from typing import Iterable, Union, List, Tuple, Type, Any, Optional, Collection, Callable
 
 from noiz.database import db
 from noiz.models import Crosscorrelation, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults
@@ -112,27 +115,65 @@ def validate_exactly_one_argument_provided(
         return True
 
 
-BulkAddableObjects = Collection[
-    Union[
+BulkAddableObjects = Union[
         Crosscorrelation,
         CCFStack,
         DatachunkStats,
         ProcessedDatachunk,
         QCOneResults,
     ]
-]
 
 
-def bulk_add_objects(objects_to_add: BulkAddableObjects) -> None:
+def bulk_add_objects(objects_to_add: Collection[BulkAddableObjects]) -> None:
     """
-    Tries to perform bulk insert of Crosscorrelation objects.
-    Warning: Must be executed within app_context
+    Tries to perform bulk insert of objects to database.
 
     :param objects_to_add: Objects to be inserted to the db
     :type objects_to_add: BulkAddableObjects
     :return: None
     :rtype: None
     """
+    logger.info("Performing bulk add_all operation")
     db.session.add_all(objects_to_add)
+    logger.info("Committing")
     db.session.commit()
+    return
+
+
+def bulk_add_or_upsert_objects(
+        objects_to_add: Union[BulkAddableObjects, Collection[BulkAddableObjects]],
+        upserter_callable: Callable[[Collection[BulkAddableObjects]], None],
+        bulk_insert: bool = True,
+) -> None:
+    """
+    Adds in bulk or upserts provided Collection of objects to DB.
+
+    :param objects_to_add: Objects to be added to database
+    :type objects_to_add: Collection[BulkAddableObjects]
+    :param upserter_callable: Callable with upsert method to be used in case of bulk add failure
+    :type upserter_callable: Callable[[Collection[BulkAddableObjects]], None]
+    :param bulk_insert: If bulk add should be even attempted
+    :type bulk_insert: bool
+    :return: None
+    :rtype: NoneType
+    """
+
+    if isinstance(objects_to_add, Collection):
+        valid_objects = objects_to_add
+    else:
+        valid_objects = (objects_to_add,)
+
+    if bulk_insert:
+        logger.info("Trying to do bulk insert")
+        try:
+            bulk_add_objects(valid_objects)
+        except (IntegrityError, UnmappedInstanceError) as e:
+            logger.warning(f"There was an integrity error thrown. {e}. Performing rollback.")
+            db.session.rollback()
+
+            logger.warning("Retrying with upsert")
+            upserter_callable(valid_objects)
+    else:
+        logger.info("Starting to perform careful upsert")
+        upserter_callable(valid_objects)
     return
