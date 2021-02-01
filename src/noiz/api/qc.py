@@ -19,6 +19,7 @@ from noiz.models import Crosscorrelation, Datachunk, DatachunkStats, QCOneConfig
     QCTwoResults, AveragedSohGps, Component, Timespan
 from noiz.processing.qc import calculate_qcone_results, calculate_qctwo_results
 
+
 class QCOneRunnerInputs(TypedDict):
     datachunk: Datachunk
     qcone_config: QCOneConfig
@@ -513,7 +514,7 @@ def _prepare_upsert_command_qcone(results: QCOneResults) -> Insert:
     """
     insert_command = (
         insert(QCOneResults)
-            .values(
+        .values(
             starttime=results.starttime,
             endtime=results.endtime,
             accepted_time=results.accepted_time,
@@ -536,7 +537,7 @@ def _prepare_upsert_command_qcone(results: QCOneResults) -> Insert:
             signal_kurtosis_min=results.signal_kurtosis_min,
             signal_kurtosis_max=results.signal_kurtosis_max,
         )
-            .on_conflict_do_update(
+        .on_conflict_do_update(
             constraint="unique_qcone_results_per_config_per_datachunk",
             set_=dict(
                 starttime=results.starttime,
@@ -592,59 +593,39 @@ def process_qctwo(
     logger.info("All processing finished. Trying to insert data into db.")
     bulk_add_or_upsert_objects(
         objects_to_add=qctwo_results,
-        upserter_callable=_upsert_qctwo_results,
+        upserter_callable=_prepare_upsert_command_qctwo,
         bulk_insert=True,
     )
-
-
-def _upsert_qctwo_results(qctwo_results: Collection[QCTwoResults]) -> None:
-    # TODO OPTIMIZE the inserts. there could be extracted datachunk_ids to query for (the qcone_config_id does not
-    #  change within this call). Then, the upsert could be executed on the existing only, insert on all the rest.
-    #  Gitlab #143
-
-    logger.info(f"Starting insertion procedure. There are {len(qctwo_results)} elements to be processed.")
-    for results in qctwo_results:
-
-        if not isinstance(results, QCTwoResults):
-            logger.warning(f'Provided object is not an instance of QCTwoResults. '
-                           f'Provided object was an {type(results)}. Skipping.')
-            continue
-
-        logger.info("Querrying db if the QCTwoResults already exists.")
-        existing_chunks = (
-            db.session.query(QCTwoResults)
-            .filter(
-                QCTwoResults.crosscorrelation_id == results.crosscorrelation_id,
-                QCTwoResults.qctwo_config_id == results.qctwo_config_id,
-            )
-            .all()
-        )
-
-        if len(existing_chunks) == 0:
-            logger.info("No existing chunks found. Adding QCTwoResults to DB.")
-            db.session.add(results)
-        else:
-            logger.info("The QCOneResults already exists in db. Updating.")
-            insert_command = (
-                insert(QCTwoResults)
-                .values(
-                    starttime=results.starttime,
-                    endtime=results.endtime,
-                    accepted_time=results.accepted_time,
-                    qctwo_config_id=results.qctwo_config_id,
-                    crosscorrelation_id=results.crosscorrelation_id,
-                )
-                .on_conflict_do_update(
-                    constraint="unique_qctwo_results_per_config_per_ccf",
-                    set_=dict(
-                        starttime=results.starttime,
-                        endtime=results.endtime,
-                        accepted_time=results.accepted_time,
-                    ),
-                )
-            )
-            db.session.execute(insert_command)
-
-    logger.debug('Commiting session.')
-    db.session.commit()
     return
+
+
+def _prepare_upsert_command_qctwo(results: QCTwoResults) -> Insert:
+    """
+    Private method that generates an :py:class:`~sqlalchemy.dialects.postgresql.dml.Insert` for
+    :py:class:`~noiz.models.qc.QCTwoResults` to be upserted to db.
+    Postgres specific because it's upsert.
+
+    :param results: Instance which is to be upserted
+    :type results: noiz.models.qc.QCTwoResults
+    :return: Postgres-specific upsert command
+    :rtype: sqlalchemy.dialects.postgresql.dml.Insert
+    """
+    insert_command = (
+        insert(QCTwoResults)
+        .values(
+            starttime=results.starttime,
+            endtime=results.endtime,
+            accepted_time=results.accepted_time,
+            qctwo_config_id=results.qctwo_config_id,
+            crosscorrelation_id=results.crosscorrelation_id,
+        )
+        .on_conflict_do_update(
+            constraint="unique_qctwo_results_per_config_per_ccf",
+            set_=dict(
+                starttime=results.starttime,
+                endtime=results.endtime,
+                accepted_time=results.accepted_time,
+            ),
+        )
+    )
+    return insert_command
