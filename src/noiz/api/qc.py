@@ -1,12 +1,9 @@
-from itertools import starmap
-
 import datetime
 from loguru import logger
-
 from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Query
-from typing import List, Collection, Union, Optional
+from typing import List, Collection, Union, Optional, Generator, TypedDict
 
 from noiz.api.component import fetch_components
 from noiz.api.crosscorrelations import fetch_crosscorrelation
@@ -16,8 +13,16 @@ from noiz.api.timespan import fetch_timespans_between_dates
 
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
-from noiz.models import Crosscorrelation, Datachunk, DatachunkStats, QCOneConfig, QCOneResults, QCTwoConfig, QCTwoResults, AveragedSohGps
+from noiz.models import Crosscorrelation, Datachunk, DatachunkStats, QCOneConfig, QCOneResults, QCTwoConfig, \
+    QCTwoResults, AveragedSohGps, Component, Timespan
 from noiz.processing.qc import calculate_qcone_results, calculate_qctwo_results
+
+
+class QCOneRunnerInputs(TypedDict):
+    datachunk: Datachunk
+    qcone_config: QCOneConfig
+    stats: Optional[DatachunkStats]
+    avg_soh_gps: Optional[AveragedSohGps]
 
 
 def fetch_qcone_config(ids: Union[int, Collection[int]]) -> List[QCOneConfig]:
@@ -300,7 +305,7 @@ def process_qcone(
     qcone_results = []
     calculation_inputs = fetch_inputs_for_qcone_runner(
         qcone_config=qcone_config,
-        fetched_components=fetched_components,
+        components=fetched_components,
         timespans=timespans,
         fetch_gps=qcone_config.uses_gps(),
         fetch_stats=qcone_config.uses_stats,
@@ -317,9 +322,17 @@ def process_qcone(
     add_or_upsert_qcone_results_in_db(qcone_results_collection=qcone_results)
 
 
-def fetch_inputs_for_qcone_runner(qcone_config, fetched_components, timespans, fetch_gps, fetch_stats, top_up_gps=None):
+def fetch_inputs_for_qcone_runner(
+        qcone_config: QCOneConfig,
+        components: Collection[Component],
+        timespans: Collection[Timespan],
+        fetch_gps: bool,
+        fetch_stats: bool,
+        top_up_gps: Optional[bool] = None,
+) -> Generator[QCOneRunnerInputs, None, None]:
+
     filters, opts = _determine_filters_and_opts_for_datachunk(
-        components=fetched_components,
+        components=components,
         timespans=timespans,
         load_component=False,
         load_timespan=True,
