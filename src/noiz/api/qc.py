@@ -1,7 +1,7 @@
 import datetime
 from loguru import logger
 from sqlalchemy import and_
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.dialects.postgresql import insert, Insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Query
 from sqlalchemy.orm.exc import UnmappedInstanceError
@@ -18,7 +18,6 @@ from noiz.exceptions import EmptyResultException
 from noiz.models import Crosscorrelation, Datachunk, DatachunkStats, QCOneConfig, QCOneResults, QCTwoConfig, \
     QCTwoResults, AveragedSohGps, Component, Timespan
 from noiz.processing.qc import calculate_qcone_results, calculate_qctwo_results
-
 
 class QCOneRunnerInputs(TypedDict):
     datachunk: Datachunk
@@ -325,10 +324,11 @@ def process_qcone(
 
     bulk_add_or_upsert_objects(
         objects_to_add=qcone_results,
-        upserter_callable=_upsert_qcone_results,
+        upserter_callable=_prepare_upsert_command_qcone,
         bulk_insert=True
     )
     return
+
 
 def _generate_inputs_for_qcone_runner(
         qcone_config: QCOneConfig,
@@ -500,29 +500,45 @@ def _generate_inputs_for_qcone_runner(
     return
 
 
-def _upsert_qcone_results(qcone_results_collection: Collection[QCOneResults]) -> None:
+def _prepare_upsert_command_qcone(results: QCOneResults) -> Insert:
     """
-    Upserts provided collection of :py:class:`~noiz.models.qc.QCOneResults` to database.
+    Private method that generates an :py:class:`~sqlalchemy.dialects.postgresql.dml.Insert` for
+    :py:class:`~noiz.models.qc.QCOneResults` to be upserted to db.
+    Postgres specific because it's upsert.
 
-    :param qcone_results_collection: Objects to be added to database
-    :type qcone_results_collection: Collection[QCOneResults]
-    :return: None
-    :rtype: NoneType
+    :param results: Instance which is to be upserted
+    :type results: noiz.models.qc.QCOneResults
+    :return: Postgres-specific upsert command
+    :rtype: sqlalchemy.dialects.postgresql.dml.Insert
     """
-
-    logger.info(f"Starting insertion procedure. There are {len(qcone_results_collection)} elements to be processed.")
-    insert_commands = []
-    for results in qcone_results_collection:
-
-        if not isinstance(results, QCOneResults):
-            logger.warning(f'Provided object is not an instance of QCOneResults. '
-                           f'Provided object was an {type(results)}. Skipping.')
-            continue
-
-        logger.debug(f"Generating upsert command for {results}")
-        insert_command = (
-            insert(QCOneResults)
+    insert_command = (
+        insert(QCOneResults)
             .values(
+            starttime=results.starttime,
+            endtime=results.endtime,
+            accepted_time=results.accepted_time,
+            avg_gps_time_error_min=results.avg_gps_time_error_min,
+            avg_gps_time_error_max=results.avg_gps_time_error_max,
+            avg_gps_time_uncertainty_min=results.avg_gps_time_uncertainty_min,
+            avg_gps_time_uncertainty_max=results.avg_gps_time_uncertainty_max,
+            signal_energy_min=results.signal_energy_min,
+            signal_energy_max=results.signal_energy_max,
+            signal_min_value_min=results.signal_min_value_min,
+            signal_min_value_max=results.signal_min_value_max,
+            signal_max_value_min=results.signal_max_value_min,
+            signal_max_value_max=results.signal_max_value_max,
+            signal_mean_value_min=results.signal_mean_value_min,
+            signal_mean_value_max=results.signal_mean_value_max,
+            signal_variance_min=results.signal_variance_min,
+            signal_variance_max=results.signal_variance_max,
+            signal_skewness_min=results.signal_skewness_min,
+            signal_skewness_max=results.signal_skewness_max,
+            signal_kurtosis_min=results.signal_kurtosis_min,
+            signal_kurtosis_max=results.signal_kurtosis_max,
+        )
+            .on_conflict_do_update(
+            constraint="unique_qcone_results_per_config_per_datachunk",
+            set_=dict(
                 starttime=results.starttime,
                 endtime=results.endtime,
                 accepted_time=results.accepted_time,
@@ -544,42 +560,10 @@ def _upsert_qcone_results(qcone_results_collection: Collection[QCOneResults]) ->
                 signal_skewness_max=results.signal_skewness_max,
                 signal_kurtosis_min=results.signal_kurtosis_min,
                 signal_kurtosis_max=results.signal_kurtosis_max,
-            )
-            .on_conflict_do_update(
-                constraint="unique_qcone_results_per_config_per_datachunk",
-                set_=dict(
-                    starttime=results.starttime,
-                    endtime=results.endtime,
-                    accepted_time=results.accepted_time,
-                    avg_gps_time_error_min=results.avg_gps_time_error_min,
-                    avg_gps_time_error_max=results.avg_gps_time_error_max,
-                    avg_gps_time_uncertainty_min=results.avg_gps_time_uncertainty_min,
-                    avg_gps_time_uncertainty_max=results.avg_gps_time_uncertainty_max,
-                    signal_energy_min=results.signal_energy_min,
-                    signal_energy_max=results.signal_energy_max,
-                    signal_min_value_min=results.signal_min_value_min,
-                    signal_min_value_max=results.signal_min_value_max,
-                    signal_max_value_min=results.signal_max_value_min,
-                    signal_max_value_max=results.signal_max_value_max,
-                    signal_mean_value_min=results.signal_mean_value_min,
-                    signal_mean_value_max=results.signal_mean_value_max,
-                    signal_variance_min=results.signal_variance_min,
-                    signal_variance_max=results.signal_variance_max,
-                    signal_skewness_min=results.signal_skewness_min,
-                    signal_skewness_max=results.signal_skewness_max,
-                    signal_kurtosis_min=results.signal_kurtosis_min,
-                    signal_kurtosis_max=results.signal_kurtosis_max,
-                ),
-            )
+            ),
         )
-        insert_commands.append(insert_command)
-
-    for insert_command in insert_commands:
-        db.session.execute(insert_command)
-
-    logger.debug('Commiting session.')
-    db.session.commit()
-    return
+    )
+    return insert_command
 
 
 def process_qctwo(
@@ -606,10 +590,14 @@ def process_qctwo(
     logger.info("Calculations of QCTwoResults done.")
 
     logger.info("All processing finished. Trying to insert data into db.")
-    _add_or_upsert_qctwo_results_in_db(qctwo_results=qctwo_results)
+    bulk_add_or_upsert_objects(
+        objects_to_add=qctwo_results,
+        upserter_callable=_upsert_qctwo_results,
+        bulk_insert=True,
+    )
 
 
-def _add_or_upsert_qctwo_results_in_db(qctwo_results: Collection[QCTwoResults]) -> None:
+def _upsert_qctwo_results(qctwo_results: Collection[QCTwoResults]) -> None:
     # TODO OPTIMIZE the inserts. there could be extracted datachunk_ids to query for (the qcone_config_id does not
     #  change within this call). Then, the upsert could be executed on the existing only, insert on all the rest.
     #  Gitlab #143
