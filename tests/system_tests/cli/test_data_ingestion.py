@@ -496,7 +496,6 @@ class TestDataIngestionRoutines:
                                      "-c", "1",
                                      "-sd", "2019-09-30",
                                      "-ed", "2019-10-03",
-                                     "--use_gps",
                                      ])
         assert result.exit_code == 0
 
