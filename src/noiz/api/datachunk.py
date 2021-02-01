@@ -1,6 +1,7 @@
 import datetime
 import pendulum
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.exc import UnmappedInstanceError
 
 from noiz.models.qc import QCOneConfig, QCOneResults
 from sqlalchemy.dialects.postgresql import insert
@@ -711,7 +712,8 @@ def _select_datachunks_for_processing(
 
 
 def add_or_upsert_processed_datachunks_in_db(
-        processed_datachunks: Union[ProcessedDatachunk, Iterable[ProcessedDatachunk]]
+        processed_datachunks: Union[ProcessedDatachunk, Collection[ProcessedDatachunk]],
+        bulk_insert: bool = True
 ):
     """
     Adds or upserts provided iterable of ProcessedDatachunk to DB.
@@ -722,45 +724,48 @@ def add_or_upsert_processed_datachunks_in_db(
     :return:
     :rtype:
     """
+    valid_processed_datachunks: Collection[ProcessedDatachunk]
+
     if isinstance(processed_datachunks, ProcessedDatachunk):
-        processed_datachunks = (processed_datachunks,)
+        valid_processed_datachunks = (processed_datachunks,)
+    else:
+        valid_processed_datachunks = processed_datachunks
 
-    for proc_datachunk in processed_datachunks:
+    if bulk_insert:
+        logger.info("Trying to do bulk insert")
+        try:
+            bulk_add_objects(valid_processed_datachunks)
+        except (IntegrityError, UnmappedInstanceError) as e:
+            logger.warning(f"There was an integrity error thrown. {e}. Performing rollback.")
+            db.session.rollback()
 
-        if not isinstance(proc_datachunk, ProcessedDatachunk):
-            logger.error(f'Provided object is not an instance of ProcessedDatachunk. '
-                         f'Provided object was an {type(proc_datachunk)}. Skipping.')
-            continue
+            logger.warning("Retrying with upsert")
+            upsert_processed_datachunks(valid_processed_datachunks)
+    else:
+        logger.info(f"Starting to perform careful upsert. There are {len(valid_processed_datachunks)} to insert")
+        upsert_processed_datachunks(valid_processed_datachunks)
 
-        logger.debug("Querrying db if the datachunk already exists.")
-        existing_chunks = (
-            db.session.query(ProcessedDatachunk)
-            .filter(
-                ProcessedDatachunk.processed_datachunk_params_id == proc_datachunk.processed_datachunk_params_id,
-                ProcessedDatachunk.datachunk_id == proc_datachunk.datachunk_id,
-            )
-            .all()
-        )
-
-        if len(existing_chunks) == 0:
-            logger.info("No existing ProcessedDatachunks found. Adding Datachunk to DB.")
-            db.session.add(proc_datachunk)
-        else:
-            logger.info("ProcessedDatachunks already exists in db. Updating.")
-            insert_command = (
-                insert(ProcessedDatachunk)
-                .values(
-                    processed_datachunk_params_id=proc_datachunk.processed_datachunk_params_id,
-                    datachunk_id=proc_datachunk.datachunk_id,
-                    processed_datachunk_file_id=proc_datachunk.processed_datachunk_file_id,
-                )
-                .on_conflict_do_update(
-                    constraint="unique_processing_per_datachunk_per_config",
-                    set_=dict(processed_datachunk_file_id=proc_datachunk.processed_datachunk_file_id),
-                )
-            )
-            db.session.execute(insert_command)
-
-    logger.debug('Commiting session.')
-    db.session.commit()
     return
+
+
+def upsert_processed_datachunks(processed_datachunks):
+    for proc_datachunk in processed_datachunks:
+        if not isinstance(proc_datachunk, ProcessedDatachunk):
+            logger.info(f"Got {type(proc_datachunk)} and not ProcessedDatachunk. Skipping")
+            continue
+        logger.info("ProcessedDatachunks already exists in db. Updating.")
+        insert_command = (
+            insert(ProcessedDatachunk)
+            .values(
+                processed_datachunk_params_id=proc_datachunk.processed_datachunk_params_id,
+                datachunk_id=proc_datachunk.datachunk_id,
+                processed_datachunk_file_id=proc_datachunk.processed_datachunk_file_id,
+            )
+            .on_conflict_do_update(
+                constraint="unique_processing_per_datachunk_per_config",
+                set_=dict(processed_datachunk_file_id=proc_datachunk.processed_datachunk_file_id),
+            )
+        )
+        db.session.execute(insert_command)
+        logger.debug('Commiting session.')
+    db.session.commit()
