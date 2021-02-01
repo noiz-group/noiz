@@ -32,7 +32,7 @@ def create_app(
 
 def configure_logging(app: Flask, logging_level: Union[str, int]):
     logger.remove()
-    logger.add(sys.stderr, filter="noiz", level=logging_level)
+    logger.add(sys.stderr, filter="noiz", level=logging_level, enqueue=True)
 
     class InterceptHandler(logging.Handler):
         def emit(self, record):
