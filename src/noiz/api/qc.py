@@ -306,11 +306,6 @@ def process_qcone(
         fetch_stats=qcone_config.uses_stats,
         top_up_gps=not strict_gps
     )
-    if strict_gps:
-        logger.info(f"Starting QCOneResults calculations with GPS. Datachunks without GPS will be skipped.")
-    else:
-        logger.info(f"Starting QCOneResults calculations with GPS. Datachunks without GPS will be used with stats "
-                    f"only.")
 
     for input_dict in calculation_inputs:
         qcone_res = calculate_qcone_results(**input_dict)
@@ -331,6 +326,7 @@ def fetch_inputs_for_qcone_runner(qcone_config, fetched_components, timespans, f
         load_stats=False,
     )
     if fetch_stats and fetch_gps:
+        logger.info("Fetching Datachunk, DatachunkStats and AveragedSohGPS for the QCOne.")
         query = (db.session
                  .query(Datachunk, DatachunkStats, AveragedSohGps)
                  .select_from(Datachunk)
@@ -343,6 +339,7 @@ def fetch_inputs_for_qcone_runner(qcone_config, fetched_components, timespans, f
                  .filter(*filters).options(opts))
         fetched_data = query.all()
 
+        logger.info(f"Fetching done. There are {len(fetched_data)} items to process. Starting results generation.")
         used_datachunk_ids = []
         for datachunk, stats, avggps in fetched_data:
             used_datachunk_ids.append(datachunk.id)
@@ -356,7 +353,9 @@ def fetch_inputs_for_qcone_runner(qcone_config, fetched_components, timespans, f
         if top_up_gps is None:
             raise ValueError("If you are passing True for fetch_gps and fetch_stats, you have to provide also value for"
                              "top_up_gps.")
+
         if top_up_gps:
+            logger.info("Querrying for datachunks that do not have GPS but fit the query.")
             filters.append(~Datachunk.id.in_(used_datachunk_ids))
             topup_query = (db.session
                            .query(Datachunk, DatachunkStats)
@@ -364,6 +363,9 @@ def fetch_inputs_for_qcone_runner(qcone_config, fetched_components, timespans, f
                            .join(DatachunkStats)
                            .filter(*filters).options(opts))
             fetched_topup_data = topup_query.all()
+
+            logger.info(f"Fetching done. There are {len(fetched_topup_data)} items to process. "
+                        f"Starting results generation.")
             for datachunk, stats in fetched_topup_data:
                 yield dict(
                     datachunk=datachunk,
@@ -372,6 +374,8 @@ def fetch_inputs_for_qcone_runner(qcone_config, fetched_components, timespans, f
                     avg_soh_gps=None
                 )
     elif not fetch_stats and fetch_gps:
+        logger.info("Fetching Datachunk and AveragedSohGPS for the QCOne.")
+
         query = (db.session
                  .query(Datachunk, AveragedSohGps)
                  .select_from(Datachunk)
@@ -381,9 +385,11 @@ def fetch_inputs_for_qcone_runner(qcone_config, fetched_components, timespans, f
                            Datachunk.timespan_id == AveragedSohGps.timespan_id
                        ))
                  .filter(*filters).options(opts))
-        fetched_results = query.all()
+        fetched_data = query.all()
 
-        for datachunk, avggps in fetched_results:
+        logger.info(f"Fetching done. There are {len(fetched_data)} items to process. Starting results generation.")
+
+        for datachunk, avggps in fetched_data:
             yield dict(
                 datachunk=datachunk,
                 qcone_config=qcone_config,
@@ -391,15 +397,17 @@ def fetch_inputs_for_qcone_runner(qcone_config, fetched_components, timespans, f
                 avg_soh_gps=avggps
             )
     elif fetch_stats and not fetch_gps:
+        logger.info("Fetching Datachunk and DatachunkStats for the QCOne.")
 
         query = (db.session
                  .query(Datachunk, DatachunkStats)
                  .select_from(Datachunk)
                  .join(DatachunkStats)
                  .filter(*filters).options(opts))
-        fetched_results = query.all()
+        fetched_data = query.all()
 
-        for datachunk, stats in fetched_results:
+        logger.info(f"Fetching done. There are {len(fetched_data)} items to process. Starting results generation.")
+        for datachunk, stats in fetched_data:
             yield dict(
                 datachunk=datachunk,
                 qcone_config=qcone_config,
@@ -407,12 +415,15 @@ def fetch_inputs_for_qcone_runner(qcone_config, fetched_components, timespans, f
                 avg_soh_gps=None
             )
     elif not fetch_stats and not fetch_gps:
+        logger.info("Fetching Datachunk for the QCOne.")
+
         query = (db.session
                  .query(Datachunk)
                  .filter(*filters).options(opts))
-        fetched_results = query.all()
+        fetched_data = query.all()
 
-        for datachunk in fetched_results:
+        logger.info(f"Fetching done. There are {len(fetched_data)} items to process. Starting results generation.")
+        for datachunk in fetched_data:
             yield dict(
                 datachunk=datachunk,
                 qcone_config=qcone_config,
@@ -423,7 +434,6 @@ def fetch_inputs_for_qcone_runner(qcone_config, fetched_components, timespans, f
         raise ValueError(f"Despite of having workflow for all combinations of fetch_stats and fetch_gps params "
                          f"you managed to reach here. Congratulations. Go and see whats wrong."
                          f"fetch_stats: {fetch_stats}; fetch_gps: {fetch_gps}, top_up_gps: {top_up_gps}")
-
 
     return
 
