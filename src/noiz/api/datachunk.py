@@ -22,7 +22,7 @@ from noiz.models.datachunk import Datachunk, DatachunkStats, ProcessedDatachunk
 from noiz.models.processing_params import DatachunkParams, ProcessedDatachunkParams
 from noiz.models.soh import AveragedSohGps
 from noiz.models.timespan import Timespan
-from noiz.processing.datachunk import create_datachunks_for_component
+from noiz.processing.datachunk import create_datachunks_for_component, calculate_datachunk_stats
 from noiz.processing.datachunk_processing import process_datachunk
 
 from loguru import logger
@@ -452,10 +452,6 @@ def run_stats_calculation(
         components: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
 ):
-    from noiz.api.timespan import fetch_timespans_between_dates
-    from noiz.api.component import fetch_components
-    from noiz.api.processing_config import fetch_datachunkparams_by_id
-    from noiz.processing.datachunk import calculate_datachunk_stats
 
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
     fetched_components = fetch_components(
