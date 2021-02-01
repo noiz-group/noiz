@@ -303,7 +303,7 @@ def process_qcone(
     )
 
     qcone_results = []
-    calculation_inputs = fetch_inputs_for_qcone_runner(
+    calculation_inputs = _generate_inputs_for_qcone_runner(
         qcone_config=qcone_config,
         components=fetched_components,
         timespans=timespans,
@@ -322,7 +322,7 @@ def process_qcone(
     add_or_upsert_qcone_results_in_db(qcone_results_collection=qcone_results)
 
 
-def fetch_inputs_for_qcone_runner(
+def _generate_inputs_for_qcone_runner(
         qcone_config: QCOneConfig,
         components: Collection[Component],
         timespans: Collection[Timespan],
@@ -330,6 +330,26 @@ def fetch_inputs_for_qcone_runner(
         fetch_stats: bool,
         top_up_gps: Optional[bool] = None,
 ) -> Generator[QCOneRunnerInputs, None, None]:
+    """
+    Fetches a proper combination of :py:class:`~noiz.models.datachunk.Datachunk`,
+    :py:class:`~noiz.models.datachunk.DatachunkStats` and :py:class:`~noiz.models.soh.AveragedSohGps` that is necessary
+    for proper calculation of :py:class:`~noiz.models.qc.QCOneResults`.
+
+    :param qcone_config: QCOneConfig for which the query should be done
+    :type qcone_config: ~noiz.models.qc.QCOneConfig
+    :param components: Components for which the query should be done
+    :type components: Collection[~noiz.models.component.Component]
+    :param timespans: Timespans for which the query should be done
+    :type timespans: Collection[~noiz.models.timespan.Timespan]
+    :param fetch_gps: If AveragedSohGps should be joined and fetched with Datachunks
+    :type fetch_gps: bool
+    :param fetch_stats: If DatachunkStats should be joined and fetched with Datachunks
+    :type fetch_stats: bool
+    :param top_up_gps: If the Calculations should be topped up if some of the elements of original query are missing.
+    :type top_up_gps: Optional[bool]
+    :return:
+    :rtype:
+    """
 
     filters, opts = _determine_filters_and_opts_for_datachunk(
         components=components,
