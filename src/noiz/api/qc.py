@@ -10,7 +10,7 @@ from typing import List, Collection, Union, Optional, Generator, TypedDict
 from noiz.api.component import fetch_components
 from noiz.api.crosscorrelations import fetch_crosscorrelation
 from noiz.api.datachunk import _determine_filters_and_opts_for_datachunk
-from noiz.api.helpers import validate_to_tuple, extract_object_ids, bulk_add_objects
+from noiz.api.helpers import validate_to_tuple, extract_object_ids, bulk_add_objects, bulk_add_or_upsert_objects
 from noiz.api.timespan import fetch_timespans_between_dates
 
 from noiz.database import db
@@ -323,20 +323,12 @@ def process_qcone(
 
     logger.info("All processing finished. Trying to insert data into db.")
 
-    if bulk_insert:
-        logger.info("Trying to do bulk insert")
-        try:
-            bulk_add_objects(qcone_results)
-        except (IntegrityError, UnmappedInstanceError) as e:
-            logger.warning(f"There was an integrity error thrown. {e}. Performing rollback.")
-            db.session.rollback()
-
-            logger.warning("Retrying with upsert")
-            _upsert_qcone_results(qcone_results)
-    else:
-        logger.info(f"Starting to perform careful upsert. There are {len(qcone_results)} to insert")
-        _upsert_qcone_results(qcone_results)
-
+    bulk_add_or_upsert_objects(
+        objects_to_add=qcone_results,
+        upserter_callable=_upsert_qcone_results,
+        bulk_insert=True
+    )
+    return
 
 def _generate_inputs_for_qcone_runner(
         qcone_config: QCOneConfig,
