@@ -450,7 +450,6 @@ def average_soh_gps(
 @click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
 @click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
 @click.option("-c", "--qcone_config_id", nargs=1, type=int, default=1, show_default=True)
-@click.option('--use_gps/--no-use_gps', default=True)
 @click.option('--strict_gps', is_flag=True)
 def run_qcone(
         station,
@@ -458,7 +457,6 @@ def run_qcone(
         startdate,
         enddate,
         qcone_config_id,
-        use_gps,
         strict_gps,
 ):
     """Calculate QCOne results """
@@ -471,7 +469,6 @@ def run_qcone(
         starttime=startdate,
         endtime=enddate,
         qcone_config_id=qcone_config_id,
-        use_gps=use_gps,
         strict_gps=strict_gps,
     )
 

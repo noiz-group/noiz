@@ -1,21 +1,30 @@
 import datetime
 from loguru import logger
-
 from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Query
-from typing import List, Collection, Union, Optional
+from sqlalchemy.orm.exc import UnmappedInstanceError
+from typing import List, Collection, Union, Optional, Generator, TypedDict
 
 from noiz.api.component import fetch_components
 from noiz.api.crosscorrelations import fetch_crosscorrelation
 from noiz.api.datachunk import _determine_filters_and_opts_for_datachunk
-from noiz.api.helpers import validate_to_tuple, extract_object_ids
+from noiz.api.helpers import validate_to_tuple, extract_object_ids, bulk_add_objects
 from noiz.api.timespan import fetch_timespans_between_dates
 
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
-from noiz.models import Crosscorrelation, Datachunk, DatachunkStats, QCOneConfig, QCOneResults, QCTwoConfig, QCTwoResults, AveragedSohGps
+from noiz.models import Crosscorrelation, Datachunk, DatachunkStats, QCOneConfig, QCOneResults, QCTwoConfig, \
+    QCTwoResults, AveragedSohGps, Component, Timespan
 from noiz.processing.qc import calculate_qcone_results, calculate_qctwo_results
+
+
+class QCOneRunnerInputs(TypedDict):
+    datachunk: Datachunk
+    qcone_config: QCOneConfig
+    stats: Optional[DatachunkStats]
+    avg_soh_gps: Optional[AveragedSohGps]
 
 
 def fetch_qcone_config(ids: Union[int, Collection[int]]) -> List[QCOneConfig]:
@@ -236,12 +245,12 @@ def process_qcone(
         qcone_config_id: int,
         starttime: Union[datetime.date, datetime.datetime],
         endtime: Union[datetime.date, datetime.datetime],
-        use_gps: bool = True,
         strict_gps: bool = False,
         networks: Optional[Union[Collection[str], str]] = None,
         stations: Optional[Union[Collection[str], str]] = None,
         components: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
+        bulk_insert: bool = True,
 ):
     """
     A method that runs the whole process of calculation of results of QCOne.
@@ -295,17 +304,82 @@ def process_qcone(
         components=components,
         component_ids=component_ids,
     )
-    filters, opts = _determine_filters_and_opts_for_datachunk(
+
+    calculation_inputs = _generate_inputs_for_qcone_runner(
+        qcone_config=qcone_config,
         components=fetched_components,
+        timespans=timespans,
+        fetch_gps=qcone_config.uses_gps(),
+        fetch_stats=qcone_config.uses_stats,
+        top_up_gps=not strict_gps
+    )
+
+    qcone_results = []
+    for input_dict in calculation_inputs:
+        qcone_res = calculate_qcone_results(**input_dict)
+        qcone_results.append(qcone_res)
+
+    logger.info("Calculations finished")
+
+    logger.info("All processing finished. Trying to insert data into db.")
+
+    if bulk_insert:
+        logger.info("Trying to do bulk insert")
+        try:
+            bulk_add_objects(qcone_results)
+        except (IntegrityError, UnmappedInstanceError) as e:
+            logger.warning(f"There was an integrity error thrown. {e}. Performing rollback.")
+            db.session.rollback()
+
+            logger.warning("Retrying with upsert")
+            _upsert_qcone_results(qcone_results)
+    else:
+        logger.info(f"Starting to perform careful upsert. There are {len(qcone_results)} to insert")
+        _upsert_qcone_results(qcone_results)
+
+
+def _generate_inputs_for_qcone_runner(
+        qcone_config: QCOneConfig,
+        components: Collection[Component],
+        timespans: Collection[Timespan],
+        fetch_gps: bool,
+        fetch_stats: bool,
+        top_up_gps: Optional[bool] = None,
+) -> Generator[QCOneRunnerInputs, None, None]:
+    """
+    Fetches a proper combination of :py:class:`~noiz.models.datachunk.Datachunk`,
+    :py:class:`~noiz.models.datachunk.DatachunkStats` and :py:class:`~noiz.models.soh.AveragedSohGps` that is necessary
+    for proper calculation of :py:class:`~noiz.models.qc.QCOneResults`.
+
+    :param qcone_config: QCOneConfig for which the query should be done
+    :type qcone_config: ~noiz.models.qc.QCOneConfig
+    :param components: Components for which the query should be done
+    :type components: Collection[~noiz.models.component.Component]
+    :param timespans: Timespans for which the query should be done
+    :type timespans: Collection[~noiz.models.timespan.Timespan]
+    :param fetch_gps: If AveragedSohGps should be joined and fetched with Datachunks
+    :type fetch_gps: bool
+    :param fetch_stats: If DatachunkStats should be joined and fetched with Datachunks
+    :type fetch_stats: bool
+    :param top_up_gps: If the Calculations should be topped up if some of the elements of original query are missing.
+    :type top_up_gps: Optional[bool]
+    :return:
+    :rtype:
+    """
+
+    filters, opts = _determine_filters_and_opts_for_datachunk(
+        components=components,
         timespans=timespans,
         load_component=False,
         load_timespan=True,
         load_stats=False,
     )
 
-    qcone_results = []
-    used_ids = []
-    if qcone_config.uses_gps() and use_gps:
+    if top_up_gps is None and fetch_gps is True:
+        raise ValueError("If you are passing True for fetch_gps, you have to provide also value for top_up_gps.")
+
+    if fetch_stats and fetch_gps:
+        logger.info("Fetching Datachunk, DatachunkStats and AveragedSohGPS for the QCOne.")
         query = (db.session
                  .query(Datachunk, DatachunkStats, AveragedSohGps)
                  .select_from(Datachunk)
@@ -316,83 +390,136 @@ def process_qcone(
                        ))
                  .join(DatachunkStats)
                  .filter(*filters).options(opts))
-        fetched_results = query.all()
+        fetched_data = query.all()
 
-        logger.info(f"Starting QCOneResults calculations with GPS for {len(fetched_results)} elements")
-
-        for datachunk, stats, avg_soh_gps in fetched_results:
-            used_ids.append(datachunk.id)
-            qcone_res = calculate_qcone_results(
+        logger.info(f"Fetching done. There are {len(fetched_data)} items to process. Starting results generation.")
+        used_datachunk_ids = []
+        for datachunk, stats, avggps in fetched_data:
+            used_datachunk_ids.append(datachunk.id)
+            yield dict(
                 datachunk=datachunk,
                 qcone_config=qcone_config,
                 stats=stats,
-                avg_soh_gps=avg_soh_gps,
+                avg_soh_gps=avggps,
             )
-            qcone_results.append(qcone_res)
 
-        logger.info("Calculations done for all elements with GPS info associated.")
-
-        if not strict_gps:
-            # Topping up by calculating QCOneResult for those Datachunks that do not have an AvgGpsSoh
-            logger.info("Searching for datachunks that do not have GPS data associated to top up.")
-            filters.append(~Datachunk.id.in_(used_ids))
+        if top_up_gps:
+            logger.info("Querrying for datachunks that do not have GPS but fit the query.")
+            filters.append(~Datachunk.id.in_(used_datachunk_ids))
             topup_query = (db.session
                            .query(Datachunk, DatachunkStats)
                            .select_from(Datachunk)
                            .join(DatachunkStats)
                            .filter(*filters).options(opts))
-            topup_fetched_results = topup_query.all()
+            fetched_topup_data = topup_query.all()
 
-            logger.info(f"Starting topping up QCOneResults calculations without GPS for "
-                        f"{len(topup_fetched_results)} elements")
-            for datachunk, stats in topup_fetched_results:
-                qcone_res = calculate_qcone_results(
+            logger.info(f"Fetching done. There are {len(fetched_topup_data)} items to process. "
+                        f"Starting results generation.")
+            for datachunk, stats in fetched_topup_data:
+                yield dict(
                     datachunk=datachunk,
                     qcone_config=qcone_config,
                     stats=stats,
                     avg_soh_gps=None
                 )
-                qcone_results.append(qcone_res)
-            logger.info("Topping up calculations finished.")
 
-    else:
+    elif not fetch_stats and fetch_gps:
+        logger.info("Fetching Datachunk and AveragedSohGPS for the QCOne.")
+        query = (db.session
+                 .query(Datachunk, AveragedSohGps)
+                 .select_from(Datachunk)
+                 .join(AveragedSohGps,
+                       and_(
+                           Datachunk.device_id == AveragedSohGps.device_id,
+                           Datachunk.timespan_id == AveragedSohGps.timespan_id
+                       ))
+                 .filter(*filters).options(opts))
+        fetched_data = query.all()
+
+        logger.info(f"Fetching done. There are {len(fetched_data)} items to process. Starting results generation.")
+        used_datachunk_ids = []
+        for datachunk, avggps in fetched_data:
+            used_datachunk_ids.append(datachunk.id)
+            yield dict(
+                datachunk=datachunk,
+                qcone_config=qcone_config,
+                stats=None,
+                avg_soh_gps=avggps
+            )
+
+        if top_up_gps:
+            logger.info("Querrying for datachunks that do not have GPS but fit the query.")
+            filters.append(~Datachunk.id.in_(used_datachunk_ids))
+            topup_query = (db.session
+                           .query(Datachunk)
+                           .select_from(Datachunk)
+                           .filter(*filters).options(opts))
+            fetched_topup_data = topup_query.all()
+
+            logger.info(f"Fetching done. There are {len(fetched_topup_data)} items to process. "
+                        f"Starting results generation.")
+            for datachunk in fetched_topup_data:
+                yield dict(
+                    datachunk=datachunk,
+                    qcone_config=qcone_config,
+                    stats=None,
+                    avg_soh_gps=None
+                )
+
+    elif fetch_stats and not fetch_gps:
+        logger.info("Fetching Datachunk and DatachunkStats for the QCOne.")
+
         query = (db.session
                  .query(Datachunk, DatachunkStats)
                  .select_from(Datachunk)
                  .join(DatachunkStats)
                  .filter(*filters).options(opts))
-        fetched_results = query.all()
+        fetched_data = query.all()
 
-        logger.info(f"Starting QCOneResults calculations without GPS for {len(fetched_results)} elements")
-        for datachunk, stats in fetched_results:
-            qcone_res = calculate_qcone_results(
+        logger.info(f"Fetching done. There are {len(fetched_data)} items to process. Starting results generation.")
+        for datachunk, stats in fetched_data:
+            yield dict(
                 datachunk=datachunk,
                 qcone_config=qcone_config,
                 stats=stats,
                 avg_soh_gps=None
             )
-            qcone_results.append(qcone_res)
-        logger.info("Calculations done for all elements without GPS info associated.")
+    elif not fetch_stats and not fetch_gps:
+        logger.info("Fetching Datachunk for the QCOne.")
 
-    logger.info("All processing finished. Trying to insert data into db.")
-    add_or_upsert_qcone_results_in_db(qcone_results_collection=qcone_results)
+        query = (db.session
+                 .query(Datachunk)
+                 .filter(*filters).options(opts))
+        fetched_data = query.all()
+
+        logger.info(f"Fetching done. There are {len(fetched_data)} items to process. Starting results generation.")
+        for datachunk in fetched_data:
+            yield dict(
+                datachunk=datachunk,
+                qcone_config=qcone_config,
+                stats=None,
+                avg_soh_gps=None
+            )
+    else:
+        raise ValueError(f"Despite of having workflow for all combinations of fetch_stats and fetch_gps params "
+                         f"you managed to reach here. Congratulations. Go and see whats wrong."
+                         f"fetch_stats: {fetch_stats}; fetch_gps: {fetch_gps}, top_up_gps: {top_up_gps}")
+
+    return
 
 
-def add_or_upsert_qcone_results_in_db(qcone_results_collection: Collection[QCOneResults]) -> None:
+def _upsert_qcone_results(qcone_results_collection: Collection[QCOneResults]) -> None:
     """
-    Adds or upserts provided iterable of QCOneResults to DB.
-    Must be executed within AppContext.
+    Upserts provided collection of :py:class:`~noiz.models.qc.QCOneResults` to database.
 
-    :param qcone_results_collection:
-    :type qcone_results_collection: Iterable[Datachunk]
+    :param qcone_results_collection: Objects to be added to database
+    :type qcone_results_collection: Collection[QCOneResults]
     :return: None
     :rtype: NoneType
     """
-    # TODO OPTIMIZE the inserts. there could be extracted datachunk_ids to query for (the qcone_config_id does not
-    #  change within this call). Then, the upsert could be executed on the existing only, insert on all the rest.
-    #  Gitlab #143
 
     logger.info(f"Starting insertion procedure. There are {len(qcone_results_collection)} elements to be processed.")
+    insert_commands = []
     for results in qcone_results_collection:
 
         if not isinstance(results, QCOneResults):
@@ -400,26 +527,38 @@ def add_or_upsert_qcone_results_in_db(qcone_results_collection: Collection[QCOne
                            f'Provided object was an {type(results)}. Skipping.')
             continue
 
-        logger.info("Querrying db if the QCOneResults already exists.")
-        existing_chunks = (
-            db.session.query(QCOneResults)
-            .filter(
-                QCOneResults.datachunk_id == results.datachunk_id,
-                QCOneResults.qcone_config_id == results.qcone_config_id,
+        logger.debug(f"Generating upsert command for {results}")
+        insert_command = (
+            insert(QCOneResults)
+            .values(
+                starttime=results.starttime,
+                endtime=results.endtime,
+                accepted_time=results.accepted_time,
+                avg_gps_time_error_min=results.avg_gps_time_error_min,
+                avg_gps_time_error_max=results.avg_gps_time_error_max,
+                avg_gps_time_uncertainty_min=results.avg_gps_time_uncertainty_min,
+                avg_gps_time_uncertainty_max=results.avg_gps_time_uncertainty_max,
+                signal_energy_min=results.signal_energy_min,
+                signal_energy_max=results.signal_energy_max,
+                signal_min_value_min=results.signal_min_value_min,
+                signal_min_value_max=results.signal_min_value_max,
+                signal_max_value_min=results.signal_max_value_min,
+                signal_max_value_max=results.signal_max_value_max,
+                signal_mean_value_min=results.signal_mean_value_min,
+                signal_mean_value_max=results.signal_mean_value_max,
+                signal_variance_min=results.signal_variance_min,
+                signal_variance_max=results.signal_variance_max,
+                signal_skewness_min=results.signal_skewness_min,
+                signal_skewness_max=results.signal_skewness_max,
+                signal_kurtosis_min=results.signal_kurtosis_min,
+                signal_kurtosis_max=results.signal_kurtosis_max,
             )
-            .all()
-        )
-
-        if len(existing_chunks) == 0:
-            logger.info("No existing chunks found. Adding QCOneResults to DB.")
-            db.session.add(results)
-        else:
-            logger.info("The QCOneResults already exists in db. Updating.")
-            insert_command = (
-                insert(QCOneResults)
-                .values(
+            .on_conflict_do_update(
+                constraint="unique_qcone_results_per_config_per_datachunk",
+                set_=dict(
                     starttime=results.starttime,
                     endtime=results.endtime,
+                    accepted_time=results.accepted_time,
                     avg_gps_time_error_min=results.avg_gps_time_error_min,
                     avg_gps_time_error_max=results.avg_gps_time_error_max,
                     avg_gps_time_uncertainty_min=results.avg_gps_time_uncertainty_min,
@@ -438,34 +577,13 @@ def add_or_upsert_qcone_results_in_db(qcone_results_collection: Collection[QCOne
                     signal_skewness_max=results.signal_skewness_max,
                     signal_kurtosis_min=results.signal_kurtosis_min,
                     signal_kurtosis_max=results.signal_kurtosis_max,
-                )
-                .on_conflict_do_update(
-                    constraint="unique_qcone_results_per_config_per_datachunk",
-                    set_=dict(
-                        starttime=results.starttime,
-                        endtime=results.endtime,
-                        avg_gps_time_error_min=results.avg_gps_time_error_min,
-                        avg_gps_time_error_max=results.avg_gps_time_error_max,
-                        avg_gps_time_uncertainty_min=results.avg_gps_time_uncertainty_min,
-                        avg_gps_time_uncertainty_max=results.avg_gps_time_uncertainty_max,
-                        signal_energy_min=results.signal_energy_min,
-                        signal_energy_max=results.signal_energy_max,
-                        signal_min_value_min=results.signal_min_value_min,
-                        signal_min_value_max=results.signal_min_value_max,
-                        signal_max_value_min=results.signal_max_value_min,
-                        signal_max_value_max=results.signal_max_value_max,
-                        signal_mean_value_min=results.signal_mean_value_min,
-                        signal_mean_value_max=results.signal_mean_value_max,
-                        signal_variance_min=results.signal_variance_min,
-                        signal_variance_max=results.signal_variance_max,
-                        signal_skewness_min=results.signal_skewness_min,
-                        signal_skewness_max=results.signal_skewness_max,
-                        signal_kurtosis_min=results.signal_kurtosis_min,
-                        signal_kurtosis_max=results.signal_kurtosis_max,
-                    ),
-                )
+                ),
             )
-            db.session.execute(insert_command)
+        )
+        insert_commands.append(insert_command)
+
+    for insert_command in insert_commands:
+        db.session.execute(insert_command)
 
     logger.debug('Commiting session.')
     db.session.commit()
