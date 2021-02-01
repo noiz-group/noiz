@@ -376,8 +376,7 @@ def _generate_inputs_for_qcone_runner(
     )
 
     if top_up_gps is None and fetch_gps is True:
-        raise ValueError("If you are passing True for fetch_gps and fetch_stats, you have to provide also value for"
-                         "top_up_gps.")
+        raise ValueError("If you are passing True for fetch_gps, you have to provide also value for top_up_gps.")
 
     if fetch_stats and fetch_gps:
         logger.info("Fetching Datachunk, DatachunkStats and AveragedSohGPS for the QCOne.")
