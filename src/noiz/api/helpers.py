@@ -5,7 +5,7 @@ from sqlalchemy.sql.dml import Insert
 from typing import Iterable, Union, List, Tuple, Type, Any, Optional, Collection, Callable, get_args
 
 from noiz.database import db
-from noiz.models import Crosscorrelation, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults
+from noiz.models import Crosscorrelation, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults
 
 
 def extract_object_ids(
@@ -122,6 +122,7 @@ BulkAddableObjects = Union[
         DatachunkStats,
         ProcessedDatachunk,
         QCOneResults,
+        QCTwoResults,
     ]
 
 
