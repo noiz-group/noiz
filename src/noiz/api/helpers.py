@@ -1,7 +1,8 @@
 from loguru import logger
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import UnmappedInstanceError
-from typing import Iterable, Union, List, Tuple, Type, Any, Optional, Collection, Callable
+from sqlalchemy.sql.dml import Insert
+from typing import Iterable, Union, List, Tuple, Type, Any, Optional, Collection, Callable, get_args
 
 from noiz.database import db
 from noiz.models import Crosscorrelation, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults
@@ -142,7 +143,7 @@ def bulk_add_objects(objects_to_add: Collection[BulkAddableObjects]) -> None:
 
 def bulk_add_or_upsert_objects(
         objects_to_add: Union[BulkAddableObjects, Collection[BulkAddableObjects]],
-        upserter_callable: Callable[[Collection[BulkAddableObjects]], None],
+        upserter_callable: Callable[[BulkAddableObjects], Insert],
         bulk_insert: bool = True,
 ) -> None:
     """
@@ -172,8 +173,33 @@ def bulk_add_or_upsert_objects(
             db.session.rollback()
 
             logger.warning("Retrying with upsert")
-            upserter_callable(valid_objects)
+            _run_upsert_commands(objects_to_add=valid_objects, upserter_callable=upserter_callable)
     else:
         logger.info("Starting to perform careful upsert")
-        upserter_callable(valid_objects)
+        _run_upsert_commands(objects_to_add=valid_objects, upserter_callable=upserter_callable)
     return
+
+
+def _run_upsert_commands(
+        objects_to_add: Collection[BulkAddableObjects],
+        upserter_callable: Callable[[BulkAddableObjects], Insert]
+) -> None:
+
+    logger.info(f"Starting upsert procedure. There are {len(objects_to_add)} elements to be processed.")
+    insert_commands = []
+    for results in objects_to_add:
+
+        if not isinstance(results, get_args(BulkAddableObjects)):
+            logger.warning(f'Provided object is not an instance of any of the subtypes of {BulkAddableObjects}. '
+                           f'Provided object was an {type(results)}. Skipping.')
+            continue
+
+        logger.debug(f"Generating upsert command for {results}")
+        insert_command = upserter_callable(results)
+        insert_commands.append(insert_command)
+
+    for insert_command in insert_commands:
+        db.session.execute(insert_command)
+
+    logger.debug('Commiting session.')
+    db.session.commit()
