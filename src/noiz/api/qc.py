@@ -236,7 +236,6 @@ def process_qcone(
         qcone_config_id: int,
         starttime: Union[datetime.date, datetime.datetime],
         endtime: Union[datetime.date, datetime.datetime],
-        use_gps: bool = True,
         strict_gps: bool = False,
         networks: Optional[Union[Collection[str], str]] = None,
         stations: Optional[Union[Collection[str], str]] = None,
@@ -305,7 +304,7 @@ def process_qcone(
 
     qcone_results = []
     used_ids = []
-    if qcone_config.uses_gps() and use_gps:
+    if qcone_config.uses_gps():
         query = (db.session
                  .query(Datachunk, DatachunkStats, AveragedSohGps)
                  .select_from(Datachunk)
@@ -356,19 +355,35 @@ def process_qcone(
             logger.info("Topping up calculations finished.")
 
     else:
+        # query = (db.session
+        #          .query(Datachunk, DatachunkStats)
+        #          .select_from(Datachunk)
+        #          .join(DatachunkStats)
+        #          .filter(*filters).options(opts))
+        # fetched_results = query.all()
+        #
+        # logger.info(f"Starting QCOneResults calculations without GPS for {len(fetched_results)} elements")
+        # for datachunk, stats in fetched_results:
+        #     qcone_res = calculate_qcone_results(
+        #         datachunk=datachunk,
+        #         qcone_config=qcone_config,
+        #         stats=stats,
+        #         avg_soh_gps=None
+        #     )
+        #     qcone_results.append(qcone_res)
+        # logger.info("Calculations done for all elements without GPS info associated.")
         query = (db.session
-                 .query(Datachunk, DatachunkStats)
-                 .select_from(Datachunk)
-                 .join(DatachunkStats)
+                 .query(Datachunk)
                  .filter(*filters).options(opts))
         fetched_results = query.all()
 
-        logger.info(f"Starting QCOneResults calculations without GPS for {len(fetched_results)} elements")
-        for datachunk, stats in fetched_results:
+        logger.info(f"Starting QCOneResults calculations without GPS and without stats"
+                    f" for {len(fetched_results)} elements")
+        for datachunk in fetched_results:
             qcone_res = calculate_qcone_results(
                 datachunk=datachunk,
                 qcone_config=qcone_config,
-                stats=stats,
+                stats=None,
                 avg_soh_gps=None
             )
             qcone_results.append(qcone_res)
