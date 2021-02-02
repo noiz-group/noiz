@@ -10,7 +10,8 @@ from typing import List, Iterable, Tuple, Collection, Optional, Dict, Union, Gen
 
 import itertools
 
-from noiz.api.helpers import extract_object_ids, bulk_add_objects, bulk_add_or_upsert_objects
+from noiz.api.helpers import extract_object_ids, bulk_add_objects, bulk_add_or_upsert_objects, \
+    BulkAddOrUpsertObjectsInputs
 from noiz.api.component import fetch_components
 from noiz.api.timeseries import fetch_raw_timeseries
 from noiz.api.timespan import fetch_timespans_for_doy, fetch_timespans_between_dates
@@ -487,20 +488,17 @@ def run_stats_calculation(
 
     logger.info("Starting execution. Results will be saved to database on the fly. ")
 
-    upsert_futures = []
     for future_batch in as_completed(futures, with_results=True, raise_errors=False).batches():
 
-        results = [x[1] for x in future_batch]
+        results: List[DatachunkStats] = [x[1] for x in future_batch]
         logger.info(f"Running upsert for {len(results)} results")
 
-        kwargs = dict(
+        kwargs: BulkAddOrUpsertObjectsInputs = dict(
             objects_to_add=results,
             upserter_callable=_prepare_upsert_command_datachunk_stats,
             bulk_insert=True,
         )
-        upsert_futures.append(client.submit(bulk_add_or_upsert_objects, **kwargs))
-
-    wait(upsert_futures)
+        bulk_add_or_upsert_objects(**kwargs)
 
     client.close()
     return
