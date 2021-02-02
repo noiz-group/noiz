@@ -198,7 +198,9 @@ def _run_upsert_commands(
 
         if not isinstance(results, get_args(BulkAddableObjects)):
             logger.warning(f'Provided object is not an instance of any of the subtypes of {BulkAddableObjects}. '
-                           f'Provided object was an {type(results)}. Skipping.')
+                           f'Provided object was an {type(results)}. '
+                           f'Content of the object: {results}'
+                           f'Skipping.')
             continue
 
         logger.debug(f"Generating upsert command for {results}")
