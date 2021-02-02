@@ -16,9 +16,10 @@ repos:
         hooks:
             - id: doc8
     -   repo: https://github.com/pre-commit/mirrors-mypy
-        rev: v0.790
+        rev: v0.800
         hooks:
         -   id: mypy
+            entry: dmypy run
             additional_dependencies: [sqlalchemy-stubs~=0.3, pydantic~=1.7.2]
             args:
                 - --ignore-missing-imports
