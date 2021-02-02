@@ -477,7 +477,7 @@ def run_stats_calculation(
     logger.info("Submitting tasks to Dask client")
     futures = []
     try:
-        for dc in fetched_datachunks[:1000]:
+        for dc in fetched_datachunks:
             future = client.submit(calculate_datachunk_stats, dc)
             futures.append(future)
     except ValueError as e:
