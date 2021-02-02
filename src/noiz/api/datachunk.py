@@ -467,7 +467,7 @@ def run_stats_calculation(
         datachunk_processing_config=fetched_datachunk_params
     )
 
-    from dask.distributed import Client, as_completed
+    from dask.distributed import Client, as_completed, wait
     client = Client()
 
     logger.info(f'Dask client started succesfully. '
@@ -487,15 +487,20 @@ def run_stats_calculation(
 
     logger.info("Starting execution. Results will be saved to database on the fly. ")
 
+    upsert_futures = []
     for future_batch in as_completed(futures, with_results=True, raise_errors=False).batches():
 
         results = [x[1] for x in future_batch]
-        logger.warning(f"Running upsert for {len(results)} results")
-        bulk_add_or_upsert_objects(
+        logger.info(f"Running upsert for {len(results)} results")
+
+        kwargs = dict(
             objects_to_add=results,
             upserter_callable=_prepare_upsert_command_datachunk_stats,
             bulk_insert=True,
         )
+        upsert_futures.append(client.submit(bulk_add_or_upsert_objects, **kwargs))
+
+    wait(upsert_futures)
 
     client.close()
     return
