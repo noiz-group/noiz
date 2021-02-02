@@ -2,7 +2,7 @@ from loguru import logger
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import UnmappedInstanceError
 from sqlalchemy.sql import Insert
-from typing import Iterable, Union, List, Tuple, Type, Any, Optional, Collection, Callable, get_args
+from typing import Iterable, Union, List, Tuple, Type, Any, Optional, Collection, Callable, get_args, TypedDict
 
 from noiz.database import db
 from noiz.models import Crosscorrelation, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults
@@ -140,6 +140,12 @@ def bulk_add_objects(objects_to_add: Collection[BulkAddableObjects]) -> None:
     logger.info("Committing")
     db.session.commit()
     return
+
+
+class BulkAddOrUpsertObjectsInputs(TypedDict):
+    objects_to_add: Union[BulkAddableObjects, Collection[BulkAddableObjects]]
+    upserter_callable: Callable[[BulkAddableObjects], Insert]
+    bulk_insert: bool
 
 
 def bulk_add_or_upsert_objects(
