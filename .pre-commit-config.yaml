@@ -21,6 +21,6 @@ repos:
         -   id: mypy
             entry: dmypy run
             additional_dependencies: [sqlalchemy-stubs~=0.3, pydantic~=1.7.2]
-            args:
-                - --ignore-missing-imports
+#            args:
+#                - --ignore-missing-imports
             exclude: tests/
