@@ -135,9 +135,9 @@ def bulk_add_objects(objects_to_add: Collection[BulkAddableObjects]) -> None:
     :return: None
     :rtype: None
     """
-    logger.info("Performing bulk add_all operation")
+    logger.debug("Performing bulk add_all operation")
     db.session.add_all(objects_to_add)
-    logger.info("Committing")
+    logger.debug("Committing")
     db.session.commit()
     return
 
@@ -172,7 +172,7 @@ def bulk_add_or_upsert_objects(
         valid_objects = (objects_to_add,)
 
     if bulk_insert:
-        logger.info("Trying to do bulk insert")
+        logger.debug("Trying to do bulk insert")
         try:
             bulk_add_objects(valid_objects)
         except (IntegrityError, UnmappedInstanceError) as e:
