@@ -5,6 +5,13 @@ from pathlib import Path
 import obspy
 
 
+class DatachunkFile(db.Model):
+    __tablename__ = "datachunk_file"
+
+    id = db.Column("id", db.BigInteger, primary_key=True)
+    filepath = db.Column("filepath", db.UnicodeText, nullable=False)
+
+
 class Datachunk(db.Model):
     __tablename__ = "datachunk"
     __table_args__ = (
@@ -63,12 +70,15 @@ class Datachunk(db.Model):
         else:
             raise MissingDataFileException(f"Data file for chunk {self} is missing")
 
-
-class DatachunkFile(db.Model):
-    __tablename__ = "datachunk_file"
-
-    id = db.Column("id", db.BigInteger, primary_key=True)
-    filepath = db.Column("filepath", db.UnicodeText, nullable=False)
+    def load_data_with_file(self, datachunk_file: DatachunkFile):
+        if datachunk_file.id != self.datachunk_file_id:
+            raise ValueError("You provided wrong datachunk file! Expected id: {self.datachunk_file_id}")
+        filepath = Path(datachunk_file.filepath)
+        if filepath.exists:
+            # FIXME when obspy will be released, str(Path) wont be necesary
+            return obspy.read(str(filepath), "MSEED")
+        else:
+            raise MissingDataFileException(f"File associated with {DatachunkFile} does not exist.")
 
 
 class DatachunkStats(db.Model):
