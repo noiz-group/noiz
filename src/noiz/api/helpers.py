@@ -1,7 +1,11 @@
-from typing import Iterable, Union, List, Tuple, Type, Any, Optional, Collection
+from loguru import logger
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.exc import UnmappedInstanceError
+from sqlalchemy.sql import Insert
+from typing import Iterable, Union, List, Tuple, Type, Any, Optional, Collection, Callable, get_args, TypedDict
 
 from noiz.database import db
-from noiz.models import Crosscorrelation, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults
+from noiz.models import Crosscorrelation, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults
 
 
 def extract_object_ids(
@@ -112,27 +116,99 @@ def validate_exactly_one_argument_provided(
         return True
 
 
-BulkAddableObjects = Collection[
-    Union[
+BulkAddableObjects = Union[
         Crosscorrelation,
         CCFStack,
         DatachunkStats,
         ProcessedDatachunk,
         QCOneResults,
+        QCTwoResults,
     ]
-]
 
 
-def bulk_add_objects(objects_to_add: BulkAddableObjects) -> None:
+def bulk_add_objects(objects_to_add: Collection[BulkAddableObjects]) -> None:
     """
-    Tries to perform bulk insert of Crosscorrelation objects.
-    Warning: Must be executed within app_context
+    Tries to perform bulk insert of objects to database.
 
     :param objects_to_add: Objects to be inserted to the db
     :type objects_to_add: BulkAddableObjects
     :return: None
     :rtype: None
     """
+    logger.debug("Performing bulk add_all operation")
     db.session.add_all(objects_to_add)
+    logger.debug("Committing")
     db.session.commit()
     return
+
+
+class BulkAddOrUpsertObjectsInputs(TypedDict):
+    objects_to_add: Union[BulkAddableObjects, Collection[BulkAddableObjects]]
+    upserter_callable: Callable[[BulkAddableObjects], Insert]
+    bulk_insert: bool
+
+
+def bulk_add_or_upsert_objects(
+        objects_to_add: Union[BulkAddableObjects, Collection[BulkAddableObjects]],
+        upserter_callable: Callable[[BulkAddableObjects], Insert],
+        bulk_insert: bool = True,
+) -> None:
+    """
+    Adds in bulk or upserts provided Collection of objects to DB.
+
+    :param objects_to_add: Objects to be added to database
+    :type objects_to_add: Collection[BulkAddableObjects]
+    :param upserter_callable: Callable with upsert method to be used in case of bulk add failure
+    :type upserter_callable: Callable[[Collection[BulkAddableObjects]], None]
+    :param bulk_insert: If bulk add should be even attempted
+    :type bulk_insert: bool
+    :return: None
+    :rtype: NoneType
+    """
+
+    if isinstance(objects_to_add, Collection):
+        valid_objects = objects_to_add
+    else:
+        valid_objects = (objects_to_add,)
+
+    if bulk_insert:
+        logger.debug("Trying to do bulk insert")
+        try:
+            bulk_add_objects(valid_objects)
+        except (IntegrityError, UnmappedInstanceError) as e:
+            logger.warning(f"There was an integrity error thrown. {e}. Performing rollback.")
+            db.session.rollback()
+
+            logger.warning("Retrying with upsert")
+            _run_upsert_commands(objects_to_add=valid_objects, upserter_callable=upserter_callable)
+    else:
+        logger.info("Starting to perform careful upsert")
+        _run_upsert_commands(objects_to_add=valid_objects, upserter_callable=upserter_callable)
+    return
+
+
+def _run_upsert_commands(
+        objects_to_add: Collection[BulkAddableObjects],
+        upserter_callable: Callable[[BulkAddableObjects], Insert]
+) -> None:
+
+    logger.info(f"Starting upsert procedure. There are {len(objects_to_add)} elements to be processed.")
+    insert_commands = []
+    for results in objects_to_add:
+
+        if not isinstance(results, get_args(BulkAddableObjects)):
+            logger.warning(f'Provided object is not an instance of any of the subtypes of {BulkAddableObjects}. '
+                           f'Provided object was an {type(results)}. '
+                           f'Content of the object: {results}'
+                           f'Skipping.')
+            continue
+
+        logger.debug(f"Generating upsert command for {results}")
+        insert_command = upserter_callable(results)
+        insert_commands.append(insert_command)
+
+    for insert_command in insert_commands:
+        db.session.execute(insert_command)
+
+    logger.debug('Commiting session.')
+    db.session.commit()

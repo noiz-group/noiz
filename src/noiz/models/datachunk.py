@@ -1,8 +1,17 @@
+from typing import Optional
+
 from noiz.exceptions import MissingDataFileException
 from noiz.database import db
 
 from pathlib import Path
 import obspy
+
+
+class DatachunkFile(db.Model):
+    __tablename__ = "datachunk_file"
+
+    id = db.Column("id", db.BigInteger, primary_key=True)
+    filepath = db.Column("filepath", db.UnicodeText, nullable=False)
 
 
 class Datachunk(db.Model):
@@ -55,20 +64,29 @@ class Datachunk(db.Model):
         lazy="joined",
     )
 
-    def load_data(self):
-        filepath = Path(self.datachunk_file.filepath)
+    def load_data(self, datachunk_file: Optional[DatachunkFile] = None) -> obspy.Stream:
+        """
+        Loads data from associated :py:attr:`noiz.models.datachunk.Datachunk.datachunk_file`.
+        Optionally, it can load data from explicitly provided :py:class:`~noiz.models.datachunk.DatachunkFile`
+        after verifying if the provided object has expected id.
+
+        :param datachunk_file: DatachunkFile to be loaded
+        :type datachunk_file: Optional[noiz.models.datachunk.DatachunkFile]
+        :return: Loaded stream
+        :rtype: obspy.Stream
+        """
+        if datachunk_file is None:
+            filepath = Path(self.datachunk_file.filepath)
+        else:
+            filepath = Path(datachunk_file.filepath)
+            if datachunk_file.id != self.datachunk_file_id:
+                raise ValueError("You provided wrong datachunk file! Expected id: {self.datachunk_file_id}")
+
         if filepath.exists:
             # FIXME when obspy will be released, str(Path) wont be necesary
             return obspy.read(str(filepath), "MSEED")
         else:
             raise MissingDataFileException(f"Data file for chunk {self} is missing")
-
-
-class DatachunkFile(db.Model):
-    __tablename__ = "datachunk_file"
-
-    id = db.Column("id", db.BigInteger, primary_key=True)
-    filepath = db.Column("filepath", db.UnicodeText, nullable=False)
 
 
 class DatachunkStats(db.Model):

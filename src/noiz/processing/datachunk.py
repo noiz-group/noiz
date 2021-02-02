@@ -3,7 +3,7 @@ from loguru import logger
 import numpy as np
 import obspy
 import scipy
-from typing import Union, Tuple, Dict, Collection
+from typing import Union, Tuple, Dict, Collection, TypedDict, Optional
 
 from noiz.exceptions import MissingDataFileException
 from noiz.globals import PROCESSED_DATA_DIR
@@ -759,7 +759,15 @@ def create_datachunks_for_component(
     return finished_datachunks
 
 
-def calculate_datachunk_stats(datachunk: Datachunk) -> DatachunkStats:
+class CalculateDatachunkStatsInputs(TypedDict):
+    """
+    TypedDict class that describes inputs required for :py:func:`noiz.processing.datachunk.calculate_datachunk_stats`
+    """
+    datachunk: Datachunk
+    datachunk_file: Optional[DatachunkFile]
+
+
+def calculate_datachunk_stats(datachunk: Datachunk, datachunk_file: Optional[DatachunkFile] = None) -> DatachunkStats:
     """
     Calculates statistics of the signal associated with provided :class:`~noiz.models.datachunk.Datachunk`.
     It calculates energy as a sum of squared values of the signal normalized by sample count.
@@ -767,10 +775,12 @@ def calculate_datachunk_stats(datachunk: Datachunk) -> DatachunkStats:
 
     :param datachunk: Datachunk to calculate statistics for
     :type datachunk: Datachunk
+    :param datachunk_file: Datachunk file to be explicitly loaded for datachunk
+    :type datachunk_file: Optional[DatachunkFile]
     :return: Signal statistics for the datachunk
     :rtype: DatachunkStats
     """
-    st = datachunk.load_data()
+    st = datachunk.load_data(datachunk_file=datachunk_file)
     # noinspection PyUnresolvedReferences
     descibed_stats: scipy.stats.stats.DescribeResult = scipy.stats.describe(st[0].data)
     energy = np.sum(np.power(st[0].data, 2)) / descibed_stats.nobs
