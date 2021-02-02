@@ -476,7 +476,7 @@ def run_stats_calculation(
     logger.info("Submitting tasks to Dask client")
     futures = []
     try:
-        for dc in fetched_datachunks:
+        for dc in fetched_datachunks[:1000]:
             future = client.submit(calculate_datachunk_stats, dc)
             futures.append(future)
     except ValueError as e:
@@ -487,9 +487,12 @@ def run_stats_calculation(
 
     logger.info("Starting execution. Results will be saved to database on the fly. ")
 
-    for future, result in as_completed(futures, with_results=True, raise_errors=False):
+    for future_batch in as_completed(futures, with_results=True, raise_errors=False).batches():
+
+        results = [x[1] for x in future_batch]
+        logger.warning(f"Running upsert for {len(results)} results")
         bulk_add_or_upsert_objects(
-            objects_to_add=result,
+            objects_to_add=results,
             upserter_callable=_prepare_upsert_command_datachunk_stats,
             bulk_insert=True,
         )
