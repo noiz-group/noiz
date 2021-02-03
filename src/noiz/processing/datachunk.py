@@ -770,10 +770,10 @@ def create_datachunks_for_component(
 
 
 def calculate_datachunk_stats_wrapper(inputs: CalculateDatachunkStatsInputs) -> Tuple[DatachunkStats, ...]:
-    return tuple(calculate_datachunk_stats(
+    return (calculate_datachunk_stats(
         datachunk=inputs["datachunk"],
         datachunk_file=inputs["datachunk_file"],
-    ))
+    ), )
 
 
 def calculate_datachunk_stats(
