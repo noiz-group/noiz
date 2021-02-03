@@ -7,10 +7,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import subqueryload, Query
 from typing import Iterable, List, Union, Optional, Collection, Dict
 
-from noiz.api.component_pair import fetch_componentpairs
-from noiz.api.helpers import extract_object_ids, validate_to_tuple, bulk_add_objects
-from noiz.api.processing_config import fetch_crosscorrelation_params_by_id
-from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.database import db
 from noiz.exceptions import InconsistentDataException, CorruptedDataException
 from noiz.models.component_pair import ComponentPair
@@ -23,6 +19,11 @@ from noiz.processing.crosscorrelations import (
     group_chunks_by_timespanid_componentid,
     load_data_for_chunks, extract_component_ids_from_component_pairs,
 )
+
+from noiz.api.component_pair import fetch_componentpairs
+from noiz.api.helpers import extract_object_ids, validate_to_tuple, bulk_add_objects
+from noiz.api.processing_config import fetch_crosscorrelation_params_by_id
+from noiz.api.timespan import fetch_timespans_between_dates
 
 
 def fetch_crosscorrelation(
