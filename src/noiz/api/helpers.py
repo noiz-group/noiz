@@ -7,7 +7,6 @@ from typing import Iterable, Union, List, Tuple, Type, Any, Optional, Collection
 
 from noiz.api.type_aliases import BulkAddableObjects, InputsForMassCalculations, BulkAddOrUpsertObjectsInputs
 from noiz.database import db
-from noiz.models import DatachunkStats
 
 
 def extract_object_ids(
@@ -254,3 +253,26 @@ def _submit_task_to_client_and_add_results_to_db(
             bulk_insert=True,
         )
         bulk_add_or_upsert_objects(**kwargs)
+
+
+def _run_calculate_and_upsert_sequentially(
+        inputs: Iterable[InputsForMassCalculations],
+        calculation_task: Callable[[InputsForMassCalculations], Tuple[BulkAddableObjects, ...]],
+        upserter_callable: Callable[[BulkAddableObjects], Insert],
+        batch_size: int = 1000,
+):
+
+    for i, input_batch in enumerate(more_itertools.chunked(iterable=inputs, n=batch_size)):
+        logger.info(f"Starting processing of chunk no.{i}")
+        results_nested = []
+        for input_dict in input_batch:
+            results_nested.append(calculation_task(input_dict))
+        logger.info("Calculations finished for a batch. Starting upsert operation.")
+
+        results: List[BulkAddableObjects] = list(more_itertools.flatten(results_nested))
+        bulk_add_or_upsert_objects(
+            objects_to_add=results,
+            upserter_callable=upserter_callable,
+            bulk_insert=True
+        )
+    logger.info("All processing is done.")
