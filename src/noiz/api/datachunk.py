@@ -8,8 +8,7 @@ from sqlalchemy.orm.exc import UnmappedInstanceError
 from sqlalchemy.dialects.postgresql import Insert, insert
 
 from sqlalchemy.orm import subqueryload, Query
-from typing import List, Iterable, Tuple, Collection, Optional, Dict, Union, Generator
-
+from typing import List, Iterable, Tuple, Collection, Optional, Dict, Union, Generator, Callable
 
 from noiz.api.helpers import extract_object_ids, bulk_add_objects, bulk_add_or_upsert_objects, \
     BulkAddOrUpsertObjectsInputs
@@ -474,10 +473,10 @@ def run_stats_calculation(
         stations: Optional[Union[Collection[str], str]] = None,
         components: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
-        batch_size: int = 1000,
+        batch_size: int = 5000,
 ):
 
-    fetched_datachunks = _prepare_inputs_for_datachunk_stats_calculations(
+    calculation_inputs = _prepare_inputs_for_datachunk_stats_calculations(
         starttime=starttime,
         endtime=endtime,
         datachunk_params_id=datachunk_params_id,
@@ -487,24 +486,36 @@ def run_stats_calculation(
         component_ids=component_ids,
     )
 
+    _run_calculate_and_upsert_on_dask(
+        batch_size=batch_size,
+        inputs=calculation_inputs,
+        calculation_task=calculate_datachunk_stats,
+        upserting_task=_prepare_upsert_command_datachunk_stats,
+    )
+    return
+
+
+def _run_calculate_and_upsert_on_dask(
+        inputs: Collection,
+        calculation_task: Callable,
+        upserting_task: Callable[[BulkAddOrUpsertObjectsInputs], None],
+        batch_size: int = 5000,
+):
     from dask.distributed import Client
     client = Client()
-
     logger.info(f'Dask client started successfully. '
                 f'You can monitor execution on {client.dashboard_link}')
     logger.info(f"Processing will be executed in batches. The chunks size is {batch_size}")
-    for i, input_batch in enumerate(more_itertools.chunked(iterable=fetched_datachunks, n=batch_size)):
+    for i, input_batch in enumerate(more_itertools.chunked(iterable=inputs, n=batch_size)):
         logger.info(f"Starting processing of chunk no.{i}")
 
         _submit_task_to_client_and_add_results_to_db(
             client=client,
             inputs_to_process=input_batch,
-            calculation_task=calculate_datachunk_stats,
-            upserting_task=_prepare_upsert_command_datachunk_stats,
+            calculation_task=calculation_task,
+            upserting_task=upserting_task,
         )
-
     client.close()
-    return
 
 
 def _prepare_inputs_for_datachunk_stats_calculations(
