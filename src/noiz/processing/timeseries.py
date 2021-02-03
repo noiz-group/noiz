@@ -1,9 +1,7 @@
 from typing import Union, Collection, Generator, TypedDict
-from itertools import starmap
 import subprocess
 from loguru import logger
 from pathlib import Path
-from tqdm import tqdm
 
 
 def run_mseedindex_on_passed_dir(
@@ -91,7 +89,7 @@ def _mseedindex_input_generator(
             dirpath = Path(dirpath)
             filepaths.extend(list(dirpath.absolute().rglob(filename_pattern)))
 
-    for filepath in tqdm(filepaths):
+    for filepath in filepaths:
         if not filepath.is_file():
             continue
         yield MseedIndexRunnerInputs(
