@@ -403,12 +403,13 @@ def _generate_ccfstack_upsert_command(
             insert(CCFStack)
             .values(
                 stacking_timespan_id=stack.stacking_timespan_id,
+                stacking_schema_id=stack.stacking_schema_id,
                 componentpair_id=stack.componentpair_id,
                 stack=stack.stack,
                 no_ccfs=stack.no_ccfs,
             )
             .on_conflict_do_update(
-                constraint="unique_stack_per_pair",
+                constraint="unique_stack_per_pair_per_config",
                 set_=dict(
                     stack=stack.stack,
                     no_ccfs=stack.no_ccfs,
