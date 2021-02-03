@@ -14,19 +14,17 @@ BulkAddableObjects = Union[
     ]
 
 
-class CalculateDatachunkStatsInputs(TypedDict):
+class CalculateDatachunkStatsInputs(TypedDict, total=False):
     """
     TypedDict class that describes inputs required for :py:func:`noiz.processing.datachunk.calculate_datachunk_stats`
     """
     datachunk: Datachunk
     datachunk_file: Optional[DatachunkFile]
 
-#
-# InputsForMassCalculations = Union[
-#     CalculateDatachunkStatsInputs,
-# ]
 
-InputsForMassCalculations = CalculateDatachunkStatsInputs
+InputsForMassCalculations = Union[
+    CalculateDatachunkStatsInputs,
+]
 
 
 class BulkAddOrUpsertObjectsInputs(TypedDict):

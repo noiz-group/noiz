@@ -235,7 +235,7 @@ def _submit_task_to_client_and_add_results_to_db(
     futures = []
     try:
         for input_dict in inputs_to_process:
-            future = client.submit(calculation_task, **input_dict,)
+            future = client.submit(calculation_task, input_dict)
             futures.append(future)
     except ValueError as e:
         logger.error(e)

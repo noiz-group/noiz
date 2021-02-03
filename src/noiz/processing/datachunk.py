@@ -5,6 +5,7 @@ import obspy
 import scipy
 from typing import Union, Tuple, Dict, Collection, Optional
 
+from noiz.api.type_aliases import CalculateDatachunkStatsInputs
 from noiz.exceptions import MissingDataFileException
 from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models.component import Component
@@ -759,7 +760,9 @@ def create_datachunks_for_component(
     return finished_datachunks
 
 
-def calculate_datachunk_stats(datachunk: Datachunk, datachunk_file: Optional[DatachunkFile] = None) -> DatachunkStats:
+def calculate_datachunk_stats(
+    calculation_inputs: CalculateDatachunkStatsInputs,
+) -> DatachunkStats:
     """
     Calculates statistics of the signal associated with provided :class:`~noiz.models.datachunk.Datachunk`.
     It calculates energy as a sum of squared values of the signal normalized by sample count.
@@ -772,6 +775,9 @@ def calculate_datachunk_stats(datachunk: Datachunk, datachunk_file: Optional[Dat
     :return: Signal statistics for the datachunk
     :rtype: DatachunkStats
     """
+    datachunk = calculation_inputs['datachunk']
+    datachunk_file = calculation_inputs['datachunk_file']
+
     st = datachunk.load_data(datachunk_file=datachunk_file)
     # noinspection PyUnresolvedReferences
     descibed_stats: scipy.stats.stats.DescribeResult = scipy.stats.describe(st[0].data)
