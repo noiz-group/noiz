@@ -3,11 +3,12 @@ import itertools
 from loguru import logger
 
 from noiz.api.helpers import bulk_add_objects
+from noiz.api.type_aliases import StackingInputs
 from obspy import UTCDateTime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.dialects.postgresql.dml import Insert as insert_type
-from typing import Collection, Union, List, Optional, Tuple, Generator, Dict, TypedDict
+from typing import Collection, Union, List, Optional, Tuple, Generator
 
 from noiz.api.component_pair import fetch_componentpairs
 from noiz.api.qc import fetch_qctwo_config_single
@@ -16,13 +17,6 @@ from noiz.models import StackingTimespan, Crosscorrelation, Timespan, CCFStack, 
     QCTwoResults, ComponentPair, StackingSchema
 from noiz.api.processing_config import fetch_stacking_schema_by_id
 from noiz.processing.stacking import _generate_stacking_timespans, do_linear_stack_of_crosscorrelations
-
-
-class StackingInputs(TypedDict):
-    qctwo_ccfs_container: List[Tuple[QCTwoResults, Crosscorrelation]]
-    componentpair: ComponentPair
-    stacking_schema: StackingSchema
-    stacking_timespan: StackingTimespan
 
 
 def fetch_stacking_timespans(

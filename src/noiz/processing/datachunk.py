@@ -3,7 +3,7 @@ from loguru import logger
 import numpy as np
 import obspy
 import scipy
-from typing import Union, Tuple, Dict, Collection, TypedDict, Optional
+from typing import Union, Tuple, Dict, Collection, Optional
 
 from noiz.exceptions import MissingDataFileException
 from noiz.globals import PROCESSED_DATA_DIR
@@ -757,14 +757,6 @@ def create_datachunks_for_component(
         finished_datachunks.append(datachunk)
 
     return finished_datachunks
-
-
-class CalculateDatachunkStatsInputs(TypedDict):
-    """
-    TypedDict class that describes inputs required for :py:func:`noiz.processing.datachunk.calculate_datachunk_stats`
-    """
-    datachunk: Datachunk
-    datachunk_file: Optional[DatachunkFile]
 
 
 def calculate_datachunk_stats(datachunk: Datachunk, datachunk_file: Optional[DatachunkFile] = None) -> DatachunkStats:

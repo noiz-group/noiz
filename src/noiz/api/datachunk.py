@@ -28,8 +28,8 @@ from noiz.models import (
     QCOneResults,
     Timespan
 )
-from noiz.processing.datachunk import create_datachunks_for_component, calculate_datachunk_stats, \
-    CalculateDatachunkStatsInputs
+from noiz.processing.datachunk import create_datachunks_for_component, calculate_datachunk_stats
+from noiz.api.type_aliases import CalculateDatachunkStatsInputs
 from noiz.processing.datachunk_processing import process_datachunk
 
 

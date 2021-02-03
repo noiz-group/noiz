@@ -3,10 +3,11 @@ from loguru import logger
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import UnmappedInstanceError
 from sqlalchemy.sql import Insert
-from typing import Iterable, Union, List, Tuple, Type, Any, Optional, Collection, Callable, get_args, TypedDict
+from typing import Iterable, Union, List, Tuple, Type, Any, Optional, Collection, Callable, get_args
 
+from noiz.api.type_aliases import BulkAddableObjects, InputsForMassCalculations, BulkAddOrUpsertObjectsInputs
 from noiz.database import db
-from noiz.models import Crosscorrelation, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults
+from noiz.models import DatachunkStats
 
 
 def extract_object_ids(
@@ -117,16 +118,6 @@ def validate_exactly_one_argument_provided(
         return True
 
 
-BulkAddableObjects = Union[
-        Crosscorrelation,
-        CCFStack,
-        DatachunkStats,
-        ProcessedDatachunk,
-        QCOneResults,
-        QCTwoResults,
-    ]
-
-
 def bulk_add_objects(objects_to_add: Collection[BulkAddableObjects]) -> None:
     """
     Tries to perform bulk insert of objects to database.
@@ -141,12 +132,6 @@ def bulk_add_objects(objects_to_add: Collection[BulkAddableObjects]) -> None:
     logger.debug("Committing")
     db.session.commit()
     return
-
-
-class BulkAddOrUpsertObjectsInputs(TypedDict):
-    objects_to_add: Union[BulkAddableObjects, Collection[BulkAddableObjects]]
-    upserter_callable: Callable[[BulkAddableObjects], Insert]
-    bulk_insert: bool
 
 
 def bulk_add_or_upsert_objects(
@@ -216,8 +201,8 @@ def _run_upsert_commands(
 
 
 def _run_calculate_and_upsert_on_dask(
-        inputs: Collection,
-        calculation_task: Callable,
+        inputs: Iterable[InputsForMassCalculations],
+        calculation_task: Callable[[InputsForMassCalculations], BulkAddableObjects],
         upserter_callable: Callable[[BulkAddableObjects], Insert],
         batch_size: int = 5000,
 ):
@@ -240,8 +225,8 @@ def _run_calculate_and_upsert_on_dask(
 
 def _submit_task_to_client_and_add_results_to_db(
         client,
-        inputs_to_process,
-        calculation_task,
+        inputs_to_process: Iterable[InputsForMassCalculations],
+        calculation_task: Callable[[InputsForMassCalculations], BulkAddableObjects],
         upserter_callable: Callable[[BulkAddableObjects], Insert],
 ):
     from dask.distributed import as_completed
