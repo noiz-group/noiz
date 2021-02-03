@@ -496,7 +496,12 @@ def run_stats_calculation(
     for i, input_batch in enumerate(more_itertools.chunked(iterable=fetched_datachunks, n=batch_size)):
         logger.info(f"Starting processing of chunk no.{i}")
 
-        _submit_task_to_client_and_add_results_to_db(client=client, inputs_to_process=input_batch)
+        _submit_task_to_client_and_add_results_to_db(
+            client=client,
+            inputs_to_process=input_batch,
+            calculation_task=calculate_datachunk_stats,
+            upserting_task=_prepare_upsert_command_datachunk_stats,
+        )
 
     client.close()
     return
@@ -538,7 +543,9 @@ def _prepare_inputs_for_datachunk_stats_calculations(
 
 def _submit_task_to_client_and_add_results_to_db(
         client,
-        inputs_to_process
+        inputs_to_process,
+        calculation_task,
+        upserting_task,
 ):
     from dask.distributed import as_completed
 
@@ -546,12 +553,13 @@ def _submit_task_to_client_and_add_results_to_db(
     futures = []
     try:
         for input_dict in inputs_to_process:
-            future = client.submit(calculate_datachunk_stats, **input_dict,)
+            future = client.submit(calculation_task, **input_dict,)
             futures.append(future)
     except ValueError as e:
         logger.error(e)
         raise e
     logger.info(f"There are {len(futures)} tasks to be executed")
+
     logger.info("Starting execution. Results will be saved to database on the fly. ")
     for future_batch in as_completed(futures, with_results=True, raise_errors=False).batches():
         results: List[DatachunkStats] = [x[1] for x in future_batch]
@@ -559,7 +567,7 @@ def _submit_task_to_client_and_add_results_to_db(
 
         kwargs: BulkAddOrUpsertObjectsInputs = dict(
             objects_to_add=results,
-            upserter_callable=_prepare_upsert_command_datachunk_stats,
+            upserter_callable=upserting_task,
             bulk_insert=True,
         )
         bulk_add_or_upsert_objects(**kwargs)
