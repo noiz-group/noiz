@@ -1,7 +1,10 @@
+from typing import Tuple
+
 from loguru import logger
 import obspy
 import numpy as np
 
+from noiz.api.type_aliases import ProcessDatachunksInputs
 from noiz.models.datachunk import Datachunk, ProcessedDatachunk, ProcessedDatachunkFile
 from noiz.models.processing_params import ProcessedDatachunkParams
 from noiz.models.timespan import Timespan
@@ -43,7 +46,22 @@ def one_bit_normalization(tr: obspy.Trace) -> obspy.Trace:
     return tr
 
 
-def process_datachunk(datachunk: Datachunk, params: ProcessedDatachunkParams) -> ProcessedDatachunk:
+def process_datachunk_wrapper(
+        inputs: ProcessDatachunksInputs,
+) -> Tuple[ProcessedDatachunk, ...]:
+
+    return (
+        process_datachunk(
+            datachunk=inputs["datachunk"],
+            params=inputs["params"],
+        ),
+    )
+
+
+def process_datachunk(
+        datachunk: Datachunk,
+        params: ProcessedDatachunkParams,
+) -> ProcessedDatachunk:
     """
     filldocs
     """
