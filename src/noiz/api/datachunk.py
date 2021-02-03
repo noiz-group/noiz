@@ -31,8 +31,8 @@ from noiz.models import (
 )
 from noiz.processing.datachunk import create_datachunks_for_component, calculate_datachunk_stats, \
     create_datachunks_for_component_wrapper, calculate_datachunk_stats_wrapper
-from noiz.api.type_aliases import CalculateDatachunkStatsInputs, RunDatachunkPreparationInputs
-from noiz.processing.datachunk_processing import process_datachunk
+from noiz.api.type_aliases import CalculateDatachunkStatsInputs, RunDatachunkPreparationInputs, ProcessDatachunksInputs
+from noiz.processing.datachunk_processing import process_datachunk, process_datachunk_wrapper
 
 
 def count_datachunks(
@@ -599,9 +599,12 @@ def run_datachunk_processing_parallel(
         stations: Optional[Union[Collection[str], str]] = None,
         components: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
+        batch_size: int = 2000,
+        parallel: bool = True,
+
 ):
     # filldocs
-    datachunks_to_process = _select_datachunks_for_processing(
+    calculation_inputs = _select_datachunks_for_processing(
         processed_datachunk_params_id=processed_datachunk_params_id,
         starttime=starttime,
         endtime=endtime,
@@ -611,30 +614,20 @@ def run_datachunk_processing_parallel(
         component_ids=component_ids,
     )
 
-    from dask.distributed import Client, as_completed
-    client = Client()
-
-    logger.info(f'Dask client started successfully. '
-                f'You can monitor execution on {client.dashboard_link}')
-
-    logger.info("Submitting tasks to Dask client")
-    futures = []
-    try:
-        for jobkwargs in datachunks_to_process:
-            future = client.submit(process_datachunk, **jobkwargs)
-            futures.append(future)
-    except ValueError as e:
-        logger.error(e)
-        raise e
-
-    logger.info(f"There are {len(futures)} tasks to be executed")
-
-    logger.info("Starting execution. Results will be saved to database on the fly. ")
-
-    for future, result in as_completed(futures, with_results=True, raise_errors=False):
-        add_or_upsert_processed_datachunks_in_db(result)
-
-    client.close()
+    if parallel:
+        _run_calculate_and_upsert_on_dask(
+            batch_size=batch_size,
+            inputs=calculation_inputs,
+            calculation_task=process_datachunk_wrapper,  # type: ignore
+            upserter_callable=_prepare_upsert_command_processed_datachunk,
+        )
+    else:
+        _run_calculate_and_upsert_sequentially(
+            batch_size=batch_size,
+            inputs=calculation_inputs,
+            calculation_task=process_datachunk_wrapper,  # type: ignore
+            upserter_callable=_prepare_upsert_command_processed_datachunk,
+        )
 
     return
 
@@ -647,7 +640,7 @@ def _select_datachunks_for_processing(
         stations: Optional[Union[Collection[str], str]] = None,
         components: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
-) -> Generator[Dict[str, Union[ProcessedDatachunk, ProcessedDatachunkParams]], None, None]:
+) -> Generator[ProcessDatachunksInputs, None, None]:
     # filldocs
 
     logger.debug(f"Fetching ProcessedDatachunkParams with id {processed_datachunk_params_id}")
@@ -755,18 +748,23 @@ def upsert_processed_datachunks(processed_datachunks):
             logger.info(f"Got {type(proc_datachunk)} and not ProcessedDatachunk. Skipping")
             continue
         logger.info("ProcessedDatachunks already exists in db. Updating.")
-        insert_command = (
-            insert(ProcessedDatachunk)
-            .values(
-                processed_datachunk_params_id=proc_datachunk.processed_datachunk_params_id,
-                datachunk_id=proc_datachunk.datachunk_id,
-                processed_datachunk_file_id=proc_datachunk.processed_datachunk_file_id,
-            )
-            .on_conflict_do_update(
-                constraint="unique_processing_per_datachunk_per_config",
-                set_=dict(processed_datachunk_file_id=proc_datachunk.processed_datachunk_file_id),
-            )
-        )
+        insert_command = _prepare_upsert_command_processed_datachunk(proc_datachunk)
         db.session.execute(insert_command)
         logger.debug('Committing session.')
     db.session.commit()
+
+
+def _prepare_upsert_command_processed_datachunk(proc_datachunk):
+    insert_command = (
+        insert(ProcessedDatachunk)
+        .values(
+            processed_datachunk_params_id=proc_datachunk.processed_datachunk_params_id,
+            datachunk_id=proc_datachunk.datachunk_id,
+            processed_datachunk_file_id=proc_datachunk.processed_datachunk_file_id,
+        )
+        .on_conflict_do_update(
+            constraint="unique_processing_per_datachunk_per_config",
+            set_=dict(processed_datachunk_file_id=proc_datachunk.processed_datachunk_file_id),
+        )
+    )
+    return insert_command
