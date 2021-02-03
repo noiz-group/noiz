@@ -9,11 +9,13 @@ stages:
   - system-testing
   - downstream
 
-#cache: &global_cache
-#  key: dataset-cache
-#  paths:
-#    - tests/system_tests/dataset
-#  policy: pull-push
+cache:
+  key: mypy-pip-pytest-cache
+  paths:
+    - .mypy-cache/
+    - .pytest_cache/
+    - .cache/pip
+  policy: pull-push
 
 variables:
   # Use TLS https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#tls-enabled
@@ -25,6 +27,7 @@ variables:
   LATEST_IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
   DIND_IMAGE: docker:19.03.12
   DIND_SERVICE: docker:19.03.12-dind
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
 .install_noiz_complete: &install_noiz_complete
   - python -m pip install --upgrade pip setuptools wheel
