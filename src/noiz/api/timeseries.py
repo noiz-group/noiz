@@ -38,6 +38,7 @@ def add_seismic_data(
         basedir: Path,
         current_dir: Path,
         filename_pattern: str = "*",
+        parallel: bool = True,
 ) -> None:
     """
     Executes call to mseedindex app to add the seismic data from provided directory to the db.
@@ -69,6 +70,7 @@ def add_seismic_data(
         postgres_user=postgres_user,
         postgres_password=postgres_password,
         postgres_db=postgres_db,
+        parallel=parallel,
     )
     return
 
