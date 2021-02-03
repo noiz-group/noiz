@@ -397,6 +397,7 @@ def prepare_datachunks(
 @click.option("-p", "--datachunk_params_id", nargs=1, type=int,
               default=1, show_default=True)
 @click.option("-b", "--batch_size", nargs=1, type=int, default=1000, show_default=True)
+@click.option('--parallel/--no_parallel', default=True)
 def calc_datachunk_stats(
         station,
         component,
@@ -404,6 +405,7 @@ def calc_datachunk_stats(
         enddate,
         datachunk_params_id,
         batch_size,
+        parallel,
 ):
     """Start parallel calculation of datachunk statistical parameters"""
 
@@ -416,6 +418,7 @@ def calc_datachunk_stats(
         endtime=enddate,
         datachunk_params_id=datachunk_params_id,
         batch_size=batch_size,
+        parallel=parallel,
     )
 
 
