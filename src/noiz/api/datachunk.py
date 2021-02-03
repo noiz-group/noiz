@@ -518,11 +518,10 @@ def _prepare_inputs_for_datachunk_stats_calculations(
 
     db.session.expunge_all()
     for datachunk in fetched_datachunks:
-        res: CalculateDatachunkStatsInputs = dict(
+        yield CalculateDatachunkStatsInputs(
             datachunk=datachunk,
             datachunk_file=None,
         )
-        yield res
 
     return
 

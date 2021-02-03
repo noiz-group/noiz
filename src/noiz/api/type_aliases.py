@@ -21,10 +21,12 @@ class CalculateDatachunkStatsInputs(TypedDict):
     datachunk: Datachunk
     datachunk_file: Optional[DatachunkFile]
 
+#
+# InputsForMassCalculations = Union[
+#     CalculateDatachunkStatsInputs,
+# ]
 
-InputsForMassCalculations = Union[
-    CalculateDatachunkStatsInputs,
-]
+InputsForMassCalculations = CalculateDatachunkStatsInputs
 
 
 class BulkAddOrUpsertObjectsInputs(TypedDict):
