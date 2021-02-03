@@ -381,7 +381,7 @@ def _generate_inputs_for_qcone_runner(
         used_datachunk_ids = []
         for datachunk, stats, avggps in fetched_data:
             used_datachunk_ids.append(datachunk.id)
-            yield dict(
+            yield QCOneRunnerInputs(
                 datachunk=datachunk,
                 qcone_config=qcone_config,
                 stats=stats,
@@ -401,7 +401,7 @@ def _generate_inputs_for_qcone_runner(
             logger.info(f"Fetching done. There are {len(fetched_topup_data)} items to process. "
                         f"Starting results generation.")
             for datachunk, stats in fetched_topup_data:
-                yield dict(
+                yield QCOneRunnerInputs(
                     datachunk=datachunk,
                     qcone_config=qcone_config,
                     stats=stats,
@@ -425,7 +425,7 @@ def _generate_inputs_for_qcone_runner(
         used_datachunk_ids = []
         for datachunk, avggps in fetched_data:
             used_datachunk_ids.append(datachunk.id)
-            yield dict(
+            yield QCOneRunnerInputs(
                 datachunk=datachunk,
                 qcone_config=qcone_config,
                 stats=None,
@@ -444,7 +444,7 @@ def _generate_inputs_for_qcone_runner(
             logger.info(f"Fetching done. There are {len(fetched_topup_data)} items to process. "
                         f"Starting results generation.")
             for datachunk in fetched_topup_data:
-                yield dict(
+                yield QCOneRunnerInputs(
                     datachunk=datachunk,
                     qcone_config=qcone_config,
                     stats=None,
@@ -463,7 +463,7 @@ def _generate_inputs_for_qcone_runner(
 
         logger.info(f"Fetching done. There are {len(fetched_data)} items to process. Starting results generation.")
         for datachunk, stats in fetched_data:
-            yield dict(
+            yield QCOneRunnerInputs(
                 datachunk=datachunk,
                 qcone_config=qcone_config,
                 stats=stats,
@@ -479,7 +479,7 @@ def _generate_inputs_for_qcone_runner(
 
         logger.info(f"Fetching done. There are {len(fetched_data)} items to process. Starting results generation.")
         for datachunk in fetched_data:
-            yield dict(
+            yield QCOneRunnerInputs(
                 datachunk=datachunk,
                 qcone_config=qcone_config,
                 stats=None,
