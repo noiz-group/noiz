@@ -20,7 +20,7 @@ from noiz.api.processing_config import fetch_datachunkparams_by_id, fetch_proces
 from noiz.database import db
 from noiz.exceptions import NoDataException
 from noiz.models.component import Component
-from noiz.models.datachunk import Datachunk, DatachunkStats, ProcessedDatachunk, DatachunkFile
+from noiz.models.datachunk import Datachunk, DatachunkStats, ProcessedDatachunk
 from noiz.models.processing_params import DatachunkParams, ProcessedDatachunkParams
 from noiz.models.soh import AveragedSohGps
 from noiz.models.timespan import Timespan
@@ -42,16 +42,26 @@ def count_datachunks(
         load_processing_params: bool = False,
 ) -> int:
     """
-    Counts number of datachunks for all provided components associated with
-    all provided timespans.
+    Counts number of datachunks that fit passed parameter set.
 
     :param components: Components to be checked
-    :type components: Iterable[Component]
+    :type components: Optional[Collection[Component]]
     :param timespans: Timespans to be checked
-    :type timespans: Iterable[Timespan]
-    :param datachunk_processing_params: DatachunkParams to be checked. \
-        This have to be a single object.
-    :type datachunk_processing_params: DatachunkParams
+    :type timespans: Optional[Collection[Timespan]]
+    :param datachunk_processing_config: DatachunkParams to be checked. This have to be a single object.
+    :type datachunk_processing_config: Optional[DatachunkParams]
+    :param components: Ids of Datachunk objects to be fetched
+    :type components: Optional[Collection[int]]
+    :param load_component: Loads also the associated Component object so it is available for usage \
+    without context
+    :type load_component: bold
+    :param load_timespan: Loads also the associated Timespan object so it is available for usage \
+    without context
+    :type load_timespan: bool
+    :param load_processing_params: Loads also the associated DatachunkParams object \
+    so it is available for usage without context
+    :type load_processing_params: bool
+    :return: List of Datachunks loaded from DB
     :return: Count fo datachunks
     :rtype: int
     """
@@ -106,7 +116,7 @@ def fetch_datachunks(
     :param load_processing_params: Loads also the associated DatachunkParams object \
     so it is available for usage without context
     :type load_processing_params: bool
-    :return: List of Datachunks loaded from DB/
+    :return: List of Datachunks loaded from DB
     :rtype: List[Datachunk]
     """
 
