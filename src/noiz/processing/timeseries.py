@@ -1,3 +1,5 @@
+from itertools import starmap
+
 import subprocess
 from loguru import logger
 from pathlib import Path
@@ -13,6 +15,7 @@ def run_mseedindex_on_passed_dir(
         postgres_password: str,
         postgres_db: str,
         filename_pattern: str = "*",
+        parallel: bool = True,
 ) -> None:
     """
     Recursively globs a provided directory in search of files that could be passed to Mseedindex and scanned for
@@ -39,12 +42,41 @@ def run_mseedindex_on_passed_dir(
     """
     # TODO change typing of mseedindex_executable to Path
 
+    inputs_to_process = _mseedindex_input_generator(
+        basedir=basedir,
+        current_dir=current_dir,
+        mseedindex_executable=mseedindex_executable,
+        postgres_host=postgres_host,
+        postgres_user=postgres_user,
+        postgres_password=postgres_password,
+        postgres_db=postgres_db,
+        filename_pattern=filename_pattern,
+    )
+
+    if parallel:
+        import multiprocessing
+        p = multiprocessing.Pool(multiprocessing.cpu_count())
+        p.starmap(_call_mseedindex_to_file, inputs_to_process)
+    else:
+        starmap(_call_mseedindex_to_file, inputs_to_process)
+
+
+def _mseedindex_input_generator(
+        basedir: Path,
+        current_dir: Path,
+        mseedindex_executable: str,
+        postgres_host: str,
+        postgres_user: str,
+        postgres_password: str,
+        postgres_db: str,
+        filename_pattern: str = "*",
+):
     filepaths = basedir.absolute().rglob(filename_pattern)
 
     for filepath in tqdm(filepaths):
         if not filepath.is_file():
             continue
-        _call_mseedindex_to_file(
+        yield dict(
             filepath=filepath,
             current_dir=current_dir,
             mseedindex_executable=mseedindex_executable,
