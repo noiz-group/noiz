@@ -1,9 +1,5 @@
-from collections import Collection
-
-from typing import Union
-
+from typing import Union, Collection
 from itertools import starmap
-
 import subprocess
 from loguru import logger
 from pathlib import Path
@@ -77,9 +73,12 @@ def _mseedindex_input_generator(
 ):
     if isinstance(basedir, Path):
         filepaths = list(basedir.absolute().rglob(filename_pattern))
+    elif isinstance(basedir, str):
+        filepaths = list(Path(basedir).absolute().rglob(filename_pattern))
     else:
         filepaths = []
         for dirpath in basedir:
+            dirpath = Path(dirpath)
             filepaths.extend(list(dirpath.absolute().rglob(filename_pattern)))
 
     for filepath in tqdm(filepaths):
