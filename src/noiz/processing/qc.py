@@ -9,13 +9,13 @@ from noiz.models.soh import AveragedSohGps
 
 
 def calculate_qcone_results_wrapper(inputs: QCOneRunnerInputs) -> Tuple[QCOneResults, ...]:
-    return tuple(
+    return (
         calculate_qcone_results(
             datachunk=inputs["datachunk"],
             qcone_config=inputs["qcone_config"],
             stats=inputs["stats"],
             avg_soh_gps=inputs["avg_soh_gps"],
-        )
+        ),
     )
 
 
