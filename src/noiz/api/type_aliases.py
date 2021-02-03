@@ -6,6 +6,7 @@ from noiz.models import Crosscorrelation, CCFStack, DatachunkStats, ProcessedDat
     Timespan, Tsindex, DatachunkParams
 
 BulkAddableObjects = Union[
+        Datachunk,
         Crosscorrelation,
         CCFStack,
         DatachunkStats,
@@ -32,6 +33,7 @@ class RunDatachunkPreparationInputs(TypedDict):
 
 InputsForMassCalculations = Union[
     CalculateDatachunkStatsInputs,
+    RunDatachunkPreparationInputs,
 ]
 
 
