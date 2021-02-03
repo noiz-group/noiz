@@ -31,9 +31,17 @@ class RunDatachunkPreparationInputs(TypedDict):
     processing_params: DatachunkParams
 
 
+class QCOneRunnerInputs(TypedDict):
+    datachunk: Datachunk
+    qcone_config: QCOneConfig
+    stats: Optional[DatachunkStats]
+    avg_soh_gps: Optional[AveragedSohGps]
+
+
 InputsForMassCalculations = Union[
     CalculateDatachunkStatsInputs,
     RunDatachunkPreparationInputs,
+    QCOneRunnerInputs,
 ]
 
 
@@ -41,13 +49,6 @@ class BulkAddOrUpsertObjectsInputs(TypedDict):
     objects_to_add: Union[BulkAddableObjects, Collection[BulkAddableObjects]]
     upserter_callable: Callable[[BulkAddableObjects], Insert]
     bulk_insert: bool
-
-
-class QCOneRunnerInputs(TypedDict):
-    datachunk: Datachunk
-    qcone_config: QCOneConfig
-    stats: Optional[DatachunkStats]
-    avg_soh_gps: Optional[AveragedSohGps]
 
 
 class StackingInputs(TypedDict):
