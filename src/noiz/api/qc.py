@@ -1,11 +1,12 @@
 import datetime
+import more_itertools
 from loguru import logger
 from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import insert, Insert
 from sqlalchemy.orm import Query
-from typing import List, Collection, Union, Optional, Generator
+from typing import List, Collection, Union, Optional, Generator, Iterable, Callable, Tuple
 
-from noiz.api.type_aliases import QCOneRunnerInputs
+from noiz.api.type_aliases import QCOneRunnerInputs, InputsForMassCalculations, BulkAddableObjects
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import Crosscorrelation, Datachunk, DatachunkStats, QCOneConfig, QCOneResults, QCTwoConfig, \
@@ -305,24 +306,36 @@ def process_qcone(
             upserter_callable=_prepare_upsert_command_qcone,
         )
     else:
-        raise NotImplementedError("Sequential stats not imlemented yet")
-
-    _run_calculate_and_upsert_sequentially(calculation_inputs)
+        _run_calculate_and_upsert_sequentially(
+            batch_size=batch_size,
+            inputs=calculation_inputs,
+            calculation_task=calculate_qcone_results_wrapper,  # type: ignore
+            upserter_callable=_prepare_upsert_command_qcone,
+        )
     return
 
 
-def _run_calculate_and_upsert_sequentially(calculation_inputs):
-    qcone_results = []
-    for input_dict in calculation_inputs:
-        qcone_res = calculate_qcone_results(**input_dict)
-        qcone_results.append(qcone_res)
-    logger.info("Calculations finished")
-    logger.info("All processing finished. Trying to insert data into db.")
-    bulk_add_or_upsert_objects(
-        objects_to_add=qcone_results,
-        upserter_callable=_prepare_upsert_command_qcone,
-        bulk_insert=True
-    )
+def _run_calculate_and_upsert_sequentially(
+        inputs: Iterable[InputsForMassCalculations],
+        calculation_task: Callable[[InputsForMassCalculations], Tuple[BulkAddableObjects, ...]],
+        upserter_callable: Callable[[BulkAddableObjects], Insert],
+        batch_size: int = 1000,
+):
+
+    for i, input_batch in enumerate(more_itertools.chunked(iterable=inputs, n=batch_size)):
+        logger.info(f"Starting processing of chunk no.{i}")
+        results_nested = []
+        for input_dict in input_batch:
+            results_nested.append(calculation_task(input_dict))
+        logger.info("Calculations finished for a batch. Starting upsert operation.")
+
+        results: List[BulkAddableObjects] = list(more_itertools.flatten(results_nested))
+        bulk_add_or_upsert_objects(
+            objects_to_add=results,
+            upserter_callable=upserter_callable,
+            bulk_insert=True
+        )
+    logger.info("All processing is done.")
 
 
 def _prepare_inputs_for_qcone_runner(
