@@ -3,9 +3,6 @@ from pathlib import Path
 from sqlalchemy.exc import IntegrityError
 from typing import Optional, Tuple, Union, List
 
-from noiz.api.component import fetch_components
-from noiz.api.component_pair import fetch_componentpairs
-
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import QCOneConfig, QCOneConfigRejectedTimeHolder, QCOneRejectedTime, QCOneConfigHolder, \
@@ -15,7 +12,10 @@ from noiz.models import QCOneConfig, QCOneConfigRejectedTimeHolder, QCOneRejecte
 
 from noiz.processing.configs import parse_single_config_toml, DefinedConfigs, \
     create_datachunkparams, create_processed_datachunk_params, create_crosscorrelation_params, create_stacking_params, \
-    validate_dict_as_qcone_holder, validate_dict_as_qctwo_holder
+    validate_dict_as_qcone_holder
+
+from noiz.api.component import fetch_components
+from noiz.api.component_pair import fetch_componentpairs
 
 
 def fetch_datachunkparams_by_id(id: int) -> DatachunkParams:
@@ -209,6 +209,10 @@ def create_and_add_stacking_schema_from_toml(
 
     params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.STACKINGSCHEMA)
     params = create_stacking_params(params_holder=params_holder)
+
+    from noiz.api.qc import fetch_qctwo_config_single
+
+    params.crosscorrelation_params_id = fetch_qctwo_config_single(id=params.qctwo_config_id).crosscorrelation_params_id
 
     if add_to_db:
         return _insert_params_into_db(params=params)
