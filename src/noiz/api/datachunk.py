@@ -9,7 +9,8 @@ from sqlalchemy.dialects.postgresql import Insert, insert
 from sqlalchemy.orm import subqueryload, Query
 from typing import List, Iterable, Tuple, Collection, Optional, Dict, Union, Generator
 
-from noiz.api.helpers import extract_object_ids, bulk_add_objects, _run_calculate_and_upsert_on_dask
+from noiz.api.helpers import extract_object_ids, bulk_add_objects, _run_calculate_and_upsert_on_dask, \
+    _run_calculate_and_upsert_sequentially
 from noiz.api.component import fetch_components
 from noiz.api.timeseries import fetch_raw_timeseries
 from noiz.api.timespan import fetch_timespans_for_doy, fetch_timespans_between_dates
@@ -452,7 +453,12 @@ def run_datachunk_preparation_parallel(
             upserter_callable=_prepare_upsert_command_datachunk,
         )
     else:
-        raise NotImplementedError("Sequential datachunks not implemented yet")
+        _run_calculate_and_upsert_sequentially(
+            batch_size=batch_size,
+            inputs=calculation_inputs,
+            calculation_task=create_datachunks_for_component_wrapper,  # type: ignore
+            upserter_callable=_prepare_upsert_command_datachunk,
+        )
 
 
 def run_stats_calculation(
@@ -485,7 +491,12 @@ def run_stats_calculation(
             upserter_callable=_prepare_upsert_command_datachunk_stats,
         )
     else:
-        raise NotImplementedError("Sequential stats not imlemented yet")
+        _run_calculate_and_upsert_sequentially(
+            batch_size=batch_size,
+            inputs=calculation_inputs,
+            calculation_task=calculate_datachunk_stats_wrapper,  # type: ignore
+            upserter_callable=_prepare_upsert_command_datachunk_stats,
+        )
     return
 
 
