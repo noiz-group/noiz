@@ -207,17 +207,19 @@ def data_group():  # type: ignore
 
 @data_group.command("add_seismic_data")
 @with_appcontext
-@click.argument("basedir", nargs=1, required=True, type=click.Path(exists=True))
+@click.argument("basedir", nargs=-1, required=True, type=click.Path(exists=True))
 @click.option("-fp", "--filename_pattern", default="*", show_default=True)
-def add_seismic_data(basedir, filename_pattern):
+@click.option('--parallel/--no_parallel', default=True)
+def add_seismic_data(basedir, filename_pattern, parallel):
     """Find seismic files in the directory and add them to DB"""
 
     from noiz.api.timeseries import add_seismic_data
 
     add_seismic_data(
-        basedir=Path(basedir),
+        basedir=basedir,
         current_dir=Path(os.curdir),
         filename_pattern=filename_pattern,
+        parallel=parallel,
     )
 
     return

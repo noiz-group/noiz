@@ -1,11 +1,11 @@
+from typing import Union, Collection, Generator, TypedDict
 import subprocess
 from loguru import logger
 from pathlib import Path
-from tqdm import tqdm
 
 
 def run_mseedindex_on_passed_dir(
-        basedir: Path,
+        basedir: Union[Path, Collection[Path]],
         current_dir: Path,
         mseedindex_executable: str,
         postgres_host: str,
@@ -13,13 +13,14 @@ def run_mseedindex_on_passed_dir(
         postgres_password: str,
         postgres_db: str,
         filename_pattern: str = "*",
+        parallel: bool = True,
 ) -> None:
     """
     Recursively globs a provided directory in search of files that could be passed to Mseedindex and scanned for
     seismic data.
 
     :param basedir: Directory to rglob for files
-    :type basedir:  Path
+    :type basedir: Union[Path, Collection[Path]]
     :param current_dir: Current directory for execution
     :type current_dir:  Path
     :param mseedindex_executable: Path to mseedindex executable
@@ -39,12 +40,59 @@ def run_mseedindex_on_passed_dir(
     """
     # TODO change typing of mseedindex_executable to Path
 
-    filepaths = basedir.absolute().rglob(filename_pattern)
+    inputs_to_process = _mseedindex_input_generator(
+        basedir=basedir,
+        current_dir=current_dir,
+        mseedindex_executable=mseedindex_executable,
+        postgres_host=postgres_host,
+        postgres_user=postgres_user,
+        postgres_password=postgres_password,
+        postgres_db=postgres_db,
+        filename_pattern=filename_pattern,
+    )
 
-    for filepath in tqdm(filepaths):
+    if parallel:
+        import multiprocessing
+        p = multiprocessing.Pool(multiprocessing.cpu_count())
+        p.map(_call_mseedindex_to_file_wrapper, inputs_to_process)
+    else:
+        map(_call_mseedindex_to_file_wrapper, inputs_to_process)
+
+
+class MseedIndexRunnerInputs(TypedDict):
+    filepath: Path
+    current_dir: Path
+    mseedindex_executable: str
+    postgres_host: str
+    postgres_user: str
+    postgres_password: str
+    postgres_db: str
+
+
+def _mseedindex_input_generator(
+        basedir: Union[Path, Collection[Path]],
+        current_dir: Path,
+        mseedindex_executable: str,
+        postgres_host: str,
+        postgres_user: str,
+        postgres_password: str,
+        postgres_db: str,
+        filename_pattern: str = "*",
+) -> Generator[MseedIndexRunnerInputs, None, None]:
+    if isinstance(basedir, Path):
+        filepaths = list(basedir.absolute().rglob(filename_pattern))
+    elif isinstance(basedir, str):
+        filepaths = list(Path(basedir).absolute().rglob(filename_pattern))
+    else:
+        filepaths = []
+        for dirpath in basedir:
+            dirpath = Path(dirpath)
+            filepaths.extend(list(dirpath.absolute().rglob(filename_pattern)))
+
+    for filepath in filepaths:
         if not filepath.is_file():
             continue
-        _call_mseedindex_to_file(
+        yield MseedIndexRunnerInputs(
             filepath=filepath,
             current_dir=current_dir,
             mseedindex_executable=mseedindex_executable,
@@ -53,6 +101,20 @@ def run_mseedindex_on_passed_dir(
             postgres_password=postgres_password,
             postgres_db=postgres_db,
         )
+
+
+def _call_mseedindex_to_file_wrapper(
+        inputs: MseedIndexRunnerInputs,
+):
+    _call_mseedindex_to_file(
+        filepath=inputs["filepath"],
+        current_dir=inputs["current_dir"],
+        mseedindex_executable=inputs["mseedindex_executable"],
+        postgres_host=inputs["postgres_host"],
+        postgres_user=inputs["postgres_user"],
+        postgres_password=inputs["postgres_password"],
+        postgres_db=inputs["postgres_db"],
+    )
 
 
 def _call_mseedindex_to_file(
