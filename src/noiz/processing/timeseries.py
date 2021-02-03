@@ -1,4 +1,4 @@
-from typing import Union, Collection
+from typing import Union, Collection, Generator, TypedDict
 from itertools import starmap
 import subprocess
 from loguru import logger
@@ -56,9 +56,19 @@ def run_mseedindex_on_passed_dir(
     if parallel:
         import multiprocessing
         p = multiprocessing.Pool(multiprocessing.cpu_count())
-        p.starmap(_call_mseedindex_to_file, inputs_to_process)
+        p.map(_call_mseedindex_to_file_wrapper, inputs_to_process)
     else:
-        starmap(_call_mseedindex_to_file, inputs_to_process)
+        map(_call_mseedindex_to_file_wrapper, inputs_to_process)
+
+
+class MseedIndexRunnerInputs(TypedDict):
+    filepath: Path
+    current_dir: Path
+    mseedindex_executable: str
+    postgres_host: str
+    postgres_user: str
+    postgres_password: str
+    postgres_db: str
 
 
 def _mseedindex_input_generator(
@@ -70,7 +80,7 @@ def _mseedindex_input_generator(
         postgres_password: str,
         postgres_db: str,
         filename_pattern: str = "*",
-):
+) -> Generator[MseedIndexRunnerInputs, None, None]:
     if isinstance(basedir, Path):
         filepaths = list(basedir.absolute().rglob(filename_pattern))
     elif isinstance(basedir, str):
@@ -84,7 +94,7 @@ def _mseedindex_input_generator(
     for filepath in tqdm(filepaths):
         if not filepath.is_file():
             continue
-        yield dict(
+        yield MseedIndexRunnerInputs(
             filepath=filepath,
             current_dir=current_dir,
             mseedindex_executable=mseedindex_executable,
@@ -93,6 +103,20 @@ def _mseedindex_input_generator(
             postgres_password=postgres_password,
             postgres_db=postgres_db,
         )
+
+
+def _call_mseedindex_to_file_wrapper(
+        inputs: MseedIndexRunnerInputs,
+):
+    _call_mseedindex_to_file(
+        filepath=inputs["filepath"],
+        current_dir=inputs["current_dir"],
+        mseedindex_executable=inputs["mseedindex_executable"],
+        postgres_host=inputs["postgres_host"],
+        postgres_user=inputs["postgres_user"],
+        postgres_password=inputs["postgres_password"],
+        postgres_db=inputs["postgres_db"],
+    )
 
 
 def _call_mseedindex_to_file(
