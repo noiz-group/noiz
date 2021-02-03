@@ -3,8 +3,9 @@ from loguru import logger
 from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import insert, Insert
 from sqlalchemy.orm import Query
-from typing import List, Collection, Union, Optional, Generator, TypedDict
+from typing import List, Collection, Union, Optional, Generator
 
+from noiz.api.type_aliases import QCOneRunnerInputs
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import Crosscorrelation, Datachunk, DatachunkStats, QCOneConfig, QCOneResults, QCTwoConfig, \
@@ -16,13 +17,6 @@ from noiz.api.crosscorrelations import fetch_crosscorrelation
 from noiz.api.datachunk import _determine_filters_and_opts_for_datachunk
 from noiz.api.helpers import validate_to_tuple, extract_object_ids, bulk_add_or_upsert_objects
 from noiz.api.timespan import fetch_timespans_between_dates
-
-
-class QCOneRunnerInputs(TypedDict):
-    datachunk: Datachunk
-    qcone_config: QCOneConfig
-    stats: Optional[DatachunkStats]
-    avg_soh_gps: Optional[AveragedSohGps]
 
 
 def fetch_qcone_config(ids: Union[int, Collection[int]]) -> List[QCOneConfig]:
@@ -387,7 +381,7 @@ def _generate_inputs_for_qcone_runner(
         used_datachunk_ids = []
         for datachunk, stats, avggps in fetched_data:
             used_datachunk_ids.append(datachunk.id)
-            yield dict(
+            yield QCOneRunnerInputs(
                 datachunk=datachunk,
                 qcone_config=qcone_config,
                 stats=stats,
@@ -407,7 +401,7 @@ def _generate_inputs_for_qcone_runner(
             logger.info(f"Fetching done. There are {len(fetched_topup_data)} items to process. "
                         f"Starting results generation.")
             for datachunk, stats in fetched_topup_data:
-                yield dict(
+                yield QCOneRunnerInputs(
                     datachunk=datachunk,
                     qcone_config=qcone_config,
                     stats=stats,
@@ -431,7 +425,7 @@ def _generate_inputs_for_qcone_runner(
         used_datachunk_ids = []
         for datachunk, avggps in fetched_data:
             used_datachunk_ids.append(datachunk.id)
-            yield dict(
+            yield QCOneRunnerInputs(
                 datachunk=datachunk,
                 qcone_config=qcone_config,
                 stats=None,
@@ -450,7 +444,7 @@ def _generate_inputs_for_qcone_runner(
             logger.info(f"Fetching done. There are {len(fetched_topup_data)} items to process. "
                         f"Starting results generation.")
             for datachunk in fetched_topup_data:
-                yield dict(
+                yield QCOneRunnerInputs(
                     datachunk=datachunk,
                     qcone_config=qcone_config,
                     stats=None,
@@ -469,7 +463,7 @@ def _generate_inputs_for_qcone_runner(
 
         logger.info(f"Fetching done. There are {len(fetched_data)} items to process. Starting results generation.")
         for datachunk, stats in fetched_data:
-            yield dict(
+            yield QCOneRunnerInputs(
                 datachunk=datachunk,
                 qcone_config=qcone_config,
                 stats=stats,
@@ -485,7 +479,7 @@ def _generate_inputs_for_qcone_runner(
 
         logger.info(f"Fetching done. There are {len(fetched_data)} items to process. Starting results generation.")
         for datachunk in fetched_data:
-            yield dict(
+            yield QCOneRunnerInputs(
                 datachunk=datachunk,
                 qcone_config=qcone_config,
                 stats=None,
