@@ -452,7 +452,7 @@ def run_datachunk_preparation_parallel(
             upserter_callable=_prepare_upsert_command_datachunk,
         )
     else:
-        raise NotImplementedError("Sequential stats not implemented yet")
+        raise NotImplementedError("Sequential datachunks not implemented yet")
 
 
 def run_stats_calculation(

@@ -245,7 +245,7 @@ def _submit_task_to_client_and_add_results_to_db(
     logger.info("Starting execution. Results will be saved to database on the fly. ")
     for future_batch in as_completed(futures, with_results=True, raise_errors=False).batches():
         results_nested: List[Tuple[BulkAddableObjects, ...]] = [x[1] for x in future_batch]
-        results: List[BulkAddableObjects] = more_itertools.flatten(results_nested)
+        results: List[BulkAddableObjects] = list(more_itertools.flatten(results_nested))
         logger.info(f"Running bulk_add_or_upsert for {len(results)} results")
 
         kwargs = BulkAddOrUpsertObjectsInputs(
