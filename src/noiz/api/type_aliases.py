@@ -3,7 +3,7 @@ from typing import Union, TypedDict, Collection, Callable, Optional, List, Tuple
 
 from noiz.models import Crosscorrelation, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults, \
     Datachunk, DatachunkFile, QCOneConfig, AveragedSohGps, ComponentPair, StackingSchema, StackingTimespan, Component, \
-    Timespan, Tsindex, DatachunkParams
+    Timespan, Tsindex, DatachunkParams, ProcessedDatachunkParams
 
 BulkAddableObjects = Union[
         Datachunk,
@@ -24,6 +24,14 @@ class CalculateDatachunkStatsInputs(TypedDict):
     datachunk_file: Optional[DatachunkFile]
 
 
+class ProcessDatachunksInputs(TypedDict):
+    """
+    TypedDict class that describes inputs required for :py:func:`noiz.processing.datachunk.calculate_datachunk_stats`
+    """
+    datachunk: Datachunk
+    params: ProcessedDatachunkParams
+
+
 class RunDatachunkPreparationInputs(TypedDict):
     component: Component
     timespans: Collection[Timespan]
@@ -42,6 +50,7 @@ InputsForMassCalculations = Union[
     CalculateDatachunkStatsInputs,
     RunDatachunkPreparationInputs,
     QCOneRunnerInputs,
+    ProcessDatachunksInputs,
 ]
 
 
