@@ -1,4 +1,5 @@
 from loguru import logger
+from noiz.api.qc import fetch_qctwo_config, fetch_qctwo_config_single
 from pathlib import Path
 from sqlalchemy.exc import IntegrityError
 from typing import Optional, Tuple, Union, List
@@ -209,6 +210,8 @@ def create_and_add_stacking_schema_from_toml(
 
     params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.STACKINGSCHEMA)
     params = create_stacking_params(params_holder=params_holder)
+
+    params.crosscorrelation_params_id = fetch_qctwo_config_single(id=params.qctwo_config_id).crosscorrelation_params_id
 
     if add_to_db:
         return _insert_params_into_db(params=params)

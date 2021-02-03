@@ -36,7 +36,6 @@ class StackingSchemaHolder:
         This simple dataclass is just helping to validate :py:class:`~noiz.models.StackingSchema` values loaded
         from the TOML file
     """
-    crosscorrelation_params_id: int
     qctwo_config_id: int
     minimum_ccf_count: int
     starttime: Union[datetime.datetime, datetime.date]
@@ -76,7 +75,6 @@ class StackingSchema(db.Model):
 
     def __init__(self, **kwargs):
         for key in (
-                "crosscorrelation_params_id",
                 "qctwo_config_id",
                 "starttime",
                 "endtime",
