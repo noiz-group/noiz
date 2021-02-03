@@ -168,11 +168,11 @@ build_postgres:
     - noiz db init
     - noiz db migrate
     - noiz db upgrade
-
-api_system_tests:
-  extends: .system_test_parent
-  script:
-    - pytest --cov=noiz --runapi
+#
+#api_system_tests:
+#  extends: .system_test_parent
+#  script:
+#    - pytest --cov=noiz --runapi
 
 cli_system_tests:
   extends: .system_test_parent
