@@ -1,3 +1,7 @@
+from collections import Collection
+
+from typing import Union
+
 from itertools import starmap
 
 import subprocess
@@ -7,7 +11,7 @@ from tqdm import tqdm
 
 
 def run_mseedindex_on_passed_dir(
-        basedir: Path,
+        basedir: Union[Path, Collection[Path]],
         current_dir: Path,
         mseedindex_executable: str,
         postgres_host: str,
@@ -22,7 +26,7 @@ def run_mseedindex_on_passed_dir(
     seismic data.
 
     :param basedir: Directory to rglob for files
-    :type basedir:  Path
+    :type basedir: Union[Path, Collection[Path]]
     :param current_dir: Current directory for execution
     :type current_dir:  Path
     :param mseedindex_executable: Path to mseedindex executable
@@ -62,7 +66,7 @@ def run_mseedindex_on_passed_dir(
 
 
 def _mseedindex_input_generator(
-        basedir: Path,
+        basedir: Union[Path, Collection[Path]],
         current_dir: Path,
         mseedindex_executable: str,
         postgres_host: str,
@@ -71,7 +75,12 @@ def _mseedindex_input_generator(
         postgres_db: str,
         filename_pattern: str = "*",
 ):
-    filepaths = basedir.absolute().rglob(filename_pattern)
+    if isinstance(basedir, Path):
+        filepaths = list(basedir.absolute().rglob(filename_pattern))
+    else:
+        filepaths = []
+        for dirpath in basedir:
+            filepaths.extend(list(dirpath.absolute().rglob(filename_pattern)))
 
     for filepath in tqdm(filepaths):
         if not filepath.is_file():
