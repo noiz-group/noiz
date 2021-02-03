@@ -1,17 +1,15 @@
 import datetime
 import itertools
 from loguru import logger
-import more_itertools
 import pendulum
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import UnmappedInstanceError
 from sqlalchemy.dialects.postgresql import Insert, insert
 
 from sqlalchemy.orm import subqueryload, Query
-from typing import List, Iterable, Tuple, Collection, Optional, Dict, Union, Generator, Callable
+from typing import List, Iterable, Tuple, Collection, Optional, Dict, Union, Generator
 
-from noiz.api.helpers import extract_object_ids, bulk_add_objects, bulk_add_or_upsert_objects, \
-    BulkAddOrUpsertObjectsInputs
+from noiz.api.helpers import extract_object_ids, bulk_add_objects, _run_calculate_and_upsert_on_dask
 from noiz.api.component import fetch_components
 from noiz.api.timeseries import fetch_raw_timeseries
 from noiz.api.timespan import fetch_timespans_for_doy, fetch_timespans_between_dates
@@ -490,32 +488,9 @@ def run_stats_calculation(
         batch_size=batch_size,
         inputs=calculation_inputs,
         calculation_task=calculate_datachunk_stats,
-        upserting_task=_prepare_upsert_command_datachunk_stats,
+        upserter_callable=_prepare_upsert_command_datachunk_stats,
     )
     return
-
-
-def _run_calculate_and_upsert_on_dask(
-        inputs: Collection,
-        calculation_task: Callable,
-        upserting_task: Callable[[BulkAddOrUpsertObjectsInputs], None],
-        batch_size: int = 5000,
-):
-    from dask.distributed import Client
-    client = Client()
-    logger.info(f'Dask client started successfully. '
-                f'You can monitor execution on {client.dashboard_link}')
-    logger.info(f"Processing will be executed in batches. The chunks size is {batch_size}")
-    for i, input_batch in enumerate(more_itertools.chunked(iterable=inputs, n=batch_size)):
-        logger.info(f"Starting processing of chunk no.{i}")
-
-        _submit_task_to_client_and_add_results_to_db(
-            client=client,
-            inputs_to_process=input_batch,
-            calculation_task=calculation_task,
-            upserting_task=upserting_task,
-        )
-    client.close()
 
 
 def _prepare_inputs_for_datachunk_stats_calculations(
@@ -550,38 +525,6 @@ def _prepare_inputs_for_datachunk_stats_calculations(
         yield res
 
     return
-
-
-def _submit_task_to_client_and_add_results_to_db(
-        client,
-        inputs_to_process,
-        calculation_task,
-        upserting_task,
-):
-    from dask.distributed import as_completed
-
-    logger.info("Submitting tasks to Dask client")
-    futures = []
-    try:
-        for input_dict in inputs_to_process:
-            future = client.submit(calculation_task, **input_dict,)
-            futures.append(future)
-    except ValueError as e:
-        logger.error(e)
-        raise e
-    logger.info(f"There are {len(futures)} tasks to be executed")
-
-    logger.info("Starting execution. Results will be saved to database on the fly. ")
-    for future_batch in as_completed(futures, with_results=True, raise_errors=False).batches():
-        results: List[DatachunkStats] = [x[1] for x in future_batch]
-        logger.info(f"Running bulk_add_or_upsert for {len(results)} results")
-
-        kwargs: BulkAddOrUpsertObjectsInputs = dict(
-            objects_to_add=results,
-            upserter_callable=upserting_task,
-            bulk_insert=True,
-        )
-        bulk_add_or_upsert_objects(**kwargs)
 
 
 def _prepare_upsert_command_datachunk_stats(datachunk_stats: DatachunkStats) -> Insert:
