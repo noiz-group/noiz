@@ -310,7 +310,7 @@ def _prepare_datachunk_preparation_parameter_lists(
 ) -> Iterable[Dict]:
     date_period = pendulum.period(startdate, enddate)
 
-    logger.info("Fetching processing config, timespans and componsents from db. ")
+    logger.info("Fetching processing config, timespans and components from db. ")
     processing_params = fetch_datachunkparams_by_id(id=processing_config_id)
 
     all_timespans = [(date, fetch_timespans_for_doy(
