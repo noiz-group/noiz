@@ -2,7 +2,7 @@ import datetime
 from flask import current_app as app
 from pathlib import Path
 from sqlalchemy.orm import Query
-from typing import List
+from typing import List, Collection, Union
 
 from noiz.exceptions import NoDataException
 from noiz.models.component import Component
@@ -35,7 +35,7 @@ def fetch_raw_timeseries(
 
 
 def add_seismic_data(
-        basedir: Path,
+        basedir: Union[Path, Collection[Path]],
         current_dir: Path,
         filename_pattern: str = "*",
         parallel: bool = True,
@@ -47,7 +47,7 @@ def add_seismic_data(
     Requires to be run within app_context
 
     :param basedir: Directory to start search within
-    :type basedir: Path
+    :type basedir: Union[Path, Collection[Path]]
     :param current_dir: Current dir for execution
     :type current_dir: Path
     :param filename_pattern: Pattern to call rglob with on the basedir
