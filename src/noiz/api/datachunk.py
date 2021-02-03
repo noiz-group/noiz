@@ -1,15 +1,15 @@
 import datetime
+import itertools
+from loguru import logger
 import more_itertools
 import pendulum
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import UnmappedInstanceError
 from sqlalchemy.dialects.postgresql import Insert, insert
 
-from noiz.models.qc import QCOneConfig, QCOneResults
 from sqlalchemy.orm import subqueryload, Query
 from typing import List, Iterable, Tuple, Collection, Optional, Dict, Union, Generator
 
-import itertools
 
 from noiz.api.helpers import extract_object_ids, bulk_add_objects, bulk_add_or_upsert_objects, \
     BulkAddOrUpsertObjectsInputs
@@ -19,16 +19,21 @@ from noiz.api.timespan import fetch_timespans_for_doy, fetch_timespans_between_d
 from noiz.api.processing_config import fetch_datachunkparams_by_id, fetch_processed_datachunk_params_by_id
 from noiz.database import db
 from noiz.exceptions import NoDataException
-from noiz.models.component import Component
-from noiz.models.datachunk import Datachunk, DatachunkStats, ProcessedDatachunk
-from noiz.models.processing_params import DatachunkParams, ProcessedDatachunkParams
-from noiz.models.soh import AveragedSohGps
-from noiz.models.timespan import Timespan
+from noiz.models import (
+    AveragedSohGps,
+    Component,
+    Datachunk,
+    DatachunkParams,
+    DatachunkStats,
+    ProcessedDatachunk,
+    ProcessedDatachunkParams,
+    QCOneConfig,
+    QCOneResults,
+    Timespan
+)
 from noiz.processing.datachunk import create_datachunks_for_component, calculate_datachunk_stats, \
     CalculateDatachunkStatsInputs
 from noiz.processing.datachunk_processing import process_datachunk
-
-from loguru import logger
 
 
 def count_datachunks(
