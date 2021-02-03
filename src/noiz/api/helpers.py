@@ -202,7 +202,7 @@ def _run_upsert_commands(
 
 def _run_calculate_and_upsert_on_dask(
         inputs: Iterable[InputsForMassCalculations],
-        calculation_task: Callable[[InputsForMassCalculations], BulkAddableObjects],
+        calculation_task: Callable[[InputsForMassCalculations], Tuple[BulkAddableObjects, ...]],
         upserter_callable: Callable[[BulkAddableObjects], Insert],
         batch_size: int = 5000,
 ):
@@ -226,7 +226,7 @@ def _run_calculate_and_upsert_on_dask(
 def _submit_task_to_client_and_add_results_to_db(
         client,
         inputs_to_process: Iterable[InputsForMassCalculations],
-        calculation_task: Callable[[InputsForMassCalculations], BulkAddableObjects],
+        calculation_task: Callable[[InputsForMassCalculations], Tuple[BulkAddableObjects, ...]],
         upserter_callable: Callable[[BulkAddableObjects], Insert],
 ):
     from dask.distributed import as_completed
@@ -244,10 +244,11 @@ def _submit_task_to_client_and_add_results_to_db(
 
     logger.info("Starting execution. Results will be saved to database on the fly. ")
     for future_batch in as_completed(futures, with_results=True, raise_errors=False).batches():
-        results: List[DatachunkStats] = [x[1] for x in future_batch]
+        results_nested: List[Tuple[BulkAddableObjects, ...]] = [x[1] for x in future_batch]
+        results: List[BulkAddableObjects] = more_itertools.flatten(results_nested)
         logger.info(f"Running bulk_add_or_upsert for {len(results)} results")
 
-        kwargs: BulkAddOrUpsertObjectsInputs = dict(
+        kwargs = BulkAddOrUpsertObjectsInputs(
             objects_to_add=results,
             upserter_callable=upserter_callable,
             bulk_insert=True,

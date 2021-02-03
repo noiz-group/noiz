@@ -28,7 +28,8 @@ from noiz.models import (
     QCOneResults,
     Timespan
 )
-from noiz.processing.datachunk import create_datachunks_for_component, calculate_datachunk_stats
+from noiz.processing.datachunk import create_datachunks_for_component, calculate_datachunk_stats, \
+    create_datachunks_for_component_wrapper, calculate_datachunk_stats_wrapper
 from noiz.api.type_aliases import CalculateDatachunkStatsInputs, RunDatachunkPreparationInputs
 from noiz.processing.datachunk_processing import process_datachunk
 
@@ -303,7 +304,7 @@ def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
 def _prepare_upsert_command_datachunk(datachunk: Datachunk) -> Insert:
     insert_command = (
         insert(Datachunk)
-            .values(
+        .values(
             processing_config_id=datachunk.datachunk_params_id,
             component_id=datachunk.component_id,
             timespan_id=datachunk.timespan_id,
@@ -312,7 +313,7 @@ def _prepare_upsert_command_datachunk(datachunk: Datachunk) -> Insert:
             datachunk_file=datachunk.datachunk_file,
             padded_npts=datachunk.padded_npts,
         )
-            .on_conflict_do_update(
+        .on_conflict_do_update(
             constraint="unique_datachunk_per_timespan_per_station_per_processing",
             set_=dict(
                 datachunk_file_id=datachunk.datachunk_file.id,
@@ -329,7 +330,7 @@ def _prepare_datachunk_preparation_parameter_lists(
         enddate: pendulum.Pendulum,
         processing_config_id: int,
         skip_existing: bool = False,
-) -> Iterable[Dict]:
+) -> Generator[RunDatachunkPreparationInputs, None, None]:
     date_period = pendulum.period(startdate, enddate)
 
     logger.info("Fetching processing config, timespans and components from db. ")
@@ -429,43 +430,29 @@ def run_datachunk_preparation_parallel(
         startdate: pendulum.Pendulum,
         enddate: pendulum.Pendulum,
         processing_config_id: int,
+        parallel: bool = True,
+        batch_size: int = 1000,
 
 ):
     logger.info("Preparing jobs for execution")
-    joblist = _prepare_datachunk_preparation_parameter_lists(stations,
-                                                             components,
-                                                             startdate, enddate,
-                                                             processing_config_id)
+    calculation_inputs = _prepare_datachunk_preparation_parameter_lists(stations,
+                                                                        components,
+                                                                        startdate, enddate,
+                                                                        processing_config_id)
 
     # TODO add more checks for bad seed files because they are crashing.
     # And instead of datachunk id there was something weird produced. It was found on SI26 in
     # 2019.04.~10-15
 
-    from dask.distributed import Client, as_completed
-    client = Client()
-
-    logger.info(f'Dask client started successfully. '
-                f'You can monitor execution on {client.dashboard_link}')
-
-    logger.info("Submitting tasks to Dask client")
-    futures = []
-    try:
-        for params in joblist:
-            future = client.submit(create_datachunks_for_component, **params)
-            futures.append(future)
-    except ValueError as e:
-        logger.error(e)
-        raise e
-
-    logger.info(f"There are {len(futures)} tasks to be executed")
-
-    logger.info("Starting execution. Results will be saved to database on the fly. ")
-
-    for future, result in as_completed(futures, with_results=True, raise_errors=False):
-        add_or_upsert_datachunks_in_db(result)
-
-    client.close()
-    # TODO Add summary printout.
+    if parallel:
+        _run_calculate_and_upsert_on_dask(
+            batch_size=batch_size,
+            inputs=calculation_inputs,
+            calculation_task=create_datachunks_for_component_wrapper,
+            upserter_callable=_prepare_upsert_command_datachunk,
+        )
+    else:
+        raise NotImplementedError("Sequential stats not implemented yet")
 
 
 def run_stats_calculation(
@@ -494,7 +481,7 @@ def run_stats_calculation(
         _run_calculate_and_upsert_on_dask(
             batch_size=batch_size,
             inputs=calculation_inputs,
-            calculation_task=calculate_datachunk_stats,
+            calculation_task=calculate_datachunk_stats_wrapper,
             upserter_callable=_prepare_upsert_command_datachunk_stats,
         )
     else:

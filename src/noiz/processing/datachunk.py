@@ -5,7 +5,7 @@ import obspy
 import scipy
 from typing import Union, Tuple, Dict, Collection, Optional
 
-from noiz.api.type_aliases import CalculateDatachunkStatsInputs
+from noiz.api.type_aliases import CalculateDatachunkStatsInputs, RunDatachunkPreparationInputs
 from noiz.exceptions import MissingDataFileException
 from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models.component import Component
@@ -638,6 +638,15 @@ def validate_sample_rate(original_samplerate, trimmed_st):
         raise ValueError(message)
 
 
+def create_datachunks_for_component_wrapper(inputs: RunDatachunkPreparationInputs) -> Tuple[Datachunk, ...]:
+    return tuple(create_datachunks_for_component(
+        component=inputs["component"],
+        timespans=inputs["timespans"],
+        time_series=inputs["time_series"],
+        processing_params=inputs["processing_params"],
+    ))
+
+
 def create_datachunks_for_component(
         component: Component,
         timespans: Collection[Timespan],
@@ -760,8 +769,16 @@ def create_datachunks_for_component(
     return finished_datachunks
 
 
+def calculate_datachunk_stats_wrapper(inputs: CalculateDatachunkStatsInputs) -> Tuple[DatachunkStats, ...]:
+    return tuple(calculate_datachunk_stats(
+        datachunk=inputs["datachunk"],
+        datachunk_file=inputs["datachunk_file"],
+    ))
+
+
 def calculate_datachunk_stats(
-    calculation_inputs: CalculateDatachunkStatsInputs,
+        datachunk: Datachunk,
+        datachunk_file: Optional[DatachunkFile],
 ) -> DatachunkStats:
     """
     Calculates statistics of the signal associated with provided :class:`~noiz.models.datachunk.Datachunk`.
@@ -775,9 +792,6 @@ def calculate_datachunk_stats(
     :return: Signal statistics for the datachunk
     :rtype: DatachunkStats
     """
-    datachunk = calculation_inputs['datachunk']
-    datachunk_file = calculation_inputs['datachunk_file']
-
     st = datachunk.load_data(datachunk_file=datachunk_file)
     # noinspection PyUnresolvedReferences
     descibed_stats: scipy.stats.stats.DescribeResult = scipy.stats.describe(st[0].data)
