@@ -2,7 +2,8 @@ from sqlalchemy.sql import Insert
 from typing import Union, TypedDict, Collection, Callable, Optional, List, Tuple
 
 from noiz.models import Crosscorrelation, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults, \
-    Datachunk, DatachunkFile, QCOneConfig, AveragedSohGps, ComponentPair, StackingSchema, StackingTimespan
+    Datachunk, DatachunkFile, QCOneConfig, AveragedSohGps, ComponentPair, StackingSchema, StackingTimespan, Component, \
+    Timespan, Tsindex, DatachunkParams
 
 BulkAddableObjects = Union[
         Crosscorrelation,
@@ -14,12 +15,19 @@ BulkAddableObjects = Union[
     ]
 
 
-class CalculateDatachunkStatsInputs(TypedDict, total=False):
+class CalculateDatachunkStatsInputs(TypedDict):
     """
     TypedDict class that describes inputs required for :py:func:`noiz.processing.datachunk.calculate_datachunk_stats`
     """
     datachunk: Datachunk
     datachunk_file: Optional[DatachunkFile]
+
+
+class RunDatachunkPreparationInputs(TypedDict):
+    component: Component
+    timespans: Collection[Timespan]
+    time_series: Tsindex
+    processing_params: DatachunkParams
 
 
 InputsForMassCalculations = Union[

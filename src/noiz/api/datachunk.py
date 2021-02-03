@@ -29,7 +29,7 @@ from noiz.models import (
     Timespan
 )
 from noiz.processing.datachunk import create_datachunks_for_component, calculate_datachunk_stats
-from noiz.api.type_aliases import CalculateDatachunkStatsInputs
+from noiz.api.type_aliases import CalculateDatachunkStatsInputs, RunDatachunkPreparationInputs
 from noiz.processing.datachunk_processing import process_datachunk
 
 
@@ -292,29 +292,34 @@ def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
             db.session.add(datachunk)
         else:
             logger.info("The datachunk already exists in db. Updating.")
-            insert_command = (
-                insert(Datachunk)
-                .values(
-                    processing_config_id=datachunk.datachunk_params_id,
-                    component_id=datachunk.component_id,
-                    timespan_id=datachunk.timespan_id,
-                    sampling_rate=datachunk.sampling_rate,
-                    npts=datachunk.npts,
-                    datachunk_file=datachunk.datachunk_file,
-                    padded_npts=datachunk.padded_npts,
-                )
-                .on_conflict_do_update(
-                    constraint="unique_datachunk_per_timespan_per_station_per_processing",
-                    set_=dict(
-                        datachunk_file_id=datachunk.datachunk_file.id,
-                        padded_npts=datachunk.padded_npts),
-                )
-            )
+            insert_command = _prepare_upsert_command_datachunk(datachunk)
             db.session.execute(insert_command)
 
     logger.debug('Committing session.')
     db.session.commit()
     return
+
+
+def _prepare_upsert_command_datachunk(datachunk: Datachunk) -> Insert:
+    insert_command = (
+        insert(Datachunk)
+            .values(
+            processing_config_id=datachunk.datachunk_params_id,
+            component_id=datachunk.component_id,
+            timespan_id=datachunk.timespan_id,
+            sampling_rate=datachunk.sampling_rate,
+            npts=datachunk.npts,
+            datachunk_file=datachunk.datachunk_file,
+            padded_npts=datachunk.padded_npts,
+        )
+            .on_conflict_do_update(
+            constraint="unique_datachunk_per_timespan_per_station_per_processing",
+            set_=dict(
+                datachunk_file_id=datachunk.datachunk_file.id,
+                padded_npts=datachunk.padded_npts),
+        )
+    )
+    return insert_command
 
 
 def _prepare_datachunk_preparation_parameter_lists(
@@ -375,12 +380,12 @@ def _prepare_datachunk_preparation_parameter_lists(
                              ) == 0]
             timespans = new_timespans
 
-        yield {
-            'component': component,
-            'timespans': timespans,
-            'time_series': time_series,
-            'processing_params': processing_params,
-        }
+        yield RunDatachunkPreparationInputs(
+            component=component,
+            timespans=timespans,
+            time_series=time_series,
+            processing_params=processing_params,
+        )
 
 
 def run_datachunk_preparation(
