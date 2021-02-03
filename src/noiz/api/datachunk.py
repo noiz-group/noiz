@@ -472,6 +472,7 @@ def run_stats_calculation(
         components: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
         batch_size: int = 5000,
+        parallel: bool = True,
 ):
 
     calculation_inputs = _prepare_inputs_for_datachunk_stats_calculations(
@@ -484,12 +485,15 @@ def run_stats_calculation(
         component_ids=component_ids,
     )
 
-    _run_calculate_and_upsert_on_dask(
-        batch_size=batch_size,
-        inputs=calculation_inputs,
-        calculation_task=calculate_datachunk_stats,
-        upserter_callable=_prepare_upsert_command_datachunk_stats,
-    )
+    if parallel:
+        _run_calculate_and_upsert_on_dask(
+            batch_size=batch_size,
+            inputs=calculation_inputs,
+            calculation_task=calculate_datachunk_stats,
+            upserter_callable=_prepare_upsert_command_datachunk_stats,
+        )
+    else:
+        raise NotImplementedError("Sequential stats not imlemented yet")
     return
 
 
