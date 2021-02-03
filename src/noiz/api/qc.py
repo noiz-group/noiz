@@ -10,12 +10,13 @@ from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import Crosscorrelation, Datachunk, DatachunkStats, QCOneConfig, QCOneResults, QCTwoConfig, \
     QCTwoResults, AveragedSohGps, Component, Timespan
-from noiz.processing.qc import calculate_qcone_results, calculate_qctwo_results
+from noiz.processing.qc import calculate_qcone_results, calculate_qctwo_results, calculate_qcone_results_wrapper
 
 from noiz.api.component import fetch_components
 from noiz.api.crosscorrelations import fetch_crosscorrelation
 from noiz.api.datachunk import _determine_filters_and_opts_for_datachunk
-from noiz.api.helpers import validate_to_tuple, extract_object_ids, bulk_add_or_upsert_objects
+from noiz.api.helpers import validate_to_tuple, extract_object_ids, bulk_add_or_upsert_objects, \
+    _run_calculate_and_upsert_on_dask
 from noiz.api.timespan import fetch_timespans_between_dates
 
 
@@ -243,6 +244,8 @@ def process_qcone(
         components: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
         bulk_insert: bool = True,
+        batch_size: int = 5000,
+        parallel: bool = True,
 ):
     """
     A method that runs the whole process of calculation of results of QCOne.
@@ -283,12 +286,60 @@ def process_qcone(
     :return:
     :rtype:
     """
+    calculation_inputs = _prepare_inputs_for_qcone_runner(
+        qcone_config_id=qcone_config_id,
+        starttime=starttime,
+        endtime=endtime,
+        strict_gps=strict_gps,
+        networks=networks,
+        stations=stations,
+        components=components,
+        component_ids=component_ids
+    )
+
+    if parallel:
+        _run_calculate_and_upsert_on_dask(
+            batch_size=batch_size,
+            inputs=calculation_inputs,
+            calculation_task=calculate_qcone_results_wrapper,  # type: ignore
+            upserter_callable=_prepare_upsert_command_qcone,
+        )
+    else:
+        raise NotImplementedError("Sequential stats not imlemented yet")
+
+    _run_calculate_and_upsert_sequentially(calculation_inputs)
+    return
+
+
+def _run_calculate_and_upsert_sequentially(calculation_inputs):
+    qcone_results = []
+    for input_dict in calculation_inputs:
+        qcone_res = calculate_qcone_results(**input_dict)
+        qcone_results.append(qcone_res)
+    logger.info("Calculations finished")
+    logger.info("All processing finished. Trying to insert data into db.")
+    bulk_add_or_upsert_objects(
+        objects_to_add=qcone_results,
+        upserter_callable=_prepare_upsert_command_qcone,
+        bulk_insert=True
+    )
+
+
+def _prepare_inputs_for_qcone_runner(
+        qcone_config_id: int,
+        starttime: Union[datetime.date, datetime.datetime],
+        endtime: Union[datetime.date, datetime.datetime],
+        strict_gps: bool = False,
+        networks: Optional[Union[Collection[str], str]] = None,
+        stations: Optional[Union[Collection[str], str]] = None,
+        components: Optional[Union[Collection[str], str]] = None,
+        component_ids: Optional[Union[Collection[int], int]] = None,
+) -> Generator[QCOneRunnerInputs, None, None]:
     try:
         qcone_config: QCOneConfig = fetch_qcone_config_single(id=qcone_config_id)
     except EmptyResultException as e:
         logger.error(e)
         raise e
-
     timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
     fetched_components = fetch_components(
         networks=networks,
@@ -296,7 +347,6 @@ def process_qcone(
         components=components,
         component_ids=component_ids,
     )
-
     calculation_inputs = _generate_inputs_for_qcone_runner(
         qcone_config=qcone_config,
         components=fetched_components,
@@ -305,22 +355,7 @@ def process_qcone(
         fetch_stats=qcone_config.uses_stats,
         top_up_gps=not strict_gps
     )
-
-    qcone_results = []
-    for input_dict in calculation_inputs:
-        qcone_res = calculate_qcone_results(**input_dict)
-        qcone_results.append(qcone_res)
-
-    logger.info("Calculations finished")
-
-    logger.info("All processing finished. Trying to insert data into db.")
-
-    bulk_add_or_upsert_objects(
-        objects_to_add=qcone_results,
-        upserter_callable=_prepare_upsert_command_qcone,
-        bulk_insert=True
-    )
-    return
+    return calculation_inputs
 
 
 def _generate_inputs_for_qcone_runner(
