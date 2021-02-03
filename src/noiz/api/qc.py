@@ -2,22 +2,20 @@ import datetime
 from loguru import logger
 from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import insert, Insert
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Query
-from sqlalchemy.orm.exc import UnmappedInstanceError
 from typing import List, Collection, Union, Optional, Generator, TypedDict
-
-from noiz.api.component import fetch_components
-from noiz.api.crosscorrelations import fetch_crosscorrelation
-from noiz.api.datachunk import _determine_filters_and_opts_for_datachunk
-from noiz.api.helpers import validate_to_tuple, extract_object_ids, bulk_add_objects, bulk_add_or_upsert_objects
-from noiz.api.timespan import fetch_timespans_between_dates
 
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import Crosscorrelation, Datachunk, DatachunkStats, QCOneConfig, QCOneResults, QCTwoConfig, \
     QCTwoResults, AveragedSohGps, Component, Timespan
 from noiz.processing.qc import calculate_qcone_results, calculate_qctwo_results
+
+from noiz.api.component import fetch_components
+from noiz.api.crosscorrelations import fetch_crosscorrelation
+from noiz.api.datachunk import _determine_filters_and_opts_for_datachunk
+from noiz.api.helpers import validate_to_tuple, extract_object_ids, bulk_add_or_upsert_objects
+from noiz.api.timespan import fetch_timespans_between_dates
 
 
 class QCOneRunnerInputs(TypedDict):
