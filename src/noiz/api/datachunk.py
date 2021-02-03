@@ -448,7 +448,7 @@ def run_datachunk_preparation_parallel(
         _run_calculate_and_upsert_on_dask(
             batch_size=batch_size,
             inputs=calculation_inputs,
-            calculation_task=create_datachunks_for_component_wrapper,
+            calculation_task=create_datachunks_for_component_wrapper,  # type: ignore
             upserter_callable=_prepare_upsert_command_datachunk,
         )
     else:
@@ -481,7 +481,7 @@ def run_stats_calculation(
         _run_calculate_and_upsert_on_dask(
             batch_size=batch_size,
             inputs=calculation_inputs,
-            calculation_task=calculate_datachunk_stats_wrapper,
+            calculation_task=calculate_datachunk_stats_wrapper,  # type: ignore
             upserter_callable=_prepare_upsert_command_datachunk_stats,
         )
     else:
