@@ -3,8 +3,9 @@ from loguru import logger
 from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import insert, Insert
 from sqlalchemy.orm import Query
-from typing import List, Collection, Union, Optional, Generator, TypedDict
+from typing import List, Collection, Union, Optional, Generator
 
+from noiz.api.type_aliases import QCOneRunnerInputs
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import Crosscorrelation, Datachunk, DatachunkStats, QCOneConfig, QCOneResults, QCTwoConfig, \
@@ -16,13 +17,6 @@ from noiz.api.crosscorrelations import fetch_crosscorrelation
 from noiz.api.datachunk import _determine_filters_and_opts_for_datachunk
 from noiz.api.helpers import validate_to_tuple, extract_object_ids, bulk_add_or_upsert_objects
 from noiz.api.timespan import fetch_timespans_between_dates
-
-
-class QCOneRunnerInputs(TypedDict):
-    datachunk: Datachunk
-    qcone_config: QCOneConfig
-    stats: Optional[DatachunkStats]
-    avg_soh_gps: Optional[AveragedSohGps]
 
 
 def fetch_qcone_config(ids: Union[int, Collection[int]]) -> List[QCOneConfig]:
