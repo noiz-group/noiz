@@ -1,7 +1,6 @@
 import datetime
 import itertools
 from loguru import logger
-import more_itertools
 import pendulum
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import UnmappedInstanceError
@@ -10,9 +9,7 @@ from sqlalchemy.dialects.postgresql import Insert, insert
 from sqlalchemy.orm import subqueryload, Query
 from typing import List, Iterable, Tuple, Collection, Optional, Dict, Union, Generator
 
-
-from noiz.api.helpers import extract_object_ids, bulk_add_objects, bulk_add_or_upsert_objects, \
-    BulkAddOrUpsertObjectsInputs
+from noiz.api.helpers import extract_object_ids, bulk_add_objects, _run_calculate_and_upsert_on_dask
 from noiz.api.component import fetch_components
 from noiz.api.timeseries import fetch_raw_timeseries
 from noiz.api.timespan import fetch_timespans_for_doy, fetch_timespans_between_dates
@@ -32,7 +29,8 @@ from noiz.models import (
     Timespan
 )
 from noiz.processing.datachunk import create_datachunks_for_component, calculate_datachunk_stats, \
-    CalculateDatachunkStatsInputs
+    create_datachunks_for_component_wrapper, calculate_datachunk_stats_wrapper
+from noiz.api.type_aliases import CalculateDatachunkStatsInputs, RunDatachunkPreparationInputs
 from noiz.processing.datachunk_processing import process_datachunk
 
 
@@ -295,29 +293,34 @@ def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
             db.session.add(datachunk)
         else:
             logger.info("The datachunk already exists in db. Updating.")
-            insert_command = (
-                insert(Datachunk)
-                .values(
-                    processing_config_id=datachunk.datachunk_params_id,
-                    component_id=datachunk.component_id,
-                    timespan_id=datachunk.timespan_id,
-                    sampling_rate=datachunk.sampling_rate,
-                    npts=datachunk.npts,
-                    datachunk_file=datachunk.datachunk_file,
-                    padded_npts=datachunk.padded_npts,
-                )
-                .on_conflict_do_update(
-                    constraint="unique_datachunk_per_timespan_per_station_per_processing",
-                    set_=dict(
-                        datachunk_file_id=datachunk.datachunk_file.id,
-                        padded_npts=datachunk.padded_npts),
-                )
-            )
+            insert_command = _prepare_upsert_command_datachunk(datachunk)
             db.session.execute(insert_command)
 
     logger.debug('Committing session.')
     db.session.commit()
     return
+
+
+def _prepare_upsert_command_datachunk(datachunk: Datachunk) -> Insert:
+    insert_command = (
+        insert(Datachunk)
+        .values(
+            processing_config_id=datachunk.datachunk_params_id,
+            component_id=datachunk.component_id,
+            timespan_id=datachunk.timespan_id,
+            sampling_rate=datachunk.sampling_rate,
+            npts=datachunk.npts,
+            datachunk_file=datachunk.datachunk_file,
+            padded_npts=datachunk.padded_npts,
+        )
+        .on_conflict_do_update(
+            constraint="unique_datachunk_per_timespan_per_station_per_processing",
+            set_=dict(
+                datachunk_file_id=datachunk.datachunk_file.id,
+                padded_npts=datachunk.padded_npts),
+        )
+    )
+    return insert_command
 
 
 def _prepare_datachunk_preparation_parameter_lists(
@@ -327,7 +330,7 @@ def _prepare_datachunk_preparation_parameter_lists(
         enddate: pendulum.Pendulum,
         processing_config_id: int,
         skip_existing: bool = False,
-) -> Iterable[Dict]:
+) -> Generator[RunDatachunkPreparationInputs, None, None]:
     date_period = pendulum.period(startdate, enddate)
 
     logger.info("Fetching processing config, timespans and components from db. ")
@@ -378,12 +381,12 @@ def _prepare_datachunk_preparation_parameter_lists(
                              ) == 0]
             timespans = new_timespans
 
-        yield {
-            'component': component,
-            'timespans': timespans,
-            'time_series': time_series,
-            'processing_params': processing_params,
-        }
+        yield RunDatachunkPreparationInputs(
+            component=component,
+            timespans=timespans,
+            time_series=time_series,
+            processing_params=processing_params,
+        )
 
 
 def run_datachunk_preparation(
@@ -427,43 +430,29 @@ def run_datachunk_preparation_parallel(
         startdate: pendulum.Pendulum,
         enddate: pendulum.Pendulum,
         processing_config_id: int,
+        parallel: bool = True,
+        batch_size: int = 1000,
 
 ):
     logger.info("Preparing jobs for execution")
-    joblist = _prepare_datachunk_preparation_parameter_lists(stations,
-                                                             components,
-                                                             startdate, enddate,
-                                                             processing_config_id)
+    calculation_inputs = _prepare_datachunk_preparation_parameter_lists(stations,
+                                                                        components,
+                                                                        startdate, enddate,
+                                                                        processing_config_id)
 
     # TODO add more checks for bad seed files because they are crashing.
     # And instead of datachunk id there was something weird produced. It was found on SI26 in
     # 2019.04.~10-15
 
-    from dask.distributed import Client, as_completed
-    client = Client()
-
-    logger.info(f'Dask client started successfully. '
-                f'You can monitor execution on {client.dashboard_link}')
-
-    logger.info("Submitting tasks to Dask client")
-    futures = []
-    try:
-        for params in joblist:
-            future = client.submit(create_datachunks_for_component, **params)
-            futures.append(future)
-    except ValueError as e:
-        logger.error(e)
-        raise e
-
-    logger.info(f"There are {len(futures)} tasks to be executed")
-
-    logger.info("Starting execution. Results will be saved to database on the fly. ")
-
-    for future, result in as_completed(futures, with_results=True, raise_errors=False):
-        add_or_upsert_datachunks_in_db(result)
-
-    client.close()
-    # TODO Add summary printout.
+    if parallel:
+        _run_calculate_and_upsert_on_dask(
+            batch_size=batch_size,
+            inputs=calculation_inputs,
+            calculation_task=create_datachunks_for_component_wrapper,  # type: ignore
+            upserter_callable=_prepare_upsert_command_datachunk,
+        )
+    else:
+        raise NotImplementedError("Sequential datachunks not implemented yet")
 
 
 def run_stats_calculation(
@@ -474,10 +463,11 @@ def run_stats_calculation(
         stations: Optional[Union[Collection[str], str]] = None,
         components: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
-        batch_size: int = 1000,
+        batch_size: int = 5000,
+        parallel: bool = True,
 ):
 
-    fetched_datachunks = _prepare_inputs_for_datachunk_stats_calculations(
+    calculation_inputs = _prepare_inputs_for_datachunk_stats_calculations(
         starttime=starttime,
         endtime=endtime,
         datachunk_params_id=datachunk_params_id,
@@ -487,18 +477,15 @@ def run_stats_calculation(
         component_ids=component_ids,
     )
 
-    from dask.distributed import Client
-    client = Client()
-
-    logger.info(f'Dask client started successfully. '
-                f'You can monitor execution on {client.dashboard_link}')
-    logger.info(f"Processing will be executed in batches. The chunks size is {batch_size}")
-    for i, input_batch in enumerate(more_itertools.chunked(iterable=fetched_datachunks, n=batch_size)):
-        logger.info(f"Starting processing of chunk no.{i}")
-
-        _submit_task_to_client_and_add_results_to_db(client=client, inputs_to_process=input_batch)
-
-    client.close()
+    if parallel:
+        _run_calculate_and_upsert_on_dask(
+            batch_size=batch_size,
+            inputs=calculation_inputs,
+            calculation_task=calculate_datachunk_stats_wrapper,  # type: ignore
+            upserter_callable=_prepare_upsert_command_datachunk_stats,
+        )
+    else:
+        raise NotImplementedError("Sequential stats not imlemented yet")
     return
 
 
@@ -527,42 +514,12 @@ def _prepare_inputs_for_datachunk_stats_calculations(
 
     db.session.expunge_all()
     for datachunk in fetched_datachunks:
-        res: CalculateDatachunkStatsInputs = dict(
+        yield CalculateDatachunkStatsInputs(
             datachunk=datachunk,
             datachunk_file=None,
         )
-        yield res
 
     return
-
-
-def _submit_task_to_client_and_add_results_to_db(
-        client,
-        inputs_to_process
-):
-    from dask.distributed import as_completed
-
-    logger.info("Submitting tasks to Dask client")
-    futures = []
-    try:
-        for input_dict in inputs_to_process:
-            future = client.submit(calculate_datachunk_stats, **input_dict,)
-            futures.append(future)
-    except ValueError as e:
-        logger.error(e)
-        raise e
-    logger.info(f"There are {len(futures)} tasks to be executed")
-    logger.info("Starting execution. Results will be saved to database on the fly. ")
-    for future_batch in as_completed(futures, with_results=True, raise_errors=False).batches():
-        results: List[DatachunkStats] = [x[1] for x in future_batch]
-        logger.info(f"Running bulk_add_or_upsert for {len(results)} results")
-
-        kwargs: BulkAddOrUpsertObjectsInputs = dict(
-            objects_to_add=results,
-            upserter_callable=_prepare_upsert_command_datachunk_stats,
-            bulk_insert=True,
-        )
-        bulk_add_or_upsert_objects(**kwargs)
 
 
 def _prepare_upsert_command_datachunk_stats(datachunk_stats: DatachunkStats) -> Insert:

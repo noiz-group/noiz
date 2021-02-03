@@ -3,8 +3,9 @@ from loguru import logger
 import numpy as np
 import obspy
 import scipy
-from typing import Union, Tuple, Dict, Collection, TypedDict, Optional
+from typing import Union, Tuple, Dict, Collection, Optional
 
+from noiz.api.type_aliases import CalculateDatachunkStatsInputs, RunDatachunkPreparationInputs
 from noiz.exceptions import MissingDataFileException
 from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models.component import Component
@@ -637,6 +638,15 @@ def validate_sample_rate(original_samplerate, trimmed_st):
         raise ValueError(message)
 
 
+def create_datachunks_for_component_wrapper(inputs: RunDatachunkPreparationInputs) -> Tuple[Datachunk, ...]:
+    return tuple(create_datachunks_for_component(
+        component=inputs["component"],
+        timespans=inputs["timespans"],
+        time_series=inputs["time_series"],
+        processing_params=inputs["processing_params"],
+    ))
+
+
 def create_datachunks_for_component(
         component: Component,
         timespans: Collection[Timespan],
@@ -759,15 +769,17 @@ def create_datachunks_for_component(
     return finished_datachunks
 
 
-class CalculateDatachunkStatsInputs(TypedDict):
-    """
-    TypedDict class that describes inputs required for :py:func:`noiz.processing.datachunk.calculate_datachunk_stats`
-    """
-    datachunk: Datachunk
-    datachunk_file: Optional[DatachunkFile]
+def calculate_datachunk_stats_wrapper(inputs: CalculateDatachunkStatsInputs) -> Tuple[DatachunkStats, ...]:
+    return (calculate_datachunk_stats(
+        datachunk=inputs["datachunk"],
+        datachunk_file=inputs["datachunk_file"],
+    ), )
 
 
-def calculate_datachunk_stats(datachunk: Datachunk, datachunk_file: Optional[DatachunkFile] = None) -> DatachunkStats:
+def calculate_datachunk_stats(
+        datachunk: Datachunk,
+        datachunk_file: Optional[DatachunkFile],
+) -> DatachunkStats:
     """
     Calculates statistics of the signal associated with provided :class:`~noiz.models.datachunk.Datachunk`.
     It calculates energy as a sum of squared values of the signal normalized by sample count.

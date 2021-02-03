@@ -1,11 +1,13 @@
+import more_itertools
 from loguru import logger
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import UnmappedInstanceError
 from sqlalchemy.sql import Insert
-from typing import Iterable, Union, List, Tuple, Type, Any, Optional, Collection, Callable, get_args, TypedDict
+from typing import Iterable, Union, List, Tuple, Type, Any, Optional, Collection, Callable, get_args
 
+from noiz.api.type_aliases import BulkAddableObjects, InputsForMassCalculations, BulkAddOrUpsertObjectsInputs
 from noiz.database import db
-from noiz.models import Crosscorrelation, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults
+from noiz.models import DatachunkStats
 
 
 def extract_object_ids(
@@ -116,16 +118,6 @@ def validate_exactly_one_argument_provided(
         return True
 
 
-BulkAddableObjects = Union[
-        Crosscorrelation,
-        CCFStack,
-        DatachunkStats,
-        ProcessedDatachunk,
-        QCOneResults,
-        QCTwoResults,
-    ]
-
-
 def bulk_add_objects(objects_to_add: Collection[BulkAddableObjects]) -> None:
     """
     Tries to perform bulk insert of objects to database.
@@ -140,12 +132,6 @@ def bulk_add_objects(objects_to_add: Collection[BulkAddableObjects]) -> None:
     logger.debug("Committing")
     db.session.commit()
     return
-
-
-class BulkAddOrUpsertObjectsInputs(TypedDict):
-    objects_to_add: Union[BulkAddableObjects, Collection[BulkAddableObjects]]
-    upserter_callable: Callable[[BulkAddableObjects], Insert]
-    bulk_insert: bool
 
 
 def bulk_add_or_upsert_objects(
@@ -212,3 +198,59 @@ def _run_upsert_commands(
 
     logger.debug('Commiting session.')
     db.session.commit()
+
+
+def _run_calculate_and_upsert_on_dask(
+        inputs: Iterable[InputsForMassCalculations],
+        calculation_task: Callable[[InputsForMassCalculations], Tuple[BulkAddableObjects, ...]],
+        upserter_callable: Callable[[BulkAddableObjects], Insert],
+        batch_size: int = 5000,
+):
+    from dask.distributed import Client
+    client = Client()
+    logger.info(f'Dask client started successfully. '
+                f'You can monitor execution on {client.dashboard_link}')
+    logger.info(f"Processing will be executed in batches. The chunks size is {batch_size}")
+    for i, input_batch in enumerate(more_itertools.chunked(iterable=inputs, n=batch_size)):
+        logger.info(f"Starting processing of chunk no.{i}")
+
+        _submit_task_to_client_and_add_results_to_db(
+            client=client,
+            inputs_to_process=input_batch,
+            calculation_task=calculation_task,
+            upserter_callable=upserter_callable,
+        )
+    client.close()
+
+
+def _submit_task_to_client_and_add_results_to_db(
+        client,
+        inputs_to_process: Iterable[InputsForMassCalculations],
+        calculation_task: Callable[[InputsForMassCalculations], Tuple[BulkAddableObjects, ...]],
+        upserter_callable: Callable[[BulkAddableObjects], Insert],
+):
+    from dask.distributed import as_completed
+
+    logger.info("Submitting tasks to Dask client")
+    futures = []
+    try:
+        for input_dict in inputs_to_process:
+            future = client.submit(calculation_task, input_dict)
+            futures.append(future)
+    except ValueError as e:
+        logger.error(e)
+        raise e
+    logger.info(f"There are {len(futures)} tasks to be executed")
+
+    logger.info("Starting execution. Results will be saved to database on the fly. ")
+    for future_batch in as_completed(futures, with_results=True, raise_errors=False).batches():
+        results_nested: List[Tuple[BulkAddableObjects, ...]] = [x[1] for x in future_batch]
+        results: List[BulkAddableObjects] = list(more_itertools.flatten(results_nested))
+        logger.info(f"Running bulk_add_or_upsert for {len(results)} results")
+
+        kwargs = BulkAddOrUpsertObjectsInputs(
+            objects_to_add=results,
+            upserter_callable=upserter_callable,
+            bulk_insert=True,
+        )
+        bulk_add_or_upsert_objects(**kwargs)
