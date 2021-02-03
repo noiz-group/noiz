@@ -1,6 +1,7 @@
 import subprocess
 from loguru import logger
 from pathlib import Path
+from tqdm import tqdm
 
 
 def run_mseedindex_on_passed_dir(
@@ -40,7 +41,7 @@ def run_mseedindex_on_passed_dir(
 
     filepaths = basedir.absolute().rglob(filename_pattern)
 
-    for filepath in filepaths:
+    for filepath in tqdm(filepaths):
         if not filepath.is_file():
             continue
         _call_mseedindex_to_file(
