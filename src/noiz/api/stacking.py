@@ -296,6 +296,7 @@ def _validate_and_stack_ccfs(
 
     stack = CCFStack(
         stacking_timespan_id=stacking_timespan.id,
+        stacking_schema_id=stacking_schema.id,
         stack=mean_ccf,
         componentpair_id=componentpair.id,
         no_ccfs=no_ccfs,
