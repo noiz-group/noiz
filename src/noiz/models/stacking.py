@@ -130,7 +130,7 @@ class CCFStack(db.Model):
     __tablename__ = "ccfstack"
     __table_args__ = (
         db.UniqueConstraint(
-            "stacking_timespan_id", "componentpair_id", name="unique_stack_per_pair"
+            "stacking_timespan_id", "stacking_schema_id", "componentpair_id", name="unique_stack_per_pair_per_config"
         ),
     )
 
@@ -139,6 +139,12 @@ class CCFStack(db.Model):
         "stacking_timespan_id",
         db.BigInteger,
         db.ForeignKey("stacking_timespan.id"),
+        nullable=False,
+    )
+    stacking_schema_id = db.Column(
+        "stacking_schema_id",
+        db.Integer,
+        db.ForeignKey("stacking_schema.id"),
         nullable=False,
     )
     componentpair_id = db.Column(
@@ -152,4 +158,18 @@ class CCFStack(db.Model):
 
     ccfs = db.relationship(
         "Crosscorrelation", secondary=ccf_ccfstack_association_table, back_populates="stacks"
+    )
+
+    stacking_timespan = db.relationship(
+        "StackingTimespan",
+        foreign_keys=[stacking_timespan_id],
+        uselist=False,
+        lazy="joined"
+    )
+
+    stacking_schema = db.relationship(
+        "StackingSchema",
+        foreign_keys=[stacking_schema_id],
+        uselist=False,
+        lazy="joined"
     )
