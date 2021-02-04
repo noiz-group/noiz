@@ -37,6 +37,7 @@ class QCOneConfig(db.Model):
     id = db.Column("id", db.Integer, primary_key=True)
 
     null_policy = db.Column("null_policy", db.UnicodeText, default=NullTreatmentPolicy.PASS.value, nullable=False)
+    strict_gps = db.Column("strict_gps", db.Boolean, default=False, nullable=False)
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
     avg_gps_time_error_min = db.Column("avg_gps_time_error_min", db.Float, nullable=True)
@@ -219,6 +220,7 @@ class QCOneConfigHolder:
     """
 
     null_treatment_policy: NullTreatmentPolicy = NullTreatmentPolicy.PASS
+    strict_gps: bool = False
     starttime: Union[datetime.datetime, datetime.date] = datetime.date(2010, 1, 1)
     endtime: Union[datetime.datetime, datetime.date] = datetime.date(2030, 1, 1)
     avg_gps_time_error_min: Optional[float] = None
