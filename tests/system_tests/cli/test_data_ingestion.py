@@ -289,12 +289,17 @@ class TestDataIngestionRoutines:
             original_config = toml.load(f)
 
         for key, value in original_config['QCOne'].items():
-            if key in ("null_treatment_policy", "rejected_times"):
+            if key == "rejected_times":
                 continue
-            if key in ("starttime", "endtime"):
+            elif key == "null_treatment_policy":
+                from noiz.models.qc import NullTreatmentPolicy
+                check.is_true(isinstance(fetched_config.__getattribute__(key), NullTreatmentPolicy))
+            elif key == "strict_gps":
+                check.equal(fetched_config.__getattribute__(key), value)
+            elif key in ("starttime", "endtime"):
                 check.equal(fetched_config.__getattribute__(key).date(), value)
-                continue
-            check.almost_equal(fetched_config.__getattribute__(key), value)
+            else:
+                check.almost_equal(fetched_config.__getattribute__(key), value)
 
         check.equal(len(original_config['QCOne']['rejected_times']), len(fetched_config.time_periods_rejected))
 
@@ -323,12 +328,17 @@ class TestDataIngestionRoutines:
             original_config = toml.load(f)
 
         for key, value in original_config['QCOne'].items():
-            if key in ("null_treatment_policy", "rejected_times"):
+            if key == "rejected_times":
                 continue
-            if key in ("starttime", "endtime"):
+            elif key == "null_treatment_policy":
+                from noiz.models.qc import NullTreatmentPolicy
+                check.is_true(isinstance(fetched_config.__getattribute__(key), NullTreatmentPolicy))
+            elif key == "strict_gps":
+                check.equal(fetched_config.__getattribute__(key), value)
+            elif key in ("starttime", "endtime"):
                 check.equal(fetched_config.__getattribute__(key).date(), value)
-                continue
-            check.almost_equal(fetched_config.__getattribute__(key), value)
+            else:
+                check.almost_equal(fetched_config.__getattribute__(key), value)
 
         assert len(fetched_config.time_periods_rejected) == 0
 
