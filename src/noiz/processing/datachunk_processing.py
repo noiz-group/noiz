@@ -1,11 +1,11 @@
-from typing import Tuple
+from typing import Tuple, Optional
 
 from loguru import logger
 import obspy
 import numpy as np
 
 from noiz.api.type_aliases import ProcessDatachunksInputs
-from noiz.models.datachunk import Datachunk, ProcessedDatachunk, ProcessedDatachunkFile
+from noiz.models.datachunk import Datachunk, ProcessedDatachunk, ProcessedDatachunkFile, DatachunkFile
 from noiz.models.processing_params import ProcessedDatachunkParams
 from noiz.models.timespan import Timespan
 from noiz.models.component import Component
@@ -49,11 +49,22 @@ def one_bit_normalization(tr: obspy.Trace) -> obspy.Trace:
 def process_datachunk_wrapper(
         inputs: ProcessDatachunksInputs,
 ) -> Tuple[ProcessedDatachunk, ...]:
+    """
+    Thin wrapper around :py:meth:`noiz.processing.datachunk_processing.process_datachunk` that converts a single
+    TypedDict of input to standard keyword arguments. It also converts a single output to tuple so the upsertion method
+    is able to properly process it.
+
+    :param inputs: TypedDict with all required inputs
+    :type inputs: noiz.api.type_aliases.ProcessDatachunksInputs
+    :return: Tuple with processing result
+    :rtype: Tuple[noiz.models.datachunk.ProcessedDatachunk, ...]
+    """
 
     return (
         process_datachunk(
             datachunk=inputs["datachunk"],
             params=inputs["params"],
+            datachunk_file=inputs["datachunk_file"],
         ),
     )
 
@@ -61,9 +72,20 @@ def process_datachunk_wrapper(
 def process_datachunk(
         datachunk: Datachunk,
         params: ProcessedDatachunkParams,
+        datachunk_file: Optional[DatachunkFile] = None,
 ) -> ProcessedDatachunk:
     """
-    filldocs
+    Method that allows for processing of the datachunks.
+    It can perform spectral whitening in full spectrum as well as one bit normalization.
+
+    :param datachunk: Datachunk to be processed
+    :type datachunk: ~noiz.models.datachunk.Datachunk
+    :param params: Processing parameters
+    :type params: ~noiz.models.processing_params.ProcessedDatachunkParams
+    :param datachunk_file: Optional DatachunkFile to be have data loaded from
+    :type datachunk_file: Optional[~noiz.models.datachunk.DatachunkFile]
+    :return:
+    :rtype: noiz.models.datachunk.ProcessedDatachunk
     """
 
     if not isinstance(datachunk.timespan, Timespan):
@@ -78,7 +100,7 @@ def process_datachunk(
     logger.info(f"Starting processing of {datachunk}")
 
     logger.debug("Loading data")
-    st = datachunk.load_data()
+    st = datachunk.load_data(datachunk_file=datachunk_file)
 
     if len(st) != 1:
         msg = f"There are more than one trace in stream in {datachunk}"
