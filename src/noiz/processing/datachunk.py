@@ -52,21 +52,21 @@ def resample_with_padding(
     endtime: obspy.UTCDateTime = tr.stats.endtime
     npts: int = tr.stats.npts
 
-    logger.info("Finding sample deficit up to next power of 2")
+    logger.debug("Finding sample deficit up to next power of 2")
     deficit = 2 ** next_pow_2(npts) - npts
 
-    logger.info("Padding with zeros up to the next power of 2")
+    logger.debug("Padding with zeros up to the next power of 2")
     tr.data = np.concatenate((tr.data, np.zeros(deficit)))
 
-    logger.info("Resampling")
+    logger.debug("Resampling")
     tr.resample(sampling_rate)
 
-    logger.info(
+    logger.debug(
         f"Slicing data to fit them between starttime {starttime} and endtime {endtime}"
     )
     st = obspy.Stream(tr.slice(starttime=starttime, endtime=endtime))
 
-    logger.info("Resampling done!")
+    logger.debug("Resampling done!")
     return st
 
 
@@ -376,18 +376,18 @@ def preprocess_sliced_stream_for_datachunk(
     if verbose_output:
         steps_dict['original'] = trimmed_st.copy()
 
-    logger.info("Detrending")
+    logger.debug("Detrending")
     trimmed_st.detrend(type="polynomial", order=3)
 
     if verbose_output:
         steps_dict['detrended'] = trimmed_st.copy()
 
-    logger.info("Demeaning")
+    logger.debug("Demeaning")
     trimmed_st.detrend(type="demean")
     if verbose_output:
         steps_dict['demeaned'] = trimmed_st.copy()
 
-    logger.info(
+    logger.debug(
         f"Resampling stream to {processing_params.sampling_rate} Hz with padding to next power of 2"
     )
     trimmed_st = resample_with_padding(
@@ -403,7 +403,7 @@ def preprocess_sliced_stream_for_datachunk(
         if verbose_output:
             steps_dict['trimmed_last_sample'] = trimmed_st.copy()
 
-    logger.info(f"Tapering stream with {processing_params.preprocessing_taper_type} taper ")
+    logger.debug(f"Tapering stream with {processing_params.preprocessing_taper_type} taper ")
     trimmed_st.taper(
         type=processing_params.preprocessing_taper_type,
         max_length=processing_params.preprocessing_taper_max_length,
@@ -413,7 +413,7 @@ def preprocess_sliced_stream_for_datachunk(
     if verbose_output:
         steps_dict['tapered'] = trimmed_st.copy()
 
-    logger.info(
+    logger.debug(
         f"Filtering with bandpass to "
         f"low: {processing_params.prefiltering_low};"
         f"high: {processing_params.prefiltering_high};"
@@ -428,12 +428,12 @@ def preprocess_sliced_stream_for_datachunk(
     if verbose_output:
         steps_dict['filtered'] = trimmed_st.copy()
 
-    logger.info("Removing response")
+    logger.debug("Removing response")
     trimmed_st.remove_response(inventory)
     if verbose_output:
         steps_dict['removed_response'] = trimmed_st.copy()
 
-    logger.info(
+    logger.debug(
         f"Filtering with bandpass;"
         f"low: {processing_params.prefiltering_low}; "
         f"high: {processing_params.prefiltering_high}; "
@@ -449,7 +449,7 @@ def preprocess_sliced_stream_for_datachunk(
     if verbose_output:
         steps_dict['filtered_second_time'] = trimmed_st.copy()
 
-    logger.info("Finished preprocessing with success")
+    logger.debug("Finished preprocessing with success")
 
     return trimmed_st, steps_dict
 
@@ -467,7 +467,7 @@ def validate_slice(
     steps_dict: OrderedDict[str, obspy.Stream] = OrderedDict()
 
     if len(trimmed_st) == 0:
-        ValueError("There was no data to be cut for that timespan")
+        raise ValueError("There was no data to be cut for that timespan")
 
     try:
         validate_sample_rate(original_samplerate, trimmed_st)
@@ -714,7 +714,7 @@ def create_datachunks_for_component(
                            f"There was raised exception {e}")
             continue
 
-        logger.info("Preprocessing timespan")
+        logger.debug("Preprocessing timespan")
         trimmed_st, _ = preprocess_sliced_stream_for_datachunk(
             trimmed_st=trimmed_st,
             inventory=inventory,
@@ -735,11 +735,11 @@ def create_datachunks_for_component(
         )
 
         if filepath.exists():
-            logger.info(f'Filepath {filepath} exists. '
-                        f'Trying to find next free one.')
+            logger.debug(f"Filepath {filepath} exists. "
+                         f"Trying to find next free one.")
             filepath = increment_filename_counter(filepath=filepath)
-            logger.info(f"Free filepath found. "
-                        f"Datachunk will be saved to {filepath}")
+            logger.debug(f"Free filepath found. "
+                         f"Datachunk will be saved to {filepath}")
 
         logger.info(f"Chunk will be written to {str(filepath)}")
         directory_exists_or_create(filepath)
@@ -759,9 +759,6 @@ def create_datachunks_for_component(
             datachunk_file=datachunk_file,
             padded_npts=padded_npts,
             device_id=component.device_id
-        )
-        logger.info(
-            "Checking if there are some chunks fot tht timespan and component in db"
         )
 
         finished_datachunks.append(datachunk)
