@@ -494,7 +494,8 @@ class TestDataIngestionRoutines:
         runner = CliRunner()
         result = runner.invoke(cli, ["processing", "average_soh_gps",
                                      "-sd", "2019-09-01",
-                                     "-ed", "2019-11-01"])
+                                     "-ed", "2019-11-01",
+                                     ])
         assert result.exit_code == 0
         with noiz_app.app_context():
             timespans = fetch_timespans_between_dates(
@@ -516,13 +517,18 @@ class TestDataIngestionRoutines:
         result = runner.invoke(cli, ["export", "raw_gps_soh",
                                      "-sd", "2019-09-01",
                                      "-ed", "2019-11-01",
-                                     '-p', str(exported_filepath)])
+                                     '-p', str(exported_filepath)
+                                     ])
         assert result.exit_code == 0
         assert exported_filepath.exists()
 
     def test_calc_datachunk_stats(self, noiz_app):
         runner = CliRunner()
-        result = runner.invoke(cli, ["processing", "calc_datachunk_stats", "-sd", "2019-09-30", "-ed", "2019-10-03"])
+        result = runner.invoke(cli, ["processing", "calc_datachunk_stats",
+                                     "-sd", "2019-09-30",
+                                     "-ed", "2019-10-03",
+                                     "--no_parallel",
+                                     ])
         assert result.exit_code == 0
 
         from noiz.api.datachunk import fetch_datachunks_without_stats
@@ -540,6 +546,7 @@ class TestDataIngestionRoutines:
                                      "-c", "1",
                                      "-sd", "2019-09-30",
                                      "-ed", "2019-10-03",
+                                     "--no_parallel",
                                      ])
         assert result.exit_code == 0
 
