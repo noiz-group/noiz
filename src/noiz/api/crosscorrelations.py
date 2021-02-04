@@ -1,11 +1,12 @@
 import datetime
 from loguru import logger
 
+from noiz.api.type_aliases import CrosscorrelationRunnerInputs
 from obspy.signal.cross_correlation import correlate
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import subqueryload, Query
-from typing import Iterable, List, Union, Optional, Collection, Dict
+from typing import Iterable, List, Union, Optional, Collection, Dict, Generator, Tuple
 
 from noiz.database import db
 from noiz.exceptions import InconsistentDataException, CorruptedDataException
@@ -409,7 +410,7 @@ def _prepare_inputs_for_crosscorrelating(
         include_intracorrelation: Optional[bool] = False,
         only_autocorrelation: Optional[bool] = False,
         only_intracorrelation: Optional[bool] = False,
-):
+) -> Generator[CrosscorrelationRunnerInputs, None, None]:
     """
     Performs all the database queries to prepare all the data required for running crosscorrelations.
     Returns a tuple of inputs specific for the further calculations.
@@ -488,14 +489,21 @@ def _prepare_inputs_for_crosscorrelating(
         .all())
     grouped_datachunks = group_chunks_by_timespanid_componentid(processed_datachunks=fetched_processed_datachunks)
 
-    return fetched_component_pairs, grouped_datachunks, params
+    for timespan_id, groupped_processed_chunks in grouped_datachunks.items():
+        yield CrosscorrelationRunnerInputs(
+            timespan_id=timespan_id,
+            crosscorrelation_params=params,
+            groupped_processed_chunks=groupped_processed_chunks,
+            component_pairs=tuple(fetched_component_pairs)
+        )
+    return
 
 
 def _crosscorrelate_for_timespan(
         timespan_id: int,
         params: CrosscorrelationParams,
         groupped_processed_chunks: Dict[int, ProcessedDatachunk],
-        component_pairs: Collection[ComponentPair]
+        component_pairs: Tuple[ComponentPair]
 ) -> List[Crosscorrelation]:
     """filldocs"""
     logger.debug(f"Loading data for timespan {timespan_id}")
