@@ -293,7 +293,7 @@ class TestDataIngestionRoutines:
                 continue
             elif key == "null_treatment_policy":
                 from noiz.models.qc import NullTreatmentPolicy
-                check.is_true(isinstance(fetched_config.__getattribute__(key), NullTreatmentPolicy))
+                check.is_true(isinstance(fetched_config.__getattribute__("null_policy"), NullTreatmentPolicy))
             elif key == "strict_gps":
                 check.equal(fetched_config.__getattribute__(key), value)
             elif key in ("starttime", "endtime"):
@@ -332,7 +332,7 @@ class TestDataIngestionRoutines:
                 continue
             elif key == "null_treatment_policy":
                 from noiz.models.qc import NullTreatmentPolicy
-                check.is_true(isinstance(fetched_config.__getattribute__(key), NullTreatmentPolicy))
+                check.is_true(isinstance(fetched_config.__getattribute__("null_policy"), NullTreatmentPolicy))
             elif key == "strict_gps":
                 check.equal(fetched_config.__getattribute__(key), value)
             elif key in ("starttime", "endtime"):
