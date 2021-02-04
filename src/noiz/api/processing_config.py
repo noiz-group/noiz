@@ -338,6 +338,7 @@ def create_qcone_config(
 
     qcone = QCOneConfig(
         null_policy=qcone_holder.null_treatment_policy.value,
+        strict_gps=qcone_holder.strict_gps,
         starttime=qcone_holder.starttime,
         endtime=qcone_holder.endtime,
         avg_gps_time_error_min=qcone_holder.avg_gps_time_error_min,
