@@ -289,7 +289,7 @@ class TestDataIngestionRoutines:
             original_config = toml.load(f)
 
         for key, value in original_config['QCOne'].items():
-            if key == "rejected_times":
+            if key in ("rejected_times", "null_treatment_policy"):
                 continue
             # elif key == "null_treatment_policy":
             #     from noiz.models.qc import NullTreatmentPolicy
@@ -328,7 +328,7 @@ class TestDataIngestionRoutines:
             original_config = toml.load(f)
 
         for key, value in original_config['QCOne'].items():
-            if key == "rejected_times":
+            if key in ("rejected_times", "null_treatment_policy"):
                 continue
             # elif key == "null_treatment_policy":
             #     from noiz.models.qc import NullTreatmentPolicy
