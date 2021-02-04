@@ -220,7 +220,7 @@ def perform_crosscorrelations(
             xcorr = _crosscorrelate_for_timespan(
                 timespan_id=timespan_id,
                 params=params,
-                groupped_processed_chunks=groupped_processed_chunks,
+                grouped_processed_chunks=groupped_processed_chunks,
                 component_pairs=fetched_component_pairs
             )
         except CorruptedDataException as e:
@@ -277,7 +277,9 @@ def perform_crosscorrelations_parallel(
         only_autocorrelation: Optional[bool] = False,
         only_intracorrelation: Optional[bool] = False,
         bulk_insert: bool = True,
-        raise_errors: bool = False
+        raise_errors: bool = False,
+        batch_size: int = 5000,
+        parallel: bool = True,
 ) -> None:
     """
     Performs crosscorrelations according to provided set of selectors.
@@ -317,7 +319,7 @@ def perform_crosscorrelations_parallel(
     :rtype: NoneType
     """
 
-    fetched_component_pairs, grouped_datachunks, params = _prepare_inputs_for_crosscorrelating(
+    calculation_inputs = _prepare_inputs_for_crosscorrelating(
         crosscorrelation_params_id=crosscorrelation_params_id,
         starttime=starttime,
         endtime=endtime,
@@ -333,6 +335,21 @@ def perform_crosscorrelations_parallel(
         only_autocorrelation=only_autocorrelation,
         only_intracorrelation=only_intracorrelation,
     )
+
+    if parallel:
+        _run_calculate_and_upsert_on_dask(
+            batch_size=batch_size,
+            inputs=calculation_inputs,
+            calculation_task=calculate_datachunk_stats_wrapper,  # type: ignore
+            upserter_callable=_prepare_upsert_command_datachunk_stats,
+        )
+    else:
+        _run_calculate_and_upsert_sequentially(
+            batch_size=batch_size,
+            inputs=calculation_inputs,
+            calculation_task=calculate_datachunk_stats_wrapper,  # type: ignore
+            upserter_callable=_prepare_upsert_command_datachunk_stats,
+        )
 
     logger.info("Starting crosscorrelation process.")
 
@@ -489,26 +506,48 @@ def _prepare_inputs_for_crosscorrelating(
         .all())
     grouped_datachunks = group_chunks_by_timespanid_componentid(processed_datachunks=fetched_processed_datachunks)
 
-    for timespan_id, groupped_processed_chunks in grouped_datachunks.items():
+    for timespan_id, grouped_processed_chunks in grouped_datachunks.items():
         yield CrosscorrelationRunnerInputs(
             timespan_id=timespan_id,
             crosscorrelation_params=params,
-            groupped_processed_chunks=groupped_processed_chunks,
+            grouped_processed_chunks=grouped_processed_chunks,
             component_pairs=tuple(fetched_component_pairs)
         )
     return
 
 
+def _crosscorrelate_for_timespan_wrapper(
+        inputs: CrosscorrelationRunnerInputs,
+) -> Tuple[Crosscorrelation, ...]:
+    """
+    Thin wrapper around :py:meth:`noiz.api.crosscorrelations._crosscorrelate_for_timespan` translating
+    single input TypedDict to standard keyword arguments and converting output to a Tuple.
+
+    :param inputs: Input dictionary 
+    :type inputs: ~noiz.api.type_aliases.CrosscorrelationRunnerInputs
+    :return: Finished Crosscorrelations in form of tuple
+    :rtype: Tuple[~noiz.models.crosscorrelation.Crosscorrelation, ...]
+    """
+    return tuple(
+        _crosscorrelate_for_timespan(
+            timespan_id=inputs["timespan_id"],
+            params=inputs["crosscorrelation_params"],
+            grouped_processed_chunks=inputs["grouped_processed_chunks"],
+            component_pairs=inputs["component_pairs"],
+        )
+    )
+
+
 def _crosscorrelate_for_timespan(
         timespan_id: int,
         params: CrosscorrelationParams,
-        groupped_processed_chunks: Dict[int, ProcessedDatachunk],
+        grouped_processed_chunks: Dict[int, ProcessedDatachunk],
         component_pairs: Tuple[ComponentPair]
 ) -> List[Crosscorrelation]:
     """filldocs"""
     logger.debug(f"Loading data for timespan {timespan_id}")
     try:
-        streams = load_data_for_chunks(chunks=groupped_processed_chunks)
+        streams = load_data_for_chunks(chunks=grouped_processed_chunks)
     except CorruptedDataException as e:
         logger.error(e)
         raise CorruptedDataException(e)
@@ -517,7 +556,7 @@ def _crosscorrelate_for_timespan(
         cmp_a_id = pair.component_a_id
         cmp_b_id = pair.component_b_id
 
-        if cmp_a_id not in groupped_processed_chunks.keys() or cmp_b_id not in groupped_processed_chunks.keys():
+        if cmp_a_id not in grouped_processed_chunks.keys() or cmp_b_id not in grouped_processed_chunks.keys():
             logger.debug(f"No data for pair {pair}")
             continue
 
