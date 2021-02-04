@@ -326,18 +326,18 @@ def _generate_datachunk_preparation_inputs(
             continue
 
         if skip_existing:
-            logger.info("Checking if some timespans already exists")
+            logger.debug("Checking if some timespans already exists")
             existing_count = count_datachunks(
                 components=(component,),
                 timespans=timespans,
                 datachunk_processing_config=processing_params,
             )
             if existing_count == len(timespans):
-                logger.info("Number of existing timespans is sufficient. Skipping")
+                logger.debug("Number of existing timespans is sufficient. Skipping")
                 continue
             if existing_count > 0:
-                logger.info(f"There are only {existing_count} existing Datachunks. "
-                            f"Looking for those that are missing one by one.")
+                logger.debug(f"There are only {existing_count} existing Datachunks. "
+                             f"Looking for those that are missing one by one.")
                 new_timespans = [timespan for timespan in timespans if
                                  count_datachunks(
                                      components=(component,),
@@ -345,8 +345,8 @@ def _generate_datachunk_preparation_inputs(
                                      datachunk_processing_config=processing_params
                                  ) == 0]
                 timespans = new_timespans
-            else:
-                logger.info("There are no existing datachunks for those timespans.")
+
+        logger.info(f"There are {len(timespans)} to be sliced for that seismic file.")
 
         db.session.expunge_all()
         yield RunDatachunkPreparationInputs(
