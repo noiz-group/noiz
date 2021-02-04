@@ -288,7 +288,7 @@ def _prepare_upsert_command_datachunk(datachunk: Datachunk) -> Insert:
     return insert_datachunk
 
 
-def _prepare_datachunk_preparation_parameter_lists(
+def _generate_datachunk_preparation_inputs(
         stations: Optional[Tuple[str]],
         components: Optional[Tuple[str]],
         startdate: pendulum.Pendulum,
@@ -368,10 +368,13 @@ def run_datachunk_preparation(
 
 ):
     logger.info("Preparing jobs for execution")
-    calculation_inputs = _prepare_datachunk_preparation_parameter_lists(stations,
-                                                                        components,
-                                                                        startdate, enddate,
-                                                                        processing_config_id)
+    calculation_inputs = _generate_datachunk_preparation_inputs(
+        stations=stations,
+        components=components,
+        startdate=startdate,
+        enddate=enddate,
+        processing_config_id=processing_config_id,
+    )
 
     # TODO add more checks for bad seed files because they are crashing.
     # And instead of datachunk id there was something weird produced. It was found on SI26 in
