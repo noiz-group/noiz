@@ -452,6 +452,8 @@ def average_soh_gps(
 @click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
 @click.option("-c", "--qcone_config_id", nargs=1, type=int, default=1, show_default=True)
 @click.option('--strict_gps', is_flag=True)
+@click.option("-b", "--batch_size", nargs=1, type=int, default=1000, show_default=True)
+@click.option('--parallel/--no_parallel', default=True)
 def run_qcone(
         station,
         component,
@@ -459,6 +461,8 @@ def run_qcone(
         enddate,
         qcone_config_id,
         strict_gps,
+        batch_size,
+        parallel,
 ):
     """Calculate QCOne results """
 
@@ -471,6 +475,8 @@ def run_qcone(
         endtime=enddate,
         qcone_config_id=qcone_config_id,
         strict_gps=strict_gps,
+        batch_size=batch_size,
+        parallel=parallel,
     )
 
 
