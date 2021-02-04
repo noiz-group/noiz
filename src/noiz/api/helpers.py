@@ -1,5 +1,6 @@
 import more_itertools
 from loguru import logger
+from noiz.exceptions import CorruptedDataException, InconsistentDataException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import UnmappedInstanceError
 from sqlalchemy.sql import Insert
@@ -204,6 +205,7 @@ def _run_calculate_and_upsert_on_dask(
         calculation_task: Callable[[InputsForMassCalculations], Tuple[BulkAddableObjects, ...]],
         upserter_callable: Callable[[BulkAddableObjects], Insert],
         batch_size: int = 5000,
+        raise_errors: bool = False,
 ):
     from dask.distributed import Client
     client = Client()
@@ -218,8 +220,10 @@ def _run_calculate_and_upsert_on_dask(
             inputs_to_process=input_batch,
             calculation_task=calculation_task,
             upserter_callable=upserter_callable,
+            raise_errors=raise_errors,
         )
     client.close()
+    return
 
 
 def _submit_task_to_client_and_add_results_to_db(
@@ -227,18 +231,32 @@ def _submit_task_to_client_and_add_results_to_db(
         inputs_to_process: Iterable[InputsForMassCalculations],
         calculation_task: Callable[[InputsForMassCalculations], Tuple[BulkAddableObjects, ...]],
         upserter_callable: Callable[[BulkAddableObjects], Insert],
+        raise_errors: bool = False,
 ):
     from dask.distributed import as_completed
 
     logger.info("Submitting tasks to Dask client")
     futures = []
-    try:
-        for input_dict in inputs_to_process:
-            future = client.submit(calculation_task, input_dict)
-            futures.append(future)
-    except ValueError as e:
-        logger.error(e)
-        raise e
+    for input_dict in inputs_to_process:
+        try:
+            futures.append(client.submit(calculation_task, input_dict))
+        except CorruptedDataException as e:
+            if raise_errors:
+                logger.error(f"Cought error {e}. Finishing execution.")
+                raise CorruptedDataException(e)
+            else:
+                logger.error(f"Cought error {e}. Skipping to next timespan.")
+                continue
+        except InconsistentDataException as e:
+            if raise_errors:
+                logger.error(f"Cought error {e}. Finishing execution.")
+                raise InconsistentDataException(e)
+            else:
+                logger.error(f"Cought error {e}. Skipping to next timespan.")
+                continue
+        except ValueError as e:
+            logger.error(e)
+            raise e
     logger.info(f"There are {len(futures)} tasks to be executed")
 
     logger.info("Starting execution. Results will be saved to database on the fly. ")
@@ -261,13 +279,29 @@ def _run_calculate_and_upsert_sequentially(
         calculation_task: Callable[[InputsForMassCalculations], Tuple[BulkAddableObjects, ...]],
         upserter_callable: Callable[[BulkAddableObjects], Insert],
         batch_size: int = 1000,
+        raise_errors: bool = False,
 ):
 
     for i, input_batch in enumerate(more_itertools.chunked(iterable=inputs, n=batch_size)):
         logger.info(f"Starting processing of chunk no.{i}")
         results_nested = []
         for input_dict in input_batch:
-            results_nested.append(calculation_task(input_dict))
+            try:
+                results_nested.append(calculation_task(input_dict))
+            except CorruptedDataException as e:
+                if raise_errors:
+                    logger.error(f"Cought error {e}. Finishing execution.")
+                    raise CorruptedDataException(e)
+                else:
+                    logger.error(f"Cought error {e}. Skipping to next timespan.")
+                    continue
+            except InconsistentDataException as e:
+                if raise_errors:
+                    logger.error(f"Cought error {e}. Finishing execution.")
+                    raise InconsistentDataException(e)
+                else:
+                    logger.error(f"Cought error {e}. Skipping to next timespan.")
+                    continue
         logger.info("Calculations finished for a batch. Starting upsert operation.")
 
         results: List[BulkAddableObjects] = list(more_itertools.flatten(results_nested))
