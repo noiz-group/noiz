@@ -505,35 +505,6 @@ def run_datachunk_processing(
         stations: Optional[Union[Collection[str], str]] = None,
         components: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
-):
-    # filldocs
-    datachunks_to_process = _select_datachunks_for_processing(
-        processed_datachunk_params_id=processed_datachunk_params_id,
-        starttime=starttime,
-        endtime=endtime,
-        networks=networks,
-        stations=stations,
-        components=components,
-        component_ids=component_ids,
-    )
-
-    processed_datachunks = []
-    for jobkwargs in datachunks_to_process:
-        processed_datachunks.append(process_datachunk(**jobkwargs))
-
-    add_or_upsert_processed_datachunks_in_db(processed_datachunks=processed_datachunks)
-
-    return
-
-
-def run_datachunk_processing_parallel(
-        processed_datachunk_params_id: int,
-        starttime: Union[datetime.date, datetime.datetime],
-        endtime: Union[datetime.date, datetime.datetime],
-        networks: Optional[Union[Collection[str], str]] = None,
-        stations: Optional[Union[Collection[str], str]] = None,
-        components: Optional[Union[Collection[str], str]] = None,
-        component_ids: Optional[Union[Collection[int], int]] = None,
         batch_size: int = 2000,
         parallel: bool = True,
 
@@ -628,7 +599,11 @@ def _select_datachunks_for_processing(
     for chunk in fetched_datachunks:
         if chunk.id in valid_chunks[True]:
             logger.debug(f"There QCOneResult was True for datachunk with id {chunk.id}")
-            yield {"datachunk": chunk, "params": params}
+            yield ProcessDatachunksInputs(
+                datachunk=chunk,
+                params=params,
+                datachunk_file=None
+            )
 
         elif chunk.id in valid_chunks[False]:
             logger.debug(f"There QCOneResult was False for datachunk with id {chunk.id}")
@@ -636,57 +611,6 @@ def _select_datachunks_for_processing(
         else:
             logger.debug(f"There was no QCOneResult for datachunk with id {chunk.id}")
             continue
-
-
-def add_or_upsert_processed_datachunks_in_db(
-        processed_datachunks: Union[ProcessedDatachunk, Collection[ProcessedDatachunk]],
-        bulk_insert: bool = True
-):
-    """
-    Adds or upserts provided iterable of ProcessedDatachunk to DB.
-    Must be executed within AppContext.
-
-    :param processed_datachunks:
-    :type processed_datachunks: Union[ProcessedDatachunk, Iterable[ProcessedDatachunk]]
-    :param bulk_insert: If bulk insert should be even attempted
-    :type bulk_insert: bool
-    :return:
-    :rtype:
-    """
-    valid_processed_datachunks: Collection[ProcessedDatachunk]
-
-    if isinstance(processed_datachunks, ProcessedDatachunk):
-        valid_processed_datachunks = (processed_datachunks,)
-    else:
-        valid_processed_datachunks = processed_datachunks
-
-    if bulk_insert:
-        logger.info("Trying to do bulk insert")
-        try:
-            bulk_add_objects(valid_processed_datachunks)
-        except (IntegrityError, UnmappedInstanceError) as e:
-            logger.warning(f"There was an integrity error thrown. {e}. Performing rollback.")
-            db.session.rollback()
-
-            logger.warning("Retrying with upsert")
-            upsert_processed_datachunks(valid_processed_datachunks)
-    else:
-        logger.info(f"Starting to perform careful upsert. There are {len(valid_processed_datachunks)} to insert")
-        upsert_processed_datachunks(valid_processed_datachunks)
-
-    return
-
-
-def upsert_processed_datachunks(processed_datachunks):
-    for proc_datachunk in processed_datachunks:
-        if not isinstance(proc_datachunk, ProcessedDatachunk):
-            logger.info(f"Got {type(proc_datachunk)} and not ProcessedDatachunk. Skipping")
-            continue
-        logger.info("ProcessedDatachunks already exists in db. Updating.")
-        insert_command = _prepare_upsert_command_processed_datachunk(proc_datachunk)
-        db.session.execute(insert_command)
-        logger.debug('Committing session.')
-    db.session.commit()
 
 
 def _prepare_upsert_command_processed_datachunk(proc_datachunk):
