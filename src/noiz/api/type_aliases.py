@@ -59,6 +59,7 @@ InputsForMassCalculations = Union[
     RunDatachunkPreparationInputs,
     QCOneRunnerInputs,
     ProcessDatachunksInputs,
+    CrosscorrelationRunnerInputs
 ]
 
 
