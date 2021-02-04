@@ -371,16 +371,19 @@ def _prepare_datachunk_preparation_parameter_lists(
             if existing_count == len(timespans):
                 logger.info("Number of existing timespans is sufficient. Skipping")
                 continue
+            if existing_count > 0:
+                logger.info(f"There are only {existing_count} existing Datachunks. "
+                            f"Looking for those that are missing one by one.")
+                new_timespans = [timespan for timespan in timespans if
+                                 count_datachunks(
+                                     components=(component,),
+                                     timespans=(timespan,),
+                                     datachunk_processing_config=processing_params
+                                 ) == 0]
+                timespans = new_timespans
+            else:
+                logger.info(f"There are no existing datachunks for those timespans.")
 
-            logger.info(f"There are only {existing_count} existing Datachunks. "
-                        f"Looking for those that are missing one by one.")
-            new_timespans = [timespan for timespan in timespans if
-                             count_datachunks(
-                                 components=(component,),
-                                 timespans=(timespan,),
-                                 datachunk_processing_config=processing_params
-                             ) == 0]
-            timespans = new_timespans
 
         yield RunDatachunkPreparationInputs(
             component=component,
