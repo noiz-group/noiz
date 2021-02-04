@@ -120,7 +120,7 @@ def _prepare_upsert_command_crosscorrelation(xcorr: Crosscorrelation) -> Insert:
     return insert_command
 
 
-def perform_crosscorrelations_parallel(
+def perform_crosscorrelations(
         crosscorrelation_params_id: int,
         starttime: Union[datetime.date, datetime.datetime],
         endtime: Union[datetime.date, datetime.datetime],
