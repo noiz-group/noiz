@@ -400,6 +400,7 @@ def _generate_inputs_for_qcone_runner(
         used_datachunk_ids = []
         for datachunk, stats, avggps in fetched_data:
             used_datachunk_ids.append(datachunk.id)
+            db.session.expunge_all()
             yield QCOneRunnerInputs(
                 datachunk=datachunk,
                 qcone_config=qcone_config,
@@ -420,6 +421,7 @@ def _generate_inputs_for_qcone_runner(
             logger.info(f"Fetching done. There are {len(fetched_topup_data)} items to process. "
                         f"Starting results generation.")
             for datachunk, stats in fetched_topup_data:
+                db.session.expunge_all()
                 yield QCOneRunnerInputs(
                     datachunk=datachunk,
                     qcone_config=qcone_config,
@@ -444,6 +446,7 @@ def _generate_inputs_for_qcone_runner(
         used_datachunk_ids = []
         for datachunk, avggps in fetched_data:
             used_datachunk_ids.append(datachunk.id)
+            db.session.expunge_all()
             yield QCOneRunnerInputs(
                 datachunk=datachunk,
                 qcone_config=qcone_config,
@@ -463,6 +466,7 @@ def _generate_inputs_for_qcone_runner(
             logger.info(f"Fetching done. There are {len(fetched_topup_data)} items to process. "
                         f"Starting results generation.")
             for datachunk in fetched_topup_data:
+                db.session.expunge_all()
                 yield QCOneRunnerInputs(
                     datachunk=datachunk,
                     qcone_config=qcone_config,
@@ -482,6 +486,7 @@ def _generate_inputs_for_qcone_runner(
 
         logger.info(f"Fetching done. There are {len(fetched_data)} items to process. Starting results generation.")
         for datachunk, stats in fetched_data:
+            db.session.expunge_all()
             yield QCOneRunnerInputs(
                 datachunk=datachunk,
                 qcone_config=qcone_config,
@@ -498,6 +503,7 @@ def _generate_inputs_for_qcone_runner(
 
         logger.info(f"Fetching done. There are {len(fetched_data)} items to process. Starting results generation.")
         for datachunk in fetched_data:
+            db.session.expunge_all()
             yield QCOneRunnerInputs(
                 datachunk=datachunk,
                 qcone_config=qcone_config,
