@@ -294,7 +294,7 @@ def _generate_datachunk_preparation_inputs(
         startdate: pendulum.Pendulum,
         enddate: pendulum.Pendulum,
         processing_config_id: int,
-        skip_existing: bool = False,
+        skip_existing: bool = True,
 ) -> Generator[RunDatachunkPreparationInputs, None, None]:
     date_period = pendulum.period(startdate, enddate)
 
@@ -325,7 +325,7 @@ def _generate_datachunk_preparation_inputs(
             logger.warning(f"{e} Skipping.")
             continue
 
-        if not skip_existing:
+        if skip_existing:
             logger.info("Checking if some timespans already exists")
             existing_count = count_datachunks(
                 components=(component,),
