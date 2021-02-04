@@ -599,6 +599,7 @@ def _select_datachunks_for_processing(
     for chunk in fetched_datachunks:
         if chunk.id in valid_chunks[True]:
             logger.debug(f"There QCOneResult was True for datachunk with id {chunk.id}")
+            db.session.expunge_all()
             yield ProcessDatachunksInputs(
                 datachunk=chunk,
                 params=params,

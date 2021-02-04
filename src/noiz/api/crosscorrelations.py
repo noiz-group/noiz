@@ -306,6 +306,7 @@ def _prepare_inputs_for_crosscorrelating(
     grouped_datachunks = group_chunks_by_timespanid_componentid(processed_datachunks=fetched_processed_datachunks)
 
     for timespan_id, grouped_processed_chunks in grouped_datachunks.items():
+        db.session.expunge_all()
         yield CrosscorrelationRunnerInputs(
             timespan_id=timespan_id,
             crosscorrelation_params=params,
