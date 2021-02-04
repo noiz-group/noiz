@@ -50,8 +50,8 @@ class QCOneRunnerInputs(TypedDict):
 class CrosscorrelationRunnerInputs(TypedDict):
     timespan_id: int
     crosscorrelation_params: CrosscorrelationParams
-    groupped_processed_chunks: DefaultDict[int, Dict[int, ProcessedDatachunk]]
-    component_pairs: ComponentPair
+    groupped_processed_chunks: Dict[int, ProcessedDatachunk]
+    component_pairs: Tuple[ComponentPair]
 
 
 InputsForMassCalculations = Union[
