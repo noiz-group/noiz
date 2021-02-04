@@ -105,10 +105,11 @@ def validate_dict_as_qcone_holder(loaded_dict: Dict) -> QCOneConfigHolder:
 
     processed_dict = loaded_dict.copy()
 
-    validated_forbidden_channels = []
-    for forb_chn in loaded_dict['rejected_times']:
-        validated_forbidden_channels.append(QCOneConfigRejectedTimeHolder(**forb_chn))
-    processed_dict['rejected_times'] = validated_forbidden_channels
+    if "rejected_times" in loaded_dict.keys():
+        validated_forbidden_channels = []
+        for forb_chn in loaded_dict["rejected_times"]:
+            validated_forbidden_channels.append(QCOneConfigRejectedTimeHolder(**forb_chn))
+        processed_dict["rejected_times"] = validated_forbidden_channels
 
     return QCOneConfigHolder(**processed_dict)
 
