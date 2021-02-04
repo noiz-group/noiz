@@ -238,7 +238,6 @@ def process_qcone(
         qcone_config_id: int,
         starttime: Union[datetime.date, datetime.datetime],
         endtime: Union[datetime.date, datetime.datetime],
-        strict_gps: bool = False,
         networks: Optional[Union[Collection[str], str]] = None,
         stations: Optional[Union[Collection[str], str]] = None,
         components: Optional[Union[Collection[str], str]] = None,
@@ -272,8 +271,6 @@ def process_qcone(
     :type endtime: Union[datetime.date, datetime.datetime],
     :param use_gps: If gps information should be used in the process
     :type use_gps: bool
-    :param strict_gps: If the datachunks not containing gps information should be ommited.
-    :type strict_gps: bool
     :param networks: Networks of components to be fetched
     :type networks: Optional[Union[Collection[str], str]]
     :param stations: Stations of components to be fetched
@@ -289,7 +286,6 @@ def process_qcone(
         qcone_config_id=qcone_config_id,
         starttime=starttime,
         endtime=endtime,
-        strict_gps=strict_gps,
         networks=networks,
         stations=stations,
         components=components,
@@ -317,12 +313,12 @@ def _prepare_inputs_for_qcone_runner(
         qcone_config_id: int,
         starttime: Union[datetime.date, datetime.datetime],
         endtime: Union[datetime.date, datetime.datetime],
-        strict_gps: bool = False,
         networks: Optional[Union[Collection[str], str]] = None,
         stations: Optional[Union[Collection[str], str]] = None,
         components: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
 ) -> Generator[QCOneRunnerInputs, None, None]:
+    """filldocs"""
     try:
         qcone_config: QCOneConfig = fetch_qcone_config_single(id=qcone_config_id)
     except EmptyResultException as e:
@@ -341,7 +337,7 @@ def _prepare_inputs_for_qcone_runner(
         timespans=timespans,
         fetch_gps=qcone_config.uses_gps(),
         fetch_stats=qcone_config.uses_stats,
-        top_up_gps=not strict_gps
+        top_up_gps=not qcone_config.strict_gps
     )
     return calculation_inputs
 
