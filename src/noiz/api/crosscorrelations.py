@@ -1,5 +1,6 @@
 import datetime
 from loguru import logger
+from sqlalchemy.sql import Insert
 
 from noiz.api.type_aliases import CrosscorrelationRunnerInputs
 from obspy.signal.cross_correlation import correlate
@@ -22,7 +23,8 @@ from noiz.processing.crosscorrelations import (
 )
 
 from noiz.api.component_pair import fetch_componentpairs
-from noiz.api.helpers import extract_object_ids, validate_to_tuple, bulk_add_objects
+from noiz.api.helpers import extract_object_ids, validate_to_tuple, bulk_add_objects, _run_calculate_and_upsert_on_dask, \
+    _run_calculate_and_upsert_sequentially
 from noiz.api.processing_config import fetch_crosscorrelation_params_by_id
 from noiz.api.timespan import fetch_timespans_between_dates
 
@@ -117,19 +119,7 @@ def upsert_crosscorrelations(crosscorrelations: Iterable[Crosscorrelation]) -> N
     logger.info("Starting upserting")
     i = 0
     for i, xcorr in enumerate(crosscorrelations):
-        insert_command = (
-            insert(Crosscorrelation)
-            .values(
-                crosscorrelation_params_id=xcorr.crosscorrelation_params_id,
-                componentpair_id=xcorr.componentpair_id,
-                timespan_id=xcorr.timespan_id,
-                ccf=xcorr.ccf,
-            )
-            .on_conflict_do_update(
-                constraint="unique_ccf_per_timespan_per_componentpair_per_config",
-                set_=dict(ccf=xcorr.ccf),
-            )
-        )
+        insert_command = _prepare_upsert_command_crosscorrelation(xcorr)
         db.session.execute(insert_command)
         logger.debug(f"{i + 1} Upserts done")
 
@@ -138,6 +128,23 @@ def upsert_crosscorrelations(crosscorrelations: Iterable[Crosscorrelation]) -> N
     db.session.commit()
     logger.info("Commit done")
     return
+
+
+def _prepare_upsert_command_crosscorrelation(xcorr: Crosscorrelation) -> Insert:
+    insert_command = (
+        insert(Crosscorrelation)
+        .values(
+            crosscorrelation_params_id=xcorr.crosscorrelation_params_id,
+            componentpair_id=xcorr.componentpair_id,
+            timespan_id=xcorr.timespan_id,
+            ccf=xcorr.ccf,
+        )
+        .on_conflict_do_update(
+            constraint="unique_ccf_per_timespan_per_componentpair_per_config",
+            set_=dict(ccf=xcorr.ccf),
+        )
+    )
+    return insert_command
 
 
 def perform_crosscorrelations(
@@ -340,75 +347,16 @@ def perform_crosscorrelations_parallel(
         _run_calculate_and_upsert_on_dask(
             batch_size=batch_size,
             inputs=calculation_inputs,
-            calculation_task=calculate_datachunk_stats_wrapper,  # type: ignore
-            upserter_callable=_prepare_upsert_command_datachunk_stats,
+            calculation_task=_crosscorrelate_for_timespan_wrapper,  # type: ignore
+            upserter_callable=_prepare_upsert_command_crosscorrelation,
         )
     else:
         _run_calculate_and_upsert_sequentially(
             batch_size=batch_size,
             inputs=calculation_inputs,
-            calculation_task=calculate_datachunk_stats_wrapper,  # type: ignore
-            upserter_callable=_prepare_upsert_command_datachunk_stats,
+            calculation_task=_crosscorrelate_for_timespan_wrapper,  # type: ignore
+            upserter_callable=_prepare_upsert_command_crosscorrelation,
         )
-
-    logger.info("Starting crosscorrelation process.")
-
-    from dask.distributed import Client, as_completed
-    client = Client()
-
-    logger.info(f'Dask client started succesfully. '
-                f'You can monitor execution on {client.dashboard_link}')
-
-    logger.info("Submitting tasks to Dask client")
-
-    futures = []
-    for timespan_id, groupped_processed_chunks in grouped_datachunks.items():
-        try:
-            kwargs_dict = dict(
-                timespan_id=timespan_id,
-                params=params,
-                groupped_processed_chunks=groupped_processed_chunks,
-                component_pairs=fetched_component_pairs
-            )
-
-            future = client.submit(_crosscorrelate_for_timespan, **kwargs_dict)
-            futures.append(future)
-
-        except CorruptedDataException as e:
-            if raise_errors:
-                logger.error(f"Cought error {e}. Finishing execution.")
-                raise CorruptedDataException(e)
-            else:
-                logger.error(f"Cought error {e}. Skipping to next timespan.")
-                continue
-        except InconsistentDataException as e:
-            if raise_errors:
-                logger.error(f"Cought error {e}. Finishing execution.")
-                raise InconsistentDataException(e)
-            else:
-                logger.error(f"Cought error {e}. Skipping to next timespan.")
-                continue
-    xcorrs = []
-    for future, result in as_completed(futures, with_results=True, raise_errors=False):
-        xcorrs.extend(result)
-
-    logger.info(f"There were {len(xcorrs)} crosscorrelations performed.")
-
-    if bulk_insert:
-        logger.info("Trying to do bulk insert")
-        try:
-            bulk_add_objects(xcorrs)
-        except IntegrityError as e:
-            logger.warning(f"There was an integrity error thrown. {e}. Performing rollback.")
-            db.session.rollback()
-
-            logger.warning("Retrying with upsert")
-            upsert_crosscorrelations(xcorrs)
-    else:
-        logger.info(f"Starting to perform careful upsert. There are {len(xcorrs)} to insert")
-        upsert_crosscorrelations(xcorrs)
-
-    logger.info("Success!")
     return
 
 
@@ -523,7 +471,7 @@ def _crosscorrelate_for_timespan_wrapper(
     Thin wrapper around :py:meth:`noiz.api.crosscorrelations._crosscorrelate_for_timespan` translating
     single input TypedDict to standard keyword arguments and converting output to a Tuple.
 
-    :param inputs: Input dictionary 
+    :param inputs: Input dictionary
     :type inputs: ~noiz.api.type_aliases.CrosscorrelationRunnerInputs
     :return: Finished Crosscorrelations in form of tuple
     :rtype: Tuple[~noiz.models.crosscorrelation.Crosscorrelation, ...]
@@ -542,7 +490,7 @@ def _crosscorrelate_for_timespan(
         timespan_id: int,
         params: CrosscorrelationParams,
         grouped_processed_chunks: Dict[int, ProcessedDatachunk],
-        component_pairs: Tuple[ComponentPair]
+        component_pairs: Tuple[ComponentPair, ...]
 ) -> List[Crosscorrelation]:
     """filldocs"""
     logger.debug(f"Loading data for timespan {timespan_id}")
