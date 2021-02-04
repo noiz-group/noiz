@@ -103,33 +103,6 @@ def _query_crosscorrelation(
     return db.session.query(Crosscorrelation).filter(*filters).options(opts)
 
 
-def upsert_crosscorrelations(crosscorrelations: Iterable[Crosscorrelation]) -> None:
-    """
-    Upserts the Crosscorrelation objects.
-    Tries to do insert, in case of conflict it updates existing entry by uploading new ccf timeseries.
-
-    Warning: Must be executed within app_context
-    Warning: Uses Postgres specific insert command
-
-    :param crosscorrelations: Crosscorrelations to be inserted
-    :type crosscorrelations: Iterable[Crosscorrelation]
-    :return: None
-    :rtype: None
-    """
-    logger.info("Starting upserting")
-    i = 0
-    for i, xcorr in enumerate(crosscorrelations):
-        insert_command = _prepare_upsert_command_crosscorrelation(xcorr)
-        db.session.execute(insert_command)
-        logger.debug(f"{i + 1} Upserts done")
-
-    logger.info(f"There were {i} upsert commands prepared.")
-    logger.info("Commiting changes")
-    db.session.commit()
-    logger.info("Commit done")
-    return
-
-
 def _prepare_upsert_command_crosscorrelation(xcorr: Crosscorrelation) -> Insert:
     insert_command = (
         insert(Crosscorrelation)
@@ -147,127 +120,6 @@ def _prepare_upsert_command_crosscorrelation(xcorr: Crosscorrelation) -> Insert:
     return insert_command
 
 
-def perform_crosscorrelations(
-        crosscorrelation_params_id: int,
-        starttime: Union[datetime.date, datetime.datetime],
-        endtime: Union[datetime.date, datetime.datetime],
-        network_codes_a: Optional[Union[Collection[str], str]] = None,
-        station_codes_a: Optional[Union[Collection[str], str]] = None,
-        component_codes_a: Optional[Union[Collection[str], str]] = None,
-        network_codes_b: Optional[Union[Collection[str], str]] = None,
-        station_codes_b: Optional[Union[Collection[str], str]] = None,
-        component_codes_b: Optional[Union[Collection[str], str]] = None,
-        accepted_component_code_pairs: Optional[Union[Collection[str], str]] = None,
-        include_autocorrelation: Optional[bool] = False,
-        include_intracorrelation: Optional[bool] = False,
-        only_autocorrelation: Optional[bool] = False,
-        only_intracorrelation: Optional[bool] = False,
-        bulk_insert: bool = True,
-        raise_errors: bool = False
-) -> None:
-    """
-    Performs crosscorrelations according to provided set of selectors.
-    It does not use parallelism.
-
-    :param crosscorrelation_params_id: ID of CrosscorrelationParams object to be used as config
-    :type crosscorrelation_params_id: int
-    :param starttime: Date from where to start the query
-    :type starttime: Union[datetime.date, datetime.datetime]
-    :param endtime: Date on which finish the query
-    :type endtime: Union[datetime.date, datetime.datetime]
-    :param network_codes_a: Selector for network code of A station in the pair
-    :type network_codes_a: Optional[Union[Collection[str], str]]
-    :param station_codes_a: Selector for station code of A station in the pair
-    :type station_codes_a: Optional[Union[Collection[str], str]]
-    :param component_codes_a: Selector for component code of A station in the pair
-    :type component_codes_a: Optional[Union[Collection[str], str]]
-    :param network_codes_b: Selector for network code of B station in the pair
-    :type network_codes_b: Optional[Union[Collection[str], str]]
-    :param station_codes_b: Selector for station code of B station in the pair
-    :type station_codes_b: Optional[Union[Collection[str], str]]
-    :param component_codes_b: Selector for component code of B station in the pair
-    :type component_codes_b: Optional[Union[Collection[str], str]]
-    :param include_autocorrelation: If autocorrelation pairs should be also included
-    :type include_autocorrelation: Optional[bool]
-    :param include_intracorrelation: If intracorrelation pairs should be also included
-    :type include_intracorrelation: Optional[bool]
-    :param only_autocorrelation: If only autocorrelation pairs should be selected
-    :type only_autocorrelation: Optional[bool]
-    :param only_intracorrelation: If only intracorrelation pairs should be selected
-    :type only_intracorrelation: Optional[bool]
-    :param bulk_insert: If bulk insert should be even attempted
-    :type bulk_insert: bool
-    :param raise_errors: If errors should be raised or just logged
-    :type raise_errors: bool
-    :return: None
-    :rtype: NoneType
-    """
-
-    fetched_component_pairs, grouped_datachunks, params = _prepare_inputs_for_crosscorrelating(
-        crosscorrelation_params_id=crosscorrelation_params_id,
-        starttime=starttime,
-        endtime=endtime,
-        network_codes_a=network_codes_a,
-        station_codes_a=station_codes_a,
-        component_codes_a=component_codes_a,
-        network_codes_b=network_codes_b,
-        station_codes_b=station_codes_b,
-        component_codes_b=component_codes_b,
-        accepted_component_code_pairs=accepted_component_code_pairs,
-        include_autocorrelation=include_autocorrelation,
-        include_intracorrelation=include_intracorrelation,
-        only_autocorrelation=only_autocorrelation,
-        only_intracorrelation=only_intracorrelation,
-    )
-
-    logger.info("Starting crosscorrelation process.")
-    xcorrs = []
-    for timespan_id, groupped_processed_chunks in grouped_datachunks.items():
-        try:
-            xcorr = _crosscorrelate_for_timespan(
-                timespan_id=timespan_id,
-                params=params,
-                grouped_processed_chunks=groupped_processed_chunks,
-                component_pairs=fetched_component_pairs
-            )
-        except CorruptedDataException as e:
-            if raise_errors:
-                logger.error(f"Cought error {e}. Finishing execution.")
-                raise CorruptedDataException(e)
-            else:
-                logger.error(f"Cought error {e}. Skipping to next timespan.")
-                continue
-        except InconsistentDataException as e:
-            if raise_errors:
-                logger.error(f"Cought error {e}. Finishing execution.")
-                raise InconsistentDataException(e)
-            else:
-                logger.error(f"Cought error {e}. Skipping to next timespan.")
-                continue
-
-        xcorrs.extend(xcorr)
-        logger.debug(f"Correlations for timespan_id {timespan_id} done")
-
-    logger.info(f"There were {len(xcorrs)} crosscorrelations performed.")
-
-    if bulk_insert:
-        logger.info("Trying to do bulk insert")
-        try:
-            bulk_add_objects(xcorrs)
-        except IntegrityError as e:
-            logger.warning(f"There was an integrity error thrown. {e}. Performing rollback.")
-            db.session.rollback()
-
-            logger.warning("Retrying with upsert")
-            upsert_crosscorrelations(xcorrs)
-    else:
-        logger.info(f"Starting to perform careful upsert. There are {len(xcorrs)} to insert")
-        upsert_crosscorrelations(xcorrs)
-
-    logger.info("Success!")
-    return
-
-
 def perform_crosscorrelations_parallel(
         crosscorrelation_params_id: int,
         starttime: Union[datetime.date, datetime.datetime],
@@ -283,7 +135,6 @@ def perform_crosscorrelations_parallel(
         include_intracorrelation: Optional[bool] = False,
         only_autocorrelation: Optional[bool] = False,
         only_intracorrelation: Optional[bool] = False,
-        bulk_insert: bool = True,
         raise_errors: bool = False,
         batch_size: int = 5000,
         parallel: bool = True,
@@ -318,8 +169,6 @@ def perform_crosscorrelations_parallel(
     :type only_autocorrelation: Optional[bool]
     :param only_intracorrelation: If only intracorrelation pairs should be selected
     :type only_intracorrelation: Optional[bool]
-    :param bulk_insert: If bulk insert should be even attempted
-    :type bulk_insert: bool
     :param raise_errors: If errors should be raised or just logged
     :type raise_errors: bool
     :return: None
@@ -349,6 +198,7 @@ def perform_crosscorrelations_parallel(
             inputs=calculation_inputs,
             calculation_task=_crosscorrelate_for_timespan_wrapper,  # type: ignore
             upserter_callable=_prepare_upsert_command_crosscorrelation,
+            raise_errors=raise_errors,
         )
     else:
         _run_calculate_and_upsert_sequentially(
@@ -356,6 +206,7 @@ def perform_crosscorrelations_parallel(
             inputs=calculation_inputs,
             calculation_task=_crosscorrelate_for_timespan_wrapper,  # type: ignore
             upserter_callable=_prepare_upsert_command_crosscorrelation,
+            raise_errors=raise_errors,
         )
     return
 
