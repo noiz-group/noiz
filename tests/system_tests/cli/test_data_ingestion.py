@@ -289,14 +289,58 @@ class TestDataIngestionRoutines:
             original_config = toml.load(f)
 
         for key, value in original_config['QCOne'].items():
-            if key in ("null_treatment_policy", "rejected_times"):
+            if key in ("rejected_times", "null_treatment_policy"):
                 continue
-            if key in ("starttime", "endtime"):
+            # elif key == "null_treatment_policy":
+            #     from noiz.models.qc import NullTreatmentPolicy
+            #     check.is_true(isinstance(fetched_config.__getattribute__("null_policy"), NullTreatmentPolicy))
+            elif key == "strict_gps":
+                check.is_false(fetched_config.__getattribute__(key), value)
+            elif key in ("starttime", "endtime"):
                 check.equal(fetched_config.__getattribute__(key).date(), value)
-                continue
-            check.almost_equal(fetched_config.__getattribute__(key), value)
+            else:
+                check.almost_equal(fetched_config.__getattribute__(key), value)
 
         check.equal(len(original_config['QCOne']['rejected_times']), len(fetched_config.time_periods_rejected))
+
+    def test_add_qcone_config_no_rejected_times(self, workdir_with_content, noiz_app):
+
+        config_path = workdir_with_content.joinpath('QCOneConfig_without_rejected_times.toml')
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["configs", "add_qcone_config", "--add_to_db", "-f", str(config_path)])
+
+        assert result.exit_code == 0
+
+        import toml
+        import pytest_check as check
+        from noiz.api.qc import fetch_qcone_config_single
+        from noiz.models.qc import QCOneConfig
+
+        with noiz_app.app_context():
+            fetched_config = fetch_qcone_config_single(id=2)
+            all_configs = QCOneConfig.query.all()
+
+        assert isinstance(fetched_config, QCOneConfig)
+        assert len(all_configs) == 2
+
+        with open(config_path, 'r') as f:
+            original_config = toml.load(f)
+
+        for key, value in original_config['QCOne'].items():
+            if key in ("rejected_times", "null_treatment_policy"):
+                continue
+            # elif key == "null_treatment_policy":
+            #     from noiz.models.qc import NullTreatmentPolicy
+            #     check.is_true(isinstance(fetched_config.__getattribute__("null_policy"), NullTreatmentPolicy))
+            elif key == "strict_gps":
+                check.is_false(fetched_config.__getattribute__(key), value)
+            elif key in ("starttime", "endtime"):
+                check.equal(fetched_config.__getattribute__(key).date(), value)
+            else:
+                check.almost_equal(fetched_config.__getattribute__(key), value)
+
+        assert len(fetched_config.time_periods_rejected) == 0
 
     def test_insert_processed_datachunk_params(self, workdir_with_content, noiz_app):
 
