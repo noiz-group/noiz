@@ -262,46 +262,6 @@ def _determine_filters_and_opts_for_datachunk(
     return filters, opts
 
 
-def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
-    """
-    Adds or upserts provided iterable of Datachunks to DB.
-    Must be executed within AppContext.
-
-    :param datachunks:
-    :type datachunks: Iterable[Datachunk]
-    :return:
-    :rtype:
-    """
-    for datachunk in datachunks:
-
-        if not isinstance(datachunk, Datachunk):
-            logger.warning(f'Provided object is not an instance of Datachunk. '
-                           f'Provided object was an {type(datachunk)}. Skipping.')
-            continue
-
-        logger.info("Querying db if the datachunk already exists.")
-        existing_chunks = (
-            db.session.query(Datachunk)
-                      .filter(
-                Datachunk.component_id == datachunk.component_id,
-                Datachunk.timespan_id == datachunk.timespan_id,
-            )
-            .all()
-        )
-
-        if len(existing_chunks) == 0:
-            logger.info("No existing chunks found. Adding Datachunk to DB.")
-            db.session.add(datachunk)
-        else:
-            logger.info("The datachunk already exists in db. Updating.")
-            insert_command = _prepare_upsert_command_datachunk(datachunk)
-            db.session.execute(insert_command)
-
-    logger.debug('Committing session.')
-    db.session.commit()
-    return
-
-
 def _prepare_upsert_command_datachunk(datachunk: Datachunk) -> Insert:
     insert_datachunk = (
         insert(Datachunk)
@@ -398,41 +358,6 @@ def _prepare_datachunk_preparation_parameter_lists(
 
 
 def run_datachunk_preparation(
-        stations: Tuple[str],
-        components: Tuple[str],
-        startdate: pendulum.Pendulum,
-        enddate: pendulum.Pendulum,
-        processing_config_id: int,
-
-):
-    logger.info("Preparing jobs for execution")
-    joblist = _prepare_datachunk_preparation_parameter_lists(stations,
-                                                             components,
-                                                             startdate, enddate,
-                                                             processing_config_id)
-
-    # TODO add more checks for bad seed files because they are crashing.
-    # And instead of datachunk id there was something weird produced. It was found on SI26 in
-    # 2019.04.~10-15
-
-    logger.info("Starting execution. Results will be saved to database after everything is done.")
-    datachunks: List[Datachunk] = []
-    for params in joblist:
-        try:
-            finished_chunks = create_datachunks_for_component(**params)
-            datachunks.extend(finished_chunks)
-        except ValueError as e:
-            logger.error(e)
-            raise e
-
-    logger.info(f"There were {len(datachunks)} created")
-    logger.info("Adding datachunks to db")
-
-    add_or_upsert_datachunks_in_db(datachunks)
-    return
-
-
-def run_datachunk_preparation_parallel(
         stations: Tuple[str],
         components: Tuple[str],
         startdate: pendulum.Pendulum,
