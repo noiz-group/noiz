@@ -358,6 +358,7 @@ def processing_group():  # type: ignore
 @click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
 @click.option("-p", "--datachunk_params_id", nargs=1, type=int,
               default=1, show_default=True)
+@click.option("-b", "--batch_size", nargs=1, type=int, default=1000, show_default=True)
 @click.option('--parallel/--no_parallel', default=True)
 def prepare_datachunks(
         station,
@@ -365,6 +366,7 @@ def prepare_datachunks(
         startdate,
         enddate,
         datachunk_params_id,
+        batch_size,
         parallel,
 ):
     """Start preparation of datachunks in linear or parallel fashion"""
@@ -376,7 +378,9 @@ def prepare_datachunks(
             components=component,
             startdate=startdate,
             enddate=enddate,
-            processing_config_id=datachunk_params_id
+            processing_config_id=datachunk_params_id,
+            parallel=parallel,
+            batch_size=batch_size,
         )
 
     else:
