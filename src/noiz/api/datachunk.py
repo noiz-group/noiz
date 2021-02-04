@@ -628,7 +628,11 @@ def _select_datachunks_for_processing(
     for chunk in fetched_datachunks:
         if chunk.id in valid_chunks[True]:
             logger.debug(f"There QCOneResult was True for datachunk with id {chunk.id}")
-            yield {"datachunk": chunk, "params": params}
+            yield ProcessDatachunksInputs(
+                datachunk=chunk,
+                params=params,
+                datachunk_file=None
+            )
 
         elif chunk.id in valid_chunks[False]:
             logger.debug(f"There QCOneResult was False for datachunk with id {chunk.id}")
