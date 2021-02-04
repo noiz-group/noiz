@@ -29,6 +29,7 @@ class ProcessDatachunksInputs(TypedDict):
     TypedDict class that describes inputs required for :py:func:`noiz.processing.datachunk.calculate_datachunk_stats`
     """
     datachunk: Datachunk
+    datachunk_file: Optional[DatachunkFile]
     params: ProcessedDatachunkParams
 
 
