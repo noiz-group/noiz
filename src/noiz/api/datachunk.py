@@ -27,7 +27,7 @@ from noiz.models import (
     ProcessedDatachunkParams,
     QCOneConfig,
     QCOneResults,
-    Timespan
+    Timespan, DatachunkFile
 )
 from noiz.processing.datachunk import create_datachunks_for_component, calculate_datachunk_stats, \
     create_datachunks_for_component_wrapper, calculate_datachunk_stats_wrapper
@@ -303,10 +303,11 @@ def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
 
 
 def _prepare_upsert_command_datachunk(datachunk: Datachunk) -> Insert:
-    insert_command = (
+    insert_datachunk = (
         insert(Datachunk)
         .values(
             processing_config_id=datachunk.datachunk_params_id,
+            datachunk_file_id=datachunk.datachunk_file.id,
             component_id=datachunk.component_id,
             timespan_id=datachunk.timespan_id,
             sampling_rate=datachunk.sampling_rate,
@@ -318,10 +319,13 @@ def _prepare_upsert_command_datachunk(datachunk: Datachunk) -> Insert:
             constraint="unique_datachunk_per_timespan_per_station_per_processing",
             set_=dict(
                 datachunk_file_id=datachunk.datachunk_file.id,
-                padded_npts=datachunk.padded_npts),
+                padded_npts=datachunk.padded_npts,
+                sampling_rate=datachunk.sampling_rate,
+                npts=datachunk.npts,
+            )
         )
     )
-    return insert_command
+    return insert_datachunk
 
 
 def _prepare_datachunk_preparation_parameter_lists(
