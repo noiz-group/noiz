@@ -243,7 +243,6 @@ def process_qcone(
         stations: Optional[Union[Collection[str], str]] = None,
         components: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
-        bulk_insert: bool = True,
         batch_size: int = 5000,
         parallel: bool = True,
 ):
