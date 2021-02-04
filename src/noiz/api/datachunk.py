@@ -27,7 +27,7 @@ from noiz.models import (
     ProcessedDatachunkParams,
     QCOneConfig,
     QCOneResults,
-    Timespan
+    Timespan, DatachunkFile
 )
 from noiz.processing.datachunk import create_datachunks_for_component, calculate_datachunk_stats, \
     create_datachunks_for_component_wrapper, calculate_datachunk_stats_wrapper
@@ -262,51 +262,12 @@ def _determine_filters_and_opts_for_datachunk(
     return filters, opts
 
 
-def add_or_upsert_datachunks_in_db(datachunks: Iterable[Datachunk]):
-    """
-    Adds or upserts provided iterable of Datachunks to DB.
-    Must be executed within AppContext.
-
-    :param datachunks:
-    :type datachunks: Iterable[Datachunk]
-    :return:
-    :rtype:
-    """
-    for datachunk in datachunks:
-
-        if not isinstance(datachunk, Datachunk):
-            logger.warning(f'Provided object is not an instance of Datachunk. '
-                           f'Provided object was an {type(datachunk)}. Skipping.')
-            continue
-
-        logger.info("Querying db if the datachunk already exists.")
-        existing_chunks = (
-            db.session.query(Datachunk)
-                      .filter(
-                Datachunk.component_id == datachunk.component_id,
-                Datachunk.timespan_id == datachunk.timespan_id,
-            )
-            .all()
-        )
-
-        if len(existing_chunks) == 0:
-            logger.info("No existing chunks found. Adding Datachunk to DB.")
-            db.session.add(datachunk)
-        else:
-            logger.info("The datachunk already exists in db. Updating.")
-            insert_command = _prepare_upsert_command_datachunk(datachunk)
-            db.session.execute(insert_command)
-
-    logger.debug('Committing session.')
-    db.session.commit()
-    return
-
-
 def _prepare_upsert_command_datachunk(datachunk: Datachunk) -> Insert:
-    insert_command = (
+    insert_datachunk = (
         insert(Datachunk)
         .values(
             processing_config_id=datachunk.datachunk_params_id,
+            datachunk_file_id=datachunk.datachunk_file.id,
             component_id=datachunk.component_id,
             timespan_id=datachunk.timespan_id,
             sampling_rate=datachunk.sampling_rate,
@@ -318,19 +279,22 @@ def _prepare_upsert_command_datachunk(datachunk: Datachunk) -> Insert:
             constraint="unique_datachunk_per_timespan_per_station_per_processing",
             set_=dict(
                 datachunk_file_id=datachunk.datachunk_file.id,
-                padded_npts=datachunk.padded_npts),
+                padded_npts=datachunk.padded_npts,
+                sampling_rate=datachunk.sampling_rate,
+                npts=datachunk.npts,
+            )
         )
     )
-    return insert_command
+    return insert_datachunk
 
 
-def _prepare_datachunk_preparation_parameter_lists(
+def _generate_datachunk_preparation_inputs(
         stations: Optional[Tuple[str]],
         components: Optional[Tuple[str]],
         startdate: pendulum.Pendulum,
         enddate: pendulum.Pendulum,
         processing_config_id: int,
-        skip_existing: bool = False,
+        skip_existing: bool = True,
 ) -> Generator[RunDatachunkPreparationInputs, None, None]:
     date_period = pendulum.period(startdate, enddate)
 
@@ -361,27 +325,30 @@ def _prepare_datachunk_preparation_parameter_lists(
             logger.warning(f"{e} Skipping.")
             continue
 
-        if not skip_existing:
-            logger.info("Checking if some timespans already exists")
+        if skip_existing:
+            logger.debug("Checking if some timespans already exists")
             existing_count = count_datachunks(
                 components=(component,),
                 timespans=timespans,
                 datachunk_processing_config=processing_params,
             )
             if existing_count == len(timespans):
-                logger.info("Number of existing timespans is sufficient. Skipping")
+                logger.debug("Number of existing timespans is sufficient. Skipping")
                 continue
+            if existing_count > 0:
+                logger.debug(f"There are only {existing_count} existing Datachunks. "
+                             f"Looking for those that are missing one by one.")
+                new_timespans = [timespan for timespan in timespans if
+                                 count_datachunks(
+                                     components=(component,),
+                                     timespans=(timespan,),
+                                     datachunk_processing_config=processing_params
+                                 ) == 0]
+                timespans = new_timespans
 
-            logger.info(f"There are only {existing_count} existing Datachunks. "
-                        f"Looking for those that are missing one by one.")
-            new_timespans = [timespan for timespan in timespans if
-                             count_datachunks(
-                                 components=(component,),
-                                 timespans=(timespan,),
-                                 datachunk_processing_config=processing_params
-                             ) == 0]
-            timespans = new_timespans
+        logger.info(f"There are {len(timespans)} to be sliced for that seismic file.")
 
+        db.session.expunge_all()
         yield RunDatachunkPreparationInputs(
             component=component,
             timespans=timespans,
@@ -396,50 +363,18 @@ def run_datachunk_preparation(
         startdate: pendulum.Pendulum,
         enddate: pendulum.Pendulum,
         processing_config_id: int,
-
-):
-    logger.info("Preparing jobs for execution")
-    joblist = _prepare_datachunk_preparation_parameter_lists(stations,
-                                                             components,
-                                                             startdate, enddate,
-                                                             processing_config_id)
-
-    # TODO add more checks for bad seed files because they are crashing.
-    # And instead of datachunk id there was something weird produced. It was found on SI26 in
-    # 2019.04.~10-15
-
-    logger.info("Starting execution. Results will be saved to database after everything is done.")
-    datachunks: List[Datachunk] = []
-    for params in joblist:
-        try:
-            finished_chunks = create_datachunks_for_component(**params)
-            datachunks.extend(finished_chunks)
-        except ValueError as e:
-            logger.error(e)
-            raise e
-
-    logger.info(f"There were {len(datachunks)} created")
-    logger.info("Adding datachunks to db")
-
-    add_or_upsert_datachunks_in_db(datachunks)
-    return
-
-
-def run_datachunk_preparation_parallel(
-        stations: Tuple[str],
-        components: Tuple[str],
-        startdate: pendulum.Pendulum,
-        enddate: pendulum.Pendulum,
-        processing_config_id: int,
         parallel: bool = True,
         batch_size: int = 1000,
 
 ):
     logger.info("Preparing jobs for execution")
-    calculation_inputs = _prepare_datachunk_preparation_parameter_lists(stations,
-                                                                        components,
-                                                                        startdate, enddate,
-                                                                        processing_config_id)
+    calculation_inputs = _generate_datachunk_preparation_inputs(
+        stations=stations,
+        components=components,
+        startdate=startdate,
+        enddate=enddate,
+        processing_config_id=processing_config_id,
+    )
 
     # TODO add more checks for bad seed files because they are crashing.
     # And instead of datachunk id there was something weird produced. It was found on SI26 in
