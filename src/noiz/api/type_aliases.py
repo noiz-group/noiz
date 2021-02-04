@@ -51,7 +51,7 @@ class CrosscorrelationRunnerInputs(TypedDict):
     timespan_id: int
     crosscorrelation_params: CrosscorrelationParams
     grouped_processed_chunks: Dict[int, ProcessedDatachunk]
-    component_pairs: Tuple[ComponentPair]
+    component_pairs: Tuple[ComponentPair, ...]
 
 
 InputsForMassCalculations = Union[
