@@ -52,21 +52,21 @@ def resample_with_padding(
     endtime: obspy.UTCDateTime = tr.stats.endtime
     npts: int = tr.stats.npts
 
-    logger.info("Finding sample deficit up to next power of 2")
+    logger.debug("Finding sample deficit up to next power of 2")
     deficit = 2 ** next_pow_2(npts) - npts
 
-    logger.info("Padding with zeros up to the next power of 2")
+    logger.debug("Padding with zeros up to the next power of 2")
     tr.data = np.concatenate((tr.data, np.zeros(deficit)))
 
-    logger.info("Resampling")
+    logger.debug("Resampling")
     tr.resample(sampling_rate)
 
-    logger.info(
+    logger.debug(
         f"Slicing data to fit them between starttime {starttime} and endtime {endtime}"
     )
     st = obspy.Stream(tr.slice(starttime=starttime, endtime=endtime))
 
-    logger.info("Resampling done!")
+    logger.debug("Resampling done!")
     return st
 
 
