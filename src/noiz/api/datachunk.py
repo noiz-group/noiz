@@ -382,9 +382,9 @@ def _prepare_datachunk_preparation_parameter_lists(
                                  ) == 0]
                 timespans = new_timespans
             else:
-                logger.info(f"There are no existing datachunks for those timespans.")
+                logger.info("There are no existing datachunks for those timespans.")
 
-
+        db.session.expunge_all()
         yield RunDatachunkPreparationInputs(
             component=component,
             timespans=timespans,
