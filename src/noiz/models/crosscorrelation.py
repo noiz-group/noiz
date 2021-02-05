@@ -119,7 +119,12 @@ class Crosscorrelation(db.Model):
         if filepath.exists():
             return np.load(file=filepath)
         else:
-            raise MissingDataFileException(f"Data file for Crosscorrelation {self} is missing")
+            # FIXME remove this workaround when database will be upgraded
+            with_suffix = filepath.with_name(f"{filepath.name}.npy")
+            if with_suffix.exists():
+                return np.load(file=filepath)
+            else:
+                raise MissingDataFileException(f"Data file for Crosscorrelation {self} is missing")
 
     @property
     def ccf(self):
