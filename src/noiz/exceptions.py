@@ -10,6 +10,10 @@ class NoDataException(NoizBaseException):
     pass
 
 
+class MissingProcessingStepError(NoizBaseException):
+    pass
+
+
 class CorruptedDataException(NoizBaseException):
     pass
 
