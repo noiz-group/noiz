@@ -120,7 +120,7 @@ ccf_ccfstack_association_table = db.Table(
     "stacking_association",
     db.metadata,
     db.Column(
-        "crosscorrelation_id", db.BigInteger, db.ForeignKey("crosscorrelation.id")
+        "crosscorrelation_id", db.BigInteger, db.ForeignKey("crosscorrelationnew.id")
     ),
     db.Column("ccfstack_id", db.BigInteger, db.ForeignKey("ccfstack.id")),
 )

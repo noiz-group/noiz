@@ -315,7 +315,7 @@ class QCTwoResults(db.Model):
     id = db.Column("id", db.BigInteger, primary_key=True)
 
     qctwo_config_id = db.Column("qctwo_config_id", db.Integer, db.ForeignKey("qctwo_config.id"))
-    crosscorrelation_id = db.Column("crosscorrelation_id", db.Integer, db.ForeignKey("crosscorrelation.id"))
+    crosscorrelation_id = db.Column("crosscorrelation_id", db.Integer, db.ForeignKey("crosscorrelationnew.id"))
 
     starttime = db.Column("starttime", db.Boolean, nullable=False)
     endtime = db.Column("endtime", db.Boolean, nullable=False)

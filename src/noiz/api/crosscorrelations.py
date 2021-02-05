@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import datetime
 from loguru import logger
 from sqlalchemy.sql import Insert
@@ -12,7 +14,7 @@ from typing import Iterable, List, Union, Optional, Collection, Dict, Generator,
 from noiz.database import db
 from noiz.exceptions import InconsistentDataException, CorruptedDataException
 from noiz.models.component_pair import ComponentPair
-from noiz.models.crosscorrelation import Crosscorrelation
+from noiz.models.crosscorrelation import CrosscorrelationFile, Crosscorrelation
 from noiz.models.datachunk import Datachunk, ProcessedDatachunk
 from noiz.models.processing_params import CrosscorrelationParams
 from noiz.models.timespan import Timespan
@@ -23,7 +25,7 @@ from noiz.processing.crosscorrelations import (
 )
 
 from noiz.api.component_pair import fetch_componentpairs
-from noiz.api.helpers import extract_object_ids, validate_to_tuple, bulk_add_objects, _run_calculate_and_upsert_on_dask, \
+from noiz.api.helpers import extract_object_ids, validate_to_tuple, _run_calculate_and_upsert_on_dask, \
     _run_calculate_and_upsert_sequentially
 from noiz.api.processing_config import fetch_crosscorrelation_params_by_id
 from noiz.api.timespan import fetch_timespans_between_dates
@@ -305,10 +307,10 @@ def _prepare_inputs_for_crosscorrelating(
         .all())
     grouped_datachunks = group_chunks_by_timespanid_componentid(processed_datachunks=fetched_processed_datachunks)
 
-    for timespan_id, grouped_processed_chunks in grouped_datachunks.items():
+    for timespan, grouped_processed_chunks in grouped_datachunks.items():
         db.session.expunge_all()
         yield CrosscorrelationRunnerInputs(
-            timespan_id=timespan_id,
+            timespan=timespan,
             crosscorrelation_params=params,
             grouped_processed_chunks=grouped_processed_chunks,
             component_pairs=tuple(fetched_component_pairs)
@@ -330,7 +332,7 @@ def _crosscorrelate_for_timespan_wrapper(
     """
     return tuple(
         _crosscorrelate_for_timespan(
-            timespan_id=inputs["timespan_id"],
+            timespan=inputs["timespan"],
             params=inputs["crosscorrelation_params"],
             grouped_processed_chunks=inputs["grouped_processed_chunks"],
             component_pairs=inputs["component_pairs"],
@@ -338,14 +340,66 @@ def _crosscorrelate_for_timespan_wrapper(
     )
 
 
+def assembly_ccf_filename(
+        component_pair: ComponentPair,
+        timespan: Timespan,
+        count: int = 0
+) -> str:
+    year = str(timespan.starttime.year)
+    doy_time = timespan.starttime.strftime("%j.%H%M")
+
+    fname = ".".join([
+        component_pair.component_a.network,
+        component_pair.component_a.station,
+        component_pair.component_a.component,
+        component_pair.component_b.network,
+        component_pair.component_b.station,
+        component_pair.component_b.component,
+        year,
+        doy_time,
+        str(count)
+    ])
+
+    return fname
+
+
+def assembly_ccf_dir(component_pair: ComponentPair, timespan: Timespan) -> Path:
+    """
+    Asembles a Path object in a SDS manner. Object consists of year/network/station/component codes.
+
+    Warning: The component here is a single letter component!
+
+    :param component_pair: Component object containing information about used channel
+    :type component_pair: Component
+    :param timespan: Timespan object containing information about time
+    :type timespan: Timespan
+    :return:  Pathlike object containing SDS-like directory hierarchy.
+    :rtype: Path
+    """
+    return (
+        Path(str(timespan.starttime.year))
+        .joinpath(str(timespan.starttime.month))
+        .joinpath(component_pair.component_code_pair)
+        .joinpath(f"{component_pair.component_a.network}.{component_pair.component_a.station}-"
+                  f"{component_pair.component_b.network}.{component_pair.component_b.station}")
+    )
+
+
 def _crosscorrelate_for_timespan(
-        timespan_id: int,
+        timespan: Timespan,
         params: CrosscorrelationParams,
         grouped_processed_chunks: Dict[int, ProcessedDatachunk],
         component_pairs: Tuple[ComponentPair, ...]
 ) -> List[Crosscorrelation]:
     """filldocs"""
-    logger.debug(f"Loading data for timespan {timespan_id}")
+    from noiz.globals import PROCESSED_DATA_DIR
+    from noiz.processing.path_helpers import assembly_filepath, \
+        increment_filename_counter, directory_exists_or_create
+
+    import numpy as np
+    logger.info(f"Running crosscorrelation for {timespan}")
+
+    logger.debug(f"Loading data for timespan {timespan}")
     try:
         streams = load_data_for_chunks(chunks=grouped_processed_chunks)
     except CorruptedDataException as e:
@@ -375,11 +429,36 @@ def _crosscorrelate_for_timespan(
             shift=params.correlation_max_lag_samples,
         )
 
+        filepath = assembly_filepath(
+            PROCESSED_DATA_DIR,  # type: ignore
+            "ccf",
+            assembly_ccf_dir(component_pair=pair, timespan=timespan) \
+            .joinpath(assembly_ccf_filename(
+                component_pair=pair,
+                timespan=timespan,
+                count=0
+            )),
+        )
+
+        if filepath.exists():
+            logger.debug(f"Filepath {filepath} exists. "
+                         f"Trying to find next free one.")
+            filepath = increment_filename_counter(filepath=filepath)
+            logger.debug(f"Free filepath found. "
+                         f"CCF will be saved to {filepath}")
+
+        logger.info(f"CCF will be written to {str(filepath)}")
+        directory_exists_or_create(filepath)
+
+        ccf_file = CrosscorrelationFile(filepath=str(filepath))
+
+        np.save(file=ccf_file.filepath, arr=ccf_data)
+
         xcorr = Crosscorrelation(
             crosscorrelation_params_id=params.id,
             componentpair_id=pair.id,
-            timespan_id=timespan_id,
-            ccf=ccf_data,
+            timespan_id=timespan.id,
+            crosscorrelation_file=ccf_file,
         )
 
         xcorrs.append(xcorr)
