@@ -459,7 +459,7 @@ def _crosscorrelate_for_timespan(
             crosscorrelation_params_id=params.id,
             componentpair_id=pair.id,
             timespan_id=timespan.id,
-            crosscorrelation_file=ccf_file,
+            file=ccf_file,
         )
 
         xcorrs.append(xcorr)

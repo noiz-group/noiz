@@ -143,7 +143,7 @@ def process_datachunk(
     processed_datachunk = ProcessedDatachunk(
         processed_datachunk_params_id=params.id,
         datachunk_id=datachunk.id,
-        processed_datachunk_file=proc_datachunk_file,
+        file=proc_datachunk_file,
     )
 
     return processed_datachunk
