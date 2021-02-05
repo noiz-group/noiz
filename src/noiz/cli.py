@@ -8,7 +8,7 @@ from flask.cli import AppGroup, with_appcontext
 from flask.cli import FlaskGroup
 from pendulum.date import Date
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Optional
 
 from noiz.app import create_app
 
@@ -29,11 +29,13 @@ def _register_subgroups_to_cli(cli: AppGroup, custom_groups: Iterable[AppGroup])
     return
 
 
-def _parse_as_date(ctx, param, value) -> Date:
+def _parse_as_date(ctx, param, value) -> Optional[Date]:
     """
     This method is used internally as a callback for date arguments to parse the input string and
     return a :class:`pendulum.date.Date` object
     """
+    if value is None:
+        return value
     if not isinstance(value, Date):
         return pendulum.parse(value).date()
     else:
@@ -487,6 +489,7 @@ def run_qcone(
               default=1, show_default=True)
 @click.option("-b", "--batch_size", nargs=1, type=int, default=1000, show_default=True)
 @click.option('--parallel/--no_parallel', default=True)
+@click.option('--skip_existing/--no_skip_existing', default=True)
 def process_datachunks(
         station,
         component,
@@ -495,6 +498,7 @@ def process_datachunks(
         processed_datachunk_params_id,
         batch_size,
         parallel,
+        skip_existing,
 ):
     """Start processing of datachunks"""
 
@@ -507,6 +511,7 @@ def process_datachunks(
         processed_datachunk_params_id=processed_datachunk_params_id,
         batch_size=batch_size,
         parallel=parallel,
+        skip_existing=skip_existing,
     )
 
 
@@ -571,8 +576,8 @@ def run_qctwo(
 @with_appcontext
 @click.option("-s", "--station_code", multiple=True, type=str, callback=_validate_zero_length_as_none)
 @click.option("-c", "--component_code_pair", multiple=True, type=str, callback=_validate_zero_length_as_none)
-@click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
-@click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-sd", "--startdate", nargs=1, type=str, required=False, callback=_parse_as_date)
+@click.option("-ed", "--enddate", nargs=1, type=str, required=False, callback=_parse_as_date)
 @click.option("-p", "--stacking_schema_id", nargs=1, type=int,
               default=1, show_default=True)
 @click.option('-ia', '--include_autocorrelation', is_flag=True)
