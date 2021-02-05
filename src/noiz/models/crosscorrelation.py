@@ -103,9 +103,9 @@ class CrosscorrelationNew(db.Model):
         lazy="joined",
     )
 
-    stacks = db.relationship(
-        "CCFStack", secondary=ccf_ccfstack_association_table, back_populates="ccfs"
-    )
+    # stacks = db.relationship(
+    #     "CCFStack", secondary=ccf_ccfstack_association_table, back_populates="ccfs"
+    # )
 
     def load_data(self, crosscorrelation_file: Optional[CrosscorrelationFile] = None):
         import numpy as np
