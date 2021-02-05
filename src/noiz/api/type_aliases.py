@@ -4,10 +4,12 @@ from typing import Union, TypedDict, Collection, Callable, Optional, List, Tuple
 from noiz.models import Crosscorrelation, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults, \
     Datachunk, DatachunkFile, QCOneConfig, AveragedSohGps, ComponentPair, StackingSchema, StackingTimespan, Component, \
     Timespan, Tsindex, DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams
+from noiz.models.crosscorrelation import CrosscorrelationNew
 
 BulkAddableObjects = Union[
         Datachunk,
         Crosscorrelation,
+        CrosscorrelationNew,
         CCFStack,
         DatachunkStats,
         ProcessedDatachunk,
