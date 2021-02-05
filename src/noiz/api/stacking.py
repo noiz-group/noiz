@@ -4,6 +4,7 @@ from loguru import logger
 
 from noiz.api.helpers import bulk_add_objects
 from noiz.api.type_aliases import StackingInputs
+from noiz.exceptions import MissingProcessingStepError
 from obspy import UTCDateTime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.postgresql import insert
@@ -11,7 +12,7 @@ from sqlalchemy.dialects.postgresql.dml import Insert as insert_type
 from typing import Collection, Union, List, Optional, Tuple, Generator
 
 from noiz.api.component_pair import fetch_componentpairs
-from noiz.api.qc import fetch_qctwo_config_single
+from noiz.api.qc import fetch_qctwo_config_single, count_qctwo_results
 from noiz.database import db
 from noiz.models import StackingTimespan, Crosscorrelation, Timespan, CCFStack, \
     QCTwoResults, ComponentPair, StackingSchema
@@ -221,6 +222,11 @@ def _prepare_inputs_for_stacking_ccfs(
         only_intracorrelation=only_intracorrelation,
     )
     logger.info(f"There are {len(componentpairs)} ComponentPairs to stack for")
+
+    if count_qctwo_results(qctwo_config=qctwo_config) == 0:
+        raise MissingProcessingStepError("There are no QCTwo results for that QCTwoConfig. Are you sure you ran QCTwo "
+                                         "before?")
+
     for stacking_timespan, componentpair in itertools.product(stacking_timespans, componentpairs):
         fetched_qc_ccfs = (
             db.session.query(QCTwoResults, Crosscorrelation)
@@ -236,6 +242,7 @@ def _prepare_inputs_for_stacking_ccfs(
         )
 
         if len(fetched_qc_ccfs) == 0:
+            logger.debug("There were no ccfs for that stack")
             continue
 
         yield StackingInputs(
