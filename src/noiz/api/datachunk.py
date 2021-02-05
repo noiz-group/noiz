@@ -548,6 +548,7 @@ def _select_datachunks_for_processing(
         stations: Optional[Union[Collection[str], str]] = None,
         components: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
+        skip_existing: bool = True,
 ) -> Generator[ProcessDatachunksInputs, None, None]:
     # filldocs
 
@@ -598,8 +599,16 @@ def _select_datachunks_for_processing(
         logger.info("QCOne is not used for selection of Datachunks. All fetched Datachunks will be processed.")
         valid_chunks[True].extend(fetched_datachunks_ids)
 
+    existing_chunk_ids = (
+        db.session.query(ProcessedDatachunk.id)
+        .filter(ProcessedDatachunk.datachunk_id.in_(valid_chunks))
+        .all()
+    )
+
     for chunk in fetched_datachunks:
-        if chunk.id in valid_chunks[True]:
+        if (chunk.id in valid_chunks[True] and not skip_existing) \
+                or (chunk.id in valid_chunks[True] and skip_existing and chunk.id in existing_chunk_ids):
+
             logger.debug(f"There QCOneResult was True for datachunk with id {chunk.id}")
             db.session.expunge_all()
             yield ProcessDatachunksInputs(
@@ -607,13 +616,16 @@ def _select_datachunks_for_processing(
                 params=params,
                 datachunk_file=None
             )
-
+        elif chunk.id in valid_chunks[True] and skip_existing and chunk.id in existing_chunk_ids:
+            logger.debug(f"ProcessedDatachunk for datachunk with id {chunk.id} already exists.")
+            continue
         elif chunk.id in valid_chunks[False]:
             logger.debug(f"There QCOneResult was False for datachunk with id {chunk.id}")
             continue
         else:
             logger.debug(f"There was no QCOneResult for datachunk with id {chunk.id}")
             continue
+    return
 
 
 def _prepare_upsert_command_processed_datachunk(proc_datachunk):
