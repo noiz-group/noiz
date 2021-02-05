@@ -322,7 +322,7 @@ class QCTwoResults(db.Model):
     accepted_time = db.Column("accepted_time", db.Boolean, nullable=False)
 
     qctwo_config = db.relationship("QCTwoConfig", foreign_keys=[qctwo_config_id])
-    crosscorrelation = db.relationship("CrosscorrelationNew", foreign_keys=[crosscorrelation_id])
+    crosscorrelation = db.relationship("Crosscorrelation", foreign_keys=[crosscorrelation_id])
 
     def is_passing(self) -> bool:
         """

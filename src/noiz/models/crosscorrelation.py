@@ -55,7 +55,7 @@ class CrosscorrelationFile(db.Model):
     filepath = db.Column("filepath", db.UnicodeText, nullable=False)
 
 
-class CrosscorrelationNew(db.Model):
+class Crosscorrelation(db.Model):
     __tablename__ = "crosscorrelationnew"
     __table_args__ = (
         db.UniqueConstraint(

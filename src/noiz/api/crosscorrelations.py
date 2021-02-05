@@ -14,8 +14,7 @@ from typing import Iterable, List, Union, Optional, Collection, Dict, Generator,
 from noiz.database import db
 from noiz.exceptions import InconsistentDataException, CorruptedDataException
 from noiz.models.component_pair import ComponentPair
-from noiz.models.crosscorrelation import CrosscorrelationFile, CrosscorrelationNew
-from noiz.models.crosscorrelation import CrosscorrelationNew as Crosscorrelation
+from noiz.models.crosscorrelation import CrosscorrelationFile, Crosscorrelation
 from noiz.models.datachunk import Datachunk, ProcessedDatachunk
 from noiz.models.processing_params import CrosscorrelationParams
 from noiz.models.timespan import Timespan
@@ -321,7 +320,7 @@ def _prepare_inputs_for_crosscorrelating(
 
 def _crosscorrelate_for_timespan_wrapper(
         inputs: CrosscorrelationRunnerInputs,
-) -> Tuple[CrosscorrelationNew, ...]:
+) -> Tuple[Crosscorrelation, ...]:
     """
     Thin wrapper around :py:meth:`noiz.api.crosscorrelations._crosscorrelate_for_timespan` translating
     single input TypedDict to standard keyword arguments and converting output to a Tuple.
@@ -455,7 +454,7 @@ def _crosscorrelate_for_timespan(
 
         np.save(file=ccf_file.filepath, arr=ccf_data)
 
-        xcorr = CrosscorrelationNew(
+        xcorr = Crosscorrelation(
             crosscorrelation_params_id=params.id,
             componentpair_id=pair.id,
             timespan_id=timespan.id,
