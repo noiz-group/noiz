@@ -467,6 +467,7 @@ def _crosscorrelate_for_timespan_new(
         increment_filename_counter, directory_exists_or_create
 
     import numpy as np
+    logger.info(f"Running crosscorrelation for {timespan}")
 
     logger.debug(f"Loading data for timespan {timespan}")
     try:
