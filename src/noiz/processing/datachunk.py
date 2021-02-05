@@ -756,7 +756,7 @@ def create_datachunks_for_component(
             timespan_id=timespan.id,
             sampling_rate=sampling_rate,
             npts=npts,
-            datachunk_file=datachunk_file,
+            file=datachunk_file,
             padded_npts=padded_npts,
             device_id=component.device_id
         )

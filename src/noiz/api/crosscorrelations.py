@@ -209,6 +209,7 @@ def perform_crosscorrelations(
             calculation_task=_crosscorrelate_for_timespan_wrapper,  # type: ignore
             upserter_callable=_prepare_upsert_command_crosscorrelation,
             raise_errors=raise_errors,
+            with_file=True,
         )
     return
 
@@ -458,7 +459,7 @@ def _crosscorrelate_for_timespan(
             crosscorrelation_params_id=params.id,
             componentpair_id=pair.id,
             timespan_id=timespan.id,
-            crosscorrelation_file=ccf_file,
+            file=ccf_file,
         )
 
         xcorrs.append(xcorr)
