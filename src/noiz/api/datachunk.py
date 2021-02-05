@@ -393,6 +393,7 @@ def run_datachunk_preparation(
             inputs=calculation_inputs,
             calculation_task=create_datachunks_for_component_wrapper,  # type: ignore
             upserter_callable=_prepare_upsert_command_datachunk,
+            with_file=True,
         )
 
 
@@ -533,6 +534,7 @@ def run_datachunk_processing(
             inputs=calculation_inputs,
             calculation_task=process_datachunk_wrapper,  # type: ignore
             upserter_callable=_prepare_upsert_command_processed_datachunk,
+            with_file=True,
         )
 
     return

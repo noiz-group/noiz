@@ -209,6 +209,7 @@ def perform_crosscorrelations(
             calculation_task=_crosscorrelate_for_timespan_wrapper,  # type: ignore
             upserter_callable=_prepare_upsert_command_crosscorrelation,
             raise_errors=raise_errors,
+            with_file=True,
         )
     return
 
