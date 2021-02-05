@@ -1,14 +1,14 @@
 import datetime
 import itertools
 from loguru import logger
+from sqlalchemy.sql import Insert
 
-from noiz.api.helpers import bulk_add_objects
+from noiz.api.helpers import bulk_add_objects, _run_calculate_and_upsert_on_dask, _run_calculate_and_upsert_sequentially
 from noiz.api.type_aliases import StackingInputs
 from noiz.exceptions import MissingProcessingStepError
 from obspy import UTCDateTime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.dialects.postgresql.dml import Insert as insert_type
 from typing import Collection, Union, List, Optional, Tuple, Generator
 
 from noiz.api.component_pair import fetch_componentpairs
@@ -153,8 +153,11 @@ def stack_crosscorrelation(
         include_intracorrelation: Optional[bool] = False,
         only_autocorrelation: Optional[bool] = False,
         only_intracorrelation: Optional[bool] = False,
+        raise_errors: bool = False,
+        batch_size: int = 5000,
+        parallel: bool = True,
 ) -> None:
-    inputs_generator = _prepare_inputs_for_stacking_ccfs(
+    calculation_inputs = _prepare_inputs_for_stacking_ccfs(
         stacking_schema_id=stacking_schema_id,
         starttime=starttime,
         endtime=endtime,
@@ -170,15 +173,24 @@ def stack_crosscorrelation(
         only_autocorrelation=only_autocorrelation,
         only_intracorrelation=only_intracorrelation,
     )
-    stacks = []
 
-    for inputs_dict in inputs_generator:
-        stack = _validate_and_stack_ccfs(**inputs_dict)
-        if stack is None:
-            continue
-        stacks.append(stack)
+    if parallel:
+        _run_calculate_and_upsert_on_dask(
+            batch_size=batch_size,
+            inputs=calculation_inputs,
+            calculation_task=_validate_and_stack_ccfs_wrapper,  # type: ignore
+            upserter_callable=_generate_ccfstack_upsert_command,
+            raise_errors=raise_errors,
+        )
+    else:
+        _run_calculate_and_upsert_sequentially(
+            batch_size=batch_size,
+            inputs=calculation_inputs,
+            calculation_task=_validate_and_stack_ccfs_wrapper,  # type: ignore
+            upserter_callable=_generate_ccfstack_upsert_command,
+            raise_errors=raise_errors,
+        )
 
-    _add_ccfstacks_to_db(stacks)
     return
 
 
@@ -251,6 +263,19 @@ def _prepare_inputs_for_stacking_ccfs(
             stacking_schema=stacking_schema,
             stacking_timespan=stacking_timespan
         )
+
+
+def _validate_and_stack_ccfs_wrapper(
+        inputs: StackingInputs,
+) -> Tuple[Optional[CCFStack], ...]:
+    return (
+        _validate_and_stack_ccfs(
+            qctwo_ccfs_container=inputs["qctwo_ccfs_container"],
+            componentpair=inputs["componentpair"],
+            stacking_schema=inputs["stacking_schema"],
+            stacking_timespan=inputs["stacking_timespan"],
+        ),
+    )
 
 
 def _validate_and_stack_ccfs(
@@ -329,68 +354,9 @@ def _validate_crosscorrelations_with_qctwo(
     return tuple(valid_ccfs)
 
 
-def _add_ccfstacks_to_db(
-        stacks: Collection[CCFStack],
-        bulk_insert: bool = True,
-) -> None:
-    """
-    Takes a collection of CCStack objects and tries to bulk insert them to db.
-    If it will raise an Exception, it will rollback and try to upsert it afterwards.
-
-    It can also omit bulk adding and directry try to upsert.
-
-    :param stacks: Stacks to be added to db
-    :type stacks: Collection[CCFStack]
-    :param bulk_insert: If bulk insert should be attempted
-    :type bulk_insert: bool
-    :return: None
-    :rtype: NoneType
-    """
-
-    if bulk_insert:
-        logger.info("Trying to do bulk insert")
-        try:
-            bulk_add_objects(objects_to_add=stacks)
-        except IntegrityError as e:
-            logger.warning(f"There was an integrity error thrown. {e}. Performing rollback.")
-            db.session.rollback()
-
-            logger.warning("Retrying with upsert")
-            _upsert_ccfstacks(ccfstacks=stacks)
-    else:
-        logger.info(f"Starting to perform careful upsert. There are {len(stacks)} to be upserted")
-        _upsert_ccfstacks(ccfstacks=stacks)
-    return
-
-
-def _upsert_ccfstacks(ccfstacks: Collection[CCFStack]) -> None:
-    """
-    Upserts the CCFStack objects.
-    Tries to do insert, in case of conflict it updates existing entry by updating the stack itself and ccf count.
-
-    Warning: Must be executed within app_context
-    Warning: Uses Postgres specific insert command
-
-    :param ccfstacks: CCFStacks to be inserted
-    :type ccfstacks: Iterable[CCFStack]
-    :return: None
-    :rtype: None
-    """
-    logger.info("Starting upserting")
-
-    command_generator = _generate_ccfstack_upsert_command(ccfstacks)
-    for command in command_generator:
-        db.session.execute(command)
-
-    logger.info("Commiting changes")
-    db.session.commit()
-    logger.info("Commit done")
-    return
-
-
 def _generate_ccfstack_upsert_command(
-        ccfstacks: Collection[CCFStack]
-) -> Generator[insert_type, None, None]:
+        stack: CCFStack
+) -> Insert:
     """
     Generates Upsert commands for provided CCFStacks
 
@@ -400,22 +366,21 @@ def _generate_ccfstack_upsert_command(
     :rtype: Generator[insert_type, None, None]
     """
 
-    for stack in ccfstacks:
-        insert_command = (
-            insert(CCFStack)
-            .values(
-                stacking_timespan_id=stack.stacking_timespan_id,
-                stacking_schema_id=stack.stacking_schema_id,
-                componentpair_id=stack.componentpair_id,
+    insert_command = (
+        insert(CCFStack)
+        .values(
+            stacking_timespan_id=stack.stacking_timespan_id,
+            stacking_schema_id=stack.stacking_schema_id,
+            componentpair_id=stack.componentpair_id,
+            stack=stack.stack,
+            no_ccfs=stack.no_ccfs,
+        )
+        .on_conflict_do_update(
+            constraint="unique_stack_per_pair_per_config",
+            set_=dict(
                 stack=stack.stack,
                 no_ccfs=stack.no_ccfs,
-            )
-            .on_conflict_do_update(
-                constraint="unique_stack_per_pair_per_config",
-                set_=dict(
-                    stack=stack.stack,
-                    no_ccfs=stack.no_ccfs,
-                ),
-            )
+            ),
         )
-        yield insert_command
+    )
+    return insert_command

@@ -56,12 +56,20 @@ class CrosscorrelationRunnerInputs(TypedDict):
     component_pairs: Tuple[ComponentPair, ...]
 
 
+class StackingInputs(TypedDict):
+    qctwo_ccfs_container: List[Tuple[QCTwoResults, Crosscorrelation]]
+    componentpair: ComponentPair
+    stacking_schema: StackingSchema
+    stacking_timespan: StackingTimespan
+
+
 InputsForMassCalculations = Union[
     CalculateDatachunkStatsInputs,
     RunDatachunkPreparationInputs,
     QCOneRunnerInputs,
     ProcessDatachunksInputs,
-    CrosscorrelationRunnerInputs
+    CrosscorrelationRunnerInputs,
+    StackingInputs,
 ]
 
 
@@ -69,10 +77,3 @@ class BulkAddOrUpsertObjectsInputs(TypedDict):
     objects_to_add: Union[BulkAddableObjects, Collection[BulkAddableObjects]]
     upserter_callable: Callable[[BulkAddableObjects], Insert]
     bulk_insert: bool
-
-
-class StackingInputs(TypedDict):
-    qctwo_ccfs_container: List[Tuple[QCTwoResults, Crosscorrelation]]
-    componentpair: ComponentPair
-    stacking_schema: StackingSchema
-    stacking_timespan: StackingTimespan
