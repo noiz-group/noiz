@@ -57,7 +57,7 @@ class Datachunk(db.Model):
     qcones = db.relationship("QCOneResults", uselist=True, back_populates="datachunk")
     processed_datachunks = db.relationship("ProcessedDatachunk")
 
-    datachunk_file = db.relationship(
+    file = db.relationship(
         "DatachunkFile",
         foreign_keys=[datachunk_file_id],
         uselist=False,
@@ -76,7 +76,7 @@ class Datachunk(db.Model):
         :rtype: obspy.Stream
         """
         if datachunk_file is None:
-            filepath = Path(self.datachunk_file.filepath)
+            filepath = Path(self.file.filepath)
         else:
             filepath = Path(datachunk_file.filepath)
             if datachunk_file.id != self.datachunk_file_id:
