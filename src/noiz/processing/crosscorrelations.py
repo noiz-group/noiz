@@ -30,7 +30,7 @@ def get_time_vector_ccf(max_lag: float, sampling_rate: float) -> np.array:
 
 def group_chunks_by_timespanid_componentid(
     processed_datachunks: List[Tuple[Timespan, ProcessedDatachunk]]
-) -> DefaultDict[int, Dict[int, ProcessedDatachunk]]:
+) -> DefaultDict[Timespan, Dict[int, ProcessedDatachunk]]:
     """
     Groups provided :py:class:`~noiz.models.datachunk.ProcessedDatachunk` by timespan_id and then by component_id.
     It has to come with preloaded :py:attr:`~noiz.models.datachunk.ProcessedDatachunk.datachunk`.
@@ -41,9 +41,9 @@ def group_chunks_by_timespanid_componentid(
     :rtype: DefaultDict[int, Dict[int, ProcessedDatachunk]]
     """
 
-    groupped_chunks: DefaultDict[int, Dict[int, ProcessedDatachunk]] = defaultdict(dict)
+    groupped_chunks: DefaultDict[Timespan, Dict[int, ProcessedDatachunk]] = defaultdict(dict)
     for timespan, chunk in processed_datachunks:
-        groupped_chunks[timespan.id][chunk.datachunk.component_id] = chunk
+        groupped_chunks[timespan][chunk.datachunk.component_id] = chunk
     return groupped_chunks
 
 
