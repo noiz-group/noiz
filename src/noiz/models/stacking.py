@@ -120,7 +120,7 @@ ccf_ccfstack_association_table = db.Table(
     "stacking_association",
     db.metadata,
     db.Column(
-        "crosscorrelation_id", db.BigInteger, db.ForeignKey("crosscorrelation.id")
+        "crosscorrelation_id", db.BigInteger, db.ForeignKey("crosscorrelationnew.id")
     ),
     db.Column("ccfstack_id", db.BigInteger, db.ForeignKey("ccfstack.id")),
 )
@@ -157,7 +157,7 @@ class CCFStack(db.Model):
     no_ccfs = db.Column("no_ccfs", db.Integer, nullable=False)
 
     ccfs = db.relationship(
-        "Crosscorrelation", secondary=ccf_ccfstack_association_table, back_populates="stacks"
+        "CrosscorrelationNew", secondary=ccf_ccfstack_association_table, back_populates="stacks"
     )
 
     stacking_timespan = db.relationship(
