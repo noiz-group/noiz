@@ -611,7 +611,7 @@ def _select_datachunks_for_processing(
                                   .filter(
                 ProcessedDatachunk.processed_datachunk_params_id == params.id,
                 ProcessedDatachunk.datachunk_id.in_(batch_ids)
-            ).all()).sort()
+            ).all())
 
             batch_ids.sort()
             batch_existing_ids.sort()
