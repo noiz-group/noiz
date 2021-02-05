@@ -96,7 +96,7 @@ class Crosscorrelation(db.Model):
         "CrosscorrelationParams", foreign_keys=[crosscorrelation_params_id]
     )
 
-    crosscorrelation_file = db.relationship(
+    file = db.relationship(
         "CrosscorrelationFile",
         foreign_keys=[crosscorrelation_file_id],
         uselist=False,
@@ -110,7 +110,7 @@ class Crosscorrelation(db.Model):
     def load_data(self, crosscorrelation_file: Optional[CrosscorrelationFile] = None):
         import numpy as np
         if crosscorrelation_file is None:
-            filepath = Path(self.crosscorrelation_file.filepath)
+            filepath = Path(self.file.filepath)
         else:
             filepath = Path(crosscorrelation_file.filepath)
             if crosscorrelation_file.id != self.crosscorrelation_file_id:
