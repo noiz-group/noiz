@@ -528,6 +528,7 @@ def run_datachunk_processing(
             inputs=calculation_inputs,
             calculation_task=process_datachunk_wrapper,  # type: ignore
             upserter_callable=_prepare_upsert_command_processed_datachunk,
+            with_file=True,
         )
     else:
         _run_calculate_and_upsert_sequentially(
@@ -602,13 +603,16 @@ def _select_datachunks_for_processing(
 
     existing_chunk_ids = (
         db.session.query(ProcessedDatachunk.id)
-        .filter(ProcessedDatachunk.datachunk_id.in_(valid_chunks))
+        .filter(
+            ProcessedDatachunk.processed_datachunk_params_id == params.id,
+            ProcessedDatachunk.datachunk_id.in_(valid_chunks[True])
+        )
         .all()
     )
 
     for chunk in fetched_datachunks:
-        if (chunk.id in valid_chunks[True] and not skip_existing) \
-                or (chunk.id in valid_chunks[True] and skip_existing and chunk.id in existing_chunk_ids):
+        if all((chunk.id in valid_chunks[True], not skip_existing)) \
+                or all((chunk.id in valid_chunks[True], skip_existing, chunk.id in existing_chunk_ids)):
 
             logger.debug(f"There QCOneResult was True for datachunk with id {chunk.id}")
             db.session.expunge_all()
