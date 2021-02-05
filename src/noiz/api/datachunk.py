@@ -619,8 +619,6 @@ def _select_datachunks_for_processing(
                 ProcessedDatachunk.datachunk_id.in_(batch_ids)
             ).all())
 
-            raise Exception(batch_existing_ids)
-
             batch_ids.sort()
             batch_existing_ids.sort()
 
