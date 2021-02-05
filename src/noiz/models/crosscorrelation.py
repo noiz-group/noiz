@@ -43,9 +43,9 @@ class CrosscorrelationOld(db.Model):
     crosscorrelation_params = db.relationship(
         "CrosscorrelationParams", foreign_keys=[crosscorrelation_params_id]
     )
-    stacks = db.relationship(
-        "CCFStack", secondary=ccf_ccfstack_association_table, back_populates="ccfs"
-    )
+    # stacks = db.relationship(
+    #     "CCFStack", secondary=ccf_ccfstack_association_table, back_populates="ccfs"
+    # )
 
 
 class CrosscorrelationFile(db.Model):
