@@ -487,6 +487,7 @@ def run_qcone(
               default=1, show_default=True)
 @click.option("-b", "--batch_size", nargs=1, type=int, default=1000, show_default=True)
 @click.option('--parallel/--no_parallel', default=True)
+@click.option('--skip_existing/--no_skip_existing', default=True)
 def process_datachunks(
         station,
         component,
@@ -495,6 +496,7 @@ def process_datachunks(
         processed_datachunk_params_id,
         batch_size,
         parallel,
+        skip_existing,
 ):
     """Start processing of datachunks"""
 
@@ -507,6 +509,7 @@ def process_datachunks(
         processed_datachunk_params_id=processed_datachunk_params_id,
         batch_size=batch_size,
         parallel=parallel,
+        skip_existing=skip_existing,
     )
 
 

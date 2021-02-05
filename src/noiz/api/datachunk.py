@@ -508,7 +508,7 @@ def run_datachunk_processing(
         component_ids: Optional[Union[Collection[int], int]] = None,
         batch_size: int = 2000,
         parallel: bool = True,
-
+        skip_existing: bool = True,
 ):
     # filldocs
     calculation_inputs = _select_datachunks_for_processing(
@@ -519,6 +519,7 @@ def run_datachunk_processing(
         stations=stations,
         components=components,
         component_ids=component_ids,
+        skip_existing=skip_existing,
     )
 
     if parallel:
