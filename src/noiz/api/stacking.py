@@ -218,7 +218,7 @@ def _prepare_inputs_for_stacking_ccfs(
         endtime=endtime,
     )
     no_timespans = len(stacking_timespans)
-    logger.info(f"There are {no_timespans} to stack for")
+    logger.info(f"There are {no_timespans} timespans to stack for")
     qctwo_config = fetch_qctwo_config_single(id=stacking_schema.qctwo_config_id)
     componentpairs = fetch_componentpairs(
         network_codes_a=network_codes_a,
