@@ -62,7 +62,7 @@ class CrosscorrelationNew(db.Model):
             "timespan_id",
             "componentpair_id",
             "crosscorrelation_params_id",
-            name="unique_ccf_per_timespan_per_componentpair_per_config",
+            name="unique_ccfn_per_timespan_per_componentpair_per_config",
         ),
     )
 
