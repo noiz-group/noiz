@@ -94,6 +94,7 @@ def fetch_datachunks(
         load_stats: bool = False,
         load_timespan: bool = False,
         load_processing_params: bool = False,
+        order_by_id: bool = True,
 ) -> List[Datachunk]:
     """
     Fetches datachunks based on provided filters.
@@ -138,6 +139,7 @@ def fetch_datachunks(
         load_stats=load_stats,
         load_timespan=load_timespan,
         load_processing_params=load_processing_params,
+        order_by_id=order_by_id,
     )
 
     return query.all()
@@ -209,6 +211,7 @@ def _query_datachunks(
         load_stats: bool = False,
         load_timespan: bool = False,
         load_processing_params: bool = False,
+        order_by_id: bool = True,
 ) -> Query:
 
     filters, opts = _determine_filters_and_opts_for_datachunk(
@@ -221,8 +224,10 @@ def _query_datachunks(
         load_timespan=load_timespan,
         timespans=timespans,
     )
-
-    return Datachunk.query.filter(*filters).options(opts)
+    if order_by_id:
+        return Datachunk.query.filter(*filters).options(opts).order_by(Datachunk.id)
+    else:
+        return Datachunk.query.filter(*filters).options(opts)
 
 
 def _determine_filters_and_opts_for_datachunk(
@@ -580,6 +585,7 @@ def _select_datachunks_for_processing(
         datachunk_processing_config=params.datachunk_params,
         load_timespan=True,
         load_component=True,
+        order_by_id=True,
     )
     logger.debug(f"Fetched {len(fetched_datachunks)} datachunks")
 
@@ -607,11 +613,13 @@ def _select_datachunks_for_processing(
         if skip_existing:
             logger.info(f"Querying DB for existing ProcessedDatachunks. Batch no.{i}")
             batch_ids = extract_object_ids(batch)
-            batch_existing_ids = (db.session.query(ProcessedDatachunk.id)
+            batch_existing_ids = (db.session.query(ProcessedDatachunk.datachunk_id)
                                   .filter(
                 ProcessedDatachunk.processed_datachunk_params_id == params.id,
                 ProcessedDatachunk.datachunk_id.in_(batch_ids)
             ).all())
+
+            raise Exception(batch_existing_ids)
 
             batch_ids.sort()
             batch_existing_ids.sort()
