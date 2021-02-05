@@ -575,44 +575,38 @@ def run_qctwo(
 @click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
 @click.option("-p", "--stacking_schema_id", nargs=1, type=int,
               default=1, show_default=True)
-@click.option('--parallel/--no_parallel', default=True)
 @click.option('-ia', '--include_autocorrelation', is_flag=True)
 @click.option('-ii', '--include_intracorrelation', is_flag=True)
+@click.option('--raise_errors/--no_raise_errors', default=False)
+@click.option("-b", "--batch_size", nargs=1, type=int, default=1000, show_default=True)
+@click.option('--parallel/--no_parallel', default=True)
 def run_stacking(
         station_code,
         component_code_pair,
         startdate,
         enddate,
         stacking_schema_id,
-        parallel,
         include_autocorrelation,
         include_intracorrelation,
+        raise_errors,
+        batch_size,
+        parallel,
 ):
     """Start stacking of crosscorrelations. Limited amount of pair selection arguments, use API directly if needed."""
 
-    if parallel:
-        raise NotImplementedError
-        # from noiz.api.stacking import stack_crosscorrelation_parallel
-        # stack_crosscorrelation_parallel(
-        #     stacking_schema_id=stacking_schema_id,
-        #     starttime=startdate,
-        #     endtime=enddate,
-        #     station_codes_a=station_code,
-        #     accepted_component_code_pairs=component_code_pair,
-        #     include_autocorrelation=include_autocorrelation,
-        #     include_intracorrelation=include_intracorrelation,
-        # )
-    else:
-        from noiz.api.stacking import stack_crosscorrelation
-        stack_crosscorrelation(
-            stacking_schema_id=stacking_schema_id,
-            starttime=startdate,
-            endtime=enddate,
-            station_codes_a=station_code,
-            accepted_component_code_pairs=component_code_pair,
-            include_autocorrelation=include_autocorrelation,
-            include_intracorrelation=include_intracorrelation,
-        )
+    from noiz.api.stacking import stack_crosscorrelation
+    stack_crosscorrelation(
+        stacking_schema_id=stacking_schema_id,
+        starttime=startdate,
+        endtime=enddate,
+        station_codes_a=station_code,
+        accepted_component_code_pairs=component_code_pair,
+        include_autocorrelation=include_autocorrelation,
+        include_intracorrelation=include_intracorrelation,
+        raise_errors=raise_errors,
+        batch_size=batch_size,
+        parallel=parallel,
+    )
 
 
 @plotting_group.group("plot")
