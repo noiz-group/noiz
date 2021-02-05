@@ -14,8 +14,9 @@ from typing import Collection, Union, List, Optional, Tuple, Generator
 from noiz.api.component_pair import fetch_componentpairs
 from noiz.api.qc import fetch_qctwo_config_single, count_qctwo_results
 from noiz.database import db
-from noiz.models import StackingTimespan, Crosscorrelation, Timespan, CCFStack, \
+from noiz.models import StackingTimespan, Timespan, CCFStack, \
     QCTwoResults, ComponentPair, StackingSchema
+from noiz.models.crosscorrelation import CrosscorrelationNew as Crosscorrelation
 from noiz.api.processing_config import fetch_stacking_schema_by_id
 from noiz.processing.stacking import _generate_stacking_timespans, do_linear_stack_of_crosscorrelations
 

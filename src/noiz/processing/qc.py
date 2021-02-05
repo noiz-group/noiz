@@ -3,7 +3,8 @@ from loguru import logger
 from typing import Optional, Any, Callable, Union, Tuple
 
 from noiz.api.type_aliases import QCOneRunnerInputs
-from noiz.models import Datachunk, QCOneConfig, QCOneResults, Timespan, QCTwoResults, QCTwoConfig, Crosscorrelation
+from noiz.models import Datachunk, QCOneConfig, QCOneResults, Timespan, QCTwoResults, QCTwoConfig
+from noiz.models.crosscorrelation import CrosscorrelationNew as Crosscorrelation
 from noiz.models.datachunk import DatachunkStats
 from noiz.models.soh import AveragedSohGps
 

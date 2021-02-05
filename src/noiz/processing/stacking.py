@@ -3,7 +3,7 @@ from typing import Generator, Collection
 
 import pandas as pd
 
-from noiz.models import Crosscorrelation
+from noiz.models.crosscorrelation import CrosscorrelationNew as Crosscorrelation
 from noiz.models.stacking import StackingSchema, StackingTimespan
 from noiz.processing.timespan import generate_starttimes_endtimes
 

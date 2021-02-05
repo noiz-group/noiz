@@ -8,8 +8,9 @@ from typing import List, Collection, Union, Optional, Generator
 from noiz.api.type_aliases import QCOneRunnerInputs
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
-from noiz.models import Crosscorrelation, Datachunk, DatachunkStats, QCOneConfig, QCOneResults, QCTwoConfig, \
+from noiz.models import Datachunk, DatachunkStats, QCOneConfig, QCOneResults, QCTwoConfig, \
     QCTwoResults, AveragedSohGps, Component, Timespan
+from noiz.models.crosscorrelation import CrosscorrelationNew as Crosscorrelation
 from noiz.processing.qc import calculate_qctwo_results, calculate_qcone_results_wrapper
 
 from noiz.api.component import fetch_components
