@@ -14,7 +14,8 @@ from typing import Iterable, List, Union, Optional, Collection, Dict, Generator,
 from noiz.database import db
 from noiz.exceptions import InconsistentDataException, CorruptedDataException
 from noiz.models.component_pair import ComponentPair
-from noiz.models.crosscorrelation import Crosscorrelation, CrosscorrelationFile, CrosscorrelationNew
+from noiz.models.crosscorrelation import CrosscorrelationFile, CrosscorrelationNew
+from noiz.models.crosscorrelation import CrosscorrelationNew as Crosscorrelation
 from noiz.models.datachunk import Datachunk, ProcessedDatachunk
 from noiz.models.processing_params import CrosscorrelationParams
 from noiz.models.timespan import Timespan
@@ -25,7 +26,7 @@ from noiz.processing.crosscorrelations import (
 )
 
 from noiz.api.component_pair import fetch_componentpairs
-from noiz.api.helpers import extract_object_ids, validate_to_tuple, bulk_add_objects, _run_calculate_and_upsert_on_dask, \
+from noiz.api.helpers import extract_object_ids, validate_to_tuple, _run_calculate_and_upsert_on_dask, \
     _run_calculate_and_upsert_sequentially
 from noiz.api.processing_config import fetch_crosscorrelation_params_by_id
 from noiz.api.timespan import fetch_timespans_between_dates
@@ -198,7 +199,7 @@ def perform_crosscorrelations(
         _run_calculate_and_upsert_on_dask(
             batch_size=batch_size,
             inputs=calculation_inputs,
-            calculation_task=_crosscorrelate_for_timespan_wrapper_new,  # type: ignore
+            calculation_task=_crosscorrelate_for_timespan_wrapper,  # type: ignore
             upserter_callable=_prepare_upsert_command_crosscorrelation,
             raise_errors=raise_errors,
         )
@@ -206,7 +207,7 @@ def perform_crosscorrelations(
         _run_calculate_and_upsert_sequentially(
             batch_size=batch_size,
             inputs=calculation_inputs,
-            calculation_task=_crosscorrelate_for_timespan_wrapper_new,  # type: ignore
+            calculation_task=_crosscorrelate_for_timespan_wrapper,  # type: ignore
             upserter_callable=_prepare_upsert_command_crosscorrelation,
             raise_errors=raise_errors,
         )
@@ -320,76 +321,6 @@ def _prepare_inputs_for_crosscorrelating(
 
 def _crosscorrelate_for_timespan_wrapper(
         inputs: CrosscorrelationRunnerInputs,
-) -> Tuple[Crosscorrelation, ...]:
-    """
-    Thin wrapper around :py:meth:`noiz.api.crosscorrelations._crosscorrelate_for_timespan` translating
-    single input TypedDict to standard keyword arguments and converting output to a Tuple.
-
-    :param inputs: Input dictionary
-    :type inputs: ~noiz.api.type_aliases.CrosscorrelationRunnerInputs
-    :return: Finished Crosscorrelations in form of tuple
-    :rtype: Tuple[~noiz.models.crosscorrelation.Crosscorrelation, ...]
-    """
-    return tuple(
-        _crosscorrelate_for_timespan(
-            timespan=inputs["timespan"],
-            params=inputs["crosscorrelation_params"],
-            grouped_processed_chunks=inputs["grouped_processed_chunks"],
-            component_pairs=inputs["component_pairs"],
-        )
-    )
-
-
-def _crosscorrelate_for_timespan(
-        timespan: Timespan,
-        params: CrosscorrelationParams,
-        grouped_processed_chunks: Dict[int, ProcessedDatachunk],
-        component_pairs: Tuple[ComponentPair, ...]
-) -> List[Crosscorrelation]:
-    """filldocs"""
-    logger.debug(f"Loading data for timespan {timespan}")
-    try:
-        streams = load_data_for_chunks(chunks=grouped_processed_chunks)
-    except CorruptedDataException as e:
-        logger.error(e)
-        raise CorruptedDataException(e)
-    xcorrs = []
-    for pair in component_pairs:
-        cmp_a_id = pair.component_a_id
-        cmp_b_id = pair.component_b_id
-
-        if cmp_a_id not in grouped_processed_chunks.keys() or cmp_b_id not in grouped_processed_chunks.keys():
-            logger.debug(f"No data for pair {pair}")
-            continue
-
-        logger.debug(f"Processed chunks for {pair} are present. Starting processing.")
-
-        if streams[cmp_a_id].data.shape != streams[cmp_b_id].data.shape:
-            msg = f"The shapes of data arrays for {cmp_a_id} and {cmp_b_id} are different. " \
-                  f"Shapes: {cmp_a_id} is {streams[cmp_a_id].data.shape} " \
-                  f"{cmp_b_id} is {streams[cmp_b_id].data.shape} "
-            logger.error(msg)
-            raise InconsistentDataException(msg)
-
-        ccf_data = correlate(
-            a=streams[cmp_a_id],
-            b=streams[cmp_b_id],
-            shift=params.correlation_max_lag_samples,
-        )
-
-        xcorr = Crosscorrelation(
-            crosscorrelation_params_id=params.id,
-            componentpair_id=pair.id,
-            timespan_id=timespan.id,
-            ccf=ccf_data,
-        )
-
-        xcorrs.append(xcorr)
-    return xcorrs
-
-
-def _crosscorrelate_for_timespan_wrapper_new(
-        inputs: CrosscorrelationRunnerInputs,
 ) -> Tuple[CrosscorrelationNew, ...]:
     """
     Thin wrapper around :py:meth:`noiz.api.crosscorrelations._crosscorrelate_for_timespan` translating
@@ -401,7 +332,7 @@ def _crosscorrelate_for_timespan_wrapper_new(
     :rtype: Tuple[~noiz.models.crosscorrelation.Crosscorrelation, ...]
     """
     return tuple(
-        _crosscorrelate_for_timespan_new(
+        _crosscorrelate_for_timespan(
             timespan=inputs["timespan"],
             params=inputs["crosscorrelation_params"],
             grouped_processed_chunks=inputs["grouped_processed_chunks"],
@@ -455,12 +386,12 @@ def assembly_ccf_dir(component_pair: ComponentPair, timespan: Timespan) -> Path:
     )
 
 
-def _crosscorrelate_for_timespan_new(
+def _crosscorrelate_for_timespan(
         timespan: Timespan,
         params: CrosscorrelationParams,
         grouped_processed_chunks: Dict[int, ProcessedDatachunk],
         component_pairs: Tuple[ComponentPair, ...]
-) -> List[CrosscorrelationNew]:
+) -> List[Crosscorrelation]:
     """filldocs"""
     from noiz.globals import PROCESSED_DATA_DIR
     from noiz.processing.path_helpers import assembly_filepath, \
