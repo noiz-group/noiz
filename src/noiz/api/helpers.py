@@ -234,6 +234,7 @@ def _run_calculate_and_upsert_on_dask(
         upserter_callable: Callable[[BulkAddableObjects], Insert],
         batch_size: int = 5000,
         raise_errors: bool = False,
+        with_file: bool = False,
 ):
     from dask.distributed import Client
     client = Client()
@@ -249,6 +250,7 @@ def _run_calculate_and_upsert_on_dask(
             calculation_task=calculation_task,
             upserter_callable=upserter_callable,
             raise_errors=raise_errors,
+            with_file=with_file,
         )
     client.close()
     return
@@ -260,6 +262,7 @@ def _submit_task_to_client_and_add_results_to_db(
         calculation_task: Callable[[InputsForMassCalculations], Tuple[BulkAddableObjects, ...]],
         upserter_callable: Callable[[BulkAddableObjects], Insert],
         raise_errors: bool = False,
+        with_file: bool = False,
 ):
     from dask.distributed import as_completed
 
@@ -293,6 +296,12 @@ def _submit_task_to_client_and_add_results_to_db(
         results_nested: List[Tuple[BulkAddableObjects, ...]] = [x[1] for x in future_batch if x[0].status != "error"]
         results: List[BulkAddableObjects] = list(more_itertools.flatten(results_nested))
         logger.info(f"Running bulk_add_or_upsert for {len(results)} results")
+
+        if with_file:
+            files_to_add = [x.file for x in results]
+            bulk_add_or_upsert_file_objects(
+                objects_to_add=files_to_add,
+            )
 
         kwargs = BulkAddOrUpsertObjectsInputs(
             objects_to_add=results,
