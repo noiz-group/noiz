@@ -601,18 +601,22 @@ def _select_datachunks_for_processing(
         logger.info("QCOne is not used for selection of Datachunks. All fetched Datachunks will be processed.")
         valid_chunks[True].extend(fetched_datachunks_ids)
 
-    existing_chunk_ids = (
-        db.session.query(ProcessedDatachunk.id)
-        .filter(
-            ProcessedDatachunk.processed_datachunk_params_id == params.id,
-            ProcessedDatachunk.datachunk_id.in_(valid_chunks[True])
-        )
-        .all()
-    )
+    exists = False
 
     for chunk in fetched_datachunks:
+        if skip_existing:
+            existing_chunk_ids = (
+                db.session.query(ProcessedDatachunk.id)
+                .filter(
+                    ProcessedDatachunk.processed_datachunk_params_id == params.id,
+                    ProcessedDatachunk.datachunk_id == chunk.id
+                )
+                .count()
+            )
+            exists = existing_chunk_ids == 1
+
         if all((chunk.id in valid_chunks[True], not skip_existing)) \
-                or all((chunk.id in valid_chunks[True], skip_existing, chunk.id in existing_chunk_ids)):
+                or all((chunk.id in valid_chunks[True], skip_existing, not exists)):
 
             logger.debug(f"There QCOneResult was True for datachunk with id {chunk.id}")
             db.session.expunge_all()
@@ -621,7 +625,7 @@ def _select_datachunks_for_processing(
                 params=params,
                 datachunk_file=None
             )
-        elif chunk.id in valid_chunks[True] and skip_existing and chunk.id in existing_chunk_ids:
+        elif chunk.id in valid_chunks[True] and skip_existing and exists:
             logger.debug(f"ProcessedDatachunk for datachunk with id {chunk.id} already exists.")
             continue
         elif chunk.id in valid_chunks[False]:
