@@ -267,18 +267,18 @@ def _prepare_upsert_command_datachunk(datachunk: Datachunk) -> Insert:
         insert(Datachunk)
         .values(
             processing_config_id=datachunk.datachunk_params_id,
-            datachunk_file_id=datachunk.datachunk_file.id,
+            datachunk_file_id=datachunk.file.id,
             component_id=datachunk.component_id,
             timespan_id=datachunk.timespan_id,
             sampling_rate=datachunk.sampling_rate,
             npts=datachunk.npts,
-            datachunk_file=datachunk.datachunk_file,
+            datachunk_file=datachunk.file,
             padded_npts=datachunk.padded_npts,
         )
         .on_conflict_do_update(
             constraint="unique_datachunk_per_timespan_per_station_per_processing",
             set_=dict(
-                datachunk_file_id=datachunk.datachunk_file.id,
+                datachunk_file_id=datachunk.file.id,
                 padded_npts=datachunk.padded_npts,
                 sampling_rate=datachunk.sampling_rate,
                 npts=datachunk.npts,
@@ -393,6 +393,7 @@ def run_datachunk_preparation(
             inputs=calculation_inputs,
             calculation_task=create_datachunks_for_component_wrapper,  # type: ignore
             upserter_callable=_prepare_upsert_command_datachunk,
+            with_file=True,
         )
 
 
@@ -533,6 +534,7 @@ def run_datachunk_processing(
             inputs=calculation_inputs,
             calculation_task=process_datachunk_wrapper,  # type: ignore
             upserter_callable=_prepare_upsert_command_processed_datachunk,
+            with_file=True,
         )
 
     return
