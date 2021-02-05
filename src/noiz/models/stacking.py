@@ -157,7 +157,7 @@ class CCFStack(db.Model):
     no_ccfs = db.Column("no_ccfs", db.Integer, nullable=False)
 
     ccfs = db.relationship(
-        "CrosscorrelationNew", secondary=ccf_ccfstack_association_table, back_populates="stacks"
+        "Crosscorrelation", secondary=ccf_ccfstack_association_table, back_populates="stacks"
     )
 
     stacking_timespan = db.relationship(

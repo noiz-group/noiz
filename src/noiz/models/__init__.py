@@ -10,5 +10,5 @@ from noiz.models.soh import SohInstrument, SohGps, AveragedSohGps
 from noiz.models.datachunk import Datachunk, DatachunkFile, DatachunkStats, ProcessedDatachunk, ProcessedDatachunkFile
 from noiz.models.qc import QCOneConfig, QCOneConfigHolder, QCOneRejectedTime, QCOneConfigRejectedTimeHolder,\
     QCOneResults, QCTwoConfig, QCTwoConfigHolder, QCTwoRejectedTime, QCTwoConfigRejectedTimeHolder, QCTwoResults
-from noiz.models.crosscorrelation import CrosscorrelationOld
+from noiz.models.crosscorrelation import CrosscorrelationOld, Crosscorrelation
 from noiz.models.stacking import CCFStack, StackingSchema, StackingSchemaHolder, StackingTimespan

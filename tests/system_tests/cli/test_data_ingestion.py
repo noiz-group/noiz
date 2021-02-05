@@ -16,8 +16,7 @@ from noiz.cli import cli
 from noiz.database import db
 from noiz.models import StackingSchema, QCOneResults, QCTwoResults, DatachunkParams, \
     ProcessedDatachunkParams, CrosscorrelationParams, Datachunk, DatachunkStats, ProcessedDatachunk, \
-    SohGps, SohInstrument, Timespan, CCFStack
-from noiz.models.crosscorrelation import CrosscorrelationNew as Crosscorrelation
+    SohGps, SohInstrument, Timespan, CCFStack, Crosscorrelation
 from noiz.models.component import ComponentFile
 
 

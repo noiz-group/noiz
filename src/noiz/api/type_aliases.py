@@ -4,12 +4,12 @@ from typing import Union, TypedDict, Collection, Callable, Optional, List, Tuple
 from noiz.models import CrosscorrelationOld, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults, \
     Datachunk, DatachunkFile, QCOneConfig, AveragedSohGps, ComponentPair, StackingSchema, StackingTimespan, Component, \
     Timespan, Tsindex, DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams
-from noiz.models.crosscorrelation import CrosscorrelationNew
+from noiz.models.crosscorrelation import Crosscorrelation
 
 BulkAddableObjects = Union[
     Datachunk,
     CrosscorrelationOld,
-    CrosscorrelationNew,
+    Crosscorrelation,
     CCFStack,
     DatachunkStats,
     ProcessedDatachunk,
@@ -72,7 +72,7 @@ class BulkAddOrUpsertObjectsInputs(TypedDict):
 
 
 class StackingInputs(TypedDict):
-    qctwo_ccfs_container: List[Tuple[QCTwoResults, CrosscorrelationNew]]
+    qctwo_ccfs_container: List[Tuple[QCTwoResults, Crosscorrelation]]
     componentpair: ComponentPair
     stacking_schema: StackingSchema
     stacking_timespan: StackingTimespan
