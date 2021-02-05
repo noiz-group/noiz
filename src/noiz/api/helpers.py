@@ -6,7 +6,8 @@ from sqlalchemy.orm.exc import UnmappedInstanceError
 from sqlalchemy.sql import Insert
 from typing import Iterable, Union, List, Tuple, Type, Any, Optional, Collection, Callable, get_args
 
-from noiz.api.type_aliases import BulkAddableObjects, InputsForMassCalculations, BulkAddOrUpsertObjectsInputs
+from noiz.api.type_aliases import BulkAddableObjects, InputsForMassCalculations, BulkAddOrUpsertObjectsInputs, \
+    BulkAddableFileObjects
 from noiz.database import db
 
 
@@ -173,6 +174,33 @@ def bulk_add_or_upsert_objects(
     return
 
 
+def bulk_add_or_upsert_file_objects(
+        objects_to_add: Union[BulkAddableFileObjects, Collection[BulkAddableFileObjects]],
+) -> None:
+    """
+    Adds in bulk or upserts provided Collection of objects to DB.
+
+    :param objects_to_add: Objects to be added to database
+    :type objects_to_add: Collection[BulkAddableFileObjects]
+    :return: None
+    :rtype: NoneType
+    """
+
+    if isinstance(objects_to_add, Collection):
+        valid_objects = objects_to_add
+    else:
+        valid_objects = (objects_to_add,)
+
+    logger.debug("Trying to do bulk insert")
+    try:
+        bulk_add_objects(valid_objects)
+    except (IntegrityError, UnmappedInstanceError) as e:
+        logger.warning(f"There was an integrity error thrown. {e}. Performing rollback.")
+        db.session.rollback()
+        raise e
+    return
+
+
 def _run_upsert_commands(
         objects_to_add: Collection[BulkAddableObjects],
         upserter_callable: Callable[[BulkAddableObjects], Insert]
@@ -280,6 +308,7 @@ def _run_calculate_and_upsert_sequentially(
         upserter_callable: Callable[[BulkAddableObjects], Insert],
         batch_size: int = 1000,
         raise_errors: bool = False,
+        with_file: bool = False,
 ):
 
     for i, input_batch in enumerate(more_itertools.chunked(iterable=inputs, n=batch_size)):
@@ -305,6 +334,12 @@ def _run_calculate_and_upsert_sequentially(
         logger.info("Calculations finished for a batch. Starting upsert operation.")
 
         results: List[BulkAddableObjects] = list(more_itertools.flatten(results_nested))
+        if with_file:
+            files_to_add = [x.file for x in results]
+            bulk_add_or_upsert_file_objects(
+                objects_to_add=files_to_add,
+            )
+
         bulk_add_or_upsert_objects(
             objects_to_add=results,
             upserter_callable=upserter_callable,

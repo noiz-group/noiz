@@ -3,8 +3,8 @@ from typing import Union, TypedDict, Collection, Callable, Optional, List, Tuple
 
 from noiz.models import CrosscorrelationOld, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults, \
     Datachunk, DatachunkFile, QCOneConfig, AveragedSohGps, ComponentPair, StackingSchema, StackingTimespan, Component, \
-    Timespan, Tsindex, DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams
-from noiz.models.crosscorrelation import Crosscorrelation
+    Timespan, Tsindex, DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams, ProcessedDatachunkFile
+from noiz.models.crosscorrelation import Crosscorrelation, CrosscorrelationFile
 
 BulkAddableObjects = Union[
     Datachunk,
@@ -15,7 +15,16 @@ BulkAddableObjects = Union[
     ProcessedDatachunk,
     QCOneResults,
     QCTwoResults,
+    DatachunkFile,
+    CrosscorrelationFile,
+    ProcessedDatachunkFile,
     ]
+
+BulkAddableFileObjects = Union[
+    DatachunkFile,
+    CrosscorrelationFile,
+    ProcessedDatachunkFile,
+]
 
 
 class CalculateDatachunkStatsInputs(TypedDict):
