@@ -198,7 +198,7 @@ def perform_crosscorrelations(
         _run_calculate_and_upsert_on_dask(
             batch_size=batch_size,
             inputs=calculation_inputs,
-            calculation_task=_crosscorrelate_for_timespan_wrapper,  # type: ignore
+            calculation_task=_crosscorrelate_for_timespan_wrapper_new,  # type: ignore
             upserter_callable=_prepare_upsert_command_crosscorrelation,
             raise_errors=raise_errors,
         )
@@ -206,7 +206,7 @@ def perform_crosscorrelations(
         _run_calculate_and_upsert_sequentially(
             batch_size=batch_size,
             inputs=calculation_inputs,
-            calculation_task=_crosscorrelate_for_timespan_wrapper,  # type: ignore
+            calculation_task=_crosscorrelate_for_timespan_wrapper_new,  # type: ignore
             upserter_callable=_prepare_upsert_command_crosscorrelation,
             raise_errors=raise_errors,
         )
