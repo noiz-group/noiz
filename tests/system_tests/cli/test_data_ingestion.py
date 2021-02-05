@@ -14,9 +14,9 @@ from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.app import create_app
 from noiz.cli import cli
 from noiz.database import db
-from noiz.models import StackingSchema, Crosscorrelation, QCOneResults, QCTwoResults, DatachunkParams, \
+from noiz.models import StackingSchema, QCOneResults, QCTwoResults, DatachunkParams, \
     ProcessedDatachunkParams, CrosscorrelationParams, Datachunk, DatachunkStats, ProcessedDatachunk, \
-    SohGps, SohInstrument, Timespan, CCFStack
+    SohGps, SohInstrument, Timespan, CCFStack, Crosscorrelation
 from noiz.models.component import ComponentFile
 
 

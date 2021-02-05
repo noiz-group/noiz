@@ -1,18 +1,20 @@
 from sqlalchemy.sql import Insert
-from typing import Union, TypedDict, Collection, Callable, Optional, List, Tuple, DefaultDict, Dict
+from typing import Union, TypedDict, Collection, Callable, Optional, List, Tuple, Dict
 
-from noiz.models import Crosscorrelation, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults, \
+from noiz.models import CrosscorrelationOld, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults, \
     Datachunk, DatachunkFile, QCOneConfig, AveragedSohGps, ComponentPair, StackingSchema, StackingTimespan, Component, \
     Timespan, Tsindex, DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams
+from noiz.models.crosscorrelation import Crosscorrelation
 
 BulkAddableObjects = Union[
-        Datachunk,
-        Crosscorrelation,
-        CCFStack,
-        DatachunkStats,
-        ProcessedDatachunk,
-        QCOneResults,
-        QCTwoResults,
+    Datachunk,
+    CrosscorrelationOld,
+    Crosscorrelation,
+    CCFStack,
+    DatachunkStats,
+    ProcessedDatachunk,
+    QCOneResults,
+    QCTwoResults,
     ]
 
 
@@ -48,7 +50,7 @@ class QCOneRunnerInputs(TypedDict):
 
 
 class CrosscorrelationRunnerInputs(TypedDict):
-    timespan_id: int
+    timespan: Timespan
     crosscorrelation_params: CrosscorrelationParams
     grouped_processed_chunks: Dict[int, ProcessedDatachunk]
     component_pairs: Tuple[ComponentPair, ...]
