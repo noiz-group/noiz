@@ -1,5 +1,6 @@
 import datetime
 import itertools
+import more_itertools
 from loguru import logger
 import pendulum
 from sqlalchemy.exc import IntegrityError
@@ -520,6 +521,7 @@ def run_datachunk_processing(
         components=components,
         component_ids=component_ids,
         skip_existing=skip_existing,
+        batch_size=batch_size,
     )
 
     if parallel:
@@ -551,6 +553,7 @@ def _select_datachunks_for_processing(
         components: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
         skip_existing: bool = True,
+        batch_size: int = 2500,
 ) -> Generator[ProcessDatachunksInputs, None, None]:
     # filldocs
 
@@ -601,39 +604,43 @@ def _select_datachunks_for_processing(
         logger.info("QCOne is not used for selection of Datachunks. All fetched Datachunks will be processed.")
         valid_chunks[True].extend(fetched_datachunks_ids)
 
-    exists = False
-
-    for chunk in fetched_datachunks:
+    for i, batch in enumerate(more_itertools.chunked(iterable=fetched_datachunks, n=batch_size)):
         if skip_existing:
-            existing_chunk_ids = (
-                db.session.query(ProcessedDatachunk.id)
-                .filter(
-                    ProcessedDatachunk.processed_datachunk_params_id == params.id,
-                    ProcessedDatachunk.datachunk_id == chunk.id
-                )
-                .count()
-            )
-            exists = existing_chunk_ids == 1
-
-        if all((chunk.id in valid_chunks[True], not skip_existing)) \
-                or all((chunk.id in valid_chunks[True], skip_existing, not exists)):
-
-            logger.debug(f"There QCOneResult was True for datachunk with id {chunk.id}")
-            db.session.expunge_all()
-            yield ProcessDatachunksInputs(
-                datachunk=chunk,
-                params=params,
-                datachunk_file=None
-            )
-        elif chunk.id in valid_chunks[True] and skip_existing and exists:
-            logger.debug(f"ProcessedDatachunk for datachunk with id {chunk.id} already exists.")
-            continue
-        elif chunk.id in valid_chunks[False]:
-            logger.debug(f"There QCOneResult was False for datachunk with id {chunk.id}")
-            continue
+            logger.info('Querrying DB for existing ProcessedDatachunks. Batch no.{i}')
+            batch_ids = extract_object_ids(batch)
+            batch_existing_ids = (db.session.query(ProcessedDatachunk.id)
+                                  .filter(
+                ProcessedDatachunk.processed_datachunk_params_id == params.id,
+                ProcessedDatachunk.datachunk_id.in_(batch_ids)
+            ).all())
         else:
-            logger.debug(f"There was no QCOneResult for datachunk with id {chunk.id}")
-            continue
+            batch_existing_ids = []
+        logger.debug("Starting to check if each of input sets can be processed. Batch no.{i}")
+        for chunk in batch:
+            if skip_existing:
+                exists = chunk.id in batch_existing_ids
+            else:
+                exists = False
+
+            if all((chunk.id in valid_chunks[True], not skip_existing)) \
+                    or all((chunk.id in valid_chunks[True], skip_existing, not exists)):
+
+                logger.debug(f"There QCOneResult was True for datachunk with id {chunk.id}")
+                db.session.expunge_all()
+                yield ProcessDatachunksInputs(
+                    datachunk=chunk,
+                    params=params,
+                    datachunk_file=None
+                )
+            elif chunk.id in valid_chunks[True] and skip_existing and exists:
+                logger.debug(f"ProcessedDatachunk for datachunk with id {chunk.id} already exists.")
+                continue
+            elif chunk.id in valid_chunks[False]:
+                logger.debug(f"There QCOneResult was False for datachunk with id {chunk.id}")
+                continue
+            else:
+                logger.debug(f"There was no QCOneResult for datachunk with id {chunk.id}")
+                continue
     return
 
 
