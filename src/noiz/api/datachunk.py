@@ -3,8 +3,7 @@ import itertools
 import more_itertools
 from loguru import logger
 import pendulum
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm.exc import UnmappedInstanceError
+import numpy as np
 from sqlalchemy.dialects.postgresql import Insert, insert
 
 from sqlalchemy.orm import subqueryload, Query
@@ -606,15 +605,23 @@ def _select_datachunks_for_processing(
 
     for i, batch in enumerate(more_itertools.chunked(iterable=fetched_datachunks, n=batch_size)):
         if skip_existing:
-            logger.info('Querrying DB for existing ProcessedDatachunks. Batch no.{i}')
+            logger.info(f"Querying DB for existing ProcessedDatachunks. Batch no.{i}")
             batch_ids = extract_object_ids(batch)
             batch_existing_ids = (db.session.query(ProcessedDatachunk.id)
                                   .filter(
                 ProcessedDatachunk.processed_datachunk_params_id == params.id,
                 ProcessedDatachunk.datachunk_id.in_(batch_ids)
-            ).all())
+            ).all()).sort()
+
+            batch_ids.sort()
+            batch_existing_ids.sort()
+
+            if np.array_equal(np.array(batch_ids), np.array(batch_existing_ids)):
+                logger.info("All queried datachunks are present in the db. Skipping this batch")
+                continue
         else:
             batch_existing_ids = []
+
         logger.debug("Starting to check if each of input sets can be processed. Batch no.{i}")
         for chunk in batch:
             if skip_existing:
