@@ -9,7 +9,7 @@ from noiz.database import db
 from noiz.models.stacking import ccf_ccfstack_association_table
 
 
-class Crosscorrelation(db.Model):
+class CrosscorrelationOld(db.Model):
     __tablename__ = "crosscorrelation"
     __table_args__ = (
         db.UniqueConstraint(
