@@ -226,6 +226,7 @@ class QCOneConfigHolder:
     This simple dataclass is just helping to validate :class:`~noiz.models.QCOneConfig` values loaded from the TOML file
     """
 
+    datachunk_params_id: int
     null_treatment_policy: NullTreatmentPolicy = NullTreatmentPolicy.PASS
     strict_gps: bool = False
     starttime: Union[datetime.datetime, datetime.date] = datetime.date(2010, 1, 1)
