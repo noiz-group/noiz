@@ -1,5 +1,6 @@
 import datetime
 from loguru import logger
+from noiz.api.processing_config import fetch_datachunkparams_by_id
 from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import insert, Insert
 from sqlalchemy.orm import Query
@@ -9,7 +10,7 @@ from noiz.api.type_aliases import QCOneRunnerInputs
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import Datachunk, DatachunkStats, QCOneConfig, QCOneResults, QCTwoConfig, \
-    QCTwoResults, AveragedSohGps, Component, Timespan, Crosscorrelation
+    QCTwoResults, AveragedSohGps, Component, Timespan, Crosscorrelation, DatachunkParams
 from noiz.processing.qc import calculate_qctwo_results, calculate_qcone_results_wrapper
 
 from noiz.api.component import fetch_components
@@ -325,6 +326,7 @@ def _prepare_inputs_for_qcone_runner(
         logger.error(e)
         raise e
     timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
+    datachunk_params = fetch_datachunkparams_by_id(id=qcone_config.datachunk_params_id)
     fetched_components = fetch_components(
         networks=networks,
         stations=stations,
@@ -333,6 +335,7 @@ def _prepare_inputs_for_qcone_runner(
     )
     calculation_inputs = _generate_inputs_for_qcone_runner(
         qcone_config=qcone_config,
+        datachunk_params=datachunk_params,
         components=fetched_components,
         timespans=timespans,
         fetch_gps=qcone_config.uses_gps(),
@@ -344,6 +347,7 @@ def _prepare_inputs_for_qcone_runner(
 
 def _generate_inputs_for_qcone_runner(
         qcone_config: QCOneConfig,
+        datachunk_params: DatachunkParams,
         components: Collection[Component],
         timespans: Collection[Timespan],
         fetch_gps: bool,
@@ -374,6 +378,7 @@ def _generate_inputs_for_qcone_runner(
     filters, opts = _determine_filters_and_opts_for_datachunk(
         components=components,
         timespans=timespans,
+        datachunk_processing_config=datachunk_params,
         load_component=False,
         load_timespan=True,
         load_stats=False,
