@@ -36,6 +36,7 @@ class QCOneConfig(db.Model):
 
     id = db.Column("id", db.Integer, primary_key=True)
 
+    datachunk_params_id = db.Column("datachunk_params_id", db.Integer, db.ForeignKey("datachunk_params.id"))
     null_policy = db.Column("null_policy", db.UnicodeText, default=NullTreatmentPolicy.PASS.value, nullable=False)
     strict_gps = db.Column("strict_gps", db.Boolean, default=False, nullable=False)
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
@@ -63,6 +64,12 @@ class QCOneConfig(db.Model):
         "QCOneRejectedTime",
         uselist=True,
         back_populates="qcone_config",
+        lazy="joined"
+    )
+
+    datachunk_params = db.relationship(
+        "DatachunkParams",
+        uselist=True,
         lazy="joined"
     )
 
