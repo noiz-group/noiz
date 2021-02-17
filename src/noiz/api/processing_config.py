@@ -29,7 +29,7 @@ def fetch_datachunkparams_by_id(id: int) -> DatachunkParams:
     """
     fetched_params = DatachunkParams.query.filter_by(id=id).first()
     if fetched_params is None:
-        raise ValueError(f"DatachunkParams object of id {id} does not exist.")
+        raise EmptyResultException(f"DatachunkParams object of id {id} does not exist.")
 
     return fetched_params
 
@@ -240,6 +240,14 @@ def create_and_add_qcone_config_from_toml(
     """
 
     params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.QCONE)
+    try:
+        fetch_datachunkparams_by_id(
+            id=params_holder.datachunk_params_id
+        )
+    except EmptyResultException:
+        raise EmptyResultException(f"There are no datachunk_params in the database with requested id: "
+                                   f"{params_holder.datachunk_params_id}")
+
     qcone = create_qcone_config(qcone_holder=params_holder)
 
     if add_to_db:
@@ -310,8 +318,7 @@ def create_qcone_rejected_time(
 
 
 def create_qcone_config(
-        qcone_holder: Optional[QCOneConfigHolder] = None,
-        **kwargs,
+        qcone_holder: QCOneConfigHolder,
 ) -> QCOneConfig:
     """
     This method takes a :class:`~noiz.processing.qc.QCOneConfigHolder` instance and based on it creates an instance
@@ -329,14 +336,12 @@ def create_qcone_config(
     :rtype: QCOneConfig
     """
 
-    if qcone_holder is None:
-        qcone_holder = validate_dict_as_qcone_holder(kwargs)
-
     qc_one_rejected_times = []
     for rej_time in qcone_holder.rejected_times:
         qc_one_rejected_times.extend(create_qcone_rejected_time(holder=rej_time))
 
     qcone = QCOneConfig(
+        datachunk_params_id=qcone_holder.datachunk_params_id,
         null_policy=qcone_holder.null_treatment_policy.value,
         strict_gps=qcone_holder.strict_gps,
         starttime=qcone_holder.starttime,
