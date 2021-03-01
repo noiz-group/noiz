@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Generator, Collection
-
+import numpy.typing as npt
 import pandas as pd
 
 from noiz.models import Crosscorrelation, StackingSchema, StackingTimespan
@@ -34,7 +34,7 @@ def _generate_stacking_timespans(stacking_schema: StackingSchema) -> Generator[S
         )
 
 
-def do_linear_stack_of_crosscorrelations(ccfs: Collection[Crosscorrelation]) -> np.array:
+def do_linear_stack_of_crosscorrelations(ccfs: Collection[Crosscorrelation]) -> npt.ArrayLike:
     """
     Takes a collection of :py:class:`~noiz.models.crosscorrelation.Crosscorrelation` objects and performs
     a linear stack on all of them.
