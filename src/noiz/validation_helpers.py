@@ -1,11 +1,9 @@
 import datetime
-
-import pandas as pd
-from typing import Union, Optional, Tuple, Any, Type, List
-
 import numpy as np
 import numpy.typing as npt
 import obspy
+import pandas as pd
+from typing import Union, Optional, Tuple, Any, Type, List
 
 
 def count_consecutive_trues(arr: npt.ArrayLike) -> npt.ArrayLike:
