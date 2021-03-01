@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import ARRAY
 
 from noiz.models.timespan import TimespanModel
 from noiz.database import db
-from noiz.processing.validation_helpers import _validate_timedelta
+from noiz.processing.validation_helpers import _validate_timedelta_as_pytimedelta
 
 
 class StackingTimespan(TimespanModel):
@@ -79,11 +79,11 @@ class StackingSchema(db.Model):
         self.minimum_ccf_count = kwargs.get("minimum_ccf_count", None)
         self.starttime = kwargs.get("starttime", None)
         self.endtime = kwargs.get("endtime", None)
-        self.stacking_length = _validate_timedelta(
+        self.stacking_length = _validate_timedelta_as_pytimedelta(
             kwargs.get("stacking_length", None)
         )
-        self.stacking_step = _validate_timedelta(kwargs.get("stacking_step", None))
-        self.stacking_overlap = _validate_timedelta(
+        self.stacking_step = _validate_timedelta_as_pytimedelta(kwargs.get("stacking_step", None))
+        self.stacking_overlap = _validate_timedelta_as_pytimedelta(
             kwargs.get("stacking_overlap", None)
         )
 
