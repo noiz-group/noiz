@@ -1,3 +1,8 @@
+import datetime
+
+import pandas as pd
+from typing import Union
+
 import numpy as np
 import numpy.typing as npt
 import obspy
@@ -53,3 +58,14 @@ def _validate_stream_with_single_trace(st: obspy.Stream) -> None:
         raise TypeError(f"obspy.Stream was expected. Got {type(st)}")
     if len(st) != 1:
         raise ValueError(f"This method expects exactly one trace in the stream! There were {len(st)} traces found.")
+
+
+def _validate_timedelta(timedelta: Union[pd.Timedelta, datetime.timedelta, str]):
+    if timedelta is None:
+        return None
+    if isinstance(timedelta, pd.Timedelta):
+        return timedelta.to_pytimedelta()
+    if isinstance(timedelta, datetime.timedelta):
+        return timedelta
+    if isinstance(timedelta, str):
+        return pd.Timedelta(timedelta).to_pytimedelta()

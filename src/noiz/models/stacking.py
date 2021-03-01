@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql import ARRAY
 
 from noiz.models.timespan import TimespanModel
 from noiz.database import db
+from noiz.processing.validation_helpers import _validate_timedelta
 
 
 class StackingTimespan(TimespanModel):
@@ -43,17 +44,6 @@ class StackingSchemaHolder:
     stacking_length: Union[pd.Timedelta, datetime.timedelta, str]
     stacking_step: Optional[Union[pd.Timedelta, datetime.timedelta, str]] = None
     stacking_overlap: Optional[Union[pd.Timedelta, datetime.timedelta, str]] = None
-
-
-def _validate_timedelta(timedelta: Union[pd.Timedelta, datetime.timedelta, str]):
-    if timedelta is None:
-        return None
-    if isinstance(timedelta, pd.Timedelta):
-        return timedelta.to_pytimedelta()
-    if isinstance(timedelta, datetime.timedelta):
-        return timedelta
-    if isinstance(timedelta, str):
-        return pd.Timedelta(timedelta).to_pytimedelta()
 
 
 class StackingSchema(db.Model):
