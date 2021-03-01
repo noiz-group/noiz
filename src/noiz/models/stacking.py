@@ -97,12 +97,12 @@ class StackingSchema(db.Model):
             self._calculate_stacking_step()
 
     def _calclulate_overlap(self):
-        self.stacking_overlap = calculate_stacking_step_or_overlap(self.stacking_length, self.stacking_step)
+        self.stacking_overlap = calculate_window_step_or_overlap(self.stacking_length, self.stacking_step)
 
     def _calculate_stacking_step(self):
-        self.stacking_step = calculate_stacking_step_or_overlap(self.stacking_length, self.stacking_overlap)
+        self.stacking_step = calculate_window_step_or_overlap(self.stacking_length, self.stacking_overlap)
 
-def calculate_stacking_step_or_overlap(
+def calculate_window_step_or_overlap(
         stacking_length: Union[pd.Timedelta, datetime.timedelta],
         stacking_step_or_overlap: Union[pd.Timedelta, datetime.timedelta],
 ) -> datetime.timedelta:
