@@ -60,15 +60,18 @@ def _validate_stream_with_single_trace(st: obspy.Stream) -> None:
         raise ValueError(f"This method expects exactly one trace in the stream! There were {len(st)} traces found.")
 
 
-def _validate_timedelta_as_pytimedelta(timedelta: Union[pd.Timedelta, datetime.timedelta, str]):
-    if timedelta is None:
-        return None
+def _validate_timedelta_as_pytimedelta(
+        timedelta: Union[pd.Timedelta, datetime.timedelta, str]
+) -> datetime.timedelta:
     if isinstance(timedelta, pd.Timedelta):
         return timedelta.to_pytimedelta()
-    if isinstance(timedelta, datetime.timedelta):
+    elif isinstance(timedelta, datetime.timedelta):
         return timedelta
-    if isinstance(timedelta, str):
+    elif isinstance(timedelta, str):
         return pd.Timedelta(timedelta).to_pytimedelta()
+    else:
+        raise TypeError(f"Valid types are: pd.Timedelta, datetime.timedelta and str that can be parsed as pd.Timedelta"
+                        f"Provided variable is {type(timedelta)}")
 
 
 def _validate_timestamp_as_pdtimestamp(
