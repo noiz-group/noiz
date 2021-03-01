@@ -1,5 +1,6 @@
 from loguru import logger
 from noiz.api.helpers import extract_object_ids
+from noiz.exceptions import EmptyResultException
 from noiz.validation_helpers import validate_to_tuple
 from typing import Optional, List, Union, Collection
 from sqlalchemy.dialects.postgresql import insert
@@ -80,6 +81,38 @@ def create_all_componentpairs() -> None:
 
     upsert_componentpairs(component_pairs)
     return
+
+
+def fetch_componentpairs_by_id(
+        component_pair_id: Union[Collection[int], int]
+) -> List[ComponentPair]:
+    """
+    Fetches :py:class:`~noiz.models.component_pair.ComponentPair` from the database by id.
+    By default it also loads both Components that belong to the pair.
+
+    :param component_pair_id: Accepts either single id or multiple ids
+    :type component_pair_id: Union[Collection[int], int]
+    :return: Fetched Pairs
+    :rtype: List[ComponentPair]
+    """
+    pair_ids = validate_to_tuple(component_pair_id, int)
+
+    component_pairs = (
+        db.session.query(ComponentPair)
+        .filter(
+            ComponentPair.id.in_(pair_ids)
+        )
+        .options(
+            subqueryload(ComponentPair.component_a),
+            subqueryload(ComponentPair.component_b),
+        )
+        .all()
+    )
+
+    if len(component_pairs) == 0:
+        EmptyResultException("There were no pairs in database with IDs you asked for.")
+
+    return component_pairs
 
 
 def fetch_componentpairs(
@@ -184,4 +217,8 @@ def fetch_componentpairs(
         .filter(*filters)
         .all()
     )
+
+    if len(component_pairs) == 0:
+        EmptyResultException("There were no pairs in database that fit this query.")
+
     return component_pairs
