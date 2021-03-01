@@ -83,6 +83,29 @@ def _validate_timedelta_as_pytimedelta(
                         f"Provided variable is {type(timedelta)}")
 
 
+def _validate_timedelta_as_pdtimedelta(
+        timedelta: Union[pd.Timedelta, datetime.timedelta, str]
+) -> pd.Timedelta:
+    """
+    Checks if provided variable is either :py:class:`pandas.Timedelta`, :py:class:`datetime.timedelta` or
+    a string that can be parsed by :py:class:`pandas.Timedelta` and converts it to :py:class:`datetime.timedelta`.
+
+    :param var: Variable to be checked
+    :type var: Union[pd.Timedelta, datetime.timedelta, str]
+    :return: Validated timedelta
+    :rtype: pd.Timedelta
+    """
+    if isinstance(timedelta, pd.Timedelta):
+        return timedelta
+    elif isinstance(timedelta, datetime.timedelta):
+        return pd.Timedelta(timedelta)
+    elif isinstance(timedelta, str):
+        return pd.Timedelta(timedelta)
+    else:
+        raise TypeError(f"Valid types are: pd.Timedelta, datetime.timedelta and str that can be parsed as pd.Timedelta"
+                        f"Provided variable is {type(timedelta)}")
+
+
 def _validate_as_pytimedelta_or_none(
         var: Optional[Union[pd.Timedelta, datetime.timedelta, str]]
 ) -> Optional[datetime.timedelta]:
@@ -103,12 +126,43 @@ def _validate_as_pytimedelta_or_none(
         return None
 
 
+def _validate_timestamp_as_pydatetime(
+    time_obj: Union[pd.Timestamp, datetime.datetime, np.datetime64, str]
+) -> datetime.datetime:
+    """
+    Takes a time object and converts it to a pd.Timestamp if originally it was either datetime.datetime,
+    np.datetime64 or pd.Timestamp
+
+    Checks if provided variable is either :py:class:`pandas.Timestamp`, :py:class:`datetime.datetime`,
+    :py:class:`np.datetime64` or a string that can be parsed by :py:class:`pandas.Timestamp`
+    and converts it to :py:class:`datetime.datetime`.
+
+    :param time_obj: Time object to be validated
+    :type time_obj: Union[pd.Timestamp, datetime.datetime, np.datetime64, str]
+    :return: Validated Timestamp
+    :rtype: pd.Timestamp
+    """
+    if isinstance(time_obj, pd.Timestamp):
+        return time_obj.to_pydatetime()
+    elif isinstance(time_obj, np.datetime64):
+        return pd.Timestamp(time_obj).to_pydatetime()
+    elif isinstance(time_obj, datetime.datetime):
+        return time_obj
+    elif isinstance(time_obj, str):
+        return _validate_timestamp_as_pydatetime(pd.Timestamp(time_obj))
+    else:
+        raise TypeError(f"Valid types are: pd.Timestamp, datetime.datetime or np.datetime64 "
+                        f"or str that can be casted to pd.Timestamp. "
+                        f"Provided variable is {type(time_obj)}")
+
+
 def _validate_timestamp_as_pdtimestamp(
     time_obj: Union[pd.Timestamp, datetime.datetime, np.datetime64]
 ) -> pd.Timestamp:
     """
     Takes a time object and converts it to a pd.Timestamp if originally it was either datetime.datetime,
     np.datetime64 or pd.Timestamp
+
     :param time_obj: Time object to be validated
     :type time_obj: Union[pd.Timestamp, datetime.datetime, np.datetime64]
     :return: Validated Timestamp
@@ -116,8 +170,12 @@ def _validate_timestamp_as_pdtimestamp(
     """
     if isinstance(time_obj, pd.Timestamp):
         return time_obj
-    elif isinstance(time_obj, (datetime.datetime, np.datetime64)):
+    elif isinstance(time_obj, (datetime.datetime, np.datetime64, str)):
         return pd.Timestamp(time_obj)
+    else:
+        raise TypeError(f"Valid types are: pd.Timestamp, datetime.datetime or np.datetime64 "
+                        f"or str that can be casted to pd.Timestamp. "
+                        f"Provided variable is {type(time_obj)}")
 
 
 def validate_to_tuple(
