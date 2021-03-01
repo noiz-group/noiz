@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 else:
     from sqlalchemy.ext.hybrid import hybrid_property as typed_hybrid_property
 
-from noiz.processing.time_utils import validate_timestamp
+from noiz.validation_helpers import _validate_timestamp_as_pdtimestamp
 
 
 class TimespanModel(db.Model):
@@ -29,9 +29,9 @@ class TimespanModel(db.Model):
 
     def __init__(self, **kwargs):
         super(TimespanModel, self).__init__(**kwargs)
-        self.starttime: pd.Timestamp = validate_timestamp(kwargs.get("starttime"))
-        self.midtime: pd.Timestamp = validate_timestamp(kwargs.get("midtime"))
-        self.endtime: pd.Timestamp = validate_timestamp(kwargs.get("endtime"))
+        self.starttime: pd.Timestamp = _validate_timestamp_as_pdtimestamp(kwargs.get("starttime"))
+        self.midtime: pd.Timestamp = _validate_timestamp_as_pdtimestamp(kwargs.get("midtime"))
+        self.endtime: pd.Timestamp = _validate_timestamp_as_pdtimestamp(kwargs.get("endtime"))
 
     def __repr__(self):
         return f"Timespan id: {self.id} from {self.starttime} -- {self.endtime}"

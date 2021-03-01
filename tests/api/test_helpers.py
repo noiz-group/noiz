@@ -2,8 +2,9 @@ from dataclasses import dataclass
 
 import pytest
 
-from noiz.api.helpers import extract_object_ids, validate_exactly_one_argument_provided, validate_to_tuple, \
-    validate_uniformity_of_tuple
+from noiz.api.helpers import extract_object_ids
+from noiz.validation_helpers import validate_to_tuple, validate_uniformity_of_tuple, \
+    validate_exactly_one_argument_provided
 
 
 @pytest.mark.parametrize("first, second", [(1, None), ('test_string', None), (None, 2), [None, 'test_string']])

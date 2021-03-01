@@ -6,6 +6,8 @@ from sqlalchemy.dialects.postgresql import ARRAY
 
 from noiz.models.timespan import TimespanModel
 from noiz.database import db
+from noiz.processing.time_utils import calculate_window_step_or_overlap
+from noiz.validation_helpers import _validate_as_pytimedelta_or_none
 
 
 class StackingTimespan(TimespanModel):
@@ -45,17 +47,6 @@ class StackingSchemaHolder:
     stacking_overlap: Optional[Union[pd.Timedelta, datetime.timedelta, str]] = None
 
 
-def _validate_timedelta(timedelta: Union[pd.Timedelta, datetime.timedelta, str]):
-    if timedelta is None:
-        return None
-    if isinstance(timedelta, pd.Timedelta):
-        return timedelta.to_pytimedelta()
-    if isinstance(timedelta, datetime.timedelta):
-        return timedelta
-    if isinstance(timedelta, str):
-        return pd.Timedelta(timedelta).to_pytimedelta()
-
-
 class StackingSchema(db.Model):
     __tablename__ = "stacking_schema"
 
@@ -84,18 +75,15 @@ class StackingSchema(db.Model):
             if key not in kwargs.keys():
                 raise ValueError(f"Required value of {key} missing. You have to provide it.")
 
-        self.crosscorrelation_params_id = kwargs.get("crosscorrelation_params_id", None)
-        self.qctwo_config_id = kwargs.get("qctwo_config_id", None)
-        self.minimum_ccf_count = kwargs.get("minimum_ccf_count", None)
-        self.starttime = kwargs.get("starttime", None)
-        self.endtime = kwargs.get("endtime", None)
-        self.stacking_length = _validate_timedelta(
-            kwargs.get("stacking_length", None)
-        )
-        self.stacking_step = _validate_timedelta(kwargs.get("stacking_step", None))
-        self.stacking_overlap = _validate_timedelta(
-            kwargs.get("stacking_overlap", None)
-        )
+        self.crosscorrelation_params_id = kwargs.get("crosscorrelation_params_id")
+        self.qctwo_config_id = kwargs.get("qctwo_config_id")
+        self.minimum_ccf_count = kwargs.get("minimum_ccf_count")
+        self.starttime = kwargs.get("starttime")
+        self.endtime = kwargs.get("endtime")
+
+        self.stacking_length = _validate_as_pytimedelta_or_none(kwargs.get("stacking_length", None))
+        self.stacking_step = _validate_as_pytimedelta_or_none(kwargs.get("stacking_step", None))
+        self.stacking_overlap = _validate_as_pytimedelta_or_none(kwargs.get("stacking_overlap", None))
 
         if self.stacking_step is None and self.stacking_overlap is None:
             raise ValueError("You have to provide either stacking_step or stacking_overlap.")
@@ -110,10 +98,10 @@ class StackingSchema(db.Model):
             self._calculate_stacking_step()
 
     def _calclulate_overlap(self):
-        self.stacking_overlap = self.stacking_length - self.stacking_step
+        self.stacking_overlap = calculate_window_step_or_overlap(self.stacking_length, self.stacking_step)
 
     def _calculate_stacking_step(self):
-        self.stacking_step = self.stacking_length - self.stacking_overlap
+        self.stacking_step = calculate_window_step_or_overlap(self.stacking_length, self.stacking_overlap)
 
 
 ccf_ccfstack_association_table = db.Table(

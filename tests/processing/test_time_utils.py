@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
-from noiz.processing.time_utils import get_year_doy, validate_timestamp
+from noiz.processing.time_utils import get_year_doy
+from noiz.validation_helpers import _validate_timestamp_as_pdtimestamp
 
 
 @pytest.mark.parametrize(
@@ -25,4 +26,4 @@ def test_get_year_doy(test_date, year, doy):
     (datetime(2019, 1, 1), pd.Timestamp(2017, 10, 30), np.datetime64("2019-05-07")),
 )
 def test_validate_timestamp(test_date):
-    assert isinstance(validate_timestamp(test_date), pd.Timestamp)
+    assert isinstance(_validate_timestamp_as_pdtimestamp(test_date), pd.Timestamp)
