@@ -2,8 +2,8 @@ from functools import cached_property
 
 from typing import Optional
 from pydantic.dataclasses import dataclass
-import datetime
 import numpy as np
+import numpy.typing as npt
 
 from noiz.database import db
 from noiz.globals import ExtendedEnum
@@ -174,7 +174,7 @@ class DatachunkParams(db.Model):
     def get_correlation_max_lag_samples(self):
         return int(self._correlation_max_lag * self._sampling_rate)
 
-    def get_correlation_time_vector(self) -> np.array:
+    def get_correlation_time_vector(self) -> npt.ArrayLike:
         """
         Return a np.array containing time vector for cross correlation to required correlation max lag.
         Compatible with obspy's method to calculate correlation.
@@ -314,7 +314,7 @@ class CrosscorrelationParams(db.Model):
         return int(self.correlation_max_lag * self.sampling_rate)
 
     @cached_property
-    def correlation_time_vector(self) -> np.array:
+    def correlation_time_vector(self) -> npt.ArrayLike:
         """
         Return a np.array containing time vector for cross correlation to required correlation max lag.
         Compatible with obspy's method to calculate correlation.

@@ -6,7 +6,7 @@ import pandas as pd
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, Mapping
 from typing_extensions import Protocol
 
 from noiz.exceptions import UnparsableDateTimeException
@@ -361,8 +361,8 @@ class SohParsingParams:
     soh_type: SohType
     header_names: Tuple[str, ...]
     used_names: Tuple[str, ...]
-    header_dtypes: Dict[str, type]
-    name_mappings: Dict[str, str]
+    header_dtypes: Mapping[str, type]
+    name_mappings: Mapping[str, str]
     search_regex: str
     postprocessor: Postprocessor
     parser: Parser
