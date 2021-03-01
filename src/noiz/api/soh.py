@@ -13,7 +13,8 @@ import numpy as np
 
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.api.component import fetch_components
-from noiz.api.helpers import validate_exactly_one_argument_provided, extract_object_ids
+from noiz.api.helpers import extract_object_ids
+from noiz.validation_helpers import validate_exactly_one_argument_provided
 from noiz.database import db
 from noiz.models.component import Component
 from noiz.models.timespan import Timespan

@@ -3,7 +3,7 @@ from loguru import logger
 from pathlib import Path
 from typing import List, Iterable, Optional, Collection, Union
 
-from noiz.api.helpers import validate_to_tuple
+from noiz.validation_helpers import validate_to_tuple
 from noiz.database import db
 from noiz.models.component import Component
 from noiz.processing.component import parse_inventory_for_single_component_db_entries
