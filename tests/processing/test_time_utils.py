@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
-from noiz.processing.time_utils import get_year_doy, validate_timestamp
+from noiz.processing.time_utils import get_year_doy
+from noiz.processing.validation_helpers import validate_timestamp
 
 
 @pytest.mark.parametrize(

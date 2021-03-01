@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 else:
     from sqlalchemy.ext.hybrid import hybrid_property as typed_hybrid_property
 
-from noiz.processing.time_utils import validate_timestamp
+from noiz.processing.validation_helpers import validate_timestamp
 
 
 class TimespanModel(db.Model):
