@@ -1,5 +1,6 @@
 from collections import defaultdict
 import numpy as np
+import numpy.typing as npt
 import obspy
 from typing import Tuple, Dict, DefaultDict, Collection, List
 
@@ -9,7 +10,7 @@ from noiz.models.datachunk import ProcessedDatachunk
 from noiz.models.timespan import Timespan
 
 
-def get_time_vector_ccf(max_lag: float, sampling_rate: float) -> np.array:
+def get_time_vector_ccf(max_lag: float, sampling_rate: float) -> npt.ArrayLike:
     """
     Calculate a timeseries symmetric around 0 with given max timelag and sampling rate.
     Length of the timeseries will be 2*max_lag*sampling_rate + 1

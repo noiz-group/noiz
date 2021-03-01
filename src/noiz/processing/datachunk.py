@@ -4,6 +4,7 @@ import numpy as np
 import obspy
 import scipy
 from typing import Union, Tuple, Dict, Collection, Optional
+import numpy.typing as npt
 
 from noiz.api.type_aliases import CalculateDatachunkStatsInputs, RunDatachunkPreparationInputs
 from noiz.exceptions import MissingDataFileException
@@ -163,7 +164,7 @@ def _check_if_gaps_short_enough(st: obspy.Stream, params: DatachunkParams) -> bo
     if not isinstance(st_merged[0].data, np.ma.MaskedArray):
         return True
 
-    gaps_mask: np.array = st_merged[0].data.mask
+    gaps_mask: npt.ArrayLike = st_merged[0].data.mask
     gap_counts = count_consecutive_trues(gaps_mask)
     # noinspection PyTypeChecker
     if any(gap_counts > max_gap):
