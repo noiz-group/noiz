@@ -1,5 +1,8 @@
 import datetime
-from typing import Tuple
+import pandas as pd
+from typing import Tuple, Union
+
+from noiz.validation_helpers import _validate_timedelta_as_pytimedelta
 
 
 def get_year_doy(date: datetime.datetime) -> Tuple[int, int]:
@@ -13,3 +16,11 @@ def get_year_doy(date: datetime.datetime) -> Tuple[int, int]:
     year = date.year
     day_of_year = date.timetuple().tm_yday
     return year, day_of_year
+
+
+def calculate_window_step_or_overlap(
+        stacking_length: Union[pd.Timedelta, datetime.timedelta],
+        stacking_step_or_overlap: Union[pd.Timedelta, datetime.timedelta],
+) -> datetime.timedelta:
+    return _validate_timedelta_as_pytimedelta(stacking_length) - \
+           _validate_timedelta_as_pytimedelta(stacking_step_or_overlap)

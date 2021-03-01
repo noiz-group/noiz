@@ -17,7 +17,7 @@ from noiz.models.timespan import Timespan
 from noiz.processing.path_helpers import assembly_filepath, assembly_sds_like_dir, assembly_preprocessing_filename, \
     increment_filename_counter, directory_exists_or_create
 from noiz.processing.signal_helpers import get_min_sample_count, get_expected_sample_count, get_max_sample_count
-from noiz.processing.validation_helpers import count_consecutive_trues, _validate_stream_with_single_trace
+from noiz.validation_helpers import count_consecutive_trues, _validate_stream_with_single_trace
 
 
 def next_pow_2(number: Union[int, float]) -> int:

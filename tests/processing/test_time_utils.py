@@ -4,7 +4,7 @@ import numpy as np
 from datetime import datetime
 
 from noiz.processing.time_utils import get_year_doy
-from noiz.processing.validation_helpers import _validate_timestamp_as_pdtimestamp
+from noiz.validation_helpers import _validate_timestamp_as_pdtimestamp
 
 
 @pytest.mark.parametrize(
