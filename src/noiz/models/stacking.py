@@ -74,11 +74,11 @@ class StackingSchema(db.Model):
             if key not in kwargs.keys():
                 raise ValueError(f"Required value of {key} missing. You have to provide it.")
 
-        self.crosscorrelation_params_id = kwargs.get("crosscorrelation_params_id", None)
-        self.qctwo_config_id = kwargs.get("qctwo_config_id", None)
-        self.minimum_ccf_count = kwargs.get("minimum_ccf_count", None)
-        self.starttime = kwargs.get("starttime", None)
-        self.endtime = kwargs.get("endtime", None)
+        self.crosscorrelation_params_id = kwargs.get("crosscorrelation_params_id")
+        self.qctwo_config_id = kwargs.get("qctwo_config_id")
+        self.minimum_ccf_count = kwargs.get("minimum_ccf_count")
+        self.starttime = kwargs.get("starttime")
+        self.endtime = kwargs.get("endtime")
 
         self.stacking_length = _validate_as_pytimedelta_or_none(kwargs.get("stacking_length", None))
         self.stacking_step = _validate_as_pytimedelta_or_none(kwargs.get("stacking_step", None))
