@@ -16,8 +16,9 @@ from noiz.processing.qc import calculate_qctwo_results, calculate_qcone_results_
 from noiz.api.component import fetch_components
 from noiz.api.crosscorrelations import fetch_crosscorrelation
 from noiz.api.datachunk import _determine_filters_and_opts_for_datachunk
-from noiz.api.helpers import validate_to_tuple, extract_object_ids, bulk_add_or_upsert_objects, \
+from noiz.api.helpers import extract_object_ids, bulk_add_or_upsert_objects, \
     _run_calculate_and_upsert_on_dask, _run_calculate_and_upsert_sequentially
+from noiz.validation_helpers import validate_to_tuple
 from noiz.api.timespan import fetch_timespans_between_dates
 
 
