@@ -63,6 +63,15 @@ def _validate_stream_with_single_trace(st: obspy.Stream) -> None:
 def _validate_timedelta_as_pytimedelta(
         timedelta: Union[pd.Timedelta, datetime.timedelta, str]
 ) -> datetime.timedelta:
+    """
+    Checks if provided variable is either :py:class:`pandas.Timedelta`, :py:class:`datetime.timedelta` or
+    a string that can be parsed by :py:class:`pandas.Timedelta` and converts it to :py:class:`datetime.timedelta`.
+
+    :param var: Variable to be checked
+    :type var: Union[pd.Timedelta, datetime.timedelta, str]
+    :return: Validated timedelta
+    :rtype: datetime.timedelta
+    """
     if isinstance(timedelta, pd.Timedelta):
         return timedelta.to_pytimedelta()
     elif isinstance(timedelta, datetime.timedelta):
@@ -77,6 +86,17 @@ def _validate_timedelta_as_pytimedelta(
 def _validate_as_pytimedelta_or_none(
         var: Optional[Union[pd.Timedelta, datetime.timedelta, str]]
 ) -> Optional[datetime.timedelta]:
+    """
+    Checks if provided variable is either :py:class:`pandas.Timedelta`, :py:class:`datetime.timedelta` or
+    a string that can be parsed by :py:class:`pandas.Timedelta` and converts it to :py:class:`datetime.timedelta`.
+
+    If provided None, it returns None
+
+    :param var: Variable to be checked
+    :type var: Optional[Union[pd.Timedelta, datetime.timedelta, str]]
+    :return: Validated timedelta or None
+    :rtype: Optional[datetime.timedelta]
+    """
     if var is not None:
         return _validate_timedelta_as_pytimedelta(var)
     else:
