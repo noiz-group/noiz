@@ -25,8 +25,9 @@ from noiz.processing.crosscorrelations import (
 )
 
 from noiz.api.component_pair import fetch_componentpairs
-from noiz.api.helpers import extract_object_ids, validate_to_tuple, _run_calculate_and_upsert_on_dask, \
+from noiz.api.helpers import extract_object_ids, _run_calculate_and_upsert_on_dask, \
     _run_calculate_and_upsert_sequentially
+from noiz.validation_helpers import validate_to_tuple
 from noiz.api.processing_config import fetch_crosscorrelation_params_by_id
 from noiz.api.timespan import fetch_timespans_between_dates
 

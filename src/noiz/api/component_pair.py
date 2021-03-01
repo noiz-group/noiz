@@ -1,5 +1,6 @@
 from loguru import logger
-from noiz.api.helpers import extract_object_ids, validate_to_tuple
+from noiz.api.helpers import extract_object_ids
+from noiz.validation_helpers import validate_to_tuple
 from typing import Optional, List, Union, Collection
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import aliased, subqueryload

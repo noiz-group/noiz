@@ -1,8 +1,8 @@
 import datetime
+import pandas as pd
 from typing import Tuple, Union
 
-import numpy as np
-import pandas as pd
+from noiz.validation_helpers import _validate_timedelta_as_pytimedelta
 
 
 def get_year_doy(date: datetime.datetime) -> Tuple[int, int]:
@@ -18,18 +18,9 @@ def get_year_doy(date: datetime.datetime) -> Tuple[int, int]:
     return year, day_of_year
 
 
-def validate_timestamp(
-    time_obj: Union[pd.Timestamp, datetime.datetime, np.datetime64]
-) -> pd.Timestamp:
-    """
-    Takes a time object and converts it to a pd.Timestamp if originally it was either datetime.datetime,
-    np.datetime64 or pd.Timestamp
-    :param time_obj: Time object to be validated
-    :type time_obj: Union[pd.Timestamp, datetime.datetime, np.datetime64]
-    :return: Validated Timestamp
-    :rtype: pd.Timestamp
-    """
-    if isinstance(time_obj, pd.Timestamp):
-        return time_obj
-    elif isinstance(time_obj, (datetime.datetime, np.datetime64)):
-        return pd.Timestamp(time_obj)
+def calculate_window_step_or_overlap(
+        stacking_length: Union[pd.Timedelta, datetime.timedelta],
+        stacking_step_or_overlap: Union[pd.Timedelta, datetime.timedelta],
+) -> datetime.timedelta:
+    return _validate_timedelta_as_pytimedelta(stacking_length) - \
+           _validate_timedelta_as_pytimedelta(stacking_step_or_overlap)
