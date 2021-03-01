@@ -1,7 +1,7 @@
 import datetime
 
 import pandas as pd
-from typing import Union
+from typing import Union, Optional
 
 import numpy as np
 import numpy.typing as npt
@@ -72,6 +72,15 @@ def _validate_timedelta_as_pytimedelta(
     else:
         raise TypeError(f"Valid types are: pd.Timedelta, datetime.timedelta and str that can be parsed as pd.Timedelta"
                         f"Provided variable is {type(timedelta)}")
+
+
+def _validate_as_pytimedelta_or_none(
+        var: Optional[Union[pd.Timedelta, datetime.timedelta, str]]
+) -> Optional[datetime.timedelta]:
+    if var is not None:
+        return _validate_timedelta_as_pytimedelta(var)
+    else:
+        return None
 
 
 def _validate_timestamp_as_pdtimestamp(

@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import ARRAY
 
 from noiz.models.timespan import TimespanModel
 from noiz.database import db
-from noiz.processing.validation_helpers import _validate_timedelta_as_pytimedelta
+from noiz.processing.validation_helpers import _validate_timedelta_as_pytimedelta, _validate_as_pytimedelta_or_none
 
 
 class StackingTimespan(TimespanModel):
@@ -79,13 +79,10 @@ class StackingSchema(db.Model):
         self.minimum_ccf_count = kwargs.get("minimum_ccf_count", None)
         self.starttime = kwargs.get("starttime", None)
         self.endtime = kwargs.get("endtime", None)
-        self.stacking_length = _validate_timedelta_as_pytimedelta(
-            kwargs.get("stacking_length", None)
-        )
-        self.stacking_step = _validate_timedelta_as_pytimedelta(kwargs.get("stacking_step", None))
-        self.stacking_overlap = _validate_timedelta_as_pytimedelta(
-            kwargs.get("stacking_overlap", None)
-        )
+
+        self.stacking_length = _validate_as_pytimedelta_or_none(kwargs.get("stacking_length", None))
+        self.stacking_step = _validate_as_pytimedelta_or_none(kwargs.get("stacking_step", None))
+        self.stacking_overlap = _validate_as_pytimedelta_or_none(kwargs.get("stacking_overlap", None))
 
         if self.stacking_step is None and self.stacking_overlap is None:
             raise ValueError("You have to provide either stacking_step or stacking_overlap.")
