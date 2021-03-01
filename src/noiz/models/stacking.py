@@ -6,7 +6,8 @@ from sqlalchemy.dialects.postgresql import ARRAY
 
 from noiz.models.timespan import TimespanModel
 from noiz.database import db
-from noiz.processing.validation_helpers import _validate_timedelta_as_pytimedelta, _validate_as_pytimedelta_or_none
+from noiz.processing.time_utils import calculate_window_step_or_overlap
+from noiz.validation_helpers import _validate_as_pytimedelta_or_none
 
 
 class StackingTimespan(TimespanModel):
@@ -102,12 +103,6 @@ class StackingSchema(db.Model):
     def _calculate_stacking_step(self):
         self.stacking_step = calculate_window_step_or_overlap(self.stacking_length, self.stacking_overlap)
 
-def calculate_window_step_or_overlap(
-        stacking_length: Union[pd.Timedelta, datetime.timedelta],
-        stacking_step_or_overlap: Union[pd.Timedelta, datetime.timedelta],
-) -> datetime.timedelta:
-    return _validate_timedelta_as_pytimedelta(stacking_length) - \
-           _validate_timedelta_as_pytimedelta(stacking_step_or_overlap)
 
 ccf_ccfstack_association_table = db.Table(
     "stacking_association",

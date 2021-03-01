@@ -4,7 +4,7 @@ import pytest
 
 from obspy import Stream
 
-from noiz.processing.validation_helpers import count_consecutive_trues, _validate_stream_with_single_trace
+from noiz.validation_helpers import count_consecutive_trues, _validate_stream_with_single_trace
 
 
 @pytest.mark.parametrize(["input", "output"],
