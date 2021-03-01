@@ -3,7 +3,7 @@ import numpy.typing as npt
 import obspy
 
 
-def count_consecutive_trues(arr: np.array) -> npt.ArrayLike:
+def count_consecutive_trues(arr: npt.ArrayLike) -> npt.ArrayLike:
     """
     This method takes an array of booleans and counts all how many consecutive True values are within it.
     It returns an array of counts.
@@ -30,7 +30,7 @@ def count_consecutive_trues(arr: np.array) -> npt.ArrayLike:
     counted_true_vals = np.diff(
         np.where(
             np.concatenate(
-                ([arr[0]], arr[:-1] != arr[1:], [True])
+                ([arr[0]], arr[:-1] != arr[1:], [True])  # type: ignore
             )
         )[0]
     )[::2]
