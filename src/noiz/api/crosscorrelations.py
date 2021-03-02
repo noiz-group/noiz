@@ -468,6 +468,11 @@ def _crosscorrelate_for_timespan(
 
 
 def fetch_crosscorrelations_and_save(
+        crosscorrelation_params_id: int,
+        starttime: Union[datetime.date, datetime.datetime],
+        endtime: Union[datetime.date, datetime.datetime],
+        dirpath: Path,
+        overwrite: bool = False,
         network_codes_a: Optional[Union[Collection[str], str]] = None,
         station_codes_a: Optional[Union[Collection[str], str]] = None,
         component_codes_a: Optional[Union[Collection[str], str]] = None,
@@ -494,18 +499,43 @@ def fetch_crosscorrelations_and_save(
         only_intracorrelation=only_intracorrelation,
     )
 
-    for _ in component_pairs:
-        pass
+    dirpath = dirpath.absolute()
+    if dirpath.exists() and dirpath.is_file():
+        raise FileExistsError("Provided dirpath should be a directory. It is a file.")
+
+    dirpath.mkdir(exist_ok=True, parents=True)
+
+    for pair in component_pairs:
+        filepath = dirpath.joinpath(f"raw_ccfs_{pair}.npz")
+
+        try:
+            final_path = fetch_crosscorrelations_single_pair_and_save(
+                crosscorrelation_params_id=crosscorrelation_params_id,
+                starttime=starttime,
+                endtime=endtime,
+                filepath=filepath,
+                component_pair=pair,
+                overwrite=overwrite,
+            )
+        except FileExistsError:
+            logger.error(f"File {filepath} with data for pair {pair} exists. "
+                         f"It will not be overwritten. "
+                         f"If you want to overwrite it, pass overwrite=True."
+                         f"Skipping to the next pair. ")
+            continue
+
+        logger.info(f"File {final_path} with data for pair {pair} was successfully written.")
+    return
 
 
 def fetch_crosscorrelations_single_pair_and_save(
         crosscorrelation_params_id: int,
-        component_pair: Optional[ComponentPair],
-        component_pair_id: Optional[int],
         starttime: Union[datetime.date, datetime.datetime],
         endtime: Union[datetime.date, datetime.datetime],
         filepath: Path,
-        overwrite: bool = False
+        component_pair: Optional[ComponentPair] = None,
+        component_pair_id: Optional[int] = None,
+        overwrite: bool = False,
 ) -> Path:
     if component_pair_id is not None and component_pair is not None:
         raise ValueError("You cannot provide both component_pair and component_pair_id")
