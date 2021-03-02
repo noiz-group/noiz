@@ -821,6 +821,85 @@ def export_raw_gps_soh(
     return
 
 
+@export_group.command("raw_ccfs")
+@with_appcontext
+@click.option("-p", "--crosscorrelation_params_id", nargs=1, type=int,
+              default=1, show_default=True)
+@click.option("-sd", "--startdate", nargs=1, type=str,
+              default=DEFAULT_STARTDATE, show_default=True, callback=_parse_as_date)
+@click.option("-ed", "--enddate", nargs=1, type=str,
+              default=DEFAULT_ENDDATE, show_default=True, callback=_parse_as_date)
+@click.option("-d", "--dirpath", type=click.Path())
+@click.option("--overwrite", is_flag=True, expose_value=True,
+              prompt="Are you sure you want overwrite files in case some already exists? N will skip writing to "
+                     "existing ones. ")
+@click.option("-na", "--network_codes_a", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
+@click.option("-sa", "--station_codes_a", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
+@click.option("-ca", "--component_codes_a", multiple=True, type=str, default=None,
+              callback=_validate_zero_length_as_none)
+@click.option("-nb", "--network_codes_b", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
+@click.option("-sb", "--station_codes_b", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
+@click.option("-cb", "--component_codes_b", multiple=True, type=str, default=None,
+              callback=_validate_zero_length_as_none)
+@click.option("-cp", "--accepted_component_code_pairs", multiple=True, type=str, default=None,
+              callback=_validate_zero_length_as_none)
+@click.option("--include_autocorrelation", is_flag=True)
+@click.option("--include_intracorrelation", is_flag=True)
+@click.option("--only_autocorrelation", is_flag=True)
+@click.option("--only_intracorrelation", is_flag=True)
+def export_raw_ccfs(
+        crosscorrelation_params_id,
+        startdate,
+        enddate,
+        dirpath,
+        overwrite,
+        network_codes_a,
+        station_codes_a,
+        component_codes_a,
+        network_codes_b,
+        station_codes_b,
+        component_codes_b,
+        accepted_component_code_pairs,
+        include_autocorrelation,
+        include_intracorrelation,
+        only_autocorrelation,
+        only_intracorrelation,
+):
+    """
+    Export raw crosscorrelation data to npz file.
+    """
+
+    if dirpath is None:
+        dirpath = Path('.')
+        click.echo(f"The --dirpath argument was not provided."
+                   f"Files will be saved to {dirpath}")
+    elif not isinstance(dirpath, Path):
+        dirpath = Path(dirpath)
+
+    from noiz.api.crosscorrelations import fetch_crosscorrelations_and_save
+
+    fetch_crosscorrelations_and_save(
+        crosscorrelation_params_id=crosscorrelation_params_id,
+        starttime=startdate,
+        endtime=enddate,
+        dirpath=dirpath,
+        overwrite=overwrite,
+        network_codes_a=network_codes_a,
+        station_codes_a=station_codes_a,
+        component_codes_a=component_codes_a,
+        network_codes_b=network_codes_b,
+        station_codes_b=station_codes_b,
+        component_codes_b=component_codes_b,
+        accepted_component_code_pairs=accepted_component_code_pairs,
+        include_autocorrelation=include_autocorrelation,
+        include_intracorrelation=include_intracorrelation,
+        only_autocorrelation=only_autocorrelation,
+        only_intracorrelation=only_intracorrelation,
+    )
+
+    return
+
+
 _register_subgroups_to_cli(
     cli,
     (

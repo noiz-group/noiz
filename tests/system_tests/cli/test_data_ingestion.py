@@ -592,6 +592,10 @@ class TestDataIngestionRoutines:
             crosscorrelation_count = Crosscorrelation.query.count()
         assert 124 == crosscorrelation_count
 
+    @pytest.mark.xfail
+    def test_exporting_raw_ccfs_to_npz(self):
+        assert False
+
     def test_run_qctwo(self, noiz_app):
         runner = CliRunner()
         result = runner.invoke(cli, ["processing", "run_qctwo",

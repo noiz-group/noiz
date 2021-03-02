@@ -88,6 +88,27 @@ class DatachunkParams(db.Model):
 
         self._correlation_max_lag = kwargs.get("correlation_max_lag", 60)  # deprecatethis
 
+    def as_dict(self):
+        return dict(
+            datachunk_params_id=self.id,
+            datachunk_params_sampling_rate=self.sampling_rate,
+            datachunk_params_prefiltering_low=self.prefiltering_low,
+            datachunk_params_prefiltering_high=self.prefiltering_high,
+            datachunk_params_prefiltering_order=self.prefiltering_order,
+            datachunk_params_preprocessing_taper_type=self.preprocessing_taper_type,
+            datachunk_params_preprocessing_taper_side=self.preprocessing_taper_side,
+            datachunk_params_preprocessing_taper_max_length=self.preprocessing_taper_max_length,
+            datachunk_params_preprocessing_taper_max_percentage=self.preprocessing_taper_max_percentage,
+            datachunk_params_remove_response=self.remove_response,
+            datachunk_params_datachunk_sample_tolerance=self.datachunk_sample_tolerance,
+            datachunk_params_max_gap_for_merging=self.max_gap_for_merging,
+            datachunk_params_zero_padding_method=self.zero_padding_method,
+            datachunk_params_padding_taper_type=self.padding_taper_type,
+            datachunk_params_padding_taper_max_length=self.padding_taper_max_length,
+            datachunk_params_padding_taper_max_percentage=self.padding_taper_max_percentage,
+
+        )
+
     @property
     def sampling_rate(self):
         return self._sampling_rate
@@ -259,6 +280,15 @@ class ProcessedDatachunkParams(db.Model):
         self._spectral_whitening = kwargs.get("spectral_whitening", True)
         self._one_bit = kwargs.get("one_bit", True)
 
+    def as_dict(self):
+        return dict(
+            processeddatachunk_params_id=self.id,
+            processeddatachunk_params_datachunk_params_id=self.datachunk_params_id,
+            processeddatachunk_params_qcone_config_id=self.qcone_config_id,
+            processeddatachunk_params_spectral_whitening=self.spectral_whitening,
+            processeddatachunk_params_one_bit=self.one_bit,
+        )
+
     @property
     def spectral_whitening(self):
         return self._spectral_whitening
@@ -300,6 +330,14 @@ class CrosscorrelationParams(db.Model):
         # This is just duplication of the original param to avoid complications
         self._sampling_rate = kwargs.get("sampling_rate")
         self._correlation_max_lag = kwargs.get("correlation_max_lag", 60)
+
+    def as_dict(self):
+        return dict(
+            crosscorrelation_params_id=self.id,
+            crosscorrelation_params_processed_datachunk_params_id=self.processed_datachunk_params_id,
+            crosscorrelation_params_sampling_rate=self.sampling_rate,
+            crosscorrelation_params_correlation_max_lag=self.correlation_max_lag,
+        )
 
     @property
     def sampling_rate(self):
