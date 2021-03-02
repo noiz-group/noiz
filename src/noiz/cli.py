@@ -830,9 +830,7 @@ def export_raw_gps_soh(
 @click.option("-ed", "--enddate", nargs=1, type=str,
               default=DEFAULT_ENDDATE, show_default=True, callback=_parse_as_date)
 @click.option("-d", "--dirpath", type=click.Path())
-@click.option("--overwrite", is_flag=True, expose_value=True,
-              prompt="Are you sure you want overwrite files in case some already exists? N will skip writing to "
-                     "existing ones. ")
+@click.option("--overwrite", is_flag=True)
 @click.option("-na", "--network_codes_a", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
 @click.option("-sa", "--station_codes_a", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
 @click.option("-ca", "--component_codes_a", multiple=True, type=str, default=None,

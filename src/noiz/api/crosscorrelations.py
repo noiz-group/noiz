@@ -499,6 +499,8 @@ def fetch_crosscorrelations_and_save(
         only_intracorrelation=only_intracorrelation,
     )
 
+    logger.info(f"Found {len(component_pairs)} for provided parameters.")
+
     dirpath = dirpath.absolute()
     if dirpath.exists() and dirpath.is_file():
         raise FileExistsError("Provided dirpath should be a directory. It is a file.")
@@ -506,6 +508,7 @@ def fetch_crosscorrelations_and_save(
     dirpath.mkdir(exist_ok=True, parents=True)
 
     for pair in component_pairs:
+        logger.info(f"Fetching data for pair {pair}")
         filepath = dirpath.joinpath(f"raw_ccfs_{pair}.npz")
 
         try:
@@ -523,6 +526,8 @@ def fetch_crosscorrelations_and_save(
                          f"If you want to overwrite it, pass overwrite=True."
                          f"Skipping to the next pair. ")
             continue
+        if final_path is None:
+            continue
 
         logger.info(f"File {final_path} with data for pair {pair} was successfully written.")
     return
@@ -536,7 +541,7 @@ def fetch_crosscorrelations_single_pair_and_save(
         component_pair: Optional[ComponentPair] = None,
         component_pair_id: Optional[int] = None,
         overwrite: bool = False,
-) -> Path:
+) -> Optional[Path]:
     if component_pair_id is not None and component_pair is not None:
         raise ValueError("You cannot provide both component_pair and component_pair_id")
     if component_pair_id is None and component_pair is None:
@@ -559,6 +564,10 @@ def fetch_crosscorrelations_single_pair_and_save(
         load_timespan=True,
         timespan_id=extract_object_ids(timespans)
     )
+
+    if len(fetched_ccfs) == 0:
+        logger.info(f"There are no crosscorrelations for pair {component_pair}")
+        return None
 
     df = assembly_ccf_dataframe(fetched_ccfs, params)
 
