@@ -4,13 +4,13 @@ import datetime
 from loguru import logger
 from sqlalchemy.sql import Insert
 
-from noiz.api.type_aliases import CrosscorrelationRunnerInputs
 from obspy.signal.cross_correlation import correlate
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import subqueryload, Query
-from typing import Iterable, List, Union, Optional, Collection, Dict, Generator, Tuple
+from typing import List, Union, Optional, Collection, Dict, Generator, Tuple, Any
 
+from noiz.api.type_aliases import CrosscorrelationRunnerInputs
+from noiz.processing.io import write_ccfs_to_npz
 from noiz.database import db
 from noiz.exceptions import InconsistentDataException, CorruptedDataException
 from noiz.models.component_pair import ComponentPair
@@ -21,10 +21,10 @@ from noiz.models.timespan import Timespan
 from noiz.processing.crosscorrelations import (
     validate_component_code_pairs,
     group_chunks_by_timespanid_componentid,
-    load_data_for_chunks, extract_component_ids_from_component_pairs,
+    load_data_for_chunks, extract_component_ids_from_component_pairs, _assembly_ccf_dataframe,
 )
 
-from noiz.api.component_pair import fetch_componentpairs
+from noiz.api.component_pair import fetch_componentpairs, fetch_componentpairs_by_id
 from noiz.api.helpers import extract_object_ids, _run_calculate_and_upsert_on_dask, \
     _run_calculate_and_upsert_sequentially
 from noiz.validation_helpers import validate_to_tuple
@@ -465,3 +465,99 @@ def _crosscorrelate_for_timespan(
 
         xcorrs.append(xcorr)
     return xcorrs
+
+
+def fetch_crosscorrelations_and_save(
+        network_codes_a: Optional[Union[Collection[str], str]] = None,
+        station_codes_a: Optional[Union[Collection[str], str]] = None,
+        component_codes_a: Optional[Union[Collection[str], str]] = None,
+        network_codes_b: Optional[Union[Collection[str], str]] = None,
+        station_codes_b: Optional[Union[Collection[str], str]] = None,
+        component_codes_b: Optional[Union[Collection[str], str]] = None,
+        accepted_component_code_pairs: Optional[Union[Collection[str], str]] = None,
+        include_autocorrelation: Optional[bool] = False,
+        include_intracorrelation: Optional[bool] = False,
+        only_autocorrelation: Optional[bool] = False,
+        only_intracorrelation: Optional[bool] = False,
+):
+    component_pairs = fetch_componentpairs(
+        network_codes_a=network_codes_a,
+        station_codes_a=station_codes_a,
+        component_codes_a=component_codes_a,
+        network_codes_b=network_codes_b,
+        station_codes_b=station_codes_b,
+        component_codes_b=component_codes_b,
+        accepted_component_code_pairs=accepted_component_code_pairs,
+        include_autocorrelation=include_autocorrelation,
+        include_intracorrelation=include_intracorrelation,
+        only_autocorrelation=only_autocorrelation,
+        only_intracorrelation=only_intracorrelation,
+    )
+
+    for _ in component_pairs:
+        pass
+
+
+def fetch_crosscorrelations_single_pair_and_save(
+        crosscorrelation_params_id: int,
+        component_pair: Optional[ComponentPair],
+        component_pair_id: Optional[int],
+        starttime: Union[datetime.date, datetime.datetime],
+        endtime: Union[datetime.date, datetime.datetime],
+        filepath: Path,
+        overwrite: bool = False
+) -> Path:
+    if component_pair_id is not None and component_pair is not None:
+        raise ValueError("You cannot provide both component_pair and component_pair_id")
+    if component_pair_id is None and component_pair is None:
+        raise ValueError("You have to provide one of component_pair or component_pair_id")
+    if component_pair_id is not None:
+        pairs = fetch_componentpairs_by_id(component_pair_id=component_pair_id)
+        if len(pairs) != 1:
+            raise ValueError(f"Expected only one component pair. Got {len(pairs)}.")
+        else:
+            pair = pairs[0]
+    if component_pair is not None:
+        pair = component_pair
+
+    params = fetch_crosscorrelation_params_by_id(id=crosscorrelation_params_id)
+
+    timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
+    fetched_ccfs = fetch_crosscorrelation(
+        componentpair_id=(pair.id,),
+        load_timespan=True,
+        timespan_id=extract_object_ids(timespans)
+    )
+
+    df = _assembly_ccf_dataframe(fetched_ccfs, params)
+
+    metadata = prepare_metadata_for_saving_raw_ccf_file(pair, starttime, endtime, params)
+
+    write_ccfs_to_npz(
+        df=df,
+        filepath=filepath,
+        overwrite=overwrite,
+        metadata_keys=metadata.keys(),
+        metadata_values=metadata.values(),
+    )
+    return filepath
+
+
+def prepare_metadata_for_saving_raw_ccf_file(pair: ComponentPair, starttime, endtime, config):
+    from noiz import __version__
+
+    processing_parameters_dict = get_parent_configs_as_dict(config=config)
+
+    metadata = {
+        "noiz_version": __version__,
+        "type": "raw_crosscorrelations_without_qc2_selection",
+        "starttime": str(starttime),
+        "endtime": str(endtime),
+        "component_pair": str(pair),
+    }
+    metadata.update(processing_parameters_dict)
+    return metadata
+
+
+def get_parent_configs_as_dict(config) -> Dict[str, Any]:
+    return {}
