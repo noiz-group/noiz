@@ -1,10 +1,13 @@
 from collections import defaultdict
 import numpy as np
 import numpy.typing as npt
+import pandas as pd
+
 import obspy
 from typing import Tuple, Dict, DefaultDict, Collection, List
 
 from noiz.exceptions import CorruptedDataException
+from noiz.models import Crosscorrelation, CrosscorrelationParams
 from noiz.models.component_pair import ComponentPair
 from noiz.models.datachunk import ProcessedDatachunk
 from noiz.models.timespan import Timespan
@@ -105,3 +108,20 @@ def extract_component_ids_from_component_pairs(fetched_component_pairs: Collecti
     single_component_ids_pre.extend([pair.component_b_id for pair in fetched_component_pairs])
     single_component_ids: Tuple[int, ...] = tuple(set(single_component_ids_pre))
     return single_component_ids
+
+
+def _assembly_ccf_dataframe(
+        crosscorrelations: Collection[Crosscorrelation],
+        crosscorrelation_params: CrosscorrelationParams,
+) -> pd.DataFrame:
+
+    time_vector = crosscorrelation_params.correlation_time_vector
+    midtimes = []
+    ccf_data = []
+    for ccf in crosscorrelations:
+        midtimes.append(ccf.timespan.midtime)
+        ccf_data.append(ccf.load_data())
+    ccfs = np.vstack(ccf_data)
+    df = pd.DataFrame(index=midtimes, columns=time_vector, data=ccfs)
+    df = df.sort_index()
+    return df
