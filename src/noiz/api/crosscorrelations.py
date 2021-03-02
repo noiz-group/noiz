@@ -21,7 +21,7 @@ from noiz.models.timespan import Timespan
 from noiz.processing.crosscorrelations import (
     validate_component_code_pairs,
     group_chunks_by_timespanid_componentid,
-    load_data_for_chunks, extract_component_ids_from_component_pairs, _assembly_ccf_dataframe,
+    load_data_for_chunks, extract_component_ids_from_component_pairs, assembly_ccf_dataframe,
 )
 
 from noiz.api.component_pair import fetch_componentpairs, fetch_componentpairs_by_id
@@ -523,13 +523,14 @@ def fetch_crosscorrelations_single_pair_and_save(
     params = fetch_crosscorrelation_params_by_id(id=crosscorrelation_params_id)
 
     timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
+    # noinspection PyUnboundLocalVariable
     fetched_ccfs = fetch_crosscorrelation(
         componentpair_id=(pair.id,),
         load_timespan=True,
         timespan_id=extract_object_ids(timespans)
     )
 
-    df = _assembly_ccf_dataframe(fetched_ccfs, params)
+    df = assembly_ccf_dataframe(fetched_ccfs, params)
 
     metadata = prepare_metadata_for_saving_raw_ccf_file(pair, starttime, endtime, params)
 

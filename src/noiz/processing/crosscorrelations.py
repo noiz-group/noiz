@@ -110,7 +110,7 @@ def extract_component_ids_from_component_pairs(fetched_component_pairs: Collecti
     return single_component_ids
 
 
-def _assembly_ccf_dataframe(
+def assembly_ccf_dataframe(
         crosscorrelations: Collection[Crosscorrelation],
         crosscorrelation_params: CrosscorrelationParams,
 ) -> pd.DataFrame:
