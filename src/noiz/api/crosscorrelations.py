@@ -499,6 +499,8 @@ def fetch_crosscorrelations_and_save(
         only_intracorrelation=only_intracorrelation,
     )
 
+    logger.info(f"Found {len(component_pairs)} for provided parameters.")
+
     dirpath = dirpath.absolute()
     if dirpath.exists() and dirpath.is_file():
         raise FileExistsError("Provided dirpath should be a directory. It is a file.")
@@ -506,6 +508,7 @@ def fetch_crosscorrelations_and_save(
     dirpath.mkdir(exist_ok=True, parents=True)
 
     for pair in component_pairs:
+        logger.info(f"Fetching data for pair {pair}")
         filepath = dirpath.joinpath(f"raw_ccfs_{pair}.npz")
 
         try:
