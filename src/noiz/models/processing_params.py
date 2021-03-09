@@ -376,10 +376,11 @@ class BeamformingParamsHolder:
     """
     min_freq: float
     max_freq: float
-    slowness_x_limit: float
-    slowness_y_limit: float
-    slowness_x_step: float
-    slowness_y_step: float
+    slowness_x_min: float
+    slowness_x_max: float
+    slowness_y_min: float
+    slowness_y_max: float
+    slowness_step: float
     semplance_threshold: float
     velocity_threshold: float
     window_length: float
@@ -395,10 +396,11 @@ class BeamformingParams(db.Model):
 
     min_freq = db.Column("min_freq", db.Float, nullable=False)
     max_freq = db.Column("max_freq", db.Float, nullable=False)
-    slowness_x_limit = db.Column("slowness_x_limit", db.Float, nullable=False)
-    slowness_y_limit = db.Column("slowness_y_limit", db.Float, nullable=False)
-    slowness_x_step = db.Column("slowness_x_step", db.Float, nullable=False)
-    slowness_y_step = db.Column("slowness_y_step", db.Float, nullable=False)
+    slowness_x_min = db.Column("slowness_x_min", db.Float, nullable=False)
+    slowness_x_max = db.Column("slowness_x_max", db.Float, nullable=False)
+    slowness_y_min = db.Column("slowness_y_min", db.Float, nullable=False)
+    slowness_y_max = db.Column("slowness_y_max", db.Float, nullable=False)
+    slowness_step = db.Column("slowness_step", db.Float, nullable=False)
     semplance_threshold = db.Column("semplance_threshold", db.Float, nullable=False)
     velocity_threshold = db.Column("velocity_threshold", db.Float, nullable=False)
     window_length = db.Column("window_length", db.Float, nullable=False)
@@ -417,10 +419,11 @@ class BeamformingParams(db.Model):
             self,
             min_freq: float,
             max_freq: float,
-            slowness_x_limit: float,
-            slowness_y_limit: float,
-            slowness_x_step: float,
-            slowness_y_step: float,
+            slowness_x_min: float,
+            slowness_x_max: float,
+            slowness_y_min: float,
+            slowness_y_max: float,
+            slowness_step: float,
             semplance_threshold: float,
             velocity_threshold: float,
             window_length: float,
@@ -430,10 +433,11 @@ class BeamformingParams(db.Model):
     ):
         self.min_freq = min_freq
         self.max_freq = max_freq
-        self.slowness_x_limit = slowness_x_limit
-        self.slowness_y_limit = slowness_y_limit
-        self.slowness_x_step = slowness_x_step
-        self.slowness_y_step = slowness_y_step
+        self.slowness_x_min = slowness_x_min
+        self.slowness_x_max = slowness_x_max
+        self.slowness_y_min = slowness_y_min
+        self.slowness_y_max = slowness_y_max
+        self.slowness_step = slowness_step
         self.semplance_threshold = semplance_threshold
         self.velocity_threshold = velocity_threshold
         self.window_length = window_length
