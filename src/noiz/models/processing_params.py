@@ -391,6 +391,7 @@ class BeamformingParamsHolder:
 class BeamformingParams(db.Model):
     __tablename__ = "beamforming_params"
     id = db.Column("id", db.Integer, primary_key=True)
+    qcone_config_id = db.Column("qcone_config_id", db.Integer, db.ForeignKey("qcone_config.id"), nullable=False)
 
     min_freq = db.Column("min_freq", db.Float, nullable=False)
     max_freq = db.Column("max_freq", db.Float, nullable=False)
@@ -403,7 +404,52 @@ class BeamformingParams(db.Model):
     window_length = db.Column("window_length", db.Float, nullable=False)
     window_step = db.Column("window_step", db.Float, nullable=False)
     prewhiten = db.Column("prewhiten", db.Boolean, nullable=False)
-    method = db.Column("method", db.String, nullable=False)
+    _method = db.Column("method", db.String, nullable=False)
+
+    qcone_config = db.relationship(
+        "QCOneConfig",
+        foreign_keys=[qcone_config_id],
+        back_populates="beamforming_params",
+        lazy="joined",
+    )
+
+    def __init__(
+            self,
+            min_freq: float,
+            max_freq: float,
+            slowness_x_limit: float,
+            slowness_y_limit: float,
+            slowness_x_step: float,
+            slowness_y_step: float,
+            semplance_threshold: float,
+            velocity_threshold: float,
+            window_length: float,
+            window_step: float,
+            prewhiten: bool,
+            method: str,
+    ):
+        self.min_freq = min_freq
+        self.max_freq = max_freq
+        self.slowness_x_limit = slowness_x_limit
+        self.slowness_y_limit = slowness_y_limit
+        self.slowness_x_step = slowness_x_step
+        self.slowness_y_step = slowness_y_step
+        self.semplance_threshold = semplance_threshold
+        self.velocity_threshold = velocity_threshold
+        self.window_length = window_length
+        self.window_step = window_step
+        self.prewhiten = prewhiten
+        if method in ("beamforming", "capon"):
+            self._method = method
+        else:
+            raise ValueError(f"Expected either 'beamforming' or 'capon'. Got {method}")
+
+    @property
+    def method(self):
+        if self._method == "beamforming":
+            return 0
+        if self._method == "capon":
+            return 1
 
     # use_winter_time = db.Column("use_winter_time", db.Boolean)
     # f_sampling_out = db.Column("f_sampling_out", db.Integer)
