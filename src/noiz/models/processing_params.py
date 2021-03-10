@@ -374,6 +374,7 @@ class BeamformingParamsHolder:
         This simple dataclass is just helping to validate :class:`~noiz.models.BeamformingParams` values loaded
         from the TOML file
     """
+    qcone_config_id: int
     min_freq: float
     max_freq: float
     slowness_x_min: float
