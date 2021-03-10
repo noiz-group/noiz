@@ -1,4 +1,7 @@
 import pytest
+
+from noiz.models.beamforming import BeamformingResult
+
 pytestmark = [pytest.mark.system, pytest.mark.cli]
 
 from click.testing import CliRunner
@@ -585,6 +588,18 @@ class TestDataIngestionRoutines:
             qcone_count = QCOneResults.query.count()
 
         assert qcone_count == datachunk_count
+
+    def test_run_beamforming(self, noiz_app):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["processing", "run_beamforming",
+                                     "-sd", "2019-10-03",
+                                     "-ed", "2019-10-04",
+                                     "--no_parallel",
+                                     ])
+        assert result.exit_code == 0
+        with noiz_app.app_context():
+            count = BeamformingResult.query.count()
+        assert 24 == count
 
     def test_run_datachunk_processing(self, noiz_app):
         runner = CliRunner()
