@@ -3,20 +3,22 @@ from collections import defaultdict
 from loguru import logger
 from sqlalchemy.orm import subqueryload
 from typing import Union, Collection, Optional, List, Tuple, Generator
+from sqlalchemy.dialects.postgresql import insert, Insert
 
 import datetime
 
 from noiz.api.component import fetch_components
 from noiz.api.helpers import extract_object_ids, _run_calculate_and_upsert_sequentially, \
     _run_calculate_and_upsert_on_dask
-from noiz.api.qc import fetch_qcone_config_single, _prepare_upsert_command_qcone
+from noiz.api.qc import fetch_qcone_config_single
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.api.type_aliases import BeamformingRunnerInputs
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import Timespan, Datachunk, QCOneResults
+from noiz.models.beamforming import BeamformingResult
 from noiz.models.processing_params import BeamformingParams
-from noiz.processing.qc import calculate_qcone_results_wrapper
+from noiz.processing.beamforming import calculate_qcone_results_wrapper_wrapper
 
 
 def fetch_beamforming_params_by_id(id: int) -> BeamformingParams:
@@ -80,15 +82,15 @@ def run_beamforming(
         _run_calculate_and_upsert_on_dask(
             batch_size=batch_size,
             inputs=calculation_inputs,
-            calculation_task=calculate_qcone_results_wrapper,  # type: ignore
-            upserter_callable=_prepare_upsert_command_qcone,
+            calculation_task=calculate_qcone_results_wrapper_wrapper,  # type: ignore
+            upserter_callable=_prepare_upsert_command_beamforming,
         )
     else:
         _run_calculate_and_upsert_sequentially(
             batch_size=batch_size,
             inputs=calculation_inputs,
-            calculation_task=calculate_qcone_results_wrapper,  # type: ignore
-            upserter_callable=_prepare_upsert_command_qcone,
+            calculation_task=calculate_qcone_results_wrapper_wrapper,  # type: ignore
+            upserter_callable=_prepare_upsert_command_beamforming,
         )
     return
 
@@ -156,3 +158,37 @@ def _prepare_inputs_for_beamforming_runner(
             timespan=ts,
             datachunks=tuple(passing_chunks),
         )
+
+
+def _prepare_upsert_command_beamforming(results: BeamformingResult) -> Insert:
+    """
+    Private method that generates an :py:class:`~sqlalchemy.dialects.postgresql.Insert` for
+    :py:class:`~noiz.models.beamforming.BeamformingResult` to be upserted to db.
+    Postgres specific because it's upsert.
+
+    :param results: Instance which is to be upserted
+    :type results: noiz.models.beamforming.BeamformingResult
+    :return: Postgres-specific upsert command
+    :rtype: sqlalchemy.dialects.postgresql.Insert
+    """
+    insert_command = (
+        insert(BeamformingResult)
+        .values(
+            beamforming_params_id=results.beamforming_params_id,
+            timespan_id=results.timespan_id,
+            mean_relative_relpow=results.mean_relative_relpow,
+            mean_absolute_relpow=results.mean_absolute_relpow,
+            mean_backazimuth=results.mean_backazimuth,
+            mean_slowness=results.mean_slowness,
+        )
+        .on_conflict_do_update(
+            constraint="unique_beam_per_config_per_timespan",
+            set_=dict(
+                mean_relative_relpow=results.mean_relative_relpow,
+                mean_absolute_relpow=results.mean_absolute_relpow,
+                mean_backazimuth=results.mean_backazimuth,
+                mean_slowness=results.mean_slowness,
+            ),
+        )
+    )
+    return insert_command

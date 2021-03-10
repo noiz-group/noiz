@@ -4,6 +4,7 @@ from typing import Union, TypedDict, Collection, Callable, Optional, List, Tuple
 from noiz.models import CrosscorrelationOld, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults, \
     Datachunk, DatachunkFile, QCOneConfig, AveragedSohGps, ComponentPair, StackingSchema, StackingTimespan, Component, \
     Timespan, Tsindex, DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams, ProcessedDatachunkFile
+from noiz.models.beamforming import BeamformingResult
 from noiz.models.crosscorrelation import Crosscorrelation, CrosscorrelationFile
 from noiz.models.processing_params import BeamformingParams
 
@@ -11,6 +12,7 @@ BulkAddableObjects = Union[
     Datachunk,
     CrosscorrelationOld,
     Crosscorrelation,
+    BeamformingResult,
     CCFStack,
     DatachunkStats,
     ProcessedDatachunk,
@@ -82,6 +84,7 @@ class StackingInputs(TypedDict):
 InputsForMassCalculations = Union[
     CalculateDatachunkStatsInputs,
     RunDatachunkPreparationInputs,
+    BeamformingRunnerInputs,
     QCOneRunnerInputs,
     ProcessDatachunksInputs,
     CrosscorrelationRunnerInputs,
