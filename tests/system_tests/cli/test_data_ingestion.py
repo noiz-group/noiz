@@ -421,11 +421,11 @@ class TestDataIngestionRoutines:
 
         import toml
         import pytest_check as check
-        from noiz.api.qc import fetch_qcone_config_single
+        from noiz.api.beamforming import fetch_beamforming_params_by_id
         from noiz.models.processing_params import BeamformingParams
 
         with noiz_app.app_context():
-            fetched_config = fetch_qcone_config_single(id=1)
+            fetched_config = fetch_beamforming_params_by_id(id=1)
             all_configs = BeamformingParams.query.all()
 
         assert isinstance(fetched_config, BeamformingParams)
