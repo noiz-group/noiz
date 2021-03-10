@@ -418,6 +418,7 @@ class BeamformingParams(db.Model):
 
     def __init__(
             self,
+            qcone_config_id: int,
             min_freq: float,
             max_freq: float,
             slowness_x_min: float,
@@ -432,6 +433,7 @@ class BeamformingParams(db.Model):
             prewhiten: bool,
             method: str,
     ):
+        self.qcone_config_id = qcone_config_id
         self.min_freq = min_freq
         self.max_freq = max_freq
         self.slowness_x_min = slowness_x_min
