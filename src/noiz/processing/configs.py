@@ -263,7 +263,7 @@ def create_beamforming_params(
         slowness_y_min=params_holder.slowness_y_min,
         slowness_y_max=params_holder.slowness_y_max,
         slowness_step=params_holder.slowness_step,
-        semplance_threshold=params_holder.semplance_threshold,
+        semblance_threshold=params_holder.semblance_threshold,
         velocity_threshold=params_holder.velocity_threshold,
         window_length=params_holder.window_length,
         window_step=params_holder.window_step,

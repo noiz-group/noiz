@@ -2,7 +2,7 @@ from collections import defaultdict
 
 from loguru import logger
 from sqlalchemy.orm import subqueryload
-from typing import Union, Collection, Optional, List, Tuple
+from typing import Union, Collection, Optional, List, Tuple, Generator
 
 import datetime
 
@@ -11,6 +11,7 @@ from noiz.api.helpers import extract_object_ids, _run_calculate_and_upsert_seque
     _run_calculate_and_upsert_on_dask
 from noiz.api.qc import fetch_qcone_config_single, _prepare_upsert_command_qcone
 from noiz.api.timespan import fetch_timespans_between_dates
+from noiz.api.type_aliases import BeamformingRunnerInputs
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import Timespan, Datachunk, QCOneResults
@@ -102,7 +103,7 @@ def _prepare_inputs_for_beamforming_runner(
         components: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
         skip_existing: bool = True,
-):
+) -> Generator[BeamformingRunnerInputs, None, None]:
 
     logger.debug(f"Fetching BeamformingParams with id {beamforming_params_id}")
     params = fetch_beamforming_params_by_id(beamforming_params_id)
@@ -150,8 +151,8 @@ def _prepare_inputs_for_beamforming_runner(
         passing_chunks = [chunk for chunk, qcres in group if qcres.is_passing()]
 
         db.session.expunge_all()
-        yield dict(
+        yield BeamformingRunnerInputs(
             beamforming_params=params,
             timespan=ts,
-            datachunks=passing_chunks,
+            datachunks=tuple(passing_chunks),
         )
