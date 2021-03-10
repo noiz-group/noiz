@@ -438,8 +438,11 @@ class TestDataIngestionRoutines:
             original_config = toml.load(f)
 
         for key, value in original_config['BeamformingParams'].items():
-            if key in ("prewhiten", "method"):
-                check.equal(fetched_config.__getattribute__(key), value)
+            if key == "prewhiten":
+                check.equal(str(fetched_config.prewhiten), value)
+                continue
+            if key == "method":
+                check.equal(fetched_config._method, value)
                 continue
             check.almost_equal(fetched_config.__getattribute__(key), value)
 
@@ -595,6 +598,7 @@ class TestDataIngestionRoutines:
                                      "-sd", "2019-10-03",
                                      "-ed", "2019-10-04",
                                      "--no_parallel",
+                                     "--no_skip_existing",
                                      ])
         assert result.exit_code == 0
         with noiz_app.app_context():
