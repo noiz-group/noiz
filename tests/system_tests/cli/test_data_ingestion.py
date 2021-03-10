@@ -436,7 +436,7 @@ class TestDataIngestionRoutines:
 
         for key, value in original_config['BeamformingParams'].items():
             if key in ("prewhiten", "method"):
-                check.equal(fetched_config.__getattribute__(key).date(), value)
+                check.equal(fetched_config.__getattribute__(key), value)
                 continue
             check.almost_equal(fetched_config.__getattribute__(key), value)
 
