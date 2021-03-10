@@ -55,7 +55,6 @@ def fetch_beamforming_results(id: int) -> BeamformingParams:
 
 def run_beamforming(
         beamforming_params_id: int,
-        qcone_config_id: int,
         starttime: Union[datetime.date, datetime.datetime],
         endtime: Union[datetime.date, datetime.datetime],
         networks: Optional[Union[Collection[str], str]] = None,
@@ -68,7 +67,6 @@ def run_beamforming(
 ):
     calculation_inputs = _prepare_inputs_for_beamforming_runner(
         beamforming_params_id=beamforming_params_id,
-        qcone_config_id=qcone_config_id,
         starttime=starttime,
         endtime=endtime,
         networks=networks,
@@ -97,7 +95,6 @@ def run_beamforming(
 
 def _prepare_inputs_for_beamforming_runner(
         beamforming_params_id: int,
-        qcone_config_id: int,
         starttime: Union[datetime.date, datetime.datetime],
         endtime: Union[datetime.date, datetime.datetime],
         networks: Optional[Union[Collection[str], str]] = None,
@@ -111,8 +108,8 @@ def _prepare_inputs_for_beamforming_runner(
     params = fetch_beamforming_params_by_id(beamforming_params_id)
     logger.debug(f"Fetching ProcessedDatachunkParams successful. {params}")
 
-    logger.debug(f"Fetching QCOneConfig with id {qcone_config_id}")
-    qcone_config = fetch_qcone_config_single(qcone_config_id)
+    logger.debug(f"Fetching QCOneConfig with id {params.qcone_config_id}")
+    qcone_config = fetch_qcone_config_single(params.qcone_config_id)
     logger.debug(f"Fetching QCOneConfig successful. {qcone_config}")
 
     logger.debug(f"Fetching timespans for {starttime} - {endtime}")
