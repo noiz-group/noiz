@@ -71,6 +71,7 @@ def calculate_beamforming_results(
         timestamp='julsec',
         stime=timespan.starttime_obspy(),
         etime=obspy.UTCDateTime(timespan.endtime_at_last_sample(datachunks[0].sampling_rate)),
+        method=beamforming_params.method,
     )
 
     out = array_processing(streams, **array_proc_kwargs)
