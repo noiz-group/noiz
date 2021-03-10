@@ -186,11 +186,11 @@ def create_and_add_beamforming_params_from_toml(
     params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.BEAMFORMINGPARAMS)
     try:
         _ = fetch_datachunkparams_by_id(
-            id=params_holder.datachunk_params_id
+            id=params_holder.qcone_config_id
         )
     except EmptyResultException:
-        raise EmptyResultException(f"There are no processed_datachunk_params in the database with requested id: "
-                                   f"{params_holder.datachunk_params_id}")
+        raise EmptyResultException(f"There is no QCOneConfig in the database with requested id: "
+                                   f"{params_holder.qcone_config_id}")
 
     params = create_beamforming_params(params_holder=params_holder)
 

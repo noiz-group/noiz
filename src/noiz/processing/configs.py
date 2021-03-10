@@ -255,6 +255,7 @@ def create_beamforming_params(
         params_holder = validate_config_dict_as_beamformingparams(kwargs)
 
     params = BeamformingParams(
+        qcone_config_id=params_holder.qcone_config_id,
         min_freq=params_holder.min_freq,
         max_freq=params_holder.max_freq,
         slowness_x_min=params_holder.slowness_x_min,
