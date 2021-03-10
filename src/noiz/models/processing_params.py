@@ -382,7 +382,7 @@ class BeamformingParamsHolder:
     slowness_y_min: float
     slowness_y_max: float
     slowness_step: float
-    semplance_threshold: float
+    semblance_threshold: float
     velocity_threshold: float
     window_length: float
     window_step: float
@@ -402,7 +402,7 @@ class BeamformingParams(db.Model):
     slowness_y_min = db.Column("slowness_y_min", db.Float, nullable=False)
     slowness_y_max = db.Column("slowness_y_max", db.Float, nullable=False)
     slowness_step = db.Column("slowness_step", db.Float, nullable=False)
-    semplance_threshold = db.Column("semplance_threshold", db.Float, nullable=False)
+    semblance_threshold = db.Column("semblance_threshold", db.Float, nullable=False)
     velocity_threshold = db.Column("velocity_threshold", db.Float, nullable=False)
     window_length = db.Column("window_length", db.Float, nullable=False)
     window_step = db.Column("window_step", db.Float, nullable=False)
@@ -426,7 +426,7 @@ class BeamformingParams(db.Model):
             slowness_y_min: float,
             slowness_y_max: float,
             slowness_step: float,
-            semplance_threshold: float,
+            semblance_threshold: float,
             velocity_threshold: float,
             window_length: float,
             window_step: float,
@@ -441,7 +441,7 @@ class BeamformingParams(db.Model):
         self.slowness_y_min = slowness_y_min
         self.slowness_y_max = slowness_y_max
         self.slowness_step = slowness_step
-        self.semplance_threshold = semplance_threshold
+        self.semblance_threshold = semblance_threshold
         self.velocity_threshold = velocity_threshold
         self.window_length = window_length
         self.window_step = window_step

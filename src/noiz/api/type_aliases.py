@@ -5,6 +5,7 @@ from noiz.models import CrosscorrelationOld, CCFStack, DatachunkStats, Processed
     Datachunk, DatachunkFile, QCOneConfig, AveragedSohGps, ComponentPair, StackingSchema, StackingTimespan, Component, \
     Timespan, Tsindex, DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams, ProcessedDatachunkFile
 from noiz.models.crosscorrelation import Crosscorrelation, CrosscorrelationFile
+from noiz.models.processing_params import BeamformingParams
 
 BulkAddableObjects = Union[
     Datachunk,
@@ -56,6 +57,12 @@ class QCOneRunnerInputs(TypedDict):
     qcone_config: QCOneConfig
     stats: Optional[DatachunkStats]
     avg_soh_gps: Optional[AveragedSohGps]
+
+
+class BeamformingRunnerInputs(TypedDict):
+    beamforming_params: BeamformingParams
+    timespan: Timespan
+    datachunks: Tuple[Datachunk, ...]
 
 
 class CrosscorrelationRunnerInputs(TypedDict):
