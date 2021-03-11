@@ -597,7 +597,6 @@ class TestDataIngestionRoutines:
         result = runner.invoke(cli, ["processing", "run_beamforming",
                                      "-sd", "2019-10-02",
                                      "-ed", "2019-10-04",
-                                     "--parallel",
                                      "--no_skip_existing",
                                      ])
         assert result.exit_code == 0
