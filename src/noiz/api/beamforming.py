@@ -48,6 +48,7 @@ def run_beamforming(
         skip_existing: bool = True,
         batch_size: int = 2500,
         parallel: bool = True,
+        raise_errors: bool = True,
 ):
     calculation_inputs = _prepare_inputs_for_beamforming_runner(
         beamforming_params_id=beamforming_params_id,
@@ -73,6 +74,7 @@ def run_beamforming(
             inputs=calculation_inputs,
             calculation_task=calculate_qcone_results_wrapper_wrapper,  # type: ignore
             upserter_callable=_prepare_upsert_command_beamforming,
+            raise_errors=raise_errors,
         )
     return
 
