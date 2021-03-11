@@ -36,3 +36,7 @@ class EmptyResultException(NoizBaseException):
 
 class InconsistentDataException(NoizBaseException):
     pass
+
+
+class ObspyError(NoizBaseException):
+    pass

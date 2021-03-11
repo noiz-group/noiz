@@ -368,16 +368,95 @@ class CrosscorrelationParams(db.Model):
         return np.arange(start=start, stop=stop, step=step)
 
 
+@dataclass
+class BeamformingParamsHolder:
+    """
+        This simple dataclass is just helping to validate :class:`~noiz.models.BeamformingParams` values loaded
+        from the TOML file
+    """
+    qcone_config_id: int
+    min_freq: float
+    max_freq: float
+    slowness_x_min: float
+    slowness_x_max: float
+    slowness_y_min: float
+    slowness_y_max: float
+    slowness_step: float
+    semblance_threshold: float
+    velocity_threshold: float
+    window_length: float
+    window_step: float
+    prewhiten: bool
+    method: str
+
+
 class BeamformingParams(db.Model):
     __tablename__ = "beamforming_params"
     id = db.Column("id", db.Integer, primary_key=True)
+    qcone_config_id = db.Column("qcone_config_id", db.Integer, db.ForeignKey("qcone_config.id"), nullable=False)
 
     min_freq = db.Column("min_freq", db.Float, nullable=False)
     max_freq = db.Column("max_freq", db.Float, nullable=False)
-    slowness_limit = db.Column("slowness_limit", db.Float, nullable=False)
+    slowness_x_min = db.Column("slowness_x_min", db.Float, nullable=False)
+    slowness_x_max = db.Column("slowness_x_max", db.Float, nullable=False)
+    slowness_y_min = db.Column("slowness_y_min", db.Float, nullable=False)
+    slowness_y_max = db.Column("slowness_y_max", db.Float, nullable=False)
     slowness_step = db.Column("slowness_step", db.Float, nullable=False)
+    semblance_threshold = db.Column("semblance_threshold", db.Float, nullable=False)
+    velocity_threshold = db.Column("velocity_threshold", db.Float, nullable=False)
     window_length = db.Column("window_length", db.Float, nullable=False)
     window_step = db.Column("window_step", db.Float, nullable=False)
+    prewhiten = db.Column("prewhiten", db.Boolean, nullable=False)
+    _method = db.Column("method", db.String, nullable=False)
+
+    qcone_config = db.relationship(
+        "QCOneConfig",
+        foreign_keys=[qcone_config_id],
+        back_populates="beamforming_params",
+        lazy="joined",
+    )
+
+    def __init__(
+            self,
+            qcone_config_id: int,
+            min_freq: float,
+            max_freq: float,
+            slowness_x_min: float,
+            slowness_x_max: float,
+            slowness_y_min: float,
+            slowness_y_max: float,
+            slowness_step: float,
+            semblance_threshold: float,
+            velocity_threshold: float,
+            window_length: float,
+            window_step: float,
+            prewhiten: bool,
+            method: str,
+    ):
+        self.qcone_config_id = qcone_config_id
+        self.min_freq = min_freq
+        self.max_freq = max_freq
+        self.slowness_x_min = slowness_x_min
+        self.slowness_x_max = slowness_x_max
+        self.slowness_y_min = slowness_y_min
+        self.slowness_y_max = slowness_y_max
+        self.slowness_step = slowness_step
+        self.semblance_threshold = semblance_threshold
+        self.velocity_threshold = velocity_threshold
+        self.window_length = window_length
+        self.window_step = window_step
+        self.prewhiten = prewhiten
+        if method in ("beamforming", "capon"):
+            self._method = method
+        else:
+            raise ValueError(f"Expected either 'beamforming' or 'capon'. Got {method}")
+
+    @property
+    def method(self):
+        if self._method == "beamforming":
+            return 0
+        if self._method == "capon":
+            return 1
 
     # use_winter_time = db.Column("use_winter_time", db.Boolean)
     # f_sampling_out = db.Column("f_sampling_out", db.Integer)

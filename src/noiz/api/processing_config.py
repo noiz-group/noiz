@@ -9,10 +9,11 @@ from noiz.models import QCOneConfig, QCOneConfigRejectedTimeHolder, QCOneRejecte
     QCTwoConfigRejectedTimeHolder, QCTwoRejectedTime, QCTwoConfigHolder, QCTwoConfig, StackingSchemaHolder, StackingSchema, \
     DatachunkParams, DatachunkParamsHolder, ProcessedDatachunkParams, \
     ProcessedDatachunkParamsHolder, CrosscorrelationParams, CrosscorrelationParamsHolder
+from noiz.models.processing_params import BeamformingParams, BeamformingParamsHolder
 
 from noiz.processing.configs import parse_single_config_toml, DefinedConfigs, \
     create_datachunkparams, create_processed_datachunk_params, create_crosscorrelation_params, create_stacking_params, \
-    validate_dict_as_qcone_holder
+    validate_dict_as_qcone_holder, create_beamforming_params
 
 from noiz.api.component import fetch_components
 from noiz.api.component_pair import fetch_componentpairs
@@ -84,6 +85,7 @@ def fetch_stacking_schema_by_id(id: int) -> StackingSchema:
 
 AllParamsObjects = Union[
     DatachunkParams,
+    BeamformingParams,
     ProcessedDatachunkParams,
     CrosscorrelationParams,
     StackingSchema,
@@ -166,6 +168,31 @@ def create_and_add_processed_datachunk_params_from_toml(
                                    f"{params_holder.datachunk_params_id}")
 
     params = create_processed_datachunk_params(params_holder=params_holder)
+
+    if add_to_db:
+        return _insert_params_into_db(params=params)
+    else:
+        return (params_holder, params)
+
+
+def create_and_add_beamforming_params_from_toml(
+        filepath: Path,
+        add_to_db: bool = False
+) -> Union[BeamformingParams, Tuple[BeamformingParamsHolder, BeamformingParams]]:
+    """
+    filldocs
+    """
+
+    params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.BEAMFORMINGPARAMS)
+    try:
+        _ = fetch_datachunkparams_by_id(
+            id=params_holder.qcone_config_id
+        )
+    except EmptyResultException:
+        raise EmptyResultException(f"There is no QCOneConfig in the database with requested id: "
+                                   f"{params_holder.qcone_config_id}")
+
+    params = create_beamforming_params(params_holder=params_holder)
 
     if add_to_db:
         return _insert_params_into_db(params=params)

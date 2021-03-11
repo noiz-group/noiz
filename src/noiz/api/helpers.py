@@ -1,6 +1,6 @@
 import more_itertools
 from loguru import logger
-from noiz.exceptions import CorruptedDataException, InconsistentDataException
+from noiz.exceptions import CorruptedDataException, InconsistentDataException, ObspyError
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import UnmappedInstanceError
 from sqlalchemy.sql import Insert
@@ -247,6 +247,13 @@ def _run_calculate_and_upsert_sequentially(
                 if raise_errors:
                     logger.error(f"Cought error {e}. Finishing execution.")
                     raise InconsistentDataException(e)
+                else:
+                    logger.error(f"Cought error {e}. Skipping to next timespan.")
+                    continue
+            except ObspyError as e:
+                if raise_errors:
+                    logger.error(f"Cought error {e}. Finishing execution.")
+                    raise ObspyError(e)
                 else:
                     logger.error(f"Cought error {e}. Skipping to next timespan.")
                     continue

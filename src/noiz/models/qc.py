@@ -79,6 +79,12 @@ class QCOneConfig(db.Model):
         back_populates="qcone_config",
     )
 
+    beamforming_params = db.relationship(
+        "BeamformingParams",
+        uselist=True,
+        back_populates="qcone_config",
+    )
+
     def uses_gps(self) -> bool:
         """
         Checks if any of the GPS checks is defined.
