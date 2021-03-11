@@ -1,7 +1,7 @@
 import numpy as np
 from loguru import logger
 from typing import Tuple
-from obspy.core import AttribDict, Stream, UTCDateTime
+from obspy.core import AttribDict, Stream
 from obspy.signal.array_analysis import array_processing
 
 from noiz.api.type_aliases import BeamformingRunnerInputs
@@ -50,6 +50,9 @@ def calculate_beamforming_results(
 
     logger.debug(f"Calculating beamforming for timespan {timespan}")
 
+    first_starttime = min([tr.stats.starttime for tr in streams])
+    first_endtime = min([tr.stats.endtime for tr in streams])
+
     array_proc_kwargs = dict(
         # slowness grid: X min, X max, Y min, Y max, Slow Step
         sll_x=beamforming_params.slowness_x_min,
@@ -68,8 +71,8 @@ def calculate_beamforming_results(
         semb_thres=beamforming_params.semblance_threshold,
         vel_thres=beamforming_params.velocity_threshold,
         timestamp='julsec',
-        stime=timespan.starttime_obspy(),
-        etime=UTCDateTime(timespan.endtime_at_last_sample(datachunks[0].sampling_rate)),
+        stime=first_starttime,
+        etime=first_endtime,
         method=beamforming_params.method,
     )
 
