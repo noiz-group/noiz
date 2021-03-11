@@ -6,7 +6,8 @@ from pathlib import Path
 from noiz.globals import ExtendedEnum
 from noiz.models import DatachunkParams
 from noiz.models.processing_params import DatachunkParamsHolder, ProcessedDatachunkParamsHolder, \
-    ProcessedDatachunkParams, CrosscorrelationParamsHolder, CrosscorrelationParams
+    ProcessedDatachunkParams, CrosscorrelationParamsHolder, CrosscorrelationParams, BeamformingParamsHolder, \
+    BeamformingParams
 from noiz.models.qc import QCOneConfigRejectedTimeHolder, QCOneConfigHolder, QCTwoConfigHolder, \
     QCTwoConfigRejectedTimeHolder
 from noiz.models.stacking import StackingSchemaHolder, StackingSchema
@@ -15,6 +16,7 @@ from noiz.models.stacking import StackingSchemaHolder, StackingSchema
 class DefinedConfigs(ExtendedEnum):
     # filldocs
     DATACHUNKPARAMS = "DatachunkParams"
+    BEAMFORMINGPARAMS = "BeamformingParams"
     PROCESSEDDATACHUNKPARAMS = "ProcessedDatachunkParams"
     CROSSCORRELATIONPARAMS = "CrosscorrelationParams"
     QCONE = "QCOne"
@@ -30,6 +32,8 @@ def _select_validator_for_config_type(config_type: DefinedConfigs):
         return validate_config_dict_as_datachunkparams
     elif config_type is DefinedConfigs.PROCESSEDDATACHUNKPARAMS:
         return validate_config_dict_as_processeddatachunkparams
+    elif config_type is DefinedConfigs.BEAMFORMINGPARAMS:
+        return validate_config_dict_as_beamformingparams
     elif config_type is DefinedConfigs.CROSSCORRELATIONPARAMS:
         return validate_config_dict_as_crosscorrelationparams
     elif config_type is DefinedConfigs.QCONE:
@@ -144,6 +148,11 @@ def validate_config_dict_as_processeddatachunkparams(loaded_dict: Dict) -> Proce
     return ProcessedDatachunkParamsHolder(**loaded_dict)
 
 
+def validate_config_dict_as_beamformingparams(loaded_dict: Dict) -> BeamformingParamsHolder:
+    # filldocs
+    return BeamformingParamsHolder(**loaded_dict)
+
+
 def validate_config_dict_as_crosscorrelationparams(loaded_dict: Dict) -> CrosscorrelationParamsHolder:
     # filldocs
     return CrosscorrelationParamsHolder(**loaded_dict)
@@ -220,6 +229,46 @@ def create_processed_datachunk_params(
         qcone_config_id=params_holder.qcone_config_id,
         spectral_whitening=params_holder.spectral_whitening,
         one_bit=params_holder.one_bit,
+    )
+    return params
+
+
+def create_beamforming_params(
+        params_holder: Optional[BeamformingParamsHolder] = None,
+        **kwargs,
+) -> BeamformingParams:
+    """
+    This method takes a :py:class:`~noiz.models.processing_params.BeamformingParamsHolder` instance and based on
+    it creates an instance of database model :py:class:`~noiz.models.processing_params.BeamformingParams`.
+
+    Optionally, it can create the instance of :py:class:`~noiz.models.processing_params.BeamformingParamsHolder`
+    from provided kwargs, but why dont you do it on your own to ensure that it will get everything it needs?
+
+    :param params_holder: Object containing all required elements to create a ProcessedDatachunkParams instance
+    :type params_holder: BeamformingParamsHolder
+    :param kwargs: Optional kwargs to create BeamformingParamsHolder
+    :return: Working BeamformingParams model that needs to be inserted into db
+    :rtype: ProcessedDatachunkParams
+    """
+
+    if params_holder is None:
+        params_holder = validate_config_dict_as_beamformingparams(kwargs)
+
+    params = BeamformingParams(
+        qcone_config_id=params_holder.qcone_config_id,
+        min_freq=params_holder.min_freq,
+        max_freq=params_holder.max_freq,
+        slowness_x_min=params_holder.slowness_x_min,
+        slowness_x_max=params_holder.slowness_x_max,
+        slowness_y_min=params_holder.slowness_y_min,
+        slowness_y_max=params_holder.slowness_y_max,
+        slowness_step=params_holder.slowness_step,
+        semblance_threshold=params_holder.semblance_threshold,
+        velocity_threshold=params_holder.velocity_threshold,
+        window_length=params_holder.window_length,
+        window_step=params_holder.window_step,
+        prewhiten=params_holder.prewhiten,
+        method=params_holder.method,
     )
     return params
 

@@ -1,4 +1,7 @@
 import pytest
+
+from noiz.models.beamforming import BeamformingResult
+
 pytestmark = [pytest.mark.system, pytest.mark.cli]
 
 from click.testing import CliRunner
@@ -410,6 +413,39 @@ class TestDataIngestionRoutines:
 
         check.equal(len(original_config['QCTwo']['rejected_times']), len(fetched_config.time_periods_rejected))
 
+    def test_add_beamformin_params(self, workdir_with_content, noiz_app):
+
+        config_path = workdir_with_content.joinpath('beamforming_params.toml')
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["configs", "add_beamforming_params", "--add_to_db", "-f", str(config_path)])
+
+        assert result.exit_code == 0
+
+        import toml
+        import pytest_check as check
+        from noiz.api.beamforming import fetch_beamforming_params_by_id
+        from noiz.models.processing_params import BeamformingParams
+
+        with noiz_app.app_context():
+            fetched_config = fetch_beamforming_params_by_id(id=1)
+            all_configs = BeamformingParams.query.all()
+
+        assert isinstance(fetched_config, BeamformingParams)
+        assert len(all_configs) == 1
+
+        with open(config_path, 'r') as f:
+            original_config = toml.load(f)
+
+        for key, value in original_config['BeamformingParams'].items():
+            if key == "prewhiten":
+                check.equal(str(fetched_config.prewhiten), value)
+                continue
+            if key == "method":
+                check.equal(fetched_config._method, value)
+                continue
+            check.almost_equal(fetched_config.__getattribute__(key), value)
+
     def test_insert_stacking_schema(self, workdir_with_content, noiz_app):
 
         config_path = workdir_with_content.joinpath('stacking_schema.toml')
@@ -555,6 +591,20 @@ class TestDataIngestionRoutines:
             qcone_count = QCOneResults.query.count()
 
         assert qcone_count == datachunk_count
+
+    def test_run_beamforming(self, noiz_app):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["processing", "run_beamforming",
+                                     "-sd", "2019-10-02",
+                                     "-ed", "2019-10-04",
+                                     "--no_parallel",
+                                     "--no_skip_existing",
+                                     "--no_raise_errors",
+                                     ])
+        assert result.exit_code == 0
+        with noiz_app.app_context():
+            count = BeamformingResult.query.count()
+        assert 41 == count
 
     def test_run_datachunk_processing(self, noiz_app):
         runner = CliRunner()
