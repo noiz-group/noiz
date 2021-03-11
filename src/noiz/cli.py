@@ -512,6 +512,7 @@ def run_qcone(
 @click.option("-b", "--batch_size", nargs=1, type=int, default=1000, show_default=True)
 @click.option('--parallel/--no_parallel', default=True)
 @click.option('--skip_existing/--no_skip_existing', default=True)
+@click.option('--raise_errors/--no_raise_errors', default=True)
 def run_beamforming(
         station,
         component,
@@ -521,6 +522,7 @@ def run_beamforming(
         batch_size,
         parallel,
         skip_existing,
+        raise_errors,
 ):
     """Start performing beamforming"""
 
@@ -534,6 +536,7 @@ def run_beamforming(
         batch_size=batch_size,
         parallel=parallel,
         skip_existing=skip_existing,
+        raise_errors=raise_errors
     )
 
 
