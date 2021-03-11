@@ -595,7 +595,7 @@ class TestDataIngestionRoutines:
     def test_run_beamforming(self, noiz_app):
         runner = CliRunner()
         result = runner.invoke(cli, ["processing", "run_beamforming",
-                                     "-sd", "2019-10-03",
+                                     "-sd", "2019-10-02",
                                      "-ed", "2019-10-04",
                                      "--no_parallel",
                                      "--no_skip_existing",
@@ -603,7 +603,7 @@ class TestDataIngestionRoutines:
         assert result.exit_code == 0
         with noiz_app.app_context():
             count = BeamformingResult.query.count()
-        assert 24 == count
+        assert 51 == count
 
     def test_run_datachunk_processing(self, noiz_app):
         runner = CliRunner()
