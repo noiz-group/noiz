@@ -1,4 +1,5 @@
 from pathlib import Path
+from sqlalchemy.ext.associationproxy import association_proxy
 
 from noiz.database import db
 from noiz.exceptions import MissingDataFileException
@@ -11,8 +12,19 @@ class BeamformingFile(db.Model):
     filepath = db.Column("filepath", db.UnicodeText, nullable=False)
 
 
+association_table_beamforming_results_datachunks = db.Table(
+    "beamforming_association_datachunks",
+    db.metadata,
+    db.Column(
+        "datachunk_id", db.BigInteger, db.ForeignKey("datachunk.id")
+    ),
+    db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
+    db.UniqueConstraint("beamforming_result_id", "datachunk_id"),
+)
+
+
 class BeamformingResult(db.Model):
-    __tablename__ = "beamformingresult"
+    __tablename__ = "beamforming_result"
     __table_args__ = (
         db.UniqueConstraint(
             "timespan_id", "beamforming_params_id", name="unique_beam_per_config_per_timespan"
@@ -59,6 +71,9 @@ class BeamformingResult(db.Model):
         uselist=False,
         lazy="joined",
     )
+
+    datachunks = db.relationship("Datachunk", secondary=lambda: association_table_beamforming_results_datachunks)
+    datachunk_ids = association_proxy('datachunks', 'id')
 
     def load_data(self):
         filepath = Path(self.beamforming_file.filepath)
