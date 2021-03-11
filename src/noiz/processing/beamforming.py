@@ -80,6 +80,6 @@ def calculate_beamforming_results(
     res.mean_relative_relpow = np.mean(relative_relpow)
     res.mean_absolute_relpow = np.mean(absolute_relpow)
     res.mean_backazimuth = np.mean(backazimuth)
-    res.datachunks = datachunks
+    res.datachunks = list(datachunks)
 
     return res
