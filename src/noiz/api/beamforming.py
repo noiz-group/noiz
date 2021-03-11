@@ -37,22 +37,6 @@ def fetch_beamforming_params_by_id(id: int) -> BeamformingParams:
     return fetched_params
 
 
-def fetch_beamforming_results(id: int) -> BeamformingParams:
-    """
-    Fetches a BeamformingParams objects by its ID.
-
-    :param id: ID of beamforming params to be fetched
-    :type id: int
-    :return: fetched BeamformingParams object
-    :rtype: Optional[BeamformingParams]
-    """
-    fetched_params = BeamformingParams.query.filter_by(id=id).first()
-    if fetched_params is None:
-        raise EmptyResultException(f"BeamformingParams object of id {id} does not exist.")
-
-    return fetched_params
-
-
 def run_beamforming(
         beamforming_params_id: int,
         starttime: Union[datetime.date, datetime.datetime],
