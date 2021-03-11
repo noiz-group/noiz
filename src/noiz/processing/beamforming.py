@@ -1,12 +1,11 @@
+import numpy as np
 from loguru import logger
 from typing import Tuple
-import numpy as np
-import obspy
-from obspy.core import AttribDict
+from obspy.core import AttribDict, Stream, UTCDateTime
 from obspy.signal.array_analysis import array_processing
 
 from noiz.api.type_aliases import BeamformingRunnerInputs
-from noiz.models import QCOneResults, Timespan, Datachunk, Component
+from noiz.models import Timespan, Datachunk, Component
 from noiz.models.beamforming import BeamformingResult
 from noiz.models.processing_params import BeamformingParams
 
@@ -38,7 +37,7 @@ def calculate_beamforming_results(
         raise ValueError(f"You should use more than 3 datachunks for beamforming. You provided {len(datachunks)}")
 
     logger.debug("Loading seismic files")
-    streams = obspy.Stream()
+    streams = Stream()
     for datachunk in datachunks:
         if not isinstance(datachunk.component, Component):
             raise ValueError('You should load Component together with the Datachunk.')
@@ -70,7 +69,7 @@ def calculate_beamforming_results(
         vel_thres=beamforming_params.velocity_threshold,
         timestamp='julsec',
         stime=timespan.starttime_obspy(),
-        etime=obspy.UTCDateTime(timespan.endtime_at_last_sample(datachunks[0].sampling_rate)),
+        etime=UTCDateTime(timespan.endtime_at_last_sample(datachunks[0].sampling_rate)),
         method=beamforming_params.method,
     )
 
