@@ -413,8 +413,7 @@ def prepare_datachunks(
 @click.option("-c", "--component", multiple=True, type=str, callback=_validate_zero_length_as_none)
 @click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
 @click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
-@click.option("-p", "--datachunk_params_id", nargs=1, type=int,
-              default=1, show_default=True)
+@click.option("-p", "--datachunk_params_id", nargs=1, type=int, required=True)
 @click.option("-b", "--batch_size", nargs=1, type=int, default=1000, show_default=True)
 @click.option('--parallel/--no_parallel', default=True)
 def calc_datachunk_stats(
