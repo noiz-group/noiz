@@ -561,6 +561,7 @@ class TestDataIngestionRoutines:
     def test_calc_datachunk_stats(self, noiz_app):
         runner = CliRunner()
         result = runner.invoke(cli, ["processing", "calc_datachunk_stats",
+                                     "-p", "1",
                                      "-sd", "2019-09-30",
                                      "-ed", "2019-10-03",
                                      "--no_parallel",
@@ -595,6 +596,7 @@ class TestDataIngestionRoutines:
     def test_run_beamforming(self, noiz_app):
         runner = CliRunner()
         result = runner.invoke(cli, ["processing", "run_beamforming",
+                                     "-p", "1",
                                      "-sd", "2019-10-02",
                                      "-ed", "2019-10-04",
                                      "--no_parallel",
