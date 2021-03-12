@@ -40,9 +40,13 @@ class BeamformingResult(db.Model):
     timespan_id = db.Column("timespan_id", db.Integer, db.ForeignKey("timespan.id"), nullable=False)
 
     mean_relative_relpow = db.Column("mean_relative_relpow", db.Float, nullable=False)
+    std_relative_relpow = db.Column("std_relative_relpow", db.Float, nullable=False)
     mean_absolute_relpow = db.Column("mean_absolute_relpow", db.Float, nullable=False)
+    std_absolute_relpow = db.Column("std_absolute_relpow", db.Float, nullable=False)
     mean_backazimuth = db.Column("mean_backazimuth", db.Float, nullable=False)
+    std_backazimuth = db.Column("std_backazimuth", db.Float, nullable=False)
     mean_slowness = db.Column("mean_slowness", db.Float, nullable=False)
+    std_slowness = db.Column("std_slowness", db.Float, nullable=False)
 
     beamforming_file_id = db.Column(
         "beamforming_file_id",
