@@ -85,9 +85,13 @@ def calculate_beamforming_results(
     timestamp, relative_relpow, absolute_relpow, backazimuth, slowness = np.hsplit(out, 5)
 
     res.mean_slowness = np.mean(slowness)
+    res.std_slowness = np.std(slowness)
     res.mean_relative_relpow = np.mean(relative_relpow)
+    res.std_relative_relpow = np.std(relative_relpow)
     res.mean_absolute_relpow = np.mean(absolute_relpow)
+    res.std_absolute_relpow = np.std(absolute_relpow)
     res.mean_backazimuth = np.mean(backazimuth)
+    res.std_backazimuth = np.std(backazimuth)
     res.datachunks = list(datachunks)
 
     return res
