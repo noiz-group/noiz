@@ -595,6 +595,7 @@ class TestDataIngestionRoutines:
     def test_run_beamforming(self, noiz_app):
         runner = CliRunner()
         result = runner.invoke(cli, ["processing", "run_beamforming",
+                                     "-p", "1",
                                      "-sd", "2019-10-02",
                                      "-ed", "2019-10-04",
                                      "--no_parallel",
