@@ -167,6 +167,7 @@ def _prepare_upsert_command_beamforming(results: BeamformingResult) -> Insert:
             std_backazimuth=results.std_backazimuth,
             mean_slowness=results.mean_slowness,
             std_slowness=results.std_slowness,
+            used_component_count=results.used_component_count,
         )
         .on_conflict_do_update(
             constraint="unique_beam_per_config_per_timespan",
@@ -179,6 +180,7 @@ def _prepare_upsert_command_beamforming(results: BeamformingResult) -> Insert:
                 std_backazimuth=results.std_backazimuth,
                 mean_slowness=results.mean_slowness,
                 std_slowness=results.std_slowness,
+                used_component_count=results.used_component_count,
             ),
         )
     )

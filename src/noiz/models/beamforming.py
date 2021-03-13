@@ -48,6 +48,8 @@ class BeamformingResult(db.Model):
     mean_slowness = db.Column("mean_slowness", db.Float, nullable=False)
     std_slowness = db.Column("std_slowness", db.Float, nullable=False)
 
+    used_component_count = db.Column("used_component_count", db.Integer, nullable=False)
+
     beamforming_file_id = db.Column(
         "beamforming_file_id",
         db.BigInteger,
