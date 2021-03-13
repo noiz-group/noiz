@@ -92,6 +92,7 @@ def calculate_beamforming_results(
     res.std_absolute_relpow = np.std(absolute_relpow)
     res.mean_backazimuth = np.mean(backazimuth)
     res.std_backazimuth = np.std(backazimuth)
+    res.used_component_count = len(streams)
     res.datachunks = list(datachunks)
 
     return res
