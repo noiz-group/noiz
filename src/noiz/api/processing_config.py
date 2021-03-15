@@ -3,6 +3,7 @@ from pathlib import Path
 from sqlalchemy.exc import IntegrityError
 from typing import Optional, Tuple, Union, List
 
+from noiz.api.qc import fetch_qcone_config_single
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import QCOneConfig, QCOneConfigRejectedTimeHolder, QCOneRejectedTime, QCOneConfigHolder, \
@@ -185,7 +186,7 @@ def create_and_add_beamforming_params_from_toml(
 
     params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.BEAMFORMINGPARAMS)
     try:
-        _ = fetch_datachunkparams_by_id(
+        _ = fetch_qcone_config_single(
             id=params_holder.qcone_config_id
         )
     except EmptyResultException:
