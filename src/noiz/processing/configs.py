@@ -17,6 +17,7 @@ class DefinedConfigs(ExtendedEnum):
     # filldocs
     DATACHUNKPARAMS = "DatachunkParams"
     BEAMFORMINGPARAMS = "BeamformingParams"
+    PPSDPARAMS = "PPSDParams"
     PROCESSEDDATACHUNKPARAMS = "ProcessedDatachunkParams"
     CROSSCORRELATIONPARAMS = "CrosscorrelationParams"
     QCONE = "QCOne"

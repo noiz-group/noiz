@@ -154,6 +154,28 @@ def add_beamforming_params(
         click.echo(parsing_results)
 
 
+@configs_group.command("add_ppsd_params")
+@with_appcontext
+@click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
+@click.option('--add_to_db', is_flag=True, expose_value=True,
+              prompt='Are you sure you want to add PPSDParams to DB? `N` will just preview it. ')
+def add_ppsd_params(
+        filepath: str,
+        add_to_db: bool,
+):
+    """Read a TOML file with PPSDParams config and add to db."""
+
+    from noiz.api.processing_config import create_and_add_ppsd_params_from_toml as parse_and_add
+
+    if add_to_db:
+        params = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
+        click.echo(f"The PPSDParams were added to db with id {params.id}")
+    else:
+        parsing_results, _ = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
+        click.echo("\n")
+        click.echo(parsing_results)
+
+
 @configs_group.command("add_qcone_config")
 @with_appcontext
 @click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
