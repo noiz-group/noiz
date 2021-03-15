@@ -7,7 +7,7 @@ from noiz.globals import ExtendedEnum
 from noiz.models import DatachunkParams
 from noiz.models.processing_params import DatachunkParamsHolder, ProcessedDatachunkParamsHolder, \
     ProcessedDatachunkParams, CrosscorrelationParamsHolder, CrosscorrelationParams, BeamformingParamsHolder, \
-    BeamformingParams
+    BeamformingParams, PPSDParamsHolder, PPSDParams
 from noiz.models.qc import QCOneConfigRejectedTimeHolder, QCOneConfigHolder, QCTwoConfigHolder, \
     QCTwoConfigRejectedTimeHolder
 from noiz.models.stacking import StackingSchemaHolder, StackingSchema
@@ -17,6 +17,7 @@ class DefinedConfigs(ExtendedEnum):
     # filldocs
     DATACHUNKPARAMS = "DatachunkParams"
     BEAMFORMINGPARAMS = "BeamformingParams"
+    PPSDPARAMS = "PPSDParams"
     PROCESSEDDATACHUNKPARAMS = "ProcessedDatachunkParams"
     CROSSCORRELATIONPARAMS = "CrosscorrelationParams"
     QCONE = "QCOne"
@@ -34,6 +35,8 @@ def _select_validator_for_config_type(config_type: DefinedConfigs):
         return validate_config_dict_as_processeddatachunkparams
     elif config_type is DefinedConfigs.BEAMFORMINGPARAMS:
         return validate_config_dict_as_beamformingparams
+    elif config_type is DefinedConfigs.PPSDPARAMS:
+        return validate_config_dict_as_ppsdparams
     elif config_type is DefinedConfigs.CROSSCORRELATIONPARAMS:
         return validate_config_dict_as_crosscorrelationparams
     elif config_type is DefinedConfigs.QCONE:
@@ -153,6 +156,11 @@ def validate_config_dict_as_beamformingparams(loaded_dict: Dict) -> BeamformingP
     return BeamformingParamsHolder(**loaded_dict)
 
 
+def validate_config_dict_as_ppsdparams(loaded_dict: Dict) -> PPSDParamsHolder:
+    # filldocs
+    return PPSDParamsHolder(**loaded_dict)
+
+
 def validate_config_dict_as_crosscorrelationparams(loaded_dict: Dict) -> CrosscorrelationParamsHolder:
     # filldocs
     return CrosscorrelationParamsHolder(**loaded_dict)
@@ -269,6 +277,34 @@ def create_beamforming_params(
         window_step=params_holder.window_step,
         prewhiten=params_holder.prewhiten,
         method=params_holder.method,
+    )
+    return params
+
+
+def create_ppsd_params(
+        params_holder: PPSDParamsHolder,
+) -> PPSDParams:
+    """
+    This method takes a :py:class:`~noiz.models.processing_params.PPSDParamsHolder` instance and based on
+    it creates an instance of database model :py:class:`~noiz.models.processing_params.PPSDParams`.
+
+    :param params_holder: Object containing all required elements to create a PPSDParams instance
+    :type params_holder: PPSDParams
+    :return: Working PPSDParams model that needs to be inserted into db
+    :rtype: PPSDParams
+    """
+
+    params = PPSDParams(
+        datachunk_params_id=params_holder.datachunk_params_id,
+        db_bin_min=params_holder.db_bin_min,
+        db_bin_max=params_holder.db_bin_max,
+        db_bin_width=params_holder.db_bin_width,
+        segment_length=params_holder.segment_length,
+        segment_overlap=params_holder.segment_overlap,
+        period_limit_low=params_holder.period_limit_low,
+        period_limit_high=params_holder.period_limit_high,
+        period_smoothing_width_octaves=params_holder.period_smoothing_width_octaves,
+        period_step_octaves=params_holder.period_step_octaves,
     )
     return params
 

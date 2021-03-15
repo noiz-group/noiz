@@ -413,7 +413,7 @@ class TestDataIngestionRoutines:
 
         check.equal(len(original_config['QCTwo']['rejected_times']), len(fetched_config.time_periods_rejected))
 
-    def test_add_beamformin_params(self, workdir_with_content, noiz_app):
+    def test_add_beamforming_params(self, workdir_with_content, noiz_app):
 
         config_path = workdir_with_content.joinpath('beamforming_params.toml')
 
@@ -444,6 +444,33 @@ class TestDataIngestionRoutines:
             if key == "method":
                 check.equal(fetched_config._method, value)
                 continue
+            check.almost_equal(fetched_config.__getattribute__(key), value)
+
+    def test_add_ppsd_params(self, workdir_with_content, noiz_app):
+
+        config_path = workdir_with_content.joinpath('ppsd_params.toml')
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["configs", "add_ppsd_params", "--add_to_db", "-f", str(config_path)])
+
+        assert result.exit_code == 0
+
+        import toml
+        import pytest_check as check
+        from noiz.api.ppsd import fetch_ppsd_params_by_id
+        from noiz.models.processing_params import PPSDParams
+
+        with noiz_app.app_context():
+            fetched_config = fetch_ppsd_params_by_id(id=1)
+            all_configs = PPSDParams.query.all()
+
+        assert isinstance(fetched_config, PPSDParams)
+        assert len(all_configs) == 1
+
+        with open(config_path, 'r') as f:
+            original_config = toml.load(f)
+
+        for key, value in original_config['PPSDParams'].items():
             check.almost_equal(fetched_config.__getattribute__(key), value)
 
     def test_insert_stacking_schema(self, workdir_with_content, noiz_app):
