@@ -40,3 +40,7 @@ class InconsistentDataException(NoizBaseException):
 
 class ObspyError(NoizBaseException):
     pass
+
+
+class ResponseRemovalError(NoizBaseException):
+    pass
