@@ -9,7 +9,7 @@ from noiz.models import QCOneConfig, QCOneConfigRejectedTimeHolder, QCOneRejecte
     QCTwoConfigRejectedTimeHolder, QCTwoRejectedTime, QCTwoConfigHolder, QCTwoConfig, StackingSchemaHolder, \
     StackingSchema, DatachunkParams, DatachunkParamsHolder, ProcessedDatachunkParams, \
     ProcessedDatachunkParamsHolder, CrosscorrelationParams, CrosscorrelationParamsHolder
-from noiz.models.processing_params import BeamformingParams, BeamformingParamsHolder
+from noiz.models.processing_params import BeamformingParams, BeamformingParamsHolder, PPSDParams, PPSDParamsHolder
 
 from noiz.processing.configs import parse_single_config_toml, DefinedConfigs, \
     create_datachunkparams, create_processed_datachunk_params, create_crosscorrelation_params, create_stacking_params, \
@@ -192,6 +192,31 @@ def create_and_add_beamforming_params_from_toml(
     except EmptyResultException:
         raise EmptyResultException(f"There is no QCOneConfig in the database with requested id: "
                                    f"{params_holder.qcone_config_id}")
+
+    params = create_beamforming_params(params_holder=params_holder)
+
+    if add_to_db:
+        return _insert_params_into_db(params=params)
+    else:
+        return (params_holder, params)
+
+
+def create_and_add_ppsd_params_from_toml(
+        filepath: Path,
+        add_to_db: bool = False
+) -> Union[PPSDParams, Tuple[PPSDParamsHolder, PPSDParams]]:
+    """
+    filldocs
+    """
+
+    params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.PPSDPARAMS)
+    try:
+        _ = fetch_datachunkparams_by_id(
+            id=params_holder.datachunk_params_id
+        )
+    except EmptyResultException:
+        raise EmptyResultException(f"There is no DatachunkParams in the database with requested id: "
+                                   f"{params_holder.datachunk_params_id}")
 
     params = create_beamforming_params(params_holder=params_holder)
 
