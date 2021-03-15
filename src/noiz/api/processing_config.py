@@ -6,14 +6,14 @@ from typing import Optional, Tuple, Union, List
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import QCOneConfig, QCOneConfigRejectedTimeHolder, QCOneRejectedTime, QCOneConfigHolder, \
-    QCTwoConfigRejectedTimeHolder, QCTwoRejectedTime, QCTwoConfigHolder, QCTwoConfig, StackingSchemaHolder, StackingSchema, \
-    DatachunkParams, DatachunkParamsHolder, ProcessedDatachunkParams, \
+    QCTwoConfigRejectedTimeHolder, QCTwoRejectedTime, QCTwoConfigHolder, QCTwoConfig, StackingSchemaHolder, \
+    StackingSchema, DatachunkParams, DatachunkParamsHolder, ProcessedDatachunkParams, \
     ProcessedDatachunkParamsHolder, CrosscorrelationParams, CrosscorrelationParamsHolder
 from noiz.models.processing_params import BeamformingParams, BeamformingParamsHolder
 
 from noiz.processing.configs import parse_single_config_toml, DefinedConfigs, \
     create_datachunkparams, create_processed_datachunk_params, create_crosscorrelation_params, create_stacking_params, \
-    validate_dict_as_qcone_holder, create_beamforming_params
+    create_beamforming_params
 
 from noiz.api.component import fetch_components
 from noiz.api.component_pair import fetch_componentpairs
@@ -184,8 +184,9 @@ def create_and_add_beamforming_params_from_toml(
     """
 
     params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.BEAMFORMINGPARAMS)
+    from noiz.api.qc import fetch_qcone_config_single
     try:
-        _ = fetch_datachunkparams_by_id(
+        _ = fetch_qcone_config_single(
             id=params_holder.qcone_config_id
         )
     except EmptyResultException:
