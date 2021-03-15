@@ -7,7 +7,7 @@ from typing import Union, Tuple, Dict, Collection, Optional
 import numpy.typing as npt
 
 from noiz.api.type_aliases import CalculateDatachunkStatsInputs, RunDatachunkPreparationInputs
-from noiz.exceptions import MissingDataFileException
+from noiz.exceptions import MissingDataFileException, ResponseRemovalError
 from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models.component import Component
 from noiz.models.datachunk import Datachunk, DatachunkFile, DatachunkStats
@@ -430,7 +430,11 @@ def preprocess_sliced_stream_for_datachunk(
         steps_dict['filtered'] = trimmed_st.copy()
 
     logger.debug("Removing response")
-    trimmed_st.remove_response(inventory)
+    try:
+        trimmed_st.remove_response(inventory)
+    except ValueError as e:
+        raise ResponseRemovalError(f"There was a problem with response removal from slice {trimmed_st} that was "
+                                   f"prepared for Timespan {timespan}. Original exception: {e}")
     if verbose_output:
         steps_dict['removed_response'] = trimmed_st.copy()
 
@@ -681,11 +685,11 @@ def create_datachunks_for_component(
     try:
         st: obspy.Stream = time_series.read_file()
     except MissingDataFileException as e:
-        logger.warning(f"Data file is missing. Skipping. {e}")
+        logger.error(f"Data file is missing. Skipping. {e}")
         return []
     except Exception as e:
-        logger.warning(f"There was some general exception from "
-                       f"obspy.Stream.read function. Here it is: {e} ")
+        logger.error(f"There was some general exception from "
+                     f"obspy.Stream.read function. Here it is: {e} ")
         return []
 
     inventory: obspy.Inventory = component.read_inventory()
@@ -716,13 +720,20 @@ def create_datachunks_for_component(
             continue
 
         logger.debug("Preprocessing timespan")
-        trimmed_st, _ = preprocess_sliced_stream_for_datachunk(
-            trimmed_st=trimmed_st,
-            inventory=inventory,
-            processing_params=processing_params,
-            timespan=timespan,
-            verbose_output=False
-        )
+        try:
+            trimmed_st, _ = preprocess_sliced_stream_for_datachunk(
+                trimmed_st=trimmed_st,
+                inventory=inventory,
+                processing_params=processing_params,
+                timespan=timespan,
+                verbose_output=False
+            )
+        except ResponseRemovalError as e:
+            logger.error(f"There was an error raised during response removal. This slice will be skipped. "
+                         f"Occured for timespan.id: {timespan.id}, component: {component} "
+                         f"and tsindex.id {time_series.id}."
+                         f": {e}")
+            continue
 
         filepath = assembly_filepath(
             PROCESSED_DATA_DIR,  # type: ignore
