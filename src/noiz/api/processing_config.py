@@ -13,7 +13,7 @@ from noiz.models.processing_params import BeamformingParams, BeamformingParamsHo
 
 from noiz.processing.configs import parse_single_config_toml, DefinedConfigs, \
     create_datachunkparams, create_processed_datachunk_params, create_crosscorrelation_params, create_stacking_params, \
-    create_beamforming_params
+    create_beamforming_params, create_ppsd_params
 
 from noiz.api.component import fetch_components
 from noiz.api.component_pair import fetch_componentpairs
@@ -86,6 +86,7 @@ def fetch_stacking_schema_by_id(id: int) -> StackingSchema:
 AllParamsObjects = Union[
     DatachunkParams,
     BeamformingParams,
+    PPSDParams,
     ProcessedDatachunkParams,
     CrosscorrelationParams,
     StackingSchema,
@@ -98,17 +99,19 @@ def _insert_params_into_db(
         params: AllParamsObjects
 ) -> AllParamsObjects:
     """
-    This is method simply adding an instance of :py:class:`~noiz.models.DatachunkParams`,
-    :py:class:`~noiz.models.ProcessedDatachunkParams`, :py:class:`~noiz.models.CrosscorrelationParams`,
+    This is method simply adding an instance of
+    :py:class:`~noiz.models.DatachunkParams`,
+    :py:class:`~noiz.models.ProcessedDatachunkParams`,
+    :py:class:`~noiz.models.CrosscorrelationParams`,
     :py:class:`~noiz.models.StackingSchema`
     to DB and committing changes.
 
     Has to be executed within `app_context`
 
     :param params: Instance of supported params object to be added to db
-    :type params: Union[DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams, StackingSchema]
-    :return: None
-    :rtype: NoneType
+    :type params: AllParamsObjects
+    :return: Instance that was just added to the database
+    :rtype: AllParamsObjects
     """
     db.session.add(params)
     try:
@@ -218,7 +221,7 @@ def create_and_add_ppsd_params_from_toml(
         raise EmptyResultException(f"There is no DatachunkParams in the database with requested id: "
                                    f"{params_holder.datachunk_params_id}")
 
-    params = create_beamforming_params(params_holder=params_holder)
+    params = create_ppsd_params(params_holder=params_holder)
 
     if add_to_db:
         return _insert_params_into_db(params=params)
