@@ -1,6 +1,6 @@
 from functools import cached_property
 
-from typing import Optional
+from typing import Optional, Union
 from pydantic.dataclasses import dataclass
 import numpy as np
 import numpy.typing as npt
@@ -457,6 +457,76 @@ class BeamformingParams(db.Model):
             return 0
         if self._method == "capon":
             return 1
+
+
+@dataclass
+class PPSDParamsHolder:
+    """
+        This simple dataclass is just helping to validate :class:`~noiz.models.PPSDParams` values loaded
+        from the TOML file
+    """
+    datachunk_params_id: int
+    db_bin_min: Union[int, float]
+    db_bin_max: Union[int, float]
+    db_bin_width: Union[int, float]
+    segment_length: float  # seconds
+    segment_overlap: float  # fraction, from 0 to 1
+    period_limit_low: Optional[float] = None
+    period_limit_high: Optional[float] = None
+    period_smoothing_width_octaves: float = 1
+    period_step_octaves: float = 0.125
+
+
+class PPSDParams(db.Model):
+    __tablename__ = "ppsd_params"
+    id = db.Column("id", db.Integer, primary_key=True)
+
+    datachunk_params_id = db.Column("datachunk_params_id", db.Integer, db.ForeignKey("datachunk_params.id"), nullable=False)
+    db_bin_min = db.Column("db_bin_min", db.Float, nullable=False)
+    db_bin_max = db.Column("db_bin_max", db.Float, nullable=False)
+    db_bin_width = db.Column("db_bin_width", db.Float, nullable=False)
+    segment_length = db.Column("segment_length", db.Float, nullable=False)
+    segment_overlap = db.Column("segment_overlap", db.Float, nullable=False)
+    period_limit_low = db.Column("period_limit_low", db.Float, nullable=True)
+    period_limit_high = db.Column("period_limit_high", db.Float, nullable=True)
+    period_smoothing_width_octaves = db.Column("period_smoothing_width_octaves", db.Float, nullable=False)
+    period_step_octaves = db.Column("period_step_octaves", db.Float, nullable=False)
+
+    datachunk_params = db.relationship(
+        "DatachunkParams",
+        foreign_keys=[datachunk_params_id],
+        lazy="joined",
+    )
+
+    def __init__(
+            self,
+            datachunk_params_id: int,
+            db_bin_min: Union[int, float],
+            db_bin_max: Union[int, float],
+            db_bin_width: Union[int, float],
+            segment_length: float,  # seconds
+            segment_overlap: float,  # fraction, from 0 to 1
+            period_limit_low: Optional[float],
+            period_limit_high: Optional[float],
+            period_smoothing_width_octaves: float = 1,
+            period_step_octaves: float = 0.125,
+    ):
+        self.datachunk_params_id = datachunk_params_id
+        self.db_bin_min = float(db_bin_min)
+        self.db_bin_max = float(db_bin_max)
+        self.db_bin_width = db_bin_width
+        self.segment_length = segment_length
+        self.segment_overlap = segment_overlap
+        if (period_limit_low is None and period_limit_high is None) or \
+           (period_limit_low is not None and period_limit_high is not None):
+            self.period_limit_low = period_limit_low
+            self.period_limit_high = period_limit_high
+        else:
+            raise ValueError("You have to provide either both period limits or none of them."
+                             f"Provided values were low: {period_limit_low}; high: {period_limit_high}")
+
+        self.period_smoothing_width_octaves = period_smoothing_width_octaves
+        self.period_step_octaves = period_step_octaves
 
     # use_winter_time = db.Column("use_winter_time", db.Boolean)
     # f_sampling_out = db.Column("f_sampling_out", db.Integer)
