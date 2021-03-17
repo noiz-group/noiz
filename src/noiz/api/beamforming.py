@@ -18,7 +18,7 @@ from noiz.exceptions import EmptyResultException
 from noiz.models import Timespan, Datachunk, QCOneResults
 from noiz.models.beamforming import BeamformingResult
 from noiz.models.processing_params import BeamformingParams
-from noiz.processing.beamforming import calculate_qcone_results_wrapper_wrapper
+from noiz.processing.beamforming import calculate_beamforming_results_wrapper
 
 
 def fetch_beamforming_params_by_id(id: int) -> BeamformingParams:
@@ -65,16 +65,18 @@ def run_beamforming(
         _run_calculate_and_upsert_on_dask(
             batch_size=batch_size,
             inputs=calculation_inputs,
-            calculation_task=calculate_qcone_results_wrapper_wrapper,  # type: ignore
+            calculation_task=calculate_beamforming_results_wrapper,  # type: ignore
             upserter_callable=_prepare_upsert_command_beamforming,
+            with_file=True,
         )
     else:
         _run_calculate_and_upsert_sequentially(
             batch_size=batch_size,
             inputs=calculation_inputs,
-            calculation_task=calculate_qcone_results_wrapper_wrapper,  # type: ignore
+            calculation_task=calculate_beamforming_results_wrapper,  # type: ignore
             upserter_callable=_prepare_upsert_command_beamforming,
             raise_errors=raise_errors,
+            with_file=True,
         )
     return
 
