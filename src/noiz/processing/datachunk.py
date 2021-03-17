@@ -429,14 +429,15 @@ def preprocess_sliced_stream_for_datachunk(
     if verbose_output:
         steps_dict['filtered'] = trimmed_st.copy()
 
-    logger.debug("Removing response")
-    try:
-        trimmed_st.remove_response(inventory)
-    except ValueError as e:
-        raise ResponseRemovalError(f"There was a problem with response removal from slice {trimmed_st} that was "
-                                   f"prepared for Timespan {timespan}. Original exception: {e}")
-    if verbose_output:
-        steps_dict['removed_response'] = trimmed_st.copy()
+    if processing_params.remove_response:
+        logger.debug("Removing response")
+        try:
+            trimmed_st.remove_response(inventory)
+        except ValueError as e:
+            raise ResponseRemovalError(f"There was a problem with response removal from slice {trimmed_st} that was "
+                                       f"prepared for Timespan {timespan}. Original exception: {e}")
+        if verbose_output:
+            steps_dict['removed_response'] = trimmed_st.copy()
 
     logger.debug(
         f"Filtering with bandpass;"
