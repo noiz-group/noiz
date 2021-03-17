@@ -12,7 +12,7 @@ from noiz.models.beamforming import BeamformingResult
 from noiz.models.processing_params import BeamformingParams
 
 
-def calculate_qcone_results_wrapper_wrapper(inputs: BeamformingRunnerInputs) -> Tuple[BeamformingResult, ...]:
+def calculate_beamforming_results_wrapper(inputs: BeamformingRunnerInputs) -> Tuple[BeamformingResult, ...]:
     """filldocs"""
     return (
         calculate_beamforming_results(
