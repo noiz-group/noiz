@@ -208,10 +208,11 @@ def _submit_task_to_client_and_add_results_to_db(
         logger.info(f"Running bulk_add_or_upsert for {len(results)} results")
 
         if with_file:
-            files_to_add = [x.file for x in results]
-            bulk_add_or_upsert_file_objects(
-                objects_to_add=files_to_add,
-            )
+            files_to_add = [x.file for x in results if x.file is not None]
+            if len(files_to_add) > 0:
+                bulk_add_or_upsert_file_objects(
+                    objects_to_add=files_to_add,
+                )
 
         kwargs = BulkAddOrUpsertObjectsInputs(
             objects_to_add=results,
@@ -261,10 +262,11 @@ def _run_calculate_and_upsert_sequentially(
 
         results: List[BulkAddableObjects] = list(more_itertools.flatten(results_nested))
         if with_file:
-            files_to_add = [x.file for x in results]
-            bulk_add_or_upsert_file_objects(
-                objects_to_add=files_to_add,
-            )
+            files_to_add = [x.file for x in results if x.file is not None]
+            if len(files_to_add) > 0:
+                bulk_add_or_upsert_file_objects(
+                    objects_to_add=files_to_add,
+                )
 
         bulk_add_or_upsert_objects(
             objects_to_add=results,
