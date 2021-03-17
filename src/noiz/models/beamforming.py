@@ -71,7 +71,7 @@ class BeamformingResult(db.Model):
         lazy="joined",
     )
 
-    beamforming_file = db.relationship(
+    file = db.relationship(
         "BeamformingFile",
         foreign_keys=[beamforming_file_id],
         uselist=False,
@@ -82,7 +82,7 @@ class BeamformingResult(db.Model):
     datachunk_ids = association_proxy('datachunks', 'id')
 
     def load_data(self):
-        filepath = Path(self.beamforming_file.filepath)
+        filepath = Path(self.file.filepath)
         if filepath.exists:
             raise NotImplementedError("Not yet implemented, use np.load()")
         else:
