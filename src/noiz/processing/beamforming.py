@@ -81,7 +81,9 @@ def calculate_beamforming_results(
     try:
         out = array_processing(streams, **array_proc_kwargs)
     except ValueError as e:
-        raise ObspyError(f"Ecountered error while running beamforming routine. Error was: {e}")
+        raise ObspyError(f"Ecountered error while running beamforming routine. "
+                         f"Error happenned for timespan: {timespan}, beamform_params: {beamforming_params} "
+                         f"Error was: {e}")
     timestamp, relative_relpow, absolute_relpow, backazimuth, slowness = np.hsplit(out, 5)
 
     res.mean_slowness = np.mean(slowness)
