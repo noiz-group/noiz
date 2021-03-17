@@ -46,8 +46,8 @@ def calculate_beamforming_results(
         st = datachunk.load_data()
         st[0].stats.coordinates = AttribDict({
             'latitude': datachunk.component.lat,
-            'elevation': datachunk.component.elevation,
-            'longitude': datachunk.component.lon/1000})
+            'elevation': datachunk.component.elevation/1000,
+            'longitude': datachunk.component.lon})
         streams.extend(st)
 
     logger.debug(f"Calculating beamforming for timespan {timespan}")
