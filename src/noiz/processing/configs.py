@@ -277,6 +277,10 @@ def create_beamforming_params(
         window_step=params_holder.window_step,
         prewhiten=params_holder.prewhiten,
         method=params_holder.method,
+        used_component_codes=params_holder.used_component_codes,
+        minimum_trace_count=params_holder.minimum_trace_count,
+        save_result_windows=params_holder.save_result_windows,
+        save_beamformers=params_holder.save_beamformers,
     )
     return params
 
