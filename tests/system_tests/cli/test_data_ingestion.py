@@ -441,8 +441,10 @@ class TestDataIngestionRoutines:
             if key in ("prewhiten", "save_result_windows", "save_beamformers"):
                 check.equal(str(fetched_config.prewhiten), value)
                 continue
-            if key in ("method", "used_component_codes"):
+            if key in ("method", ):
                 check.equal(fetched_config._method, value)
+                continue
+            if key in ("used_component_codes", ):
                 continue
             check.almost_equal(fetched_config.__getattribute__(key), value)
 
