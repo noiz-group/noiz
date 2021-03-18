@@ -134,6 +134,12 @@ def _prepare_inputs_for_beamforming_runner(
         group: List[Tuple[Datachunk, QCOneResults]]  # type: ignore
         passing_chunks = [chunk for chunk, qcres in group if qcres.is_passing()]
 
+        if len(passing_chunks) < params.minimum_trace_count:
+            logger.warning(f"There was not enough traces passing QCOne for the beamforming. Skipping this timespan. "
+                           f"Timespan: {ts} "
+                           f"Minimum trace count: {params.minimum_trace_count}. Passing traces: {len(passing_chunks)}")
+            continue
+
         db.session.expunge_all()
         yield BeamformingRunnerInputs(
             beamforming_params=params,
