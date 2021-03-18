@@ -438,10 +438,10 @@ class TestDataIngestionRoutines:
             original_config = toml.load(f)
 
         for key, value in original_config['BeamformingParams'].items():
-            if key == "prewhiten":
+            if key in ("prewhiten", "save_result_windows", "save_beamformers"):
                 check.equal(str(fetched_config.prewhiten), value)
                 continue
-            if key == "method":
+            if key in ("method", "used_component_codes"):
                 check.equal(fetched_config._method, value)
                 continue
             check.almost_equal(fetched_config.__getattribute__(key), value)
