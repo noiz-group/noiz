@@ -525,7 +525,6 @@ def run_qcone(
 @processing_group.command("run_beamforming")
 @with_appcontext
 @click.option("-s", "--station", multiple=True, type=str, callback=_validate_zero_length_as_none)
-@click.option("-c", "--component", multiple=True, type=str, callback=_validate_zero_length_as_none)
 @click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
 @click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
 @click.option("-p", "--beamforming_params_id", nargs=1, type=int, required=True)
@@ -535,7 +534,6 @@ def run_qcone(
 @click.option('--raise_errors/--no_raise_errors', default=True)
 def run_beamforming(
         station,
-        component,
         startdate,
         enddate,
         beamforming_params_id,
@@ -549,7 +547,6 @@ def run_beamforming(
     from noiz.api.beamforming import run_beamforming
     run_beamforming(
         stations=station,
-        components=component,
         starttime=startdate,
         endtime=enddate,
         beamforming_params_id=beamforming_params_id,
