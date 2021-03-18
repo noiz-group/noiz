@@ -64,7 +64,7 @@ def calculate_beamforming_results(
         sl_s=beamforming_params.slowness_step,
         # sliding window properties
         win_len=beamforming_params.window_length,
-        win_frac=beamforming_params.window_step,
+        win_frac=beamforming_params.window_fraction,
         # frequency properties
         frqlow=beamforming_params.min_freq,
         frqhigh=beamforming_params.max_freq,
