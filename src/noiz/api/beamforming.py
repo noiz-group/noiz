@@ -43,7 +43,6 @@ def run_beamforming(
         endtime: Union[datetime.date, datetime.datetime],
         networks: Optional[Union[Collection[str], str]] = None,
         stations: Optional[Union[Collection[str], str]] = None,
-        components: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
         skip_existing: bool = True,
         batch_size: int = 2500,
@@ -56,7 +55,6 @@ def run_beamforming(
         endtime=endtime,
         networks=networks,
         stations=stations,
-        components=components,
         component_ids=component_ids,
         skip_existing=skip_existing
     )
@@ -87,7 +85,6 @@ def _prepare_inputs_for_beamforming_runner(
         endtime: Union[datetime.date, datetime.datetime],
         networks: Optional[Union[Collection[str], str]] = None,
         stations: Optional[Union[Collection[str], str]] = None,
-        components: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
         skip_existing: bool = True,
 ) -> Generator[BeamformingRunnerInputs, None, None]:
@@ -108,7 +105,7 @@ def _prepare_inputs_for_beamforming_runner(
     fetched_components = fetch_components(
         networks=networks,
         stations=stations,
-        components=components,
+        components=("Z"),
         component_ids=component_ids,
     )
     logger.debug(f"Fetched {len(fetched_components)} components")
