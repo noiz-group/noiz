@@ -458,6 +458,10 @@ class BeamformingParams(db.Model):
         if self._method == "capon":
             return 1
 
+    @property
+    def window_fraction(self):
+        return self.window_length/self.window_step
+
 
 @dataclass
 class PPSDParamsHolder:
