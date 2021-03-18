@@ -44,3 +44,11 @@ class ObspyError(NoizBaseException):
 
 class ResponseRemovalError(NoizBaseException):
     pass
+
+
+class NotEnoughDataError(NoizBaseException):
+    pass
+
+
+class SubobjectNotLoadedError(NoizBaseException):
+    pass

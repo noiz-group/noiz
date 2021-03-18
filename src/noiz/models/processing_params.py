@@ -1,6 +1,6 @@
 from functools import cached_property
 
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 from pydantic.dataclasses import dataclass
 import numpy as np
 import numpy.typing as npt
@@ -382,12 +382,16 @@ class BeamformingParamsHolder:
     slowness_y_min: float
     slowness_y_max: float
     slowness_step: float
-    semblance_threshold: float
-    velocity_threshold: float
     window_length: float
     window_step: float
-    prewhiten: bool
-    method: str
+    semblance_threshold: float = -1e9
+    velocity_threshold: float = -1e9
+    prewhiten: bool = False
+    method: str = "beamforming"
+    used_component_codes: Tuple[str, ...] = ("Z", )
+    minimum_trace_count: int = 3
+    save_result_windows: bool = False
+    save_beamformers: bool = False
 
 
 class BeamformingParams(db.Model):
@@ -408,6 +412,10 @@ class BeamformingParams(db.Model):
     window_step = db.Column("window_step", db.Float, nullable=False)
     prewhiten = db.Column("prewhiten", db.Boolean, nullable=False)
     _method = db.Column("method", db.String, nullable=False)
+    _used_component_codes = db.Column("used_component_codes", db.String)
+    minimum_trace_count = db.Column("minimum_trace_count", db.Integer)
+    save_result_windows = db.Column("save_result_windows", db.Boolean)
+    save_beamformers = db.Column("save_beamformers", db.Boolean)
 
     qcone_config = db.relationship(
         "QCOneConfig",
@@ -432,6 +440,10 @@ class BeamformingParams(db.Model):
             window_step: float,
             prewhiten: bool,
             method: str,
+            used_component_codes: Tuple[str, ...],
+            minimum_trace_count: int,
+            save_result_windows: bool,
+            save_beamformers: bool,
     ):
         self.qcone_config_id = qcone_config_id
         self.min_freq = min_freq
@@ -450,6 +462,13 @@ class BeamformingParams(db.Model):
             self._method = method
         else:
             raise ValueError(f"Expected either 'beamforming' or 'capon'. Got {method}")
+        self._used_component_codes = ";".join(used_component_codes)
+        if minimum_trace_count >= 1:
+            self.minimum_trace_count = int(minimum_trace_count)
+        else:
+            ValueError("minimum_trace_count cannot be lower than one.")
+        self.save_beamformers = save_beamformers
+        self.save_result_windows = save_result_windows
 
     @property
     def method(self):
@@ -457,6 +476,14 @@ class BeamformingParams(db.Model):
             return 0
         if self._method == "capon":
             return 1
+
+    @property
+    def window_fraction(self):
+        return self.window_length/self.window_step
+
+    @property
+    def used_component_codes(self):
+        return tuple(self._used_component_codes.split(';'))
 
 
 @dataclass

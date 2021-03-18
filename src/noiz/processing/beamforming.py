@@ -2,7 +2,7 @@ import numpy as np
 from loguru import logger
 from typing import Tuple
 
-from noiz.exceptions import ObspyError
+from noiz.exceptions import ObspyError, NotEnoughDataError, SubobjectNotLoadedError
 from obspy.core import AttribDict, Stream
 from obspy.signal.array_analysis import array_processing
 
@@ -36,18 +36,18 @@ def calculate_beamforming_results(
     res = BeamformingResult(timespan_id=timespan.id, beamforming_params_id=beamforming_params.id)
 
     if len(datachunks) <= 3:
-        raise ValueError(f"You should use more than 3 datachunks for beamforming. You provided {len(datachunks)}")
+        raise NotEnoughDataError(f"You should use more than 3 datachunks for beamforming. You provided {len(datachunks)}")
 
     logger.debug("Loading seismic files")
     streams = Stream()
     for datachunk in datachunks:
         if not isinstance(datachunk.component, Component):
-            raise ValueError('You should load Component together with the Datachunk.')
+            raise SubobjectNotLoadedError('You should load Component together with the Datachunk.')
         st = datachunk.load_data()
         st[0].stats.coordinates = AttribDict({
             'latitude': datachunk.component.lat,
-            'elevation': datachunk.component.elevation,
-            'longitude': datachunk.component.lon/1000})
+            'elevation': datachunk.component.elevation/1000,
+            'longitude': datachunk.component.lon})
         streams.extend(st)
 
     logger.debug(f"Calculating beamforming for timespan {timespan}")
@@ -64,7 +64,7 @@ def calculate_beamforming_results(
         sl_s=beamforming_params.slowness_step,
         # sliding window properties
         win_len=beamforming_params.window_length,
-        win_frac=beamforming_params.window_step,
+        win_frac=beamforming_params.window_fraction,
         # frequency properties
         frqlow=beamforming_params.min_freq,
         frqhigh=beamforming_params.max_freq,
@@ -81,7 +81,9 @@ def calculate_beamforming_results(
     try:
         out = array_processing(streams, **array_proc_kwargs)
     except ValueError as e:
-        raise ObspyError(f"Ecountered error while running beamforming routine. Error was: {e}")
+        raise ObspyError(f"Ecountered error while running beamforming routine. "
+                         f"Error happenned for timespan: {timespan}, beamform_params: {beamforming_params} "
+                         f"Error was: {e}")
     timestamp, relative_relpow, absolute_relpow, backazimuth, slowness = np.hsplit(out, 5)
 
     res.mean_slowness = np.mean(slowness)
