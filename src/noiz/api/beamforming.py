@@ -105,7 +105,7 @@ def _prepare_inputs_for_beamforming_runner(
     fetched_components = fetch_components(
         networks=networks,
         stations=stations,
-        components=("Z"),
+        components=params.used_component_codes,
         component_ids=component_ids,
     )
     logger.debug(f"Fetched {len(fetched_components)} components")
