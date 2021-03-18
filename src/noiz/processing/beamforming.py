@@ -2,7 +2,7 @@ import numpy as np
 from loguru import logger
 from typing import Tuple
 
-from noiz.exceptions import ObspyError
+from noiz.exceptions import ObspyError, NotEnoughDataError, SubobjectNotLoadedError
 from obspy.core import AttribDict, Stream
 from obspy.signal.array_analysis import array_processing
 
@@ -36,13 +36,13 @@ def calculate_beamforming_results(
     res = BeamformingResult(timespan_id=timespan.id, beamforming_params_id=beamforming_params.id)
 
     if len(datachunks) <= 3:
-        raise ValueError(f"You should use more than 3 datachunks for beamforming. You provided {len(datachunks)}")
+        raise NotEnoughDataError(f"You should use more than 3 datachunks for beamforming. You provided {len(datachunks)}")
 
     logger.debug("Loading seismic files")
     streams = Stream()
     for datachunk in datachunks:
         if not isinstance(datachunk.component, Component):
-            raise ValueError('You should load Component together with the Datachunk.')
+            raise SubobjectNotLoadedError('You should load Component together with the Datachunk.')
         st = datachunk.load_data()
         st[0].stats.coordinates = AttribDict({
             'latitude': datachunk.component.lat,
