@@ -493,31 +493,33 @@ class PPSDParamsHolder:
         from the TOML file
     """
     datachunk_params_id: int
-    db_bin_min: Union[int, float]
-    db_bin_max: Union[int, float]
-    db_bin_width: Union[int, float]
+
     segment_length: float  # seconds
-    segment_overlap: float  # fraction, from 0 to 1
-    period_limit_low: Optional[float] = None
-    period_limit_high: Optional[float] = None
-    period_smoothing_width_octaves: float = 1
-    period_step_octaves: float = 0.125
+    segment_step: float  # seconds
+    freq_min: float
+    freq_max: float
+    rejected_quantile: float
+    save_all_windows: bool = False
 
 
 class PPSDParams(db.Model):
     __tablename__ = "ppsd_params"
     id = db.Column("id", db.Integer, primary_key=True)
 
-    datachunk_params_id = db.Column("datachunk_params_id", db.Integer, db.ForeignKey("datachunk_params.id"), nullable=False)
-    db_bin_min = db.Column("db_bin_min", db.Float, nullable=False)
-    db_bin_max = db.Column("db_bin_max", db.Float, nullable=False)
-    db_bin_width = db.Column("db_bin_width", db.Float, nullable=False)
+    datachunk_params_id = db.Column(
+        "datachunk_params_id",
+        db.Integer,
+        db.ForeignKey("datachunk_params.id"),
+        nullable=False
+    )
     segment_length = db.Column("segment_length", db.Float, nullable=False)
-    segment_overlap = db.Column("segment_overlap", db.Float, nullable=False)
-    period_limit_low = db.Column("period_limit_low", db.Float, nullable=True)
-    period_limit_high = db.Column("period_limit_high", db.Float, nullable=True)
-    period_smoothing_width_octaves = db.Column("period_smoothing_width_octaves", db.Float, nullable=False)
-    period_step_octaves = db.Column("period_step_octaves", db.Float, nullable=False)
+    segment_step = db.Column("segment_overlap", db.Float, nullable=False)
+    freq_min = db.Column("freq_min", db.Float, nullable=False)
+    freq_max = db.Column("freq_max", db.Float, nullable=False)
+    rejected_quantile = db.Column("rejected_quantile", db.Float, nullable=False)
+    save_all_windows = db.Column("save_all_windows", db.Boolean, nullable=False)
+
+    sampling_rate = db.Column("sampling_rate", db.Float, nullable=False)
 
     datachunk_params = db.relationship(
         "DatachunkParams",
@@ -528,32 +530,45 @@ class PPSDParams(db.Model):
     def __init__(
             self,
             datachunk_params_id: int,
-            db_bin_min: Union[int, float],
-            db_bin_max: Union[int, float],
-            db_bin_width: Union[int, float],
-            segment_length: float,  # seconds
-            segment_overlap: float,  # fraction, from 0 to 1
-            period_limit_low: Optional[float],
-            period_limit_high: Optional[float],
-            period_smoothing_width_octaves: float = 1,
-            period_step_octaves: float = 0.125,
+            segment_length: float,
+            segment_step: float,
+            sampling_rate: Union[float, int],
+            freq_min: float,
+            freq_max: float,
+            rejected_quantile: float,
+            save_all_windows: bool,
     ):
         self.datachunk_params_id = datachunk_params_id
-        self.db_bin_min = float(db_bin_min)
-        self.db_bin_max = float(db_bin_max)
-        self.db_bin_width = db_bin_width
         self.segment_length = segment_length
-        self.segment_overlap = segment_overlap
-        if (period_limit_low is None and period_limit_high is None) or \
-           (period_limit_low is not None and period_limit_high is not None):
-            self.period_limit_low = period_limit_low
-            self.period_limit_high = period_limit_high
-        else:
-            raise ValueError("You have to provide either both period limits or none of them."
-                             f"Provided values were low: {period_limit_low}; high: {period_limit_high}")
+        self.segment_step = segment_step
+        self.freq_min = freq_min
+        self.freq_max = freq_max
+        self.rejected_quantile = rejected_quantile
+        self.save_all_windows = save_all_windows
 
-        self.period_smoothing_width_octaves = period_smoothing_width_octaves
-        self.period_step_octaves = period_step_octaves
+        self.sampling_rate = float(sampling_rate)
+
+    @property
+    def expected_sample_count(self):
+        return int(self.sampling_rate * self.segment_length)
+
+    @property
+    def sample_spacing(self):
+        return 1/self.sampling_rate
+
+    @cached_property
+    def _all_fft_freqs(self):
+        from scipy.fft import fftfreq
+        return fftfreq(n=self.expected_sample_count, d=self.sample_spacing)
+
+    @cached_property
+    def _where_accepted_freqs(self):
+        freqs = self._all_fft_freqs
+        return np.where((freqs >= self.freq_min) & (freqs <= self.freq_max))[0]
+
+    @cached_property
+    def expected_fft_freq(self):
+        return self._all_fft_freqs[self._where_accepted_freqs]
 
     # use_winter_time = db.Column("use_winter_time", db.Boolean)
     # f_sampling_out = db.Column("f_sampling_out", db.Integer)
