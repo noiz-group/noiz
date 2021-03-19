@@ -3,16 +3,18 @@ from typing import Union, TypedDict, Collection, Callable, Optional, List, Tuple
 
 from noiz.models import CrosscorrelationOld, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults, \
     Datachunk, DatachunkFile, QCOneConfig, AveragedSohGps, ComponentPair, StackingSchema, StackingTimespan, Component, \
-    Timespan, Tsindex, DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams, ProcessedDatachunkFile
-from noiz.models.beamforming import BeamformingResult
+    Timespan, Tsindex, DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams, ProcessedDatachunkFile, \
+    BeamformingFile, BeamformingResult
 from noiz.models.crosscorrelation import Crosscorrelation, CrosscorrelationFile
-from noiz.models.processing_params import BeamformingParams
+from noiz.models.ppsd import PPSDFile, PPSDResult
+from noiz.models.processing_params import BeamformingParams, PPSDParams
 
 BulkAddableObjects = Union[
     Datachunk,
     CrosscorrelationOld,
     Crosscorrelation,
     BeamformingResult,
+    PPSDResult,
     CCFStack,
     DatachunkStats,
     ProcessedDatachunk,
@@ -27,6 +29,8 @@ BulkAddableFileObjects = Union[
     DatachunkFile,
     CrosscorrelationFile,
     ProcessedDatachunkFile,
+    BeamformingFile,
+    PPSDFile,
 ]
 
 
@@ -67,6 +71,12 @@ class BeamformingRunnerInputs(TypedDict):
     datachunks: Tuple[Datachunk, ...]
 
 
+class PPSDRunnerInputs(TypedDict):
+    ppsd_params: PPSDParams
+    timespan: Timespan
+    datachunk: Datachunk
+
+
 class CrosscorrelationRunnerInputs(TypedDict):
     timespan: Timespan
     crosscorrelation_params: CrosscorrelationParams
@@ -85,6 +95,7 @@ InputsForMassCalculations = Union[
     CalculateDatachunkStatsInputs,
     RunDatachunkPreparationInputs,
     BeamformingRunnerInputs,
+    PPSDRunnerInputs,
     QCOneRunnerInputs,
     ProcessDatachunksInputs,
     CrosscorrelationRunnerInputs,
