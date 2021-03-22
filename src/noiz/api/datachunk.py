@@ -207,6 +207,7 @@ def _query_datachunks(
         timespans: Optional[Collection[Timespan]] = None,
         datachunk_processing_config: Optional[DatachunkParams] = None,
         datachunk_ids: Optional[Collection[int]] = None,
+        not_datachunk_ids: Optional[Collection[int]] = None,
         load_component: bool = False,
         load_stats: bool = False,
         load_timespan: bool = False,
@@ -216,13 +217,14 @@ def _query_datachunks(
 
     filters, opts = _determine_filters_and_opts_for_datachunk(
         components=components,
-        datachunk_ids=datachunk_ids,
-        datachunk_processing_config=datachunk_processing_config,
-        load_component=load_component,
-        load_processing_params=load_processing_params,
-        load_stats=load_stats,
-        load_timespan=load_timespan,
         timespans=timespans,
+        datachunk_processing_config=datachunk_processing_config,
+        datachunk_ids=datachunk_ids,
+        not_datachunk_ids=not_datachunk_ids,
+        load_component=load_component,
+        load_stats=load_stats,
+        load_processing_params=load_processing_params,
+        load_timespan=load_timespan,
     )
     if order_by_id:
         return Datachunk.query.filter(*filters).options(opts).order_by(Datachunk.id)
