@@ -32,7 +32,7 @@ class FileModel(db.Model):
     def file_model_type(self):
         return self._file_model_type
 
-    def assemble_filename(
+    def _assemble_filename(
             self,
             cmp: Component,
             ts: Timespan,
@@ -113,7 +113,7 @@ class PPSDFile(FileModel):
 
         directory_exists_or_create(filepath=dirpath)
 
-        proposed_filepath = dirpath.joinpath(self.assemble_filename(cmp=cmp, ts=ts, count=0))
+        proposed_filepath = dirpath.joinpath(self._assemble_filename(cmp=cmp, ts=ts, count=0))
         self._filepath = increment_filename_counter(filepath=proposed_filepath, extension=True)
 
         return self.filepath

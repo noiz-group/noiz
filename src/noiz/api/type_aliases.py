@@ -75,6 +75,7 @@ class PPSDRunnerInputs(TypedDict):
     ppsd_params: PPSDParams
     timespan: Timespan
     datachunk: Datachunk
+    component: Component
 
 
 class CrosscorrelationRunnerInputs(TypedDict):

@@ -313,6 +313,7 @@ def create_ppsd_params(
         freq_max=params_holder.freq_max,
         rejected_quantile=params_holder.rejected_quantile,
         save_all_windows=params_holder.save_all_windows,
+        save_compressed=params_holder.save_compressed,
         sampling_rate=datachunk_params.sampling_rate,
     )
     return params
