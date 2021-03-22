@@ -261,6 +261,28 @@ def validate_exactly_one_argument_provided(
     """
 
     if (second is None and first is None) or (second is not None and first is not None):
-        raise ValueError('There has to be either main_filepath or filepaths provided.')
+        raise ValueError('There has to be exactly one argument provided.')
+    else:
+        return True
+
+
+def validate_maximum_one_argument_provided(
+        first: Optional[Any],
+        second: Optional[Any],
+) -> bool:
+    """
+    Method that checks if maximum one of provided arguments is not None.
+
+    :param first: First value to check
+    :type first: Optional[Any]
+    :param second: Second value to check
+    :type second: Optional[Any]
+    :return: True if one or none of provided arguments is None
+    :rtype: bool
+    :raises: ValueError
+    """
+
+    if second is not None and first is not None:
+        raise ValueError('There has to be maximum one argument provided.')
     else:
         return True
