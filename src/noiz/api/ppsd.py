@@ -1,6 +1,8 @@
 import datetime
 from sqlalchemy.orm import Query
 
+from noiz.api.datachunk import fetch_datachunks
+from noiz.api.processing_config import fetch_datachunkparams_by_id
 from noiz.api.type_aliases import PPSDRunnerInputs
 from typing import Union, Optional, Collection, Generator, List
 
@@ -30,11 +32,12 @@ def fetch_ppsd_params_by_id(id: int) -> PPSDParams:
         raise EmptyResultException(f"PPSDParams object of id {id} does not exist.")
     return fetched_params
 
+
 def fetch_ppsd_results(
-        ppsd_params: Optional[PPSDParams],
-        ppsd_params_id: Optional[int],
-        datachunks: Optional[Collection[Datachunk]],
-        datachunk_ids: Optional[Collection[int]],
+        ppsd_params: Optional[PPSDParams] = None,
+        ppsd_params_id: Optional[int] = None,
+        datachunks: Optional[Collection[Datachunk]] = None,
+        datachunk_ids: Optional[Collection[int]] = None,
 ) -> List[PPSDResult]:
     """filldocs"""
     query = _query_ppsd_results(
@@ -48,10 +51,10 @@ def fetch_ppsd_results(
 
 
 def count_ppsd_results(
-        ppsd_params: Optional[PPSDParams],
-        ppsd_params_id: Optional[int],
-        datachunks: Optional[Collection[Datachunk]],
-        datachunk_ids: Optional[Collection[int]],
+        ppsd_params: Optional[PPSDParams] = None,
+        ppsd_params_id: Optional[int] = None,
+        datachunks: Optional[Collection[Datachunk]] = None,
+        datachunk_ids: Optional[Collection[int]] = None,
 ) -> int:
     """filldocs"""
     query = _query_ppsd_results(
@@ -65,10 +68,10 @@ def count_ppsd_results(
 
 
 def _query_ppsd_results(
-        ppsd_params: Optional[PPSDParams],
-        ppsd_params_id: Optional[int],
-        datachunks: Optional[Collection[Datachunk]],
-        datachunk_ids: Optional[Collection[int]],
+        ppsd_params: Optional[PPSDParams] = None,
+        ppsd_params_id: Optional[int] = None,
+        datachunks: Optional[Collection[Datachunk]] = None,
+        datachunk_ids: Optional[Collection[int]] = None,
 ) -> Query:
     """filldocs"""
     try:
@@ -97,7 +100,6 @@ def _query_ppsd_results(
     query = PPSDResult.query.filter(*filters)
 
     return query
-
 
 
 def run_psd_calculations(
@@ -168,5 +170,17 @@ def _prepare_inputs_for_psd_calculation(
         component_ids=component_ids,
     )
 
+    datachunk_params = fetch_datachunkparams_by_id(id=params.datachunk_params_id)
+
     if skip_existing:
-        fetch_ppsd_results
+        existing_results = fetch_ppsd_results(ppsd_params=params)
+        existing_results_datachunk_ids = [x.datachunk_id for x in existing_results]
+
+
+    fetched_datachunks = fetch_datachunks(
+        datachunk_processing_config=datachunk_params,
+        timespans=timespans,
+        components=fetched_components,
+        load_timespan=True,
+        load_component=True,
+    )
