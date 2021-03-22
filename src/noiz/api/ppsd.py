@@ -1,8 +1,8 @@
 import datetime
 from sqlalchemy.orm import Query
+from sqlalchemy.dialects.postgresql import Insert, insert
 
-from noiz.api.datachunk import fetch_datachunks, _query_datachunks
-from noiz.api.processing_config import fetch_datachunkparams_by_id
+from noiz.api.datachunk import _query_datachunks
 from noiz.api.type_aliases import PPSDRunnerInputs
 from typing import Union, Optional, Collection, Generator, List
 
@@ -114,6 +114,7 @@ def run_psd_calculations(
         batch_size: int = 2000,
         parallel: bool = True,
         skip_existing: bool = True,
+        raise_errors: bool = False,
 ):
     # filldocs
     calculation_inputs = _prepare_inputs_for_psd_calculation(
@@ -133,19 +134,22 @@ def run_psd_calculations(
             batch_size=batch_size,
             inputs=calculation_inputs,
             calculation_task=calculate_ppsd_wrapper,  # type: ignore
-            upserter_callable=_prepare_upsert_command_processed_datachunk,
+            upserter_callable=_prepare_upsert_command_ppsd,
             with_file=True,
+            raise_errors=raise_errors,
         )
     else:
         _run_calculate_and_upsert_sequentially(
             batch_size=batch_size,
             inputs=calculation_inputs,
             calculation_task=calculate_ppsd_wrapper,  # type: ignore
-            upserter_callable=_prepare_upsert_command_processed_datachunk,
+            upserter_callable=_prepare_upsert_command_ppsd,
             with_file=True,
+            raise_errors=raise_errors,
         )
 
     return
+
 
 def _prepare_inputs_for_psd_calculation(
         ppsd_params_id: int,
@@ -180,11 +184,11 @@ def _prepare_inputs_for_psd_calculation(
             load_component=True,
         )
 
-        query = query.limit(batch_size).offset(i*batch_size)
+        query = query.limit(batch_size).offset(i * batch_size)
 
         fetched_datachunks = query.all()
 
-        if len(fetched_datachunks) == 0 :
+        if len(fetched_datachunks) == 0:
             break
 
         fetched_datachunk_ids = extract_object_ids(fetched_datachunks)
@@ -206,3 +210,20 @@ def _prepare_inputs_for_psd_calculation(
                 datachunk=datachunk,
                 component=datachunk.component,
             )
+
+
+def _prepare_upsert_command_ppsd(ppsd_result: PPSDResult) -> Insert:
+    insert_command = (
+        insert(PPSDResult)
+        .values(
+            ppsd_params_id=ppsd_result.ppsd_params_id,
+            datachunk_id=ppsd_result.datachunk_id,
+            timespan_id=ppsd_result.timespan_id,
+            ppsd_file_id=ppsd_result.ppsd_file_id,
+        )
+        .on_conflict_do_update(
+            constraint="unique_ppsd_per_config_per_timespan",
+            set_=dict(ppsd_file_id=ppsd_result.ppsd_file_id),
+        )
+    )
+    return insert_command
