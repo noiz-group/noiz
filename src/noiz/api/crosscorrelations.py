@@ -445,7 +445,7 @@ def _crosscorrelate_for_timespan(
         if filepath.exists():
             logger.debug(f"Filepath {filepath} exists. "
                          f"Trying to find next free one.")
-            filepath = increment_filename_counter(filepath=filepath)
+            filepath = increment_filename_counter(filepath=filepath, extension=True)
             logger.debug(f"Free filepath found. "
                          f"CCF will be saved to {filepath}")
 

@@ -197,7 +197,7 @@ def _prepare_inputs_for_psd_calculation(
             existing_results = fetch_ppsd_results(ppsd_params=params, datachunk_ids=fetched_datachunk_ids)
             existing_results_datachunk_ids = [x.datachunk_id for x in existing_results]
         else:
-            existing_results_datachunk_ids = tuple()
+            existing_results_datachunk_ids = list()
 
         for datachunk in fetched_datachunks:
             if datachunk.id in existing_results_datachunk_ids:

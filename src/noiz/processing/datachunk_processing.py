@@ -128,7 +128,7 @@ def process_datachunk(
 
     if filepath.exists():
         logger.debug(f"Filepath {filepath} exists. Trying to find next free one.")
-        filepath = increment_filename_counter(filepath=filepath)
+        filepath = increment_filename_counter(filepath=filepath, extension=False)
         logger.debug(f"Free filepath found. Datachunk will be saved to {filepath}")
 
     logger.info(f"Chunk will be written to {str(filepath)}")

@@ -1,7 +1,4 @@
 import pytest
-
-from noiz.models.beamforming import BeamformingResult
-
 pytestmark = [pytest.mark.system, pytest.mark.cli]
 
 from click.testing import CliRunner
@@ -21,6 +18,8 @@ from noiz.models import StackingSchema, QCOneResults, QCTwoResults, DatachunkPar
     ProcessedDatachunkParams, CrosscorrelationParams, Datachunk, DatachunkStats, ProcessedDatachunk, \
     SohGps, SohInstrument, Timespan, CCFStack, Crosscorrelation
 from noiz.models.component import ComponentFile
+from noiz.models.beamforming import BeamformingResult
+from noiz.models.ppsd import PPSDResult
 
 
 @pytest.fixture(scope="class")
@@ -605,6 +604,26 @@ class TestDataIngestionRoutines:
             datachunks = db.session.query(Datachunk).all()
         assert len(datachunks_without_stats) == 0
         assert len(datachunks) == len(stats)
+
+    def test_calc_ppsd(self, noiz_app):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["processing", "run_ppsd",
+                                     "-p", "1",
+                                     "-sd", "2019-09-30",
+                                     "-ed", "2019-10-03",
+                                     "--no_parallel",
+                                     ])
+        assert result.exit_code == 0
+
+        from noiz.api.ppsd import fetch_ppsd_results
+
+        with noiz_app.app_context():
+            all_ppsd = fetch_ppsd_results()
+            count_res = db.session.query(PPSDResult).count()
+            datachunks = db.session.query(Datachunk).count()
+
+        assert len(all_ppsd) == count_res
+        assert datachunks == count_res
 
     def test_run_qcone(self, noiz_app):
         runner = CliRunner()
