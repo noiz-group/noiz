@@ -500,6 +500,7 @@ class PPSDParamsHolder:
     freq_max: float
     rejected_quantile: float
     save_all_windows: bool = False
+    save_compressed: bool = True
 
 
 class PPSDParams(db.Model):
@@ -518,6 +519,7 @@ class PPSDParams(db.Model):
     freq_max = db.Column("freq_max", db.Float, nullable=False)
     rejected_quantile = db.Column("rejected_quantile", db.Float, nullable=False)
     save_all_windows = db.Column("save_all_windows", db.Boolean, nullable=False)
+    save_compressed = db.Column("save_compressed", db.Boolean, nullable=False)
 
     sampling_rate = db.Column("sampling_rate", db.Float, nullable=False)
 
@@ -537,6 +539,7 @@ class PPSDParams(db.Model):
             freq_max: float,
             rejected_quantile: float,
             save_all_windows: bool,
+            save_compressed: bool,
     ):
         self.datachunk_params_id = datachunk_params_id
         self.segment_length = segment_length
@@ -545,6 +548,7 @@ class PPSDParams(db.Model):
         self.freq_max = freq_max
         self.rejected_quantile = rejected_quantile
         self.save_all_windows = save_all_windows
+        self.save_compressed = save_compressed
 
         self.sampling_rate = float(sampling_rate)
 
