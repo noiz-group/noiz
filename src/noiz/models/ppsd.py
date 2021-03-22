@@ -1,4 +1,6 @@
-from typing import Union
+import os
+
+from typing import Union, Optional
 
 from pathlib import Path
 
@@ -8,10 +10,12 @@ from noiz.exceptions import MissingDataFileException
 from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models import Timespan, Component, ComponentPair
 from noiz.models.processing_params import PPSDParams
+from noiz.processing.path_helpers import directory_exists_or_create, increment_filename_counter
 
 ParamsLike = Union[
     PPSDParams,
 ]
+
 
 class FileModel(db.Model):
     __abstract__ = True
@@ -19,7 +23,7 @@ class FileModel(db.Model):
     _filepath: str = db.Column("filepath", db.UnicodeText, nullable=False)
 
     _file_model_type: str
-    _filename_extension: str
+    _filename_extension: Optional[str]
 
     def __init__(self, **kwargs):
         super(FileModel, self).__init__(**kwargs)
@@ -27,6 +31,32 @@ class FileModel(db.Model):
     @property
     def file_model_type(self):
         return self._file_model_type
+
+    def assemble_filename(
+            self,
+            cmp: Component,
+            ts: Timespan,
+            count: int = 0
+    ) -> str:
+        year = str(ts.starttime.year)
+        doy_time = ts.starttime.strftime("%j.%H%M")
+
+        filename_elements = [
+            cmp.network,
+            cmp.station,
+            cmp.component,
+            year,
+            doy_time,
+        ]
+
+        extensions = [str(count), ]
+
+        if self._filename_extension is not None:
+            extensions.append(self._filename_extension)
+
+        name = ".".join(filename_elements)
+
+        return os.extsep.join([name, *tuple(extensions)])
 
     def _assemble_dirpath(
             self,
@@ -48,14 +78,14 @@ class FileModel(db.Model):
         elif isinstance(cmp, ComponentPair):
             return (
                 Path(PROCESSED_DATA_DIR)
-                    .joinpath(self.file_model_type)
-                    .joinpath(str(params.id))
-                    .joinpath(str(ts.starttime_year))
-                    .joinpath(str(ts.starttime_doy))
-                    .joinpath(str(ts.starttime.month))
-                    .joinpath(cmp.component_code_pair)
-                    .joinpath(f"{cmp.component_a.network}.{cmp.component_a.station}-"
-                              f"{cmp.component_b.network}.{cmp.component_b.station}")
+                .joinpath(self.file_model_type)
+                .joinpath(str(params.id))
+                .joinpath(str(ts.starttime_year))
+                .joinpath(str(ts.starttime_doy))
+                .joinpath(str(ts.starttime.month))
+                .joinpath(cmp.component_code_pair)
+                .joinpath(f"{cmp.component_a.network}.{cmp.component_a.station}-"
+                          f"{cmp.component_b.network}.{cmp.component_b.station}")
             )
         else:
             raise TypeError(f"Expected either Component or ComponentPair. Got {type(cmp)}")
@@ -64,18 +94,15 @@ class FileModel(db.Model):
     def filepath(self):
         return Path(self._filepath)
 
+
 class PPSDFile(FileModel):
     __tablename__ = "ppsd_file"
 
     id = db.Column("id", db.BigInteger, primary_key=True)
-    filepath = db.Column("filepath", db.UnicodeText, nullable=False)
+    _filepath = db.Column("filepath", db.UnicodeText, nullable=False)
 
     _file_model_type: str = "psd"
-    _filename_extension: str = ".npz"
-
-
-    def _assemble_filename(self, cmp: Component, ts: Timespan) -> str:
-        pass
+    _filename_extension: str = "npz"
 
     def find_empty_filepath(self, cmp: Component, ts: Timespan, ppsd_params: PPSDParams) -> Path:
         dirpath = self._assemble_dirpath(
@@ -84,7 +111,12 @@ class PPSDFile(FileModel):
             cmp=cmp,
         )
 
+        directory_exists_or_create(filepath=dirpath)
 
+        proposed_filepath = dirpath.joinpath(self.assemble_filename(cmp=cmp, ts=ts, count=0))
+        self._filepath = increment_filename_counter(filepath=proposed_filepath, extension=True)
+
+        return self.filepath
 
 
 class PPSDResult(db.Model):
