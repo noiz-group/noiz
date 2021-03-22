@@ -472,7 +472,10 @@ class TestDataIngestionRoutines:
             original_config = toml.load(f)
 
         for key, value in original_config['PPSDParams'].items():
-            check.almost_equal(fetched_config.__getattribute__(key), value)
+            if key in ("save_all_windows", "save_compressed"):
+                check.equal(fetched_config.__getattribute__(key), bool(value))
+            else:
+                check.almost_equal(fetched_config.__getattribute__(key), value)
 
     def test_insert_stacking_schema(self, workdir_with_content, noiz_app):
 
