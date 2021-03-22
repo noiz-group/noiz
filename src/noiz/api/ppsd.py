@@ -1,7 +1,7 @@
 import datetime
 from sqlalchemy.orm import Query
 
-from noiz.api.datachunk import fetch_datachunks
+from noiz.api.datachunk import fetch_datachunks, _query_datachunks
 from noiz.api.processing_config import fetch_datachunkparams_by_id
 from noiz.api.type_aliases import PPSDRunnerInputs
 from typing import Union, Optional, Collection, Generator, List
@@ -10,6 +10,7 @@ from noiz.api.component import fetch_components
 from noiz.api.helpers import _run_calculate_and_upsert_on_dask, _run_calculate_and_upsert_sequentially, \
     extract_object_ids
 from noiz.api.timespan import fetch_timespans_between_dates
+from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import Datachunk
 from noiz.models.ppsd import PPSDResult
@@ -155,7 +156,6 @@ def _prepare_inputs_for_psd_calculation(
         components: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
         batch_size: int = 2000,
-        parallel: bool = True,
         skip_existing: bool = True,
 ) -> Generator[PPSDRunnerInputs, None, None]:
 
@@ -170,17 +170,39 @@ def _prepare_inputs_for_psd_calculation(
         component_ids=component_ids,
     )
 
-    datachunk_params = fetch_datachunkparams_by_id(id=params.datachunk_params_id)
+    i = 0
+    while True:
+        query = _query_datachunks(
+            datachunk_params_id=params.datachunk_params_id,
+            timespans=timespans,
+            components=fetched_components,
+            load_timespan=True,
+            load_component=True,
+        )
 
-    if skip_existing:
-        existing_results = fetch_ppsd_results(ppsd_params=params)
-        existing_results_datachunk_ids = [x.datachunk_id for x in existing_results]
+        query = query.limit(batch_size).offset(i*batch_size)
 
+        fetched_datachunks = query.all()
 
-    fetched_datachunks = fetch_datachunks(
-        datachunk_processing_config=datachunk_params,
-        timespans=timespans,
-        components=fetched_components,
-        load_timespan=True,
-        load_component=True,
-    )
+        if len(fetched_datachunks) == 0 :
+            break
+
+        fetched_datachunk_ids = extract_object_ids(fetched_datachunks)
+
+        if skip_existing:
+            existing_results = fetch_ppsd_results(ppsd_params=params, datachunk_ids=fetched_datachunk_ids)
+            existing_results_datachunk_ids = [x.datachunk_id for x in existing_results]
+        else:
+            existing_results_datachunk_ids = tuple()
+
+        for datachunk in fetched_datachunks:
+            if datachunk.id in existing_results_datachunk_ids:
+                continue
+
+            db.session.expunge_all()
+            yield PPSDRunnerInputs(
+                ppsd_params=params,
+                timespan=datachunk.timespan,
+                datachunk=datachunk,
+                component=datachunk.component,
+            )
