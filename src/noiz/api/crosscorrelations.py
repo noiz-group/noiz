@@ -359,7 +359,8 @@ def assembly_ccf_filename(
         component_pair.component_b.component,
         year,
         doy_time,
-        str(count)
+        str(count),
+        ".npz"
     ])
 
     return fname
