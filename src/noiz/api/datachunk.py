@@ -38,7 +38,7 @@ from noiz.processing.datachunk_processing import process_datachunk, process_data
 def count_datachunks(
         components: Optional[Collection[Component]] = None,
         timespans: Optional[Collection[Timespan]] = None,
-        datachunk_processing_config: Optional[DatachunkParams] = None,
+        datachunk_params: Optional[DatachunkParams] = None,
         datachunk_ids: Optional[Collection[int]] = None,
         not_datachunk_ids: Optional[Collection[int]] = None,
         load_component: bool = False,
@@ -53,8 +53,8 @@ def count_datachunks(
     :type components: Optional[Collection[Component]]
     :param timespans: Timespans to be checked
     :type timespans: Optional[Collection[Timespan]]
-    :param datachunk_processing_config: DatachunkParams to be checked. This have to be a single object.
-    :type datachunk_processing_config: Optional[DatachunkParams]
+    :param datachunk_params: DatachunkParams to be checked. This have to be a single object.
+    :type datachunk_params: Optional[DatachunkParams]
     :param datachunk_ids: Ids of Datachunk objects to be fetched
     :type datachunk_ids: Optional[Collection[int]]
     :param not_datachunk_ids: Ids of Datachunk objects that are not to be fetched
@@ -77,7 +77,7 @@ def count_datachunks(
     query = _query_datachunks(
         components=components,
         timespans=timespans,
-        datachunk_processing_config=datachunk_processing_config,
+        datachunk_params=datachunk_params,
         datachunk_ids=datachunk_ids,
         not_datachunk_ids=not_datachunk_ids,
         load_component=load_component,
@@ -92,7 +92,7 @@ def count_datachunks(
 def fetch_datachunks(
         components: Optional[Collection[Component]] = None,
         timespans: Optional[Collection[Timespan]] = None,
-        datachunk_processing_config: Optional[DatachunkParams] = None,
+        datachunk_params: Optional[DatachunkParams] = None,
         datachunk_ids: Optional[Collection[int]] = None,
         not_datachunk_ids: Optional[Collection[int]] = None,
         load_component: bool = False,
@@ -115,8 +115,8 @@ def fetch_datachunks(
     :type components: Optional[Collection[Component]]
     :param timespans: Timespans to be checked
     :type timespans: Optional[Collection[Timespan]]
-    :param datachunk_processing_config: DatachunkParams to be checked. This have to be a single object.
-    :type datachunk_processing_config: Optional[DatachunkParams]
+    :param datachunk_params: DatachunkParams to be checked. This have to be a single object.
+    :type datachunk_params: Optional[DatachunkParams]
     :param datachunk_ids: Ids of Datachunk objects to be fetched
     :type datachunk_ids: Optional[Collection[int]]
     :param not_datachunk_ids: Ids of Datachunk objects that are not to be fetched
@@ -140,7 +140,7 @@ def fetch_datachunks(
     query = _query_datachunks(
         components=components,
         timespans=timespans,
-        datachunk_processing_config=datachunk_processing_config,
+        datachunk_params=datachunk_params,
         datachunk_ids=datachunk_ids,
         not_datachunk_ids=not_datachunk_ids,
         load_component=load_component,
@@ -156,7 +156,7 @@ def fetch_datachunks(
 def fetch_datachunks_without_stats(
         components: Optional[Collection[Component]] = None,
         timespans: Optional[Collection[Timespan]] = None,
-        datachunk_processing_config: Optional[DatachunkParams] = None,
+        datachunk_params: Optional[DatachunkParams] = None,
         datachunk_ids: Optional[Collection[int]] = None,
         not_datachunk_ids: Optional[Collection[int]] = None,
         load_component: bool = False,
@@ -168,7 +168,7 @@ def fetch_datachunks_without_stats(
     query = _query_datachunks(
         components=components,
         timespans=timespans,
-        datachunk_processing_config=datachunk_processing_config,
+        datachunk_params=datachunk_params,
         datachunk_ids=datachunk_ids,
         not_datachunk_ids=not_datachunk_ids,
         load_component=load_component,
@@ -183,7 +183,7 @@ def query_datachunks_without_qcone(
         qc_one: QCOneConfig,
         components: Optional[Collection[Component]] = None,
         timespans: Optional[Collection[Timespan]] = None,
-        datachunk_processing_config: Optional[DatachunkParams] = None,
+        datachunk_params: Optional[DatachunkParams] = None,
         datachunk_ids: Optional[Collection[int]] = None,
         not_datachunk_ids: Optional[Collection[int]] = None,
         load_component: bool = False,
@@ -193,7 +193,7 @@ def query_datachunks_without_qcone(
 ) -> Query:
     """filldocs"""
     filters, opts = _determine_filters_and_opts_for_datachunk(
-        datachunk_processing_config=datachunk_processing_config,
+        datachunk_params=datachunk_params,
         timespans=timespans,
         components=components,
         datachunk_ids=datachunk_ids,
@@ -218,7 +218,7 @@ def query_datachunks_without_qcone(
 def _query_datachunks(
         components: Optional[Collection[Component]] = None,
         timespans: Optional[Collection[Timespan]] = None,
-        datachunk_processing_config: Optional[DatachunkParams] = None,
+        datachunk_params: Optional[DatachunkParams] = None,
         datachunk_ids: Optional[Collection[int]] = None,
         not_datachunk_ids: Optional[Collection[int]] = None,
         load_component: bool = False,
@@ -231,7 +231,7 @@ def _query_datachunks(
     filters, opts = _determine_filters_and_opts_for_datachunk(
         components=components,
         timespans=timespans,
-        datachunk_processing_config=datachunk_processing_config,
+        datachunk_params=datachunk_params,
         datachunk_ids=datachunk_ids,
         not_datachunk_ids=not_datachunk_ids,
         load_component=load_component,
@@ -248,7 +248,7 @@ def _query_datachunks(
 def _determine_filters_and_opts_for_datachunk(
         components: Optional[Collection[Component]] = None,
         timespans: Optional[Collection[Timespan]] = None,
-        datachunk_processing_config: Optional[DatachunkParams] = None,
+        datachunk_params: Optional[DatachunkParams] = None,
         datachunk_ids: Optional[Collection[int]] = None,
         not_datachunk_ids: Optional[Collection[int]] = None,
         load_component: bool = False,
@@ -264,8 +264,8 @@ def _determine_filters_and_opts_for_datachunk(
     if timespans is not None:
         timespan_ids = extract_object_ids(timespans)
         filters.append(Datachunk.timespan_id.in_(timespan_ids))
-    if datachunk_processing_config is not None:
-        filters.append(Datachunk.datachunk_params_id == datachunk_processing_config.id)
+    if datachunk_params is not None:
+        filters.append(Datachunk.datachunk_params_id == datachunk_params.id)
     if datachunk_ids is not None:
         filters.append(Datachunk.id.in_(datachunk_ids))
     if not_datachunk_ids is not None:
@@ -353,7 +353,7 @@ def _generate_datachunk_preparation_inputs(
             existing_count = count_datachunks(
                 components=(component,),
                 timespans=timespans,
-                datachunk_processing_config=processing_params,
+                datachunk_params=processing_params,
             )
             if existing_count == len(timespans):
                 logger.debug("Number of existing timespans is sufficient. Skipping")
@@ -365,7 +365,7 @@ def _generate_datachunk_preparation_inputs(
                                  count_datachunks(
                                      components=(component,),
                                      timespans=(timespan,),
-                                     datachunk_processing_config=processing_params
+                                     datachunk_params=processing_params
                                  ) == 0]
                 timespans = new_timespans
 
@@ -479,7 +479,7 @@ def _prepare_inputs_for_datachunk_stats_calculations(
     fetched_datachunks = fetch_datachunks_without_stats(
         timespans=fetched_timespans,
         components=fetched_components,
-        datachunk_processing_config=fetched_datachunk_params
+        datachunk_params=fetched_datachunk_params
     )
 
     db.session.expunge_all()
@@ -600,7 +600,7 @@ def _select_datachunks_for_processing(
     fetched_datachunks = fetch_datachunks(
         timespans=fetched_timespans,
         components=fetched_components,
-        datachunk_processing_config=params.datachunk_params,
+        datachunk_params=params.datachunk_params,
         load_timespan=True,
         load_component=True,
         order_by_id=True,
