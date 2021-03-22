@@ -54,7 +54,7 @@ def plot_datachunk_availability(
     processing_params = fetch_datachunkparams_by_id(id=datachunk_processing_params_id)
     datachunks = fetch_datachunks(components=fetched_components,
                                   timespans=fetched_timespans,
-                                  datachunk_processing_config=processing_params,
+                                  datachunk_params=processing_params,
                                   load_timespan=True, load_component=True)
 
     midtimes = defaultdict(list)

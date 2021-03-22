@@ -379,7 +379,7 @@ def _generate_inputs_for_qcone_runner(
     filters, opts = _determine_filters_and_opts_for_datachunk(
         components=components,
         timespans=timespans,
-        datachunk_processing_config=datachunk_params,
+        datachunk_params=datachunk_params,
         load_component=False,
         load_timespan=True,
         load_stats=False,
