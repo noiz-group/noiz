@@ -3,9 +3,8 @@ from loguru import logger
 from typing import Optional, Any, Callable, Union, Tuple
 
 from noiz.api.type_aliases import QCOneRunnerInputs
-from noiz.models import Crosscorrelation, Datachunk, QCOneConfig, QCOneResults, Timespan, QCTwoResults, QCTwoConfig
-from noiz.models.datachunk import DatachunkStats
-from noiz.models.soh import AveragedSohGps
+from noiz.models import Crosscorrelation, Datachunk, QCOneConfig, QCOneResults, Timespan, QCTwoResults, QCTwoConfig, \
+    DatachunkStats, AveragedSohGps
 
 
 def calculate_qcone_results_wrapper(inputs: QCOneRunnerInputs) -> Tuple[QCOneResults, ...]:

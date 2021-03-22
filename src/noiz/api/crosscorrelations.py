@@ -13,11 +13,8 @@ from noiz.api.type_aliases import CrosscorrelationRunnerInputs
 from noiz.processing.io import write_ccfs_to_npz
 from noiz.database import db
 from noiz.exceptions import InconsistentDataException, CorruptedDataException
-from noiz.models.component_pair import ComponentPair
-from noiz.models.crosscorrelation import CrosscorrelationFile, Crosscorrelation
-from noiz.models.datachunk import Datachunk, ProcessedDatachunk
-from noiz.models.processing_params import CrosscorrelationParams
-from noiz.models.timespan import Timespan
+from noiz.models import ComponentPair, CrosscorrelationFile, Crosscorrelation, Datachunk, ProcessedDatachunk, \
+    CrosscorrelationParams, Timespan
 from noiz.processing.crosscorrelations import (
     validate_component_code_pairs,
     group_chunks_by_timespanid_componentid,
