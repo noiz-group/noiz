@@ -9,7 +9,7 @@ from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models import Timespan, Component, ComponentPair
 from noiz.models.processing_params import PPSDParams
 
-ConfigLike = Union[
+ParamsLike = Union[
     PPSDParams,
 ]
 
@@ -19,6 +19,7 @@ class FileModel(db.Model):
     _filepath: str = db.Column("filepath", db.UnicodeText, nullable=False)
 
     _file_model_type: str
+    _filename_extension: str
 
     def __init__(self, **kwargs):
         super(FileModel, self).__init__(**kwargs)
@@ -27,9 +28,9 @@ class FileModel(db.Model):
     def file_model_type(self):
         return self._file_model_type
 
-    def _find_new_dipath(
+    def _assemble_dirpath(
             self,
-            config: ConfigLike,
+            params: ParamsLike,
             ts: Timespan,
             cmp: Union[Component, ComponentPair]
     ) -> Path:
@@ -37,7 +38,7 @@ class FileModel(db.Model):
             return (
                 Path(PROCESSED_DATA_DIR)
                 .joinpath(self.file_model_type)
-                .joinpath(str(config.id))
+                .joinpath(str(params.id))
                 .joinpath(str(ts.starttime_year))
                 .joinpath(cmp.network)
                 .joinpath(cmp.station)
@@ -48,7 +49,7 @@ class FileModel(db.Model):
             return (
                 Path(PROCESSED_DATA_DIR)
                     .joinpath(self.file_model_type)
-                    .joinpath(str(config.id))
+                    .joinpath(str(params.id))
                     .joinpath(str(ts.starttime_year))
                     .joinpath(str(ts.starttime_doy))
                     .joinpath(str(ts.starttime.month))
@@ -63,11 +64,27 @@ class FileModel(db.Model):
     def filepath(self):
         return Path(self._filepath)
 
-class PPSDFile(db.Model):
+class PPSDFile(FileModel):
     __tablename__ = "ppsd_file"
 
     id = db.Column("id", db.BigInteger, primary_key=True)
     filepath = db.Column("filepath", db.UnicodeText, nullable=False)
+
+    _file_model_type: str = "psd"
+    _filename_extension: str = ".npz"
+
+
+    def _assemble_filename(self, cmp: Component, ts: Timespan) -> str:
+        pass
+
+    def find_empty_filepath(self, cmp: Component, ts: Timespan, ppsd_params: PPSDParams) -> Path:
+        dirpath = self._assemble_dirpath(
+            params=ppsd_params,
+            ts=ts,
+            cmp=cmp,
+        )
+
+
 
 
 class PPSDResult(db.Model):
