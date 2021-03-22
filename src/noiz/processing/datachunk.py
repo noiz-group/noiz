@@ -750,7 +750,7 @@ def create_datachunks_for_component(
         if filepath.exists():
             logger.debug(f"Filepath {filepath} exists. "
                          f"Trying to find next free one.")
-            filepath = increment_filename_counter(filepath=filepath)
+            filepath = increment_filename_counter(filepath=filepath, extension=False)
             logger.debug(f"Free filepath found. "
                          f"Datachunk will be saved to {filepath}")
 
