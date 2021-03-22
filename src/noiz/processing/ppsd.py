@@ -110,6 +110,7 @@ def _save_psd_results(
         accepted_windows: npt.ArrayLike,
         starttimes: List[UTCDateTime]
 ) -> None:
+    """filldocs"""
     results_to_save = dict(
         fft_mean=np.nanmean(accepted_windows, axis=0),
         fft_std=np.nanstd(accepted_windows, axis=0)
