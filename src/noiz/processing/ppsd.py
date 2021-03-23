@@ -5,7 +5,7 @@ from typing import Tuple, List
 import pandas as pd
 from obspy import UTCDateTime
 
-from noiz.api.type_aliases import PPSDRunnerInputs
+from noiz.models.type_aliases import PPSDRunnerInputs
 from noiz.exceptions import InconsistentDataException
 from noiz.models import Timespan, Datachunk, Component
 from noiz.models.ppsd import PPSDResult, PPSDFile
