@@ -14,7 +14,7 @@ from noiz.database import db
 from noiz.validation_helpers import _validate_timestamp_as_pydatetime
 
 
-class TimespanModel(db.Model):
+class TimespanMixin(db.Model):
     __abstract__ = True
     id: int = db.Column("id", db.BigInteger, primary_key=True)
     starttime: datetime.datetime = db.Column(
@@ -28,7 +28,7 @@ class TimespanModel(db.Model):
     )
 
     def __init__(self, **kwargs):
-        super(TimespanModel, self).__init__(**kwargs)
+        super(TimespanMixin, self).__init__(**kwargs)
         self.starttime: datetime.datetime = _validate_timestamp_as_pydatetime(kwargs.get("starttime"))
         self.midtime: datetime.datetime = _validate_timestamp_as_pydatetime(kwargs.get("midtime"))
         self.endtime: datetime.datetime = _validate_timestamp_as_pydatetime(kwargs.get("endtime"))
@@ -128,7 +128,7 @@ class TimespanModel(db.Model):
         return self.endtime_pd - self.starttime_pd
 
 
-class Timespan(TimespanModel):
+class Timespan(TimespanMixin):
     __tablename__ = "timespan"
     __table_args__ = (
         db.UniqueConstraint("starttime", name="unique_starttime"),
