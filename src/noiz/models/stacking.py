@@ -4,13 +4,13 @@ from typing import Union, Optional
 from pydantic.dataclasses import dataclass
 from sqlalchemy.dialects.postgresql import ARRAY
 
-from noiz.models.timespan import TimespanModel
+from noiz.models.timespan import TimespanMixin
 from noiz.database import db
 from noiz.processing.time_utils import calculate_window_step_or_overlap
 from noiz.validation_helpers import _validate_as_pytimedelta_or_none
 
 
-class StackingTimespan(TimespanModel):
+class StackingTimespan(TimespanMixin):
     __tablename__ = "stacking_timespan"
     __table_args__ = (
         db.UniqueConstraint("stacking_schema_id", "starttime", name="unique_stack_starttime_per_config"),

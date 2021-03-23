@@ -6,7 +6,7 @@ import scipy
 from typing import Union, Tuple, Dict, Collection, Optional
 import numpy.typing as npt
 
-from noiz.api.type_aliases import CalculateDatachunkStatsInputs, RunDatachunkPreparationInputs
+from noiz.models.type_aliases import CalculateDatachunkStatsInputs, RunDatachunkPreparationInputs
 from noiz.exceptions import MissingDataFileException, ResponseRemovalError
 from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models.component import Component

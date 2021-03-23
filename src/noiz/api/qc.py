@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import insert, Insert
 from sqlalchemy.orm import Query
 from typing import List, Collection, Union, Optional, Generator
 
-from noiz.api.type_aliases import QCOneRunnerInputs
+from noiz.models.type_aliases import QCOneRunnerInputs
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import Datachunk, DatachunkStats, QCOneConfig, QCOneResults, QCTwoConfig, \

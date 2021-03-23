@@ -6,7 +6,7 @@ from noiz.exceptions import ObspyError, NotEnoughDataError, SubobjectNotLoadedEr
 from obspy.core import AttribDict, Stream
 from obspy.signal.array_analysis import array_processing
 
-from noiz.api.type_aliases import BeamformingRunnerInputs
+from noiz.models.type_aliases import BeamformingRunnerInputs
 from noiz.models import Timespan, Datachunk, Component
 from noiz.models.beamforming import BeamformingResult
 from noiz.models.processing_params import BeamformingParams

@@ -646,3 +646,8 @@ class PPSDParams(db.Model):
     # # maximum width of the  transition region in cosine taper
     # # relative to the minimum frequency of processing
     # taper_freq_width_max_freqs = db.Column("taper_freq_width_max_freqs", db.Float)
+
+
+ParamsLike = Union[
+    PPSDParams,
+]

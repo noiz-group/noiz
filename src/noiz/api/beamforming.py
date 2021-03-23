@@ -12,7 +12,7 @@ from noiz.api.helpers import extract_object_ids, _run_calculate_and_upsert_seque
     _run_calculate_and_upsert_on_dask
 from noiz.api.qc import fetch_qcone_config_single
 from noiz.api.timespan import fetch_timespans_between_dates
-from noiz.api.type_aliases import BeamformingRunnerInputs
+from noiz.models.type_aliases import BeamformingRunnerInputs
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import Timespan, Datachunk, QCOneResults
