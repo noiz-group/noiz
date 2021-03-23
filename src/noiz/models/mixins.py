@@ -34,7 +34,7 @@ class FileModelMixin(db.Model):
 
     def _assemble_filename(
             self,
-            cmp: Optional[Component],
+            cmp: Optional[Union[Component, ComponentPair]],
             ts: Timespan,
             count: int = 0,
     ) -> str:
@@ -51,6 +51,8 @@ class FileModelMixin(db.Model):
                 doy,
                 time,
             ]
+        elif isinstance(cmp, ComponentPair):
+            raise NotImplementedError("For componentpair is not yet implemented")
         elif cmp is None:
             filename_elements = [
                 self.file_model_type,
