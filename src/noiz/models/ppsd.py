@@ -13,7 +13,7 @@ ParamsLike = Union[
 ]
 
 
-class FileModel(db.Model):
+class FileModelMixin(db.Model):
     __abstract__ = True
     id: int = db.Column("id", db.BigInteger, primary_key=True)
     _filepath: Path = db.Column("filepath", PathInDB, nullable=False)
@@ -22,7 +22,7 @@ class FileModel(db.Model):
     _filename_extension: Optional[str]
 
     def __init__(self, **kwargs):
-        super(FileModel, self).__init__(**kwargs)
+        super(FileModelMixin, self).__init__(**kwargs)
 
     @property
     def filepath(self):
@@ -101,7 +101,7 @@ class FileModel(db.Model):
         return dirpath
 
 
-class PPSDFile(FileModel):
+class PPSDFile(FileModelMixin):
     __tablename__ = "ppsd_file"
 
     _file_model_type: str = "psd"
