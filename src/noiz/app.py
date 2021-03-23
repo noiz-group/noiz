@@ -9,11 +9,13 @@ from typing import Union
 from noiz.database import db, migrate
 from noiz.routes import simple_page
 
+DEFAULT_LOGGING_LEVEL = 30
+
 
 def create_app(
         config_object: str = "noiz.settings",
         mode: str = "app",
-        logging_level: str = "INFO",
+        verbosity: int = 0,
 ):
     app = Flask(__name__)
     app.config.from_object(config_object)
@@ -23,16 +25,31 @@ def create_app(
 
     load_noiz_config(app)
 
-    configure_logging(app, logging_level)
+    configure_logging(app=app, verbosity=verbosity)
     logger.info("App initialization successful")
 
     if mode == "app":
         return app
 
 
-def configure_logging(app: Flask, logging_level: Union[str, int]):
+def configure_logging(app: Flask, verbosity: int, quiet: bool = False):
+
+    loglevel = os.environ.get("LOGLEVEL", DEFAULT_LOGGING_LEVEL)
+
+    if isinstance(loglevel, int):
+        baselevel = loglevel
+    elif isinstance(loglevel, str):
+        baselevel = logger.level(loglevel).no
+    else:
+        raise ValueError("LOGLEVEL should be either positive int or string parsable by loguru")
+
+    logger_level = baselevel - (verbosity * 10)
+
+    if quiet:
+        logger_level = logger.level("ERROR").no
+
     logger.remove()
-    logger.add(sys.stderr, filter="noiz", level=logging_level, enqueue=True)
+    logger.add(sys.stderr, filter="noiz", level=logger_level, enqueue=True)
 
     class InterceptHandler(logging.Handler):
         def emit(self, record):
