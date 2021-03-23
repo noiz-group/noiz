@@ -8,8 +8,9 @@ from noiz.database import db
 from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models import Component, Timespan, ComponentPair
 from noiz.models.custom_db_types import PathInDB
-from noiz.models.type_aliases import ParamsLike
 from noiz.processing.path_helpers import directory_exists_or_create
+
+from noiz.models.processing_params import ParamsLike
 
 
 class FileModelMixin(db.Model):
