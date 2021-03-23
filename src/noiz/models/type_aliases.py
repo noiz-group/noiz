@@ -4,10 +4,10 @@ from typing import Union, TypedDict, Collection, Callable, Optional, List, Tuple
 from noiz.models import CrosscorrelationOld, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults, \
     Datachunk, DatachunkFile, QCOneConfig, AveragedSohGps, ComponentPair, StackingSchema, StackingTimespan, Component, \
     Timespan, Tsindex, DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams, ProcessedDatachunkFile, \
-    BeamformingFile, BeamformingResult
+    BeamformingFile, BeamformingResult, PPSDParams
 from noiz.models.crosscorrelation import Crosscorrelation, CrosscorrelationFile
 from noiz.models.ppsd import PPSDFile, PPSDResult
-from noiz.models.processing_params import BeamformingParams, PPSDParams
+from noiz.models.processing_params import BeamformingParams
 
 BulkAddableObjects = Union[
     Datachunk,
@@ -108,3 +108,8 @@ class BulkAddOrUpsertObjectsInputs(TypedDict):
     objects_to_add: Union[BulkAddableObjects, Collection[BulkAddableObjects]]
     upserter_callable: Callable[[BulkAddableObjects], Insert]
     bulk_insert: bool
+
+
+ParamsLike = Union[
+    PPSDParams,
+]

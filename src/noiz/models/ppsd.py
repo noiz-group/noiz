@@ -1,15 +1,10 @@
 from pathlib import Path
-from typing import Union
 
 from noiz.database import db
 from noiz.exceptions import MissingDataFileException
 from noiz.models import Timespan, Component, PPSDParams
 from noiz.models.mixins import FileModelMixin
 from noiz.processing.path_helpers import increment_filename_counter
-
-ParamsLike = Union[
-    PPSDParams,
-]
 
 
 class PPSDFile(FileModelMixin):
