@@ -8,7 +8,7 @@ from noiz.database import db
 from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models import Component, Timespan, ComponentPair
 from noiz.models.custom_db_types import PathInDB
-from noiz.processing.path_helpers import directory_exists_or_create
+from noiz.processing.path_helpers import directory_exists_or_create, increment_filename_counter
 
 from noiz.models.processing_params import ParamsLike
 
@@ -34,20 +34,32 @@ class FileModelMixin(db.Model):
 
     def _assemble_filename(
             self,
-            cmp: Component,
+            cmp: Optional[Component],
             ts: Timespan,
             count: int = 0,
     ) -> str:
         year = str(ts.starttime.year)
-        doy_time = ts.starttime.strftime("%j.%H%M")
+        doy = ts.starttime.strftime("%j")
+        time = ts.starttime.strftime("%H%M")
 
-        filename_elements = [
-            cmp.network,
-            cmp.station,
-            cmp.component,
-            year,
-            doy_time,
-        ]
+        if isinstance(cmp, Component):
+            filename_elements = [
+                cmp.network,
+                cmp.station,
+                cmp.component,
+                year,
+                doy,
+                time,
+            ]
+        elif cmp is None:
+            filename_elements = [
+                self.file_model_type,
+                year,
+                doy,
+                time,
+            ]
+        else:
+            raise TypeError(f"Expected either Component, ComponentPair or None. Got {type(cmp)}")
 
         extensions = [str(count), ]
 
@@ -97,7 +109,7 @@ class FileModelMixin(db.Model):
         else:
             raise TypeError(f"Expected either Component, ComponentPair or None. Got {type(cmp)}")
 
-    def prepare_dirpath(
+    def _prepare_dirpath(
             self,
             params: ParamsLike,
             ts: Timespan,
@@ -107,3 +119,17 @@ class FileModelMixin(db.Model):
         dirpath = self._assemble_dirpath(params=params, ts=ts, cmp=cmp)
         directory_exists_or_create(dirpath=dirpath)
         return dirpath
+
+    def _find_empty_filepath(
+            self,
+            ts: Timespan,
+            params: ParamsLike,
+            cmp: Optional[Union[Component, ComponentPair]]
+    ) -> Path:
+        """filldocs"""
+        dirpath = self._prepare_dirpath(params=params, ts=ts, cmp=None)
+
+        proposed_filepath = dirpath.joinpath(self._assemble_filename(ts=ts, count=0, cmp=cmp))
+        self._filepath = increment_filename_counter(filepath=proposed_filepath, extension=True)
+
+        return self.filepath
