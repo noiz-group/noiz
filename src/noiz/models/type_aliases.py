@@ -4,10 +4,8 @@ from typing import Union, TypedDict, Collection, Callable, Optional, List, Tuple
 from noiz.models import CrosscorrelationOld, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults, \
     Datachunk, DatachunkFile, QCOneConfig, AveragedSohGps, ComponentPair, StackingSchema, StackingTimespan, Component, \
     Timespan, Tsindex, DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams, ProcessedDatachunkFile, \
-    BeamformingFile, BeamformingResult, PPSDParams
-from noiz.models.crosscorrelation import Crosscorrelation, CrosscorrelationFile
-from noiz.models.ppsd import PPSDFile, PPSDResult
-from noiz.models.processing_params import BeamformingParams
+    BeamformingFile, BeamformingResult, PPSDParams, Crosscorrelation, CrosscorrelationFile, PPSDFile, PPSDResult, \
+    BeamformingParams
 
 BulkAddableObjects = Union[
     Datachunk,
