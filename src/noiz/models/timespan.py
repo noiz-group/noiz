@@ -1,7 +1,6 @@
+import datetime
 import obspy
 import pandas as pd
-
-from noiz.database import db
 from sqlalchemy import func
 from typing import TYPE_CHECKING, Union
 
@@ -11,27 +10,28 @@ if TYPE_CHECKING:
 else:
     from sqlalchemy.ext.hybrid import hybrid_property as typed_hybrid_property
 
-from noiz.validation_helpers import _validate_timestamp_as_pdtimestamp
+from noiz.database import db
+from noiz.validation_helpers import _validate_timestamp_as_pydatetime
 
 
 class TimespanModel(db.Model):
     __abstract__ = True
     id: int = db.Column("id", db.BigInteger, primary_key=True)
-    starttime: pd.Timestamp = db.Column(
+    starttime: datetime.datetime = db.Column(
         "starttime", db.TIMESTAMP(timezone=True), nullable=False
     )
-    midtime: pd.Timestamp = db.Column(
+    midtime: datetime.datetime = db.Column(
         "midtime", db.TIMESTAMP(timezone=True), nullable=False
     )
-    endtime: pd.Timestamp = db.Column(
+    endtime: datetime.datetime = db.Column(
         "endtime", db.TIMESTAMP(timezone=True), nullable=False
     )
 
     def __init__(self, **kwargs):
         super(TimespanModel, self).__init__(**kwargs)
-        self.starttime: pd.Timestamp = _validate_timestamp_as_pdtimestamp(kwargs.get("starttime"))
-        self.midtime: pd.Timestamp = _validate_timestamp_as_pdtimestamp(kwargs.get("midtime"))
-        self.endtime: pd.Timestamp = _validate_timestamp_as_pdtimestamp(kwargs.get("endtime"))
+        self.starttime: datetime.datetime = _validate_timestamp_as_pydatetime(kwargs.get("starttime"))
+        self.midtime: datetime.datetime = _validate_timestamp_as_pydatetime(kwargs.get("midtime"))
+        self.endtime: datetime.datetime = _validate_timestamp_as_pydatetime(kwargs.get("endtime"))
 
     def __repr__(self):
         return f"Timespan id: {self.id} from {self.starttime} -- {self.endtime}"
@@ -40,21 +40,29 @@ class TimespanModel(db.Model):
     def starttime_year(self) -> int:
         return self.starttime.year  # type: ignore
 
-    @starttime_year.expression
-    def starttime_year(cls) -> int:
+    @property
+    def starttime_pd(self) -> pd.Timestamp:
+        return pd.Timestamp(self.starttime)
+
+    @starttime_year.expression  # type: ignore
+    def starttime_year(cls) -> int:  # type: ignore
         return func.date_part("year", cls.starttime)  # type: ignore
 
     @typed_hybrid_property
     def starttime_doy(self) -> int:
-        return self.starttime.dayofyear  # type: ignore
+        return self.starttime.timetuple().tm_yday
 
     @starttime_doy.expression
     def starttime_doy(cls) -> int:
         return func.date_part("doy", cls.starttime)  # type: ignore
 
+    @property
+    def midtime_pd(self) -> pd.Timestamp:
+        return pd.Timestamp(self.midtime)
+
     @typed_hybrid_property
     def midtime_year(self) -> int:
-        return self.midtime.year  # type: ignore
+        return self.midtime.year
 
     @midtime_year.expression
     def midtime_year(cls) -> int:
@@ -62,15 +70,19 @@ class TimespanModel(db.Model):
 
     @typed_hybrid_property
     def midtime_doy(self) -> int:
-        return self.midtime.dayofyear  # type: ignore
+        return self.midtime.timetuple().tm_yday
 
     @midtime_doy.expression
     def midtime_doy(cls) -> int:
         return func.date_part("doy", cls.midtime)  # type: ignore
 
+    @property
+    def endtime_pd(self) -> pd.Timestamp:
+        return pd.Timestamp(self.endtime)
+
     @typed_hybrid_property
     def endtime_year(self) -> int:
-        return self.endtime.year  # type: ignore
+        return self.endtime.year
 
     @endtime_year.expression
     def endtime_year(cls) -> int:
@@ -78,30 +90,28 @@ class TimespanModel(db.Model):
 
     @typed_hybrid_property
     def endtime_doy(self) -> int:
-        return self.endtime.dayofyear  # type: ignore
+        return self.endtime.timetuple().tm_yday
 
     @endtime_doy.expression
     def endtime_doy(cls) -> int:
         return func.date_part("doy", cls.endtime)  # type: ignore
 
     def remove_last_microsecond(self) -> obspy.UTCDateTime:
-        return obspy.UTCDateTime(self.endtime - pd.Timedelta(microseconds=1))
+        return obspy.UTCDateTime(self.endtime_pd - pd.Timedelta(microseconds=1))
 
     def endtime_at_last_sample(self, sampling_rate: Union[int, float]) -> pd.Timestamp:
-        return self.endtime - pd.Timedelta(seconds=1/sampling_rate)
+        return self.endtime_pd - pd.Timedelta(seconds=1/sampling_rate)
 
     def same_day(self) -> bool:
         """
         Checks if starttime and endtime are effectively the same day.
         It mean that it checks if an endtime with 10^-9 s removed is still the same day that starttime.
-        It's usefull if you want to check if generated timespan crosses the midnight or not.
+        It's useful if you want to check if generated timespan crosses the midnight or not.
+
         :return: Check if timespan crosses midnight
         :rtype: bool
         """
-        ret: bool = self.starttime.floor("D") == (self.endtime - pd.Timedelta(1)).floor(
-            "D"
-        )
-        return ret
+        return self.starttime_pd.floor("D") == (self.endtime_pd - pd.Timedelta(1)).floor("D")
 
     # TODO convert to property
     def starttime_obspy(self) -> obspy.UTCDateTime:
@@ -115,7 +125,7 @@ class TimespanModel(db.Model):
 
     @property
     def length(self) -> pd.Timedelta:
-        return self.endtime - self.starttime
+        return self.endtime_pd - self.starttime_pd
 
 
 class Timespan(TimespanModel):
