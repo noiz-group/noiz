@@ -41,7 +41,7 @@ def empty_workdir(tmp_path_factory) -> Path:
 
 @pytest.fixture(scope="class")
 def noiz_app():
-    app = create_app(logging_level="CRITICAL")
+    app = create_app(verbosity=5)
     return app
 
 
