@@ -98,7 +98,7 @@ def calculate_ppsd(
         ppsd_params_id=ppsd_params.id,
         timespan_id=timespan.id,
         datachunk_id=datachunk.id,
-        ppsd_file=psd_file,
+        file=psd_file,
     )
     return ret
 
