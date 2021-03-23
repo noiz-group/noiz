@@ -444,8 +444,9 @@ class TestDataIngestionRoutines:
                 check.equal(fetched_config._method, value)
                 continue
             if key in ("used_component_codes", ):
+                # TODO Add check for that value
                 continue
-            check.almost_equal(fetched_config, value)
+            check.almost_equal(fetched_config.__getattribute__(key), value)
 
     def test_add_ppsd_params(self, workdir_with_content, noiz_app):
 
