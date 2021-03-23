@@ -62,7 +62,7 @@ class FileModelMixin(db.Model):
             self,
             params: ParamsLike,
             ts: Timespan,
-            cmp: Union[Component, ComponentPair],
+            cmp: Optional[Union[Component, ComponentPair]],
     ) -> Path:
         if isinstance(cmp, Component):
             return (
@@ -82,19 +82,26 @@ class FileModelMixin(db.Model):
                 .joinpath(str(params.id))
                 .joinpath(str(ts.starttime_year))
                 .joinpath(str(ts.starttime_doy))
-                .joinpath(str(ts.starttime.month))
                 .joinpath(cmp.component_code_pair)
                 .joinpath(f"{cmp.component_a.network}.{cmp.component_a.station}-"
                           f"{cmp.component_b.network}.{cmp.component_b.station}")
             )
+        elif cmp is None:
+            return (
+                Path(PROCESSED_DATA_DIR)
+                .joinpath(self.file_model_type)
+                .joinpath(str(params.id))
+                .joinpath(str(ts.starttime_year))
+                .joinpath(str(ts.starttime_doy))
+            )
         else:
-            raise TypeError(f"Expected either Component or ComponentPair. Got {type(cmp)}")
+            raise TypeError(f"Expected either Component, ComponentPair or None. Got {type(cmp)}")
 
     def prepare_dirpath(
             self,
             params: ParamsLike,
             ts: Timespan,
-            cmp: Union[Component, ComponentPair],
+            cmp: Optional[Union[Component, ComponentPair]],
     ) -> Path:
         """filldocs"""
         dirpath = self._assemble_dirpath(params=params, ts=ts, cmp=cmp)
