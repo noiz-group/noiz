@@ -1,17 +1,12 @@
 import os
-
+from pathlib import Path
 from typing import Union, Optional
 
-from pathlib import Path
-
-from noiz.database import db
+from noiz.database import db, PathInDB
 from noiz.exceptions import MissingDataFileException
-
 from noiz.globals import PROCESSED_DATA_DIR
-from noiz.models import Timespan, Component, ComponentPair
-from noiz.models.processing_params import PPSDParams
-from noiz.processing.path_helpers import parent_directory_exists_or_create, increment_filename_counter, \
-    directory_exists_or_create
+from noiz.models import Timespan, Component, ComponentPair, PPSDParams
+from noiz.processing.path_helpers import increment_filename_counter, directory_exists_or_create
 
 ParamsLike = Union[
     PPSDParams,
@@ -21,13 +16,15 @@ ParamsLike = Union[
 class FileModel(db.Model):
     __abstract__ = True
     id: int = db.Column("id", db.BigInteger, primary_key=True)
-    _filepath: str = db.Column("filepath", db.UnicodeText, nullable=False)
+    filepath: str = db.Column("filepath", PathInDB, nullable=False)
 
     _file_model_type: str
     _filename_extension: Optional[str]
 
     def __init__(self, **kwargs):
         super(FileModel, self).__init__(**kwargs)
+
+        self.filepath = str(kwargs.get("filepath"))
 
     @property
     def file_model_type(self):
@@ -101,16 +98,12 @@ class FileModel(db.Model):
         directory_exists_or_create(dirpath=dirpath)
         return dirpath
 
-    @property
-    def filepath(self):
-        return Path(self._filepath)
-
 
 class PPSDFile(FileModel):
     __tablename__ = "ppsd_file"
 
     id = db.Column("id", db.BigInteger, primary_key=True)
-    _filepath = db.Column("filepath", db.UnicodeText, nullable=False)
+    filepath = db.Column("filepath", db.UnicodeText, nullable=False)
 
     _file_model_type: str = "psd"
     _filename_extension: str = "npz"
