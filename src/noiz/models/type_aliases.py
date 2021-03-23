@@ -106,8 +106,3 @@ class BulkAddOrUpsertObjectsInputs(TypedDict):
     objects_to_add: Union[BulkAddableObjects, Collection[BulkAddableObjects]]
     upserter_callable: Callable[[BulkAddableObjects], Insert]
     bulk_insert: bool
-
-
-ParamsLike = Union[
-    PPSDParams,
-]
