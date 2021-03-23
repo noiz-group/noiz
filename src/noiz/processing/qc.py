@@ -2,7 +2,7 @@ import operator as ope
 from loguru import logger
 from typing import Optional, Any, Callable, Union, Tuple
 
-from noiz.api.type_aliases import QCOneRunnerInputs
+from noiz.models.type_aliases import QCOneRunnerInputs
 from noiz.models import Crosscorrelation, Datachunk, QCOneConfig, QCOneResults, Timespan, QCTwoResults, QCTwoConfig, \
     DatachunkStats, AveragedSohGps
 

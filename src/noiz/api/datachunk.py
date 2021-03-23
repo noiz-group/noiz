@@ -7,9 +7,9 @@ import numpy as np
 from sqlalchemy.dialects.postgresql import Insert, insert
 
 from sqlalchemy.orm import subqueryload, Query
-from typing import List, Iterable, Tuple, Collection, Optional, Dict, Union, Generator
+from typing import List, Tuple, Collection, Optional, Dict, Union, Generator
 
-from noiz.api.helpers import extract_object_ids, bulk_add_objects, _run_calculate_and_upsert_on_dask, \
+from noiz.api.helpers import extract_object_ids, _run_calculate_and_upsert_on_dask, \
     _run_calculate_and_upsert_sequentially
 from noiz.api.component import fetch_components
 from noiz.api.timeseries import fetch_raw_timeseries
@@ -24,15 +24,13 @@ from noiz.models import (
     DatachunkParams,
     DatachunkStats,
     ProcessedDatachunk,
-    ProcessedDatachunkParams,
     QCOneConfig,
     QCOneResults,
-    Timespan, DatachunkFile
+    Timespan
 )
-from noiz.processing.datachunk import create_datachunks_for_component, calculate_datachunk_stats, \
-    create_datachunks_for_component_wrapper, calculate_datachunk_stats_wrapper
-from noiz.api.type_aliases import CalculateDatachunkStatsInputs, RunDatachunkPreparationInputs, ProcessDatachunksInputs
-from noiz.processing.datachunk_processing import process_datachunk, process_datachunk_wrapper
+from noiz.processing.datachunk import create_datachunks_for_component_wrapper, calculate_datachunk_stats_wrapper
+from noiz.models.type_aliases import CalculateDatachunkStatsInputs, RunDatachunkPreparationInputs, ProcessDatachunksInputs
+from noiz.processing.datachunk_processing import process_datachunk_wrapper
 from noiz.validation_helpers import validate_maximum_one_argument_provided
 
 
