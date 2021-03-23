@@ -4,13 +4,12 @@ import click
 import os
 import pendulum
 
-from flask.cli import AppGroup, with_appcontext
-from flask.cli import FlaskGroup
+from flask.cli import AppGroup, with_appcontext, FlaskGroup
 from pendulum.date import Date
 from pathlib import Path
 from typing import Iterable, Optional
 
-from noiz.app import create_app
+from noiz.app import create_app, setup_logging, set_global_verbosity
 
 cli = AppGroup("noiz")
 configs_group = AppGroup("configs")  # type: ignore
@@ -27,6 +26,20 @@ def _register_subgroups_to_cli(cli: AppGroup, custom_groups: Iterable[AppGroup])
     for custom_group in custom_groups:
         cli.add_command(custom_group)
     return
+
+
+def _setup_logging_verbosity(ctx, param, value) -> None:
+    if value > 0:
+        click.echo('bum')
+        set_global_verbosity(verbosity=value)
+        setup_logging()
+
+
+def _setup_quiet(ctx, param, value) -> None:
+    if value is True:
+        click.echo('bam')
+        set_global_verbosity(verbosity=0, quiet=True)
+        setup_logging()
 
 
 def _parse_as_date(ctx, param, value) -> Optional[Date]:
@@ -55,9 +68,15 @@ def _validate_zero_length_as_none(ctx, param, value):
 
 
 @cli.group("noiz", cls=FlaskGroup, create_app=create_app)
-def cli():  # type: ignore
+@click.pass_context
+def cli(ctx):  # type: ignore
     """Perform operations with noiz package"""
-    pass
+    # This sets up the context to be accessible from callbacks
+    # https://github.com/pallets/flask/issues/2410#issuecomment-686581337
+
+    app_ctx = ctx.obj.load_app().app_context()
+    app_ctx.push()
+    ctx.call_on_close(app_ctx.pop)
 
 
 @configs_group.group("configs")
@@ -71,9 +90,12 @@ def configs_group():  # type: ignore
 @click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
 @click.option('--add_to_db', is_flag=True, expose_value=True,
               prompt='Are you sure you want to add DatachunkParams to DB? `N` will just preview it. ')
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def add_datachunk_params(
         filepath: str,
         add_to_db: bool,
+        **kwargs
 ):
     """Read a TOML file with DatachunkParams config and add to db."""
 
@@ -93,9 +115,12 @@ def add_datachunk_params(
 @click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
 @click.option('--add_to_db', is_flag=True, expose_value=True,
               prompt='Are you sure you want to add ProcessedDatachunkParams to DB? `N` will just preview it. ')
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def add_processed_datachunk_params(
         filepath: str,
         add_to_db: bool,
+        **kwargs
 ):
     """Read a TOML file with ProcessedDatachunkParams config and add to db."""
 
@@ -115,9 +140,12 @@ def add_processed_datachunk_params(
 @click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
 @click.option('--add_to_db', is_flag=True, expose_value=True,
               prompt='Are you sure you want to add CrosscorrelationParams to DB? `N` will just preview it. ')
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def add_crosscorrelation_params(
         filepath: str,
         add_to_db: bool,
+        **kwargs
 ):
     """Read a TOML file with CrosscorrelationParams config and add to db."""
 
@@ -137,9 +165,12 @@ def add_crosscorrelation_params(
 @click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
 @click.option('--add_to_db', is_flag=True, expose_value=True,
               prompt='Are you sure you want to add BeamformingParams to DB? `N` will just preview it. ')
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def add_beamforming_params(
         filepath: str,
         add_to_db: bool,
+        **kwargs
 ):
     """Read a TOML file with BeamformingParams config and add to db."""
 
@@ -159,9 +190,12 @@ def add_beamforming_params(
 @click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
 @click.option('--add_to_db', is_flag=True, expose_value=True,
               prompt='Are you sure you want to add PPSDParams to DB? `N` will just preview it. ')
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def add_ppsd_params(
         filepath: str,
         add_to_db: bool,
+        **kwargs
 ):
     """Read a TOML file with PPSDParams config and add to db."""
 
@@ -181,9 +215,12 @@ def add_ppsd_params(
 @click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
 @click.option('--add_to_db', is_flag=True, expose_value=True,
               prompt='Are you sure you want to add QCOneConfig to DB? `N` will just preview it. ')
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def add_qcone_config(
         filepath: str,
         add_to_db: bool,
+        **kwargs
 ):
     """Read a TOML file with QCOneConfig and add to db."""
 
@@ -203,9 +240,12 @@ def add_qcone_config(
 @click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
 @click.option('--add_to_db', is_flag=True, expose_value=True,
               prompt='Are you sure you want to add QCTwoConfig to DB? `N` will just preview it. ')
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def add_qctwo_config(
         filepath: str,
         add_to_db: bool,
+        **kwargs
 ):
     """Read a TOML file with QCTwoConfig and add to db."""
 
@@ -225,9 +265,12 @@ def add_qctwo_config(
 @click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
 @click.option('--add_to_db', is_flag=True, expose_value=True,
               prompt='Are you sure you want to add StackingSchema to DB? `N` will just preview it. ')
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def add_stacking_schema(
         filepath: str,
         add_to_db: bool,
+        **kwargs
 ):
     """Read a TOML file with StackingSchema and add to db."""
 
@@ -256,7 +299,14 @@ def data_group():  # type: ignore
 @click.argument("basedir", nargs=-1, required=True, type=click.Path(exists=True))
 @click.option("-fp", "--filename_pattern", default="*", show_default=True)
 @click.option('--parallel/--no_parallel', default=True)
-def add_seismic_data(basedir, filename_pattern, parallel):
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
+def add_seismic_data(
+        basedir,
+        filename_pattern,
+        parallel,
+        **kwargs
+):
     """Find seismic files in the directory and add them to DB"""
 
     from noiz.api.timeseries import add_seismic_data
@@ -276,7 +326,14 @@ def add_seismic_data(basedir, filename_pattern, parallel):
 @click.argument("filepath", nargs=1, required=True, type=click.Path(exists=True))
 @click.option("-t", "--filetype", default="stationxml", show_default=True)
 @click.option('--upsert/--no-upsert', default=False)
-def add_inventory(filepath, filetype, upsert):
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
+def add_inventory(
+        filepath,
+        filetype,
+        upsert,
+        **kwargs
+):
     """Read the stationxml file and add components to database.
     Also creates all components pairs for added components."""
 
@@ -301,6 +358,8 @@ def add_inventory(filepath, filetype, upsert):
 @click.option('--generate_over_midnight', is_flag=True, expose_value=True)
 @click.option('--add_to_db', is_flag=True, expose_value=True,
               prompt='Are you sure you want to add those timespans to DB? `N` will just preview it. ')
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def add_timespans(
         startdate,
         enddate,
@@ -308,6 +367,7 @@ def add_timespans(
         window_overlap,
         generate_over_midnight,
         add_to_db,
+        **kwargs
 ):
     """Generate Timespans and add them to database"""
 
@@ -346,7 +406,16 @@ def add_timespans(
 @click.option("-p", "--soh_type", required=True, type=str)
 @click.option("-n", "--network", type=str, default=None)
 @click.argument("dirpath", nargs=1, type=click.Path(exists=True))
-def add_soh_dir(station, station_type, soh_type, dirpath, network):
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
+def add_soh_dir(
+        station,
+        station_type,
+        soh_type,
+        dirpath,
+        network,
+        **kwargs
+):
     """Find files and parse them for SOH information"""
 
     from noiz.api.soh import ingest_soh_files
@@ -373,7 +442,16 @@ def add_soh_dir(station, station_type, soh_type, dirpath, network):
 @click.option("-p", "--soh_type", required=True, type=str)
 @click.option("-n", "--network", type=str, default=None)
 @click.argument("paths", nargs=-1, type=click.Path(exists=True))
-def add_soh_files(station, station_type, soh_type, paths, network):
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
+def add_soh_files(
+        station,
+        station_type,
+        soh_type,
+        paths,
+        network,
+        **kwargs
+):
     """Parse provided files for SOH information"""
 
     from noiz.api.soh import ingest_soh_files
@@ -406,6 +484,8 @@ def processing_group():  # type: ignore
               default=1, show_default=True)
 @click.option("-b", "--batch_size", nargs=1, type=int, default=1000, show_default=True)
 @click.option('--parallel/--no_parallel', default=True)
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def prepare_datachunks(
         station,
         component,
@@ -414,6 +494,7 @@ def prepare_datachunks(
         datachunk_params_id,
         batch_size,
         parallel,
+        **kwargs
 ):
     """Start preparation of datachunks in linear or parallel fashion"""
 
@@ -438,6 +519,8 @@ def prepare_datachunks(
 @click.option("-p", "--datachunk_params_id", nargs=1, type=int, required=True)
 @click.option("-b", "--batch_size", nargs=1, type=int, default=1000, show_default=True)
 @click.option('--parallel/--no_parallel', default=True)
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def calc_datachunk_stats(
         station,
         component,
@@ -446,6 +529,7 @@ def calc_datachunk_stats(
         datachunk_params_id,
         batch_size,
         parallel,
+        **kwargs
 ):
     """Start parallel calculation of datachunk statistical parameters"""
 
@@ -468,11 +552,14 @@ def calc_datachunk_stats(
 @click.option("-s", "--station", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
 @click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
 @click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def average_soh_gps(
         network,
         station,
         startdate,
         enddate,
+        **kwargs
 ):
     """
     This command averages the GPS Soh data for timespans between starttime and endtime.
@@ -498,6 +585,8 @@ def average_soh_gps(
 @click.option("-c", "--qcone_config_id", nargs=1, type=int, default=1, show_default=True)
 @click.option("-b", "--batch_size", nargs=1, type=int, default=1000, show_default=True)
 @click.option('--parallel/--no_parallel', default=True)
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def run_qcone(
         station,
         component,
@@ -506,6 +595,7 @@ def run_qcone(
         qcone_config_id,
         batch_size,
         parallel,
+        **kwargs
 ):
     """Calculate QCOne results """
 
@@ -532,6 +622,8 @@ def run_qcone(
 @click.option('--parallel/--no_parallel', default=True)
 @click.option('--skip_existing/--no_skip_existing', default=True)
 @click.option('--raise_errors/--no_raise_errors', default=True)
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def run_beamforming(
         station,
         startdate,
@@ -541,6 +633,7 @@ def run_beamforming(
         parallel,
         skip_existing,
         raise_errors,
+        **kwargs
 ):
     """Start performing beamforming"""
 
@@ -606,6 +699,8 @@ def run_ppsd(
 @click.option("-b", "--batch_size", nargs=1, type=int, default=1000, show_default=True)
 @click.option('--parallel/--no_parallel', default=True)
 @click.option('--skip_existing/--no_skip_existing', default=True)
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def process_datachunks(
         station,
         component,
@@ -615,6 +710,7 @@ def process_datachunks(
         batch_size,
         parallel,
         skip_existing,
+        **kwargs
 ):
     """Start processing of datachunks"""
 
@@ -644,6 +740,8 @@ def process_datachunks(
 @click.option('--raise_errors/--no_raise_errors', default=False)
 @click.option("-b", "--batch_size", nargs=1, type=int, default=1000, show_default=True)
 @click.option('--parallel/--no_parallel', default=True)
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def run_crosscorrelations(
         station_code,
         component_code_pair,
@@ -655,6 +753,7 @@ def run_crosscorrelations(
         raise_errors,
         batch_size,
         parallel,
+        **kwargs
 ):
     """Start processing of crosscorrelations. Limited amount of pair selection arguments, use API directly if needed."""
 
@@ -676,8 +775,11 @@ def run_crosscorrelations(
 @processing_group.command("run_qctwo")
 @with_appcontext
 @click.option("-c", "--qctwo_config_id", nargs=1, type=int, default=1, show_default=True)
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def run_qctwo(
         qctwo_config_id,
+        **kwargs
 ):
     """Calculate QCTwo results """
 
@@ -701,6 +803,8 @@ def run_qctwo(
 @click.option('--raise_errors/--no_raise_errors', default=False)
 @click.option("-b", "--batch_size", nargs=1, type=int, default=1000, show_default=True)
 @click.option('--parallel/--no_parallel', default=True)
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def run_stacking(
         station_code,
         component_code_pair,
@@ -712,6 +816,7 @@ def run_stacking(
         raise_errors,
         batch_size,
         parallel,
+        **kwargs
 ):
     """Start stacking of crosscorrelations. Limited amount of pair selection arguments, use API directly if needed."""
 
@@ -750,6 +855,8 @@ def plotting_group():  # type: ignore
 @click.option('--savefig/--no-savefig', default=True)
 @click.option('-pp', '--plotpath', type=click.Path())
 @click.option('--showfig', is_flag=True)
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def plot_datachunk_availability(
         network,
         station,
@@ -801,6 +908,8 @@ def plot_datachunk_availability(
 @click.option('--showfig', is_flag=True)
 @click.option('--legend/--no-legend', default=True)
 @click.option('--keep-empty/--no-keep-empty', default=True)
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def plot_raw_gps_soh(
         network,
         station,
@@ -811,6 +920,7 @@ def plot_raw_gps_soh(
         showfig,
         legend,
         keep_empty,
+        **kwargs
 ):
     """
     Plot raw GPS SOH
@@ -852,6 +962,8 @@ def plot_raw_gps_soh(
 @click.option('--showfig', is_flag=True)
 @click.option('--legend/--no-legend', default=True)
 @click.option('--keep-empty/--no-keep-empty', default=True)
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def plot_averaged_gps_soh(
         network,
         station,
@@ -862,6 +974,7 @@ def plot_averaged_gps_soh(
         showfig,
         legend,
         keep_empty,
+        **kwargs
 ):
     """
     Plot Averaged GPS SOH based
@@ -905,12 +1018,15 @@ def export_group():  # type: ignore
 @click.option("-ed", "--enddate", nargs=1, type=str,
               default=DEFAULT_ENDDATE, show_default=True, callback=_parse_as_date)
 @click.option('-p', '--path', type=click.Path())
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def export_raw_gps_soh(
         network,
         station,
         startdate,
         enddate,
         path,
+        **kwargs
 ):
     """
     Export raw GPS SOH data to CSV.
@@ -961,6 +1077,8 @@ def export_raw_gps_soh(
 @click.option("--include_intracorrelation", is_flag=True)
 @click.option("--only_autocorrelation", is_flag=True)
 @click.option("--only_intracorrelation", is_flag=True)
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def export_raw_ccfs(
         crosscorrelation_params_id,
         startdate,
@@ -978,6 +1096,7 @@ def export_raw_ccfs(
         include_intracorrelation,
         only_autocorrelation,
         only_intracorrelation,
+        **kwargs
 ):
     """
     Export raw crosscorrelation data to npz file.
