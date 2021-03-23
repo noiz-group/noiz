@@ -222,7 +222,7 @@ def _prepare_upsert_command_ppsd(ppsd_result: PPSDResult) -> Insert:
             ppsd_file_id=ppsd_result.ppsd_file_id,
         )
         .on_conflict_do_update(
-            constraint="unique_ppsd_per_config_per_timespan",
+            constraint="unique_ppsd_per_config_per_datachunk",
             set_=dict(ppsd_file_id=ppsd_result.ppsd_file_id),
         )
     )
