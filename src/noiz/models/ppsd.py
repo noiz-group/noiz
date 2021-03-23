@@ -15,7 +15,7 @@ class PPSDFile(FileModelMixin):
 
     def find_empty_filepath(self, cmp: Component, ts: Timespan, ppsd_params: PPSDParams) -> Path:
         """filldocs"""
-        dirpath = self.prepare_dirpath(params=ppsd_params, ts=ts, cmp=cmp)
+        dirpath = self._prepare_dirpath(params=ppsd_params, ts=ts, cmp=cmp)
 
         proposed_filepath = dirpath.joinpath(self._assemble_filename(cmp=cmp, ts=ts, count=0))
         self._filepath = increment_filename_counter(filepath=proposed_filepath, extension=True)

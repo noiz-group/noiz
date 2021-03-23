@@ -650,4 +650,5 @@ class PPSDParams(db.Model):
 
 ParamsLike = Union[
     PPSDParams,
+    BeamformingParams,
 ]
