@@ -16,7 +16,7 @@ ParamsLike = Union[
 class FileModel(db.Model):
     __abstract__ = True
     id: int = db.Column("id", db.BigInteger, primary_key=True)
-    filepath: str = db.Column("filepath", PathInDB, nullable=False)
+    _filepath: Path = db.Column("filepath", PathInDB, nullable=False)
 
     _file_model_type: str
     _filename_extension: Optional[str]
@@ -24,7 +24,9 @@ class FileModel(db.Model):
     def __init__(self, **kwargs):
         super(FileModel, self).__init__(**kwargs)
 
-        self.filepath = str(kwargs.get("filepath"))
+    @property
+    def filepath(self):
+        return self._filepath
 
     @property
     def file_model_type(self):
@@ -102,9 +104,6 @@ class FileModel(db.Model):
 class PPSDFile(FileModel):
     __tablename__ = "ppsd_file"
 
-    id = db.Column("id", db.BigInteger, primary_key=True)
-    filepath = db.Column("filepath", db.UnicodeText, nullable=False)
-
     _file_model_type: str = "psd"
     _filename_extension: str = "npz"
 
@@ -121,7 +120,7 @@ class PPSDResult(db.Model):
     __tablename__ = "ppsd_result"
     __table_args__ = (
         db.UniqueConstraint(
-            "timespan_id", "ppsd_params_id", name="unique_ppsd_per_config_per_timespan"
+            "datachunk_id", "ppsd_params_id", name="unique_ppsd_per_config_per_datachunk"
         ),
     )
     id = db.Column("id", db.Integer, primary_key=True)
