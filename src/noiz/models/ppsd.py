@@ -10,7 +10,8 @@ from noiz.exceptions import MissingDataFileException
 from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models import Timespan, Component, ComponentPair
 from noiz.models.processing_params import PPSDParams
-from noiz.processing.path_helpers import parent_directory_exists_or_create, increment_filename_counter
+from noiz.processing.path_helpers import parent_directory_exists_or_create, increment_filename_counter, \
+    directory_exists_or_create
 
 ParamsLike = Union[
     PPSDParams,
@@ -36,7 +37,7 @@ class FileModel(db.Model):
             self,
             cmp: Component,
             ts: Timespan,
-            count: int = 0
+            count: int = 0,
     ) -> str:
         year = str(ts.starttime.year)
         doy_time = ts.starttime.strftime("%j.%H%M")
@@ -62,7 +63,7 @@ class FileModel(db.Model):
             self,
             params: ParamsLike,
             ts: Timespan,
-            cmp: Union[Component, ComponentPair]
+            cmp: Union[Component, ComponentPair],
     ) -> Path:
         if isinstance(cmp, Component):
             return (
@@ -90,6 +91,16 @@ class FileModel(db.Model):
         else:
             raise TypeError(f"Expected either Component or ComponentPair. Got {type(cmp)}")
 
+    def prepare_dirpath(
+            self,
+            params: ParamsLike,
+            ts: Timespan,
+            cmp: Union[Component, ComponentPair],
+    ) -> Path:
+        dirpath = self._assemble_dirpath(params=params, ts=ts, cmp=cmp)
+        directory_exists_or_create(dirpath=dirpath)
+        return dirpath
+
     @property
     def filepath(self):
         return Path(self._filepath)
@@ -105,13 +116,7 @@ class PPSDFile(FileModel):
     _filename_extension: str = "npz"
 
     def find_empty_filepath(self, cmp: Component, ts: Timespan, ppsd_params: PPSDParams) -> Path:
-        dirpath = self._assemble_dirpath(
-            params=ppsd_params,
-            ts=ts,
-            cmp=cmp,
-        )
-
-        parent_directory_exists_or_create(filepath=dirpath)
+        dirpath = self.prepare_dirpath(params=ppsd_params, ts=ts, cmp=cmp)
 
         proposed_filepath = dirpath.joinpath(self._assemble_filename(cmp=cmp, ts=ts, count=0))
         self._filepath = increment_filename_counter(filepath=proposed_filepath, extension=True)
