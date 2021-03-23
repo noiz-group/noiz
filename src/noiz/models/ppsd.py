@@ -163,7 +163,7 @@ class PPSDResult(db.Model):
         lazy="joined",
     )
 
-    ppsd_file = db.relationship(
+    file = db.relationship(
         "PPSDFile",
         foreign_keys=[ppsd_file_id],
         uselist=False,
@@ -171,7 +171,7 @@ class PPSDResult(db.Model):
     )
 
     def load_data(self):
-        filepath = Path(self.ppsd_file.filepath)
+        filepath = Path(self.file.filepath)
         if filepath.exists:
             raise NotImplementedError("Not yet implemented, use np.load()")
         else:
