@@ -108,7 +108,6 @@ venv.bak/
 .mypy_cache/
 
 postgres.env
-migrations
 docs/_build
 .dmypy.json
 src/noiz/dashapp

@@ -1,7 +1,8 @@
 from loguru import logger
 from obspy.core.inventory import Network, Station
+import os
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 
 from noiz.models import Component, Timespan
 
@@ -68,7 +69,7 @@ def assembly_filepath(
     return Path(processed_data_dir).joinpath(processing_type).joinpath(filepath)
 
 
-def directory_exists_or_create(filepath: Path) -> bool:
+def parent_directory_exists_or_create(filepath: Path) -> bool:
     """
     Checks if directory of a filepath exists. If doesnt, it creates it.
     Returns bool that indicates if the directory exists in the end. Should be always True.
@@ -86,13 +87,32 @@ def directory_exists_or_create(filepath: Path) -> bool:
     return directory.exists()
 
 
-def increment_filename_counter(filepath: Path) -> Path:
+def directory_exists_or_create(dirpath: Path) -> bool:
+    """
+    Checks if directory of a filepath exists. If doesnt, it creates it.
+    Returns bool that indicates if the directory exists in the end. Should be always True.
+
+    :param dirpath: Path to the directory tree to be created
+    :type dirpath: Path
+    :return: If the directory exists in the end.
+    :rtype: bool
+    """
+    logger.debug(f"Checking if directory {dirpath} exists")
+    if not dirpath.exists():
+        logger.debug(f"Directory {dirpath} does not exists, trying to create.")
+        dirpath.mkdir(parents=True)
+    return dirpath.exists()
+
+
+def increment_filename_counter(filepath: Path, extension: bool) -> Path:
     """
     Takes a filepath with int as suffix and returns a non existing filepath
-     that has next free int value as suffix.
+     that has next free int value as last element before the extension.
 
     :param filepath: Filepath to find next free path for
     :type filepath: Path
+    :param extension: If the filename uses a standard extension such as ".npz" or ".xml"
+    :type extension: bool
     :return: Free filepath
     :rtype: Path
     :raises: ValueError
@@ -102,13 +122,19 @@ def increment_filename_counter(filepath: Path) -> Path:
         if not filepath.exists():
             return filepath
 
-        suffix: str = filepath.suffix[1:]
+        name_parts = filepath.name.split(os.extsep)
+
         try:
-            suffix_int: int = int(suffix)
+            if extension:
+                name_parts[-2] = str(int(name_parts[-2])+1)
+            else:
+                name_parts[-1] = str(int(name_parts[-1])+1)
         except ValueError:
-            raise ValueError(f"The filepath's {filepath} suffix {suffix} "
-                             f"cannot be casted to int")
-        filepath = filepath.with_suffix(f".{suffix_int+1}")
+            raise ValueError(f"The filepath's {filepath} suffix cannot be casted to int. "
+                             f"Check if filename has extension and try to pass "
+                             f"argument extension {not extension}")
+
+        filepath = filepath.with_name(os.extsep.join(name_parts))
 
 
 def _assembly_stationxml_filename(
@@ -161,7 +187,7 @@ def _assembly_single_component_invenontory_path(
     if single_cmp_inv_path.exists():
         logger.info(f'Filepath {single_cmp_inv_path} exists. '
                     f'Trying to find next free one.')
-        single_cmp_inv_path = increment_filename_counter(filepath=single_cmp_inv_path)
+        single_cmp_inv_path = increment_filename_counter(filepath=single_cmp_inv_path, extension=True)
         logger.info(f"Free filepath found. "
                     f"Inventory will be saved to {single_cmp_inv_path}")
     logger.info(

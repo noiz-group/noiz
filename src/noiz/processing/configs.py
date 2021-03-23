@@ -287,6 +287,7 @@ def create_beamforming_params(
 
 def create_ppsd_params(
         params_holder: PPSDParamsHolder,
+        datachunk_params: DatachunkParams,
 ) -> PPSDParams:
     """
     This method takes a :py:class:`~noiz.models.processing_params.PPSDParamsHolder` instance and based on
@@ -294,21 +295,26 @@ def create_ppsd_params(
 
     :param params_holder: Object containing all required elements to create a PPSDParams instance
     :type params_holder: PPSDParams
+    :param datachunk_params: Datachunk params which this PPSD params are associated with
+    :type datachunk_params: DatachunkParams
     :return: Working PPSDParams model that needs to be inserted into db
     :rtype: PPSDParams
     """
 
+    if (params_holder.datachunk_params_id != datachunk_params.id) or not isinstance(datachunk_params, DatachunkParams):
+        raise ValueError("Expected DatachunkParams that have the same id as passed within the PPSDParamsHolder. "
+                         "Got something different.")
+
     params = PPSDParams(
         datachunk_params_id=params_holder.datachunk_params_id,
-        db_bin_min=params_holder.db_bin_min,
-        db_bin_max=params_holder.db_bin_max,
-        db_bin_width=params_holder.db_bin_width,
         segment_length=params_holder.segment_length,
-        segment_overlap=params_holder.segment_overlap,
-        period_limit_low=params_holder.period_limit_low,
-        period_limit_high=params_holder.period_limit_high,
-        period_smoothing_width_octaves=params_holder.period_smoothing_width_octaves,
-        period_step_octaves=params_holder.period_step_octaves,
+        segment_step=params_holder.segment_step,
+        freq_min=params_holder.freq_min,
+        freq_max=params_holder.freq_max,
+        rejected_quantile=params_holder.rejected_quantile,
+        save_all_windows=params_holder.save_all_windows,
+        save_compressed=params_holder.save_compressed,
+        sampling_rate=datachunk_params.sampling_rate,
     )
     return params
 

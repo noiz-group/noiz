@@ -214,14 +214,14 @@ def create_and_add_ppsd_params_from_toml(
 
     params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.PPSDPARAMS)
     try:
-        _ = fetch_datachunkparams_by_id(
+        datachunk_params = fetch_datachunkparams_by_id(
             id=params_holder.datachunk_params_id
         )
     except EmptyResultException:
         raise EmptyResultException(f"There is no DatachunkParams in the database with requested id: "
                                    f"{params_holder.datachunk_params_id}")
 
-    params = create_ppsd_params(params_holder=params_holder)
+    params = create_ppsd_params(params_holder=params_holder, datachunk_params=datachunk_params)
 
     if add_to_db:
         return _insert_params_into_db(params=params)
