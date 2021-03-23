@@ -438,14 +438,14 @@ class TestDataIngestionRoutines:
 
         for key, value in original_config['BeamformingParams'].items():
             if key in ("prewhiten", "save_result_windows", "save_beamformers"):
-                check.equal(str(fetched_config.prewhiten), value)
+                check.equal(str(fetched_config.__getattribute__(key)), value)
                 continue
-            if key in ("method", ):
+            if key == "method":
                 check.equal(fetched_config._method, value)
                 continue
             if key in ("used_component_codes", ):
                 continue
-            check.almost_equal(fetched_config.__getattribute__(key), value)
+            check.almost_equal(fetched_config, value)
 
     def test_add_ppsd_params(self, workdir_with_content, noiz_app):
 
@@ -473,7 +473,7 @@ class TestDataIngestionRoutines:
 
         for key, value in original_config['PPSDParams'].items():
             if key in ("save_all_windows", "save_compressed"):
-                check.equal(fetched_config.__getattribute__(key), bool(value))
+                check.equal(str(fetched_config.__getattribute__(key)), value)
             else:
                 check.almost_equal(fetched_config.__getattribute__(key), value)
 
