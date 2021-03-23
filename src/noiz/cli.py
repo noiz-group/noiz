@@ -4,13 +4,12 @@ import click
 import os
 import pendulum
 
-from flask.cli import AppGroup, with_appcontext
-from flask.cli import FlaskGroup
+from flask.cli import AppGroup, with_appcontext, FlaskGroup
 from pendulum.date import Date
 from pathlib import Path
 from typing import Iterable, Optional
 
-from noiz.app import create_app
+from noiz.app import create_app, setup_logging, set_global_verbosity
 
 cli = AppGroup("noiz")
 configs_group = AppGroup("configs")  # type: ignore
@@ -27,6 +26,20 @@ def _register_subgroups_to_cli(cli: AppGroup, custom_groups: Iterable[AppGroup])
     for custom_group in custom_groups:
         cli.add_command(custom_group)
     return
+
+
+def _setup_logging_verbosity(ctx, param, value) -> None:
+    if value > 0:
+        click.echo('bum')
+        set_global_verbosity(verbosity=value)
+        setup_logging()
+
+
+def _setup_quiet(ctx, param, value) -> None:
+    if value is True:
+        click.echo('bam')
+        set_global_verbosity(verbosity=0, quiet=True)
+        setup_logging()
 
 
 def _parse_as_date(ctx, param, value) -> Optional[Date]:
@@ -55,9 +68,15 @@ def _validate_zero_length_as_none(ctx, param, value):
 
 
 @cli.group("noiz", cls=FlaskGroup, create_app=create_app)
-def cli():  # type: ignore
+@click.pass_context
+def cli(ctx):  # type: ignore
     """Perform operations with noiz package"""
-    pass
+    # This sets up the context to be accessible from callbacks
+    # https://github.com/pallets/flask/issues/2410#issuecomment-686581337
+
+    app_ctx = ctx.obj.load_app().app_context()
+    app_ctx.push()
+    ctx.call_on_close(app_ctx.pop)
 
 
 @configs_group.group("configs")
@@ -438,6 +457,8 @@ def prepare_datachunks(
 @click.option("-p", "--datachunk_params_id", nargs=1, type=int, required=True)
 @click.option("-b", "--batch_size", nargs=1, type=int, default=1000, show_default=True)
 @click.option('--parallel/--no_parallel', default=True)
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def calc_datachunk_stats(
         station,
         component,
@@ -446,6 +467,8 @@ def calc_datachunk_stats(
         datachunk_params_id,
         batch_size,
         parallel,
+        verbose,
+        quiet,
 ):
     """Start parallel calculation of datachunk statistical parameters"""
 
