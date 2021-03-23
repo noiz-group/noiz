@@ -9,7 +9,7 @@ from noiz.models.datachunk import Datachunk, ProcessedDatachunk, ProcessedDatach
 from noiz.models.processing_params import ProcessedDatachunkParams
 from noiz.models.timespan import Timespan
 from noiz.models.component import Component
-from noiz.processing.path_helpers import directory_exists_or_create, assembly_filepath, assembly_preprocessing_filename, \
+from noiz.processing.path_helpers import parent_directory_exists_or_create, assembly_filepath, assembly_preprocessing_filename, \
     assembly_sds_like_dir, increment_filename_counter
 from noiz.globals import PROCESSED_DATA_DIR
 
@@ -132,7 +132,7 @@ def process_datachunk(
         logger.debug(f"Free filepath found. Datachunk will be saved to {filepath}")
 
     logger.info(f"Chunk will be written to {str(filepath)}")
-    directory_exists_or_create(filepath)
+    parent_directory_exists_or_create(filepath)
 
     proc_datachunk_file = ProcessedDatachunkFile(filepath=str(filepath))
 

@@ -15,7 +15,7 @@ from noiz.models.processing_params import DatachunkParams, ZeroPaddingMethod
 from noiz.models.timeseries import Tsindex
 from noiz.models.timespan import Timespan
 from noiz.processing.path_helpers import assembly_filepath, assembly_sds_like_dir, assembly_preprocessing_filename, \
-    increment_filename_counter, directory_exists_or_create
+    increment_filename_counter, parent_directory_exists_or_create
 from noiz.processing.signal_helpers import get_min_sample_count, get_expected_sample_count, get_max_sample_count
 from noiz.validation_helpers import count_consecutive_trues, _validate_stream_with_single_trace
 
@@ -755,7 +755,7 @@ def create_datachunks_for_component(
                          f"Datachunk will be saved to {filepath}")
 
         logger.info(f"Chunk will be written to {str(filepath)}")
-        directory_exists_or_create(filepath)
+        parent_directory_exists_or_create(filepath)
 
         datachunk_file = DatachunkFile(filepath=str(filepath))
         trimmed_st.write(datachunk_file.filepath, format="mseed")

@@ -69,7 +69,7 @@ def assembly_filepath(
     return Path(processed_data_dir).joinpath(processing_type).joinpath(filepath)
 
 
-def directory_exists_or_create(filepath: Path) -> bool:
+def parent_directory_exists_or_create(filepath: Path) -> bool:
     """
     Checks if directory of a filepath exists. If doesnt, it creates it.
     Returns bool that indicates if the directory exists in the end. Should be always True.
@@ -79,6 +79,10 @@ def directory_exists_or_create(filepath: Path) -> bool:
     :return: If the directory exists in the end.
     :rtype: bool
     """
+    if filepath.is_dir():
+        logger.warning(f"This method is intended to be used with paths to files! "
+                       f"It will create a directory tree without the top one. ")
+
     directory = filepath.parent
     logger.debug(f"Checking if directory {directory} exists")
     if not directory.exists():

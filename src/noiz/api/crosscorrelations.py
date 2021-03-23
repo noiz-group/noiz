@@ -394,7 +394,7 @@ def _crosscorrelate_for_timespan(
     """filldocs"""
     from noiz.globals import PROCESSED_DATA_DIR
     from noiz.processing.path_helpers import assembly_filepath, \
-        increment_filename_counter, directory_exists_or_create
+        increment_filename_counter, parent_directory_exists_or_create
 
     import numpy as np
     logger.info(f"Running crosscorrelation for {timespan}")
@@ -448,7 +448,7 @@ def _crosscorrelate_for_timespan(
                          f"CCF will be saved to {filepath}")
 
         logger.info(f"CCF will be written to {str(filepath)}")
-        directory_exists_or_create(filepath)
+        parent_directory_exists_or_create(filepath)
 
         ccf_file = CrosscorrelationFile(filepath=str(filepath))
 

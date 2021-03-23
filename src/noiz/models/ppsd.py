@@ -10,7 +10,7 @@ from noiz.exceptions import MissingDataFileException
 from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models import Timespan, Component, ComponentPair
 from noiz.models.processing_params import PPSDParams
-from noiz.processing.path_helpers import directory_exists_or_create, increment_filename_counter
+from noiz.processing.path_helpers import parent_directory_exists_or_create, increment_filename_counter
 
 ParamsLike = Union[
     PPSDParams,
@@ -111,7 +111,7 @@ class PPSDFile(FileModel):
             cmp=cmp,
         )
 
-        directory_exists_or_create(filepath=dirpath)
+        parent_directory_exists_or_create(filepath=dirpath)
 
         proposed_filepath = dirpath.joinpath(self._assemble_filename(cmp=cmp, ts=ts, count=0))
         self._filepath = increment_filename_counter(filepath=proposed_filepath, extension=True)
