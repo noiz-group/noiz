@@ -4,7 +4,7 @@ from sqlalchemy.orm import Query
 from sqlalchemy.dialects.postgresql import Insert, insert
 
 from noiz.api.datachunk import _query_datachunks
-from noiz.api.type_aliases import PPSDRunnerInputs
+from noiz.models.type_aliases import PPSDRunnerInputs
 from typing import Union, Optional, Collection, Generator, List
 
 from noiz.api.component import fetch_components

@@ -4,7 +4,7 @@ from loguru import logger
 import obspy
 import numpy as np
 
-from noiz.api.type_aliases import ProcessDatachunksInputs
+from noiz.models.type_aliases import ProcessDatachunksInputs
 from noiz.models.datachunk import Datachunk, ProcessedDatachunk, ProcessedDatachunkFile, DatachunkFile
 from noiz.models.processing_params import ProcessedDatachunkParams
 from noiz.models.timespan import Timespan

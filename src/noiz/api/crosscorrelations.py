@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import subqueryload, Query
 from typing import List, Union, Optional, Collection, Dict, Generator, Tuple, Any
 
-from noiz.api.type_aliases import CrosscorrelationRunnerInputs
+from noiz.models.type_aliases import CrosscorrelationRunnerInputs
 from noiz.processing.io import write_ccfs_to_npz
 from noiz.database import db
 from noiz.exceptions import InconsistentDataException, CorruptedDataException

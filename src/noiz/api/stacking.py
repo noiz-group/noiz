@@ -3,11 +3,10 @@ import itertools
 from loguru import logger
 from sqlalchemy.sql import Insert
 
-from noiz.api.helpers import bulk_add_objects, _run_calculate_and_upsert_on_dask, _run_calculate_and_upsert_sequentially
-from noiz.api.type_aliases import StackingInputs
+from noiz.api.helpers import _run_calculate_and_upsert_on_dask, _run_calculate_and_upsert_sequentially
+from noiz.models.type_aliases import StackingInputs
 from noiz.exceptions import MissingProcessingStepError
 from obspy import UTCDateTime
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.dialects.postgresql import insert
 from typing import Collection, Union, List, Optional, Tuple, Generator
 

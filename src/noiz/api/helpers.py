@@ -6,7 +6,7 @@ from sqlalchemy.orm.exc import UnmappedInstanceError
 from sqlalchemy.sql import Insert
 from typing import Iterable, Union, List, Tuple, Any, Collection, Callable, get_args
 
-from noiz.api.type_aliases import BulkAddableObjects, InputsForMassCalculations, BulkAddOrUpsertObjectsInputs, \
+from noiz.models.type_aliases import BulkAddableObjects, InputsForMassCalculations, BulkAddOrUpsertObjectsInputs, \
     BulkAddableFileObjects
 from noiz.database import db
 
