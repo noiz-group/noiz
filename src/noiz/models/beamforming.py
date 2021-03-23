@@ -1,11 +1,9 @@
-import os
 from pathlib import Path
 from sqlalchemy.ext.associationproxy import association_proxy
 
 from noiz.database import db
 from noiz.exceptions import MissingDataFileException
 from noiz.models import Timespan, BeamformingParams, FileModelMixin
-from noiz.processing.path_helpers import increment_filename_counter
 
 
 class BeamformingFile(FileModelMixin):
@@ -14,7 +12,7 @@ class BeamformingFile(FileModelMixin):
     _file_model_type: str = "beamforming"
     _filename_extension: str = "npz"
 
-    def get_filepath(self, ts: Timespan, params: BeamformingParams) -> Path:
+    def find_empty_filepath(self, ts: Timespan, params: BeamformingParams) -> Path:
         """filldocs"""
         self._filepath = self._find_empty_filepath(params=params, ts=ts, cmp=None)
         return self.filepath

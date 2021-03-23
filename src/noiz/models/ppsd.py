@@ -4,7 +4,6 @@ from noiz.database import db
 from noiz.exceptions import MissingDataFileException
 from noiz.models import Timespan, Component, PPSDParams
 from noiz.models.mixins import FileModelMixin
-from noiz.processing.path_helpers import increment_filename_counter
 
 
 class PPSDFile(FileModelMixin):
@@ -13,13 +12,9 @@ class PPSDFile(FileModelMixin):
     _file_model_type: str = "psd"
     _filename_extension: str = "npz"
 
-    def find_empty_filepath(self, cmp: Component, ts: Timespan, ppsd_params: PPSDParams) -> Path:
+    def find_empty_filepath(self, cmp: Component, ts: Timespan, params: PPSDParams) -> Path:
         """filldocs"""
-        dirpath = self._prepare_dirpath(params=ppsd_params, ts=ts, cmp=cmp)
-
-        proposed_filepath = dirpath.joinpath(self._assemble_filename(cmp=cmp, ts=ts, count=0))
-        self._filepath = increment_filename_counter(filepath=proposed_filepath, extension=True)
-
+        self._filepath = self._find_empty_filepath(params=params, ts=ts, cmp=cmp)
         return self.filepath
 
 
