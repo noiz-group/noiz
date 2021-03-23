@@ -2,7 +2,8 @@ import os
 from pathlib import Path
 from typing import Union, Optional
 
-from noiz.database import db, PathInDB
+from noiz.database import db
+from noiz.models.custom_db_types import PathInDB
 from noiz.exceptions import MissingDataFileException
 from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models import Timespan, Component, ComponentPair, PPSDParams
