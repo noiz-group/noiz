@@ -165,7 +165,7 @@ build_postgres:
   before_script:
     - *install_noiz_complete
     - mkdir -p $PROCESSED_DATA_DIR
-    - noiz db init
+#    - noiz db init
     - noiz db migrate
     - noiz db upgrade
 #

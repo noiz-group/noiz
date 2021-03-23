@@ -13,11 +13,8 @@ from noiz.api.type_aliases import CrosscorrelationRunnerInputs
 from noiz.processing.io import write_ccfs_to_npz
 from noiz.database import db
 from noiz.exceptions import InconsistentDataException, CorruptedDataException
-from noiz.models.component_pair import ComponentPair
-from noiz.models.crosscorrelation import CrosscorrelationFile, Crosscorrelation
-from noiz.models.datachunk import Datachunk, ProcessedDatachunk
-from noiz.models.processing_params import CrosscorrelationParams
-from noiz.models.timespan import Timespan
+from noiz.models import ComponentPair, CrosscorrelationFile, Crosscorrelation, Datachunk, ProcessedDatachunk, \
+    CrosscorrelationParams, Timespan
 from noiz.processing.crosscorrelations import (
     validate_component_code_pairs,
     group_chunks_by_timespanid_componentid,
@@ -359,7 +356,8 @@ def assembly_ccf_filename(
         component_pair.component_b.component,
         year,
         doy_time,
-        str(count)
+        str(count),
+        ".npz"
     ])
 
     return fname
@@ -396,7 +394,7 @@ def _crosscorrelate_for_timespan(
     """filldocs"""
     from noiz.globals import PROCESSED_DATA_DIR
     from noiz.processing.path_helpers import assembly_filepath, \
-        increment_filename_counter, directory_exists_or_create
+        increment_filename_counter, parent_directory_exists_or_create
 
     import numpy as np
     logger.info(f"Running crosscorrelation for {timespan}")
@@ -445,12 +443,12 @@ def _crosscorrelate_for_timespan(
         if filepath.exists():
             logger.debug(f"Filepath {filepath} exists. "
                          f"Trying to find next free one.")
-            filepath = increment_filename_counter(filepath=filepath)
+            filepath = increment_filename_counter(filepath=filepath, extension=True)
             logger.debug(f"Free filepath found. "
                          f"CCF will be saved to {filepath}")
 
         logger.info(f"CCF will be written to {str(filepath)}")
-        directory_exists_or_create(filepath)
+        parent_directory_exists_or_create(filepath)
 
         ccf_file = CrosscorrelationFile(filepath=str(filepath))
 

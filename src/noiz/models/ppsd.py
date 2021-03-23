@@ -1,21 +1,129 @@
+import os
 from pathlib import Path
+from typing import Union, Optional
 
 from noiz.database import db
+from noiz.models.custom_db_types import PathInDB
 from noiz.exceptions import MissingDataFileException
+from noiz.globals import PROCESSED_DATA_DIR
+from noiz.models import Timespan, Component, ComponentPair, PPSDParams
+from noiz.processing.path_helpers import increment_filename_counter, directory_exists_or_create
+
+ParamsLike = Union[
+    PPSDParams,
+]
 
 
-class PPSDFile(db.Model):
+class FileModelMixin(db.Model):
+    __abstract__ = True
+    id: int = db.Column("id", db.BigInteger, primary_key=True)
+    _filepath: Path = db.Column("filepath", PathInDB, nullable=False)
+
+    _file_model_type: str
+    _filename_extension: Optional[str]
+
+    def __init__(self, **kwargs):
+        super(FileModelMixin, self).__init__(**kwargs)
+
+    @property
+    def filepath(self):
+        return self._filepath
+
+    @property
+    def file_model_type(self):
+        return self._file_model_type
+
+    def _assemble_filename(
+            self,
+            cmp: Component,
+            ts: Timespan,
+            count: int = 0,
+    ) -> str:
+        year = str(ts.starttime.year)
+        doy_time = ts.starttime.strftime("%j.%H%M")
+
+        filename_elements = [
+            cmp.network,
+            cmp.station,
+            cmp.component,
+            year,
+            doy_time,
+        ]
+
+        extensions = [str(count), ]
+
+        if self._filename_extension is not None:
+            extensions.append(self._filename_extension)
+
+        name = ".".join(filename_elements)
+
+        return os.extsep.join([name, *tuple(extensions)])
+
+    def _assemble_dirpath(
+            self,
+            params: ParamsLike,
+            ts: Timespan,
+            cmp: Union[Component, ComponentPair],
+    ) -> Path:
+        if isinstance(cmp, Component):
+            return (
+                Path(PROCESSED_DATA_DIR)
+                .joinpath(self.file_model_type)
+                .joinpath(str(params.id))
+                .joinpath(str(ts.starttime_year))
+                .joinpath(cmp.network)
+                .joinpath(cmp.station)
+                .joinpath(cmp.component)
+                .joinpath(str(ts.starttime_doy))
+            )
+        elif isinstance(cmp, ComponentPair):
+            return (
+                Path(PROCESSED_DATA_DIR)
+                .joinpath(self.file_model_type)
+                .joinpath(str(params.id))
+                .joinpath(str(ts.starttime_year))
+                .joinpath(str(ts.starttime_doy))
+                .joinpath(str(ts.starttime.month))
+                .joinpath(cmp.component_code_pair)
+                .joinpath(f"{cmp.component_a.network}.{cmp.component_a.station}-"
+                          f"{cmp.component_b.network}.{cmp.component_b.station}")
+            )
+        else:
+            raise TypeError(f"Expected either Component or ComponentPair. Got {type(cmp)}")
+
+    def prepare_dirpath(
+            self,
+            params: ParamsLike,
+            ts: Timespan,
+            cmp: Union[Component, ComponentPair],
+    ) -> Path:
+        """filldocs"""
+        dirpath = self._assemble_dirpath(params=params, ts=ts, cmp=cmp)
+        directory_exists_or_create(dirpath=dirpath)
+        return dirpath
+
+
+class PPSDFile(FileModelMixin):
     __tablename__ = "ppsd_file"
 
-    id = db.Column("id", db.BigInteger, primary_key=True)
-    filepath = db.Column("filepath", db.UnicodeText, nullable=False)
+    _file_model_type: str = "psd"
+    _filename_extension: str = "npz"
+
+    def find_empty_filepath(self, cmp: Component, ts: Timespan, ppsd_params: PPSDParams) -> Path:
+        """filldocs"""
+        dirpath = self.prepare_dirpath(params=ppsd_params, ts=ts, cmp=cmp)
+
+        proposed_filepath = dirpath.joinpath(self._assemble_filename(cmp=cmp, ts=ts, count=0))
+        self._filepath = increment_filename_counter(filepath=proposed_filepath, extension=True)
+
+        return self.filepath
 
 
 class PPSDResult(db.Model):
     __tablename__ = "ppsd_result"
     __table_args__ = (
         db.UniqueConstraint(
-            "timespan_id", "ppsd_params_id", name="unique_ppsd_per_config_per_timespan"
+            "datachunk_id", "ppsd_params_id", name="unique_ppsd_per_config_per_datachunk"
         ),
     )
     id = db.Column("id", db.Integer, primary_key=True)
@@ -50,7 +158,7 @@ class PPSDResult(db.Model):
         lazy="joined",
     )
 
-    ppsd_file = db.relationship(
+    file = db.relationship(
         "PPSDFile",
         foreign_keys=[ppsd_file_id],
         uselist=False,
@@ -58,8 +166,9 @@ class PPSDResult(db.Model):
     )
 
     def load_data(self):
-        filepath = Path(self.ppsd_file.filepath)
-        if filepath.exists:
+        """filldocs"""
+        filepath = Path(self.file.filepath)
+        if filepath.exists():
             raise NotImplementedError("Not yet implemented, use np.load()")
         else:
             raise MissingDataFileException(f"Result file for PPSDResult {self} is missing")
