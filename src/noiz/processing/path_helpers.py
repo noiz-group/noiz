@@ -79,16 +79,29 @@ def parent_directory_exists_or_create(filepath: Path) -> bool:
     :return: If the directory exists in the end.
     :rtype: bool
     """
-    if filepath.is_dir():
-        logger.warning(f"This method is intended to be used with paths to files! "
-                       f"It will create a directory tree without the top one. ")
-
     directory = filepath.parent
     logger.debug(f"Checking if directory {directory} exists")
     if not directory.exists():
         logger.debug(f"Directory {directory} does not exists, trying to create.")
         directory.mkdir(parents=True)
     return directory.exists()
+
+
+def directory_exists_or_create(dirpath: Path) -> bool:
+    """
+    Checks if directory of a filepath exists. If doesnt, it creates it.
+    Returns bool that indicates if the directory exists in the end. Should be always True.
+
+    :param dirpath: Path to the directory tree to be created
+    :type dirpath: Path
+    :return: If the directory exists in the end.
+    :rtype: bool
+    """
+    logger.debug(f"Checking if directory {dirpath} exists")
+    if not dirpath.exists():
+        logger.debug(f"Directory {dirpath} does not exists, trying to create.")
+        dirpath.mkdir(parents=True)
+    return dirpath.exists()
 
 
 def increment_filename_counter(filepath: Path, extension: bool) -> Path:
