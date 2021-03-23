@@ -96,6 +96,7 @@ class FileModelMixin(db.Model):
             ts: Timespan,
             cmp: Union[Component, ComponentPair],
     ) -> Path:
+        """filldocs"""
         dirpath = self._assemble_dirpath(params=params, ts=ts, cmp=cmp)
         directory_exists_or_create(dirpath=dirpath)
         return dirpath
@@ -108,6 +109,7 @@ class PPSDFile(FileModelMixin):
     _filename_extension: str = "npz"
 
     def find_empty_filepath(self, cmp: Component, ts: Timespan, ppsd_params: PPSDParams) -> Path:
+        """filldocs"""
         dirpath = self.prepare_dirpath(params=ppsd_params, ts=ts, cmp=cmp)
 
         proposed_filepath = dirpath.joinpath(self._assemble_filename(cmp=cmp, ts=ts, count=0))
@@ -163,8 +165,9 @@ class PPSDResult(db.Model):
     )
 
     def load_data(self):
+        """filldocs"""
         filepath = Path(self.file.filepath)
-        if filepath.exists:
+        if filepath.exists():
             raise NotImplementedError("Not yet implemented, use np.load()")
         else:
             raise MissingDataFileException(f"Result file for PPSDResult {self} is missing")
