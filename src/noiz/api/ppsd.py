@@ -1,4 +1,5 @@
 import datetime
+from loguru import logger
 from sqlalchemy.orm import Query
 from sqlalchemy.dialects.postgresql import Insert, insert
 
@@ -176,6 +177,7 @@ def _prepare_inputs_for_psd_calculation(
 
     i = 0
     while True:
+        logger.info(f"Querying batch no. {i} of datachunks")
         query = _query_datachunks(
             datachunk_params_id=params.datachunk_params_id,
             timespans=timespans,
@@ -189,11 +191,14 @@ def _prepare_inputs_for_psd_calculation(
         fetched_datachunks = query.all()
 
         if len(fetched_datachunks) == 0:
+            logger.info("This batch did not contain any elements")
             break
 
         fetched_datachunk_ids = extract_object_ids(fetched_datachunks)
+        logger.debug(f"There were {len(fetched_datachunk_ids)} in the batch")
 
         if skip_existing:
+            logger.debug("Fetching existing ppsds")
             existing_results = fetch_ppsd_results(ppsd_params=params, datachunk_ids=fetched_datachunk_ids)
             existing_results_datachunk_ids = [x.datachunk_id for x in existing_results]
         else:
@@ -201,6 +206,7 @@ def _prepare_inputs_for_psd_calculation(
 
         for datachunk in fetched_datachunks:
             if datachunk.id in existing_results_datachunk_ids:
+                logger.debug(f"There already exists PPSDResult for datachunk {datachunk}")
                 continue
 
             db.session.expunge_all()
@@ -210,6 +216,8 @@ def _prepare_inputs_for_psd_calculation(
                 datachunk=datachunk,
                 component=datachunk.component,
             )
+
+        i += 1
 
 
 def _prepare_upsert_command_ppsd(ppsd_result: PPSDResult) -> Insert:
