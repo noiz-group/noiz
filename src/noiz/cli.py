@@ -408,7 +408,14 @@ def add_timespans(
 @click.argument("dirpath", nargs=1, type=click.Path(exists=True))
 @click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
 @click.option('--quiet', is_flag=True, callback=_setup_quiet)
-def add_soh_dir(station, station_type, soh_type, dirpath, network):
+def add_soh_dir(
+        station,
+        station_type,
+        soh_type,
+        dirpath,
+        network,
+        **kwargs
+):
     """Find files and parse them for SOH information"""
 
     from noiz.api.soh import ingest_soh_files
@@ -437,7 +444,14 @@ def add_soh_dir(station, station_type, soh_type, dirpath, network):
 @click.argument("paths", nargs=-1, type=click.Path(exists=True))
 @click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
 @click.option('--quiet', is_flag=True, callback=_setup_quiet)
-def add_soh_files(station, station_type, soh_type, paths, network):
+def add_soh_files(
+        station,
+        station_type,
+        soh_type,
+        paths,
+        network,
+        **kwargs
+):
     """Parse provided files for SOH information"""
 
     from noiz.api.soh import ingest_soh_files
