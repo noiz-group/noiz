@@ -83,7 +83,7 @@ def calculate_ppsd(
     psd_file.find_empty_filepath(
         cmp=component,
         ts=timespan,
-        ppsd_params=ppsd_params,
+        params=ppsd_params,
     )
 
     _save_psd_results(
