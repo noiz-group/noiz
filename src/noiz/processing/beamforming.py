@@ -4,7 +4,7 @@ from loguru import logger
 from numpy import typing as npt
 from scipy import ndimage as ndimage
 from scipy.ndimage import filters as filters
-from typing import Tuple, Collection, Optional, List
+from typing import Tuple, Collection, Optional, List, Any
 
 from noiz.exceptions import ObspyError, NotEnoughDataError, SubobjectNotLoadedError
 from obspy.core import AttribDict, Stream
@@ -263,7 +263,10 @@ class BeamformerKeeper:
         return _extract_most_significant_subbeams(all_maxima, beam_portion_threshold)
 
 
-def _extract_most_significant_subbeams(all_maxima: Collection[pd.DataFrame], beam_portion_threshold: float):
+def _extract_most_significant_subbeams(
+        all_maxima: Collection[pd.DataFrame],
+        beam_portion_threshold: float,
+) -> pd.DataFrame:
     """filldocs"""
 
     df_all = pd.concat(all_maxima).set_index('midtime')
@@ -275,10 +278,10 @@ def _extract_most_significant_subbeams(all_maxima: Collection[pd.DataFrame], bea
 
 
 def select_local_maxima(
-        data,
-        xaxis,
-        yaxis,
-        time,
+        data: npt.ArrayLike,
+        xaxis: npt.ArrayLike,
+        yaxis: npt.ArrayLike,
+        time: Any,
         neighborhood_size: int,
         maxima_threshold: float,
         best_point_count: int
