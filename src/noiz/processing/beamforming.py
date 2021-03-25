@@ -1,6 +1,10 @@
 import numpy as np
+import pandas as pd
 from loguru import logger
-from typing import Tuple
+from numpy import typing as npt
+from scipy import ndimage as ndimage
+from scipy.ndimage import filters as filters
+from typing import Tuple, Collection
 
 from noiz.exceptions import ObspyError, NotEnoughDataError, SubobjectNotLoadedError
 from obspy.core import AttribDict, Stream
@@ -36,7 +40,8 @@ def calculate_beamforming_results(
     res = BeamformingResult(timespan_id=timespan.id, beamforming_params_id=beamforming_params.id)
 
     if len(datachunks) <= 3:
-        raise NotEnoughDataError(f"You should use more than 3 datachunks for beamforming. You provided {len(datachunks)}")
+        raise NotEnoughDataError(
+            f"You should use more than 3 datachunks for beamforming. You provided {len(datachunks)}")
 
     logger.debug("Loading seismic files")
     streams = Stream()
@@ -46,7 +51,7 @@ def calculate_beamforming_results(
         st = datachunk.load_data()
         st[0].stats.coordinates = AttribDict({
             'latitude': datachunk.component.lat,
-            'elevation': datachunk.component.elevation/1000,
+            'elevation': datachunk.component.elevation / 1000,
             'longitude': datachunk.component.lon})
         streams.extend(st)
 
@@ -98,3 +103,146 @@ def calculate_beamforming_results(
     res.datachunks = list(datachunks)
 
     return res
+
+
+class BeamformerKeeper():
+
+    def __init__(self, xaxis, yaxis, time_vector, save_relpow=True, save_abspow=False):
+        self.xaxis = xaxis
+        self.yaxis = yaxis
+        self.save_relpow = save_relpow
+        self.save_abspow = save_abspow
+
+        self.rel_pows = []
+        self.abs_pows = []
+        self.midtime_samples = []
+
+        self.iteration_count = 0
+        self.time_vector = time_vector
+
+    def get_midtimes(self):
+        return np.array([self.time_vector[x] for x in self.midtime_samples])
+
+    def save_beamformers(self, pow_map: npt.ArrayLike, apow_map: npt.ArrayLike, midsample: int) -> None:
+        self.iteration_count += 1
+
+        self.midtime_samples.append(midsample)
+        if self.save_relpow:
+            self.rel_pows.append(pow_map.copy())
+        if self.save_abspow:
+            self.abs_pows.append(apow_map.copy())
+
+    def calculate_average_relpower_beamformer(self):
+        if self.save_relpow is not True:
+            raise ValueError("The `save_relpow` was set to False, data were not kept")
+        if len(self.rel_pows) == 0:
+            raise ValueError("There are no data to average. "
+                             "Are you sure you used `save_beamformers` method to keep data from beamforming procedure")
+        self.average_relpow = np.zeros((len(self.xaxis), len(self.yaxis)))
+        for arr in self.rel_pows:
+            self.average_relpow = np.add(self.average_relpow, arr)
+        self.average_relpow = self.average_relpow / self.iteration_count
+
+    def calculate_average_abspower_beamformer(self):
+        if self.save_abspow is not True:
+            raise ValueError("The `save_abspow` was set to False, data were not kept")
+        if len(self.abs_pows) == 0:
+            raise ValueError("There are no data to average. "
+                             "Are you sure you used `save_beamformers` method to keep data from beamforming procedure")
+        self.average_abspow = np.zeros((len(self.xaxis), len(self.yaxis)))
+        for arr in self.abs_pows:
+            self.average_abspow = np.add(self.average_abspow, arr)
+        self.average_abspow = self.average_abspow / self.iteration_count
+
+    def extract_best_maxima_from_average_relpower(self):
+        pass
+
+    def extract_best_maxima_from_average_abspower(self):
+        pass
+
+    def extract_best_maxima_from_all_relpower(
+            self,
+            neighborhood_size: int,
+            maxima_threshold: float,
+            best_point_count: int,
+            beam_portion_threshold: float,
+    ):
+        all_maxima = []
+        for midtime, arr in zip(self.get_midtimes(), self.rel_pows):
+            maxima = select_local_maxima(
+                data=arr.T,
+                xaxis=self.xaxis,
+                yaxis=self.yaxis,
+                time=midtime,
+                neighborhood_size=neighborhood_size,
+                maxima_threshold=maxima_threshold,
+                best_point_count=best_point_count,
+            )
+            all_maxima.append(maxima)
+
+        return _extract_most_significant_subbeams(all_maxima, beam_portion_threshold)
+
+    def extract_best_maxima_from_all_abspower(
+            self,
+            neighborhood_size: int,
+            maxima_threshold: float,
+            best_point_count: int,
+            beam_portion_threshold: float,
+    ):
+        all_maxima = []
+        for midtime, arr in zip(self.get_midtimes(), self.abs_pows):
+            maxima = select_local_maxima(
+                data=arr.T,
+                xaxis=self.xaxis,
+                yaxis=self.yaxis,
+                time=midtime,
+                neighborhood_size=neighborhood_size,
+                maxima_threshold=maxima_threshold,
+                best_point_count=best_point_count,
+            )
+            all_maxima.append(maxima)
+
+        return _extract_most_significant_subbeams(all_maxima, beam_portion_threshold)
+
+
+def _extract_most_significant_subbeams(all_maxima: Collection[pd.DataFrame], beam_portion_threshold: float):
+    """filldocs"""
+
+    df_all = pd.concat(all_maxima).set_index('midtime')
+    total_beam = df_all.loc[:, 'val'].groupby(level=0).sum()
+    df_all.loc[:, 'beam_proportion'] = df_all.apply(lambda row: row.val / total_beam.loc[row.name], axis=1)
+    df_res = df_all.loc[df_all.loc[:, 'beam_proportion'] > beam_portion_threshold, :]
+
+    return df_res.groupby(by=['x', 'y']).mean().reset_index(level=[0, 1])
+
+
+def select_local_maxima(
+        data,
+        xaxis,
+        yaxis,
+        time,
+        neighborhood_size: int,
+        maxima_threshold: float,
+        best_point_count: int
+) -> pd.DataFrame:
+
+    data_max = filters.maximum_filter(data, neighborhood_size)
+    maxima = (data == data_max)
+    data_min = filters.minimum_filter(data, neighborhood_size)
+    diff = ((data_max - data_min) > maxima_threshold)
+    maxima[diff == 0] = 0
+
+    labeled, num_objects = ndimage.label(maxima)
+    slices = ndimage.find_objects(labeled)
+    x, y, max_vals = [], [], []
+    for dy, dx in slices:
+        x_center = int((dx.start + dx.stop - 1) / 2)
+        x.append(xaxis[x_center])
+        y_center = int((dy.start + dy.stop - 1) / 2)
+        y.append(yaxis[y_center])
+        max_vals.append(data[y_center, x_center])
+
+    df = pd.DataFrame(columns=["midtime", "x", "y", "val"], data=np.vstack([[time] * len(x), x, y, max_vals]).T)
+    df = df.sort_values(by='val', ascending=False)
+
+    return df.loc[df.index[:best_point_count], :]
