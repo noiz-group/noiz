@@ -485,6 +485,22 @@ class BeamformingParams(db.Model):
     def used_component_codes(self):
         return tuple(self._used_component_codes.split(';'))
 
+    @property
+    def get_xaxis(self):
+        return np.arange(
+            start=self.slowness_x_min,
+            stop=self.slowness_x_max+self.slowness_step/2,
+            step=self.slowness_step
+        )
+
+    @property
+    def get_yaxis(self):
+        return np.arange(
+            start=self.slowness_y_min,
+            stop=self.slowness_y_max+self.slowness_step/2,
+            step=self.slowness_step
+        )
+
 
 @dataclass
 class PPSDParamsHolder:
