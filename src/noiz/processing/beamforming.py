@@ -4,7 +4,7 @@ from loguru import logger
 from numpy import typing as npt
 from scipy import ndimage as ndimage
 from scipy.ndimage import filters as filters
-from typing import Tuple, Collection
+from typing import Tuple, Collection, Optional, List
 
 from noiz.exceptions import ObspyError, NotEnoughDataError, SubobjectNotLoadedError
 from obspy.core import AttribDict, Stream
@@ -105,34 +105,45 @@ def calculate_beamforming_results(
     return res
 
 
-class BeamformerKeeper():
+class BeamformerKeeper:
+    """filldocs"""
 
     def __init__(self, xaxis, yaxis, time_vector, save_relpow=True, save_abspow=False):
-        self.xaxis = xaxis
-        self.yaxis = yaxis
-        self.save_relpow = save_relpow
-        self.save_abspow = save_abspow
+        self.xaxis: npt.ArrayLike = xaxis
+        self.yaxis: npt.ArrayLike = yaxis
+        self.save_relpow: bool = save_relpow
+        self.save_abspow: bool = save_abspow
 
-        self.rel_pows = []
-        self.abs_pows = []
-        self.midtime_samples = []
+        self.rel_pows: List[npt.ArrayLike] = []
+        self.abs_pows: List[npt.ArrayLike] = []
+        self.midtime_samples: List[int] = []
 
-        self.iteration_count = 0
-        self.time_vector = time_vector
+        self.iteration_count: int = 0
+        self.time_vector: npt.ArrayLike = time_vector
+
+        self.average_relpow: Optional[npt.ArrayLike] = None
+        self.average_abspow: Optional[npt.ArrayLike] = None
 
     def get_midtimes(self):
+        """filldocs"""
         return np.array([self.time_vector[x] for x in self.midtime_samples])
 
     def save_beamformers(self, pow_map: npt.ArrayLike, apow_map: npt.ArrayLike, midsample: int) -> None:
+        """
+        filldocs
+
+        Important note: It trnsposes the array compared to the obspy one!
+        """
         self.iteration_count += 1
 
         self.midtime_samples.append(midsample)
         if self.save_relpow:
-            self.rel_pows.append(pow_map.copy())
+            self.rel_pows.append(pow_map.copy().T)
         if self.save_abspow:
-            self.abs_pows.append(apow_map.copy())
+            self.abs_pows.append(apow_map.copy().T)
 
     def calculate_average_relpower_beamformer(self):
+        """filldocs"""
         if self.save_relpow is not True:
             raise ValueError("The `save_relpow` was set to False, data were not kept")
         if len(self.rel_pows) == 0:
@@ -144,6 +155,7 @@ class BeamformerKeeper():
         self.average_relpow = self.average_relpow / self.iteration_count
 
     def calculate_average_abspower_beamformer(self):
+        """filldocs"""
         if self.save_abspow is not True:
             raise ValueError("The `save_abspow` was set to False, data were not kept")
         if len(self.abs_pows) == 0:
@@ -154,11 +166,55 @@ class BeamformerKeeper():
             self.average_abspow = np.add(self.average_abspow, arr)
         self.average_abspow = self.average_abspow / self.iteration_count
 
-    def extract_best_maxima_from_average_relpower(self):
-        pass
+    def extract_best_maxima_from_average_relpower(
+            self,
+            neighborhood_size: int,
+            maxima_threshold: float,
+            best_point_count: int,
+            beam_portion_threshold: float,
+    ):
+        """filldocs"""
+        if self.average_relpow is None:
+            self.calculate_average_relpower_beamformer()
 
-    def extract_best_maxima_from_average_abspower(self):
-        pass
+        midtime = min(self.time_vector) + (max(self.time_vector) - min(self.time_vector))/2
+
+        maxima = select_local_maxima(
+            data=self.average_relpow,
+            xaxis=self.xaxis,
+            yaxis=self.yaxis,
+            time=midtime,
+            neighborhood_size=neighborhood_size,
+            maxima_threshold=maxima_threshold,
+            best_point_count=best_point_count,
+        )
+
+        return _extract_most_significant_subbeams(maxima, beam_portion_threshold)
+
+    def extract_best_maxima_from_average_abspower(
+            self,
+            neighborhood_size: int,
+            maxima_threshold: float,
+            best_point_count: int,
+            beam_portion_threshold: float,
+    ):
+        """filldocs"""
+        if self.average_abspow is None:
+            self.calculate_average_abspower_beamformer()
+
+        midtime = min(self.time_vector) + (max(self.time_vector) - min(self.time_vector))/2
+
+        maxima = select_local_maxima(
+            data=self.average_abspow,
+            xaxis=self.xaxis,
+            yaxis=self.yaxis,
+            time=midtime,
+            neighborhood_size=neighborhood_size,
+            maxima_threshold=maxima_threshold,
+            best_point_count=best_point_count,
+        )
+
+        return _extract_most_significant_subbeams(maxima, beam_portion_threshold)
 
     def extract_best_maxima_from_all_relpower(
             self,
@@ -167,10 +223,11 @@ class BeamformerKeeper():
             best_point_count: int,
             beam_portion_threshold: float,
     ):
+        """filldocs"""
         all_maxima = []
-        for midtime, arr in zip(self.get_midtimes(), self.rel_pows):
+        for midtime, single_beamformer in zip(self.get_midtimes(), self.rel_pows):
             maxima = select_local_maxima(
-                data=arr.T,
+                data=single_beamformer,
                 xaxis=self.xaxis,
                 yaxis=self.yaxis,
                 time=midtime,
@@ -189,10 +246,11 @@ class BeamformerKeeper():
             best_point_count: int,
             beam_portion_threshold: float,
     ):
+        """filldocs"""
         all_maxima = []
-        for midtime, arr in zip(self.get_midtimes(), self.abs_pows):
+        for midtime, single_beamformer in zip(self.get_midtimes(), self.abs_pows):
             maxima = select_local_maxima(
-                data=arr.T,
+                data=single_beamformer,
                 xaxis=self.xaxis,
                 yaxis=self.yaxis,
                 time=midtime,
