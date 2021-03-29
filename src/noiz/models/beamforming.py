@@ -4,6 +4,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from noiz.database import db
 from noiz.exceptions import MissingDataFileException
 from noiz.models import Timespan, BeamformingParams, FileModelMixin
+from noiz.models.mixins import BeamformingPeakExtractMixin
 
 
 class BeamformingFile(FileModelMixin):
@@ -45,15 +46,6 @@ class BeamformingResult(db.Model):
     )
     timespan_id = db.Column("timespan_id", db.Integer, db.ForeignKey("timespan.id"), nullable=False)
 
-    mean_relative_relpow = db.Column("mean_relative_relpow", db.Float, nullable=False)
-    std_relative_relpow = db.Column("std_relative_relpow", db.Float, nullable=False)
-    mean_absolute_relpow = db.Column("mean_absolute_relpow", db.Float, nullable=False)
-    std_absolute_relpow = db.Column("std_absolute_relpow", db.Float, nullable=False)
-    mean_backazimuth = db.Column("mean_backazimuth", db.Float, nullable=False)
-    std_backazimuth = db.Column("std_backazimuth", db.Float, nullable=False)
-    mean_slowness = db.Column("mean_slowness", db.Float, nullable=False)
-    std_slowness = db.Column("std_slowness", db.Float, nullable=False)
-
     used_component_count = db.Column("used_component_count", db.Integer, nullable=False)
 
     beamforming_file_id = db.Column(
@@ -84,6 +76,11 @@ class BeamformingResult(db.Model):
         lazy="joined",
     )
 
+    average_abspower_peaks = db.relationship("BeamformingPeakAverageAbspower")
+    average_relpower_peaks = db.relationship("BeamformingPeakAverageRelpower")
+    all_abspower_peaks = db.relationship("BeamformingPeakAllAbspower")
+    all_relpower_peaks = db.relationship("BeamformingPeakAllRelpower")
+
     datachunks = db.relationship("Datachunk", secondary=lambda: association_table_beamforming_results_datachunks)
     datachunk_ids = association_proxy('datachunks', 'id')
 
@@ -93,3 +90,19 @@ class BeamformingResult(db.Model):
             raise NotImplementedError("Not yet implemented, use np.load()")
         else:
             raise MissingDataFileException(f"Inventory file for component {self} is missing")
+
+
+class BeamformingPeakAverageAbspower(BeamformingPeakExtractMixin):
+    __tablename__ = "beamforming_peak_average_abspower"
+
+
+class BeamformingPeakAverageRelpower(BeamformingPeakExtractMixin):
+    __tablename__ = "beamforming_peak_average_relpower"
+
+
+class BeamformingPeakAllAbspower(BeamformingPeakExtractMixin):
+    __tablename__ = "beamforming_peak_all_abspower"
+
+
+class BeamformingPeakAllRelpower(BeamformingPeakExtractMixin):
+    __tablename__ = "beamforming_peak_all_relpower"
