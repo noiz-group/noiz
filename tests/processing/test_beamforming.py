@@ -1,15 +1,25 @@
+import pandas as pd
 import numpy as np
 import pytest
-import pytest_check as check
 
 from noiz.processing.beamforming import BeamformerKeeper
 
 
+@pytest.fixture()
+def beamformerkeeper():
+    axis = np.array([1, 2, 3])
+    time = np.array([10, 11, 12])
+    st = pd.Timestamp(2020, 1, 1, 1, 3, 5).to_datetime64()
+    mt = pd.Timestamp(2020, 1, 1, 1, 18, 5).to_datetime64()
+    et = pd.Timestamp(2020, 1, 1, 1, 33, 5).to_datetime64()
+    bk = BeamformerKeeper(xaxis=axis, yaxis=axis, time_vector=time, save_abspow=True, save_relpow=True,
+                          starttime=st, midtime=mt, endtime=et)
+    return (axis, time, st, mt, et, bk)
+
+
 class TestBeamformerKeeper:
-    def test_get_midtimes(self):
-        axis = np.array([1, 2, 3])
-        time = np.array([10, 11, 12])
-        bk = BeamformerKeeper(xaxis=axis, yaxis=axis, time_vector=time, save_abspow=True, save_relpow=True)
+    def test_get_midtimes(self, beamformerkeeper):
+        (_, time, _, _, _, bk) = beamformerkeeper
 
         apows = [
             np.ones((3, 3)) * 10,
@@ -28,10 +38,8 @@ class TestBeamformerKeeper:
 
         assert np.array_equal(bk.get_midtimes(), time)
 
-    def test_save_beamformers_both(self):
-        axis = np.array([1, 2, 3])
-        time = np.array([10, 11, 12])
-        bk = BeamformerKeeper(xaxis=axis, yaxis=axis, time_vector=time, save_abspow=True, save_relpow=True)
+    def test_save_beamformers_both(self, beamformerkeeper):
+        (_, _, _, _, _, bk) = beamformerkeeper
 
         apows = [
             np.ones((3, 3)) * 10,
@@ -52,10 +60,8 @@ class TestBeamformerKeeper:
         assert bk.abs_pows == apows
         assert bk.rel_pows == relpows
 
-    def test_save_beamformers_abspows(self):
-        axis = np.array([1, 2, 3])
-        time = np.array([10, 11, 12])
-        bk = BeamformerKeeper(xaxis=axis, yaxis=axis, time_vector=time, save_abspow=True, save_relpow=False)
+    def test_save_beamformers_abspows(self, beamformerkeeper):
+        (_, _, _, _, _, bk) = beamformerkeeper
 
         apows = [
             np.ones((3, 3)) * 10,
@@ -78,10 +84,8 @@ class TestBeamformerKeeper:
             assert np.array_equal(got, exp)
         assert bk.rel_pows == []
 
-    def test_save_beamformers_relpows(self):
-        axis = np.array([1, 2, 3])
-        time = np.array([10, 11, 12])
-        bk = BeamformerKeeper(xaxis=axis, yaxis=axis, time_vector=time, save_abspow=False, save_relpow=True)
+    def test_save_beamformers_relpows(self, beamformerkeeper):
+        (_, _, _, _, _, bk) = beamformerkeeper
 
         apows = [
             np.ones((3, 3)) * 10,
@@ -104,10 +108,8 @@ class TestBeamformerKeeper:
         for exp, got in zip(relpows, bk.rel_pows):
             assert np.array_equal(got, exp)
 
-    def test_calculate_average_relpower_beamformer(self):
-        axis = np.array([1, 2, 3])
-        time = np.array([10, 11, 12])
-        bk = BeamformerKeeper(xaxis=axis, yaxis=axis, time_vector=time, save_abspow=False, save_relpow=True)
+    def test_calculate_average_relpower_beamformer(self, beamformerkeeper):
+        (_, _, _, _, _, bk) = beamformerkeeper
 
         apows = [
             np.ones((3, 3)) * 10,
@@ -131,10 +133,8 @@ class TestBeamformerKeeper:
         assert isinstance(bk.average_relpow, np.ndarray)
         assert np.array_equal(bk.average_relpow, expected_average_relpow)
 
-    def test_calculate_average_relpower_beamformer_data_not_saved(self):
-        axis = np.array([1, 2, 3])
-        time = np.array([10, 11, 12])
-        bk = BeamformerKeeper(xaxis=axis, yaxis=axis, time_vector=time, save_abspow=False, save_relpow=False)
+    def test_calculate_average_relpower_beamformer_data_not_saved(self, beamformerkeeper):
+        (_, _, _, _, _, bk) = beamformerkeeper
 
         apows = [
             np.ones((3, 3)) * 10,
@@ -154,10 +154,8 @@ class TestBeamformerKeeper:
         with pytest.raises(ValueError):
             bk.calculate_average_relpower_beamformer()
 
-    def test_calculate_average_abspower_beamformer(self):
-        axis = np.array([1, 2, 3])
-        time = np.array([10, 11, 12])
-        bk = BeamformerKeeper(xaxis=axis, yaxis=axis, time_vector=time, save_abspow=True, save_relpow=False)
+    def test_calculate_average_abspower_beamformer(self, beamformerkeeper):
+        (_, _, _, _, _, bk) = beamformerkeeper
 
         apows = [
             np.ones((3, 3)) * 10,
@@ -197,10 +195,8 @@ class TestBeamformerKeeper:
     def test_extract_best_maxima_from_all_abspower(self):
         assert False
 
-    def test_beamforming_keeping_intended_usage(self):
-        axis = np.array([1, 2, 3])
-        time = np.array([10, 11, 12])
-        bk = BeamformerKeeper(xaxis=axis, yaxis=axis, time_vector=time, save_abspow=True, save_relpow=True)
+    def test_beamforming_keeping_intended_usage(self, beamformerkeeper):
+        (_, _, _, _, _, bk) = beamformerkeeper
 
         apows = [
             np.ones((3, 3)) * 10,
