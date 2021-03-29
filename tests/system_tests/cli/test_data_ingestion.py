@@ -437,13 +437,28 @@ class TestDataIngestionRoutines:
             original_config = toml.load(f)
 
         for key, value in original_config['BeamformingParams'].items():
-            if key in ("prewhiten", "save_result_windows", "save_beamformers"):
+            if key in (
+                    "prewhiten",
+                    "save_average_beamformer_abspower",
+                    "save_all_beamformers_abspower",
+                    "save_average_beamformer_relpower",
+                    "save_all_beamformers_relpower",
+                    "extract_peaks_average_beamformer_abspower",
+                    "extract_peaks_all_beamformers_abspower",
+                    "extract_peaks_average_beamformer_relpower",
+                    "extract_peaks_all_beamformers_relpower",
+            ):
                 check.equal(str(fetched_config.__getattribute__(key)), value)
                 continue
             if key == "method":
                 check.equal(fetched_config._method, value)
                 continue
-            if key in ("used_component_codes", ):
+            if key in (
+                    "used_component_codes",
+                    "window_length_minimum_periods",
+                    "window_step_fraction",
+                    "neighborhood_size_xaxis_fraction"
+            ):
                 # TODO Add check for that value
                 continue
             check.almost_equal(fetched_config.__getattribute__(key), value)

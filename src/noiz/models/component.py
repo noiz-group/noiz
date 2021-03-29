@@ -60,7 +60,6 @@ class Component(db.Model):
         "Device",
         foreign_keys=[device_id],
         uselist=False,
-        lazy="joined",
     )
     component_file = db.relationship(
         "ComponentFile",

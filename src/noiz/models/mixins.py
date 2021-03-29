@@ -1,7 +1,5 @@
 import os
-
 from typing import Optional, Union
-
 from pathlib import Path
 
 from noiz.database import db
@@ -135,3 +133,18 @@ class FileModelMixin(db.Model):
         self._filepath = increment_filename_counter(filepath=proposed_filepath, extension=True)
 
         return self.filepath
+
+
+class BeamformingPeakExtractMixin(db.Model):
+    __abstract__ = True
+    id: int = db.Column("id", db.BigInteger, primary_key=True)
+
+    slowness = db.Column("slowness", db.Float, nullable=False)
+    slowness_x = db.Column("slowness_x", db.Float, nullable=False)
+    slowness_y = db.Column("slowness_y", db.Float, nullable=False)
+    amplitude = db.Column("amplitude", db.Float, nullable=False)
+    azimuth = db.Column("azimuth", db.Float, nullable=False)
+    backazimuth = db.Column("backazimuth", db.Float, nullable=False)
+
+    def __init__(self, **kwargs):
+        super(BeamformingPeakExtractMixin, self).__init__(**kwargs)

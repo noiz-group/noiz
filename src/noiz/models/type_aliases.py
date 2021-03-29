@@ -6,6 +6,8 @@ from noiz.models import CrosscorrelationOld, CCFStack, DatachunkStats, Processed
     Timespan, Tsindex, DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams, ProcessedDatachunkFile, \
     BeamformingFile, BeamformingResult, PPSDParams, Crosscorrelation, CrosscorrelationFile, PPSDFile, PPSDResult, \
     BeamformingParams
+from noiz.models.beamforming import BeamformingPeakAverageAbspower, BeamformingPeakAverageRelpower, \
+    BeamformingPeakAllAbspower, BeamformingPeakAllRelpower
 
 BulkAddableObjects = Union[
     Datachunk,
@@ -29,6 +31,10 @@ BulkAddableFileObjects = Union[
     ProcessedDatachunkFile,
     BeamformingFile,
     PPSDFile,
+    BeamformingPeakAverageAbspower,
+    BeamformingPeakAverageRelpower,
+    BeamformingPeakAllAbspower,
+    BeamformingPeakAllRelpower,
 ]
 
 
