@@ -1,7 +1,6 @@
+from functools import partial
 import os
-
-from typing import Optional, Union
-
+from typing import Optional, Union, Type
 from pathlib import Path
 
 from noiz.database import db
@@ -11,6 +10,10 @@ from noiz.models.custom_db_types import PathInDB
 from noiz.processing.path_helpers import directory_exists_or_create, increment_filename_counter
 
 from noiz.models.processing_params import ParamsLike
+
+
+NullColumn: Type[db.Column] = partial(db.Column, nullable=True)  # type: ignore
+NotNullColumn: Type[db.Column] = partial(db.Column, nullable=False)  # type: ignore
 
 
 class FileModelMixin(db.Model):
@@ -151,6 +154,7 @@ class BeamformingPeakExtractMixin(db.Model):
     slowness_x = db.Column("slowness_x", db.Float, nullable=False)
     slowness_y = db.Column("slowness_y", db.Float, nullable=False)
     amplitude = db.Column("amplitude", db.Float, nullable=False)
+    azimuth = db.Column("azimuth", db.Float, nullable=False)
     backazimuth = db.Column("backazimuth", db.Float, nullable=False)
 
     def __init__(self, **kwargs):
