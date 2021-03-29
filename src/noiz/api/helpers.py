@@ -173,6 +173,7 @@ def _submit_task_to_client_and_add_results_to_db(
         upserter_callable: Callable[[BulkAddableObjects], Insert],
         raise_errors: bool = False,
         with_file: bool = False,
+        is_beamforming: bool = False
 ):
     from dask.distributed import as_completed
 
@@ -212,6 +213,18 @@ def _submit_task_to_client_and_add_results_to_db(
             if len(files_to_add) > 0:
                 bulk_add_or_upsert_file_objects(
                     objects_to_add=files_to_add,
+                )
+
+        if is_beamforming:
+            peaks_to_add = []
+            for res in results:
+                peaks_to_add.extend(res.average_abspower_peaks)
+                peaks_to_add.extend(res.average_relpower_peaks)
+                peaks_to_add.extend(res.all_abspower_peaks)
+                peaks_to_add.extend(res.all_relpower_peaks)
+            if len(peaks_to_add) > 0:
+                bulk_add_or_upsert_file_objects(
+                    objects_to_add=peaks_to_add,
                 )
 
         kwargs = BulkAddOrUpsertObjectsInputs(
