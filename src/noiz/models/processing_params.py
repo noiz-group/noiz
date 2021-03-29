@@ -1,11 +1,13 @@
 from functools import cached_property
 
+from noiz.validation_helpers import validate_exactly_one_argument_provided
+
 from typing import Optional, Union, Tuple
 from pydantic.dataclasses import dataclass
 import numpy as np
 import numpy.typing as npt
 
-from noiz.database import db
+from noiz.database import db, NotNullColumn
 from noiz.globals import ExtendedEnum
 
 
@@ -382,40 +384,67 @@ class BeamformingParamsHolder:
     slowness_y_min: float
     slowness_y_max: float
     slowness_step: float
-    window_length: float
-    window_step: float
+    window_length_minimum_periods: Optional[Union[int, float]] = None
+    window_length: Optional[Union[int, float]] = None
+    window_step_fraction: Optional[float] = None
+    window_step: Optional[float] = None
+    save_average_beamformer_abspower: bool = True
+    save_all_beamformers_abspower: bool = False
+    save_average_beamformer_relpower: bool = False
+    save_all_beamformers_relpower: bool = False
+    extract_peaks_average_beamformer_abspower: bool = True
+    extract_peaks_all_beamformers_abspower: bool = False
+    extract_peaks_average_beamformer_relpower: bool = False
+    extract_peaks_all_beamformers_relpower: bool = False
+    neighborhood_size: Optional[float] = None
+    neighborhood_size_xaxis_fraction: Optional[float] = None
+    maxima_threshold: float = 0.
+    best_point_count: int = 10
+    beam_portion_threshold: float = 0.1
     semblance_threshold: float = -1e9
     velocity_threshold: float = -1e9
     prewhiten: bool = False
     method: str = "beamforming"
     used_component_codes: Tuple[str, ...] = ("Z", )
     minimum_trace_count: int = 3
-    save_result_windows: bool = False
-    save_beamformers: bool = False
 
 
 class BeamformingParams(db.Model):
     __tablename__ = "beamforming_params"
     id = db.Column("id", db.Integer, primary_key=True)
-    qcone_config_id = db.Column("qcone_config_id", db.Integer, db.ForeignKey("qcone_config.id"), nullable=False)
+    qcone_config_id = NotNullColumn("qcone_config_id", db.Integer, db.ForeignKey("qcone_config.id"))
+    min_freq = NotNullColumn("min_freq", db.Float)
+    max_freq = NotNullColumn("max_freq", db.Float)
+    slowness_x_min = NotNullColumn("slowness_x_min", db.Float)
+    slowness_x_max = NotNullColumn("slowness_x_max", db.Float)
+    slowness_y_min = NotNullColumn("slowness_y_min", db.Float)
+    slowness_y_max = NotNullColumn("slowness_y_max", db.Float)
+    slowness_step = NotNullColumn("slowness_step", db.Float)
 
-    min_freq = db.Column("min_freq", db.Float, nullable=False)
-    max_freq = db.Column("max_freq", db.Float, nullable=False)
-    slowness_x_min = db.Column("slowness_x_min", db.Float, nullable=False)
-    slowness_x_max = db.Column("slowness_x_max", db.Float, nullable=False)
-    slowness_y_min = db.Column("slowness_y_min", db.Float, nullable=False)
-    slowness_y_max = db.Column("slowness_y_max", db.Float, nullable=False)
-    slowness_step = db.Column("slowness_step", db.Float, nullable=False)
-    semblance_threshold = db.Column("semblance_threshold", db.Float, nullable=False)
-    velocity_threshold = db.Column("velocity_threshold", db.Float, nullable=False)
-    window_length = db.Column("window_length", db.Float, nullable=False)
-    window_step = db.Column("window_step", db.Float, nullable=False)
-    prewhiten = db.Column("prewhiten", db.Boolean, nullable=False)
-    _method = db.Column("method", db.String, nullable=False)
-    _used_component_codes = db.Column("used_component_codes", db.String)
-    minimum_trace_count = db.Column("minimum_trace_count", db.Integer)
-    save_result_windows = db.Column("save_result_windows", db.Boolean)
-    save_beamformers = db.Column("save_beamformers", db.Boolean)
+    window_length = NotNullColumn("window_length", db.Float)
+    window_step = NotNullColumn("window_step", db.Float)
+
+    save_average_beamformer_abspower = NotNullColumn("save_average_beamformer_abspower", db.Boolean)
+    save_all_beamformers_abspower = NotNullColumn("save_all_beamformers_abspower", db.Boolean)
+    save_average_beamformer_relpower = NotNullColumn("save_average_beamformer_relpower", db.Boolean)
+    save_all_beamformers_relpower = NotNullColumn("save_all_beamformers_relpower", db.Boolean)
+
+    extract_peaks_average_beamformer_abspower = NotNullColumn("extract_peaks_average_beamformer_abspower", db.Boolean)
+    extract_peaks_all_beamformers_abspower = NotNullColumn("extract_peaks_all_beamformers_abspower", db.Boolean)
+    extract_peaks_average_beamformer_relpower = NotNullColumn("extract_peaks_average_beamformer_relpower", db.Boolean)
+    extract_peaks_all_beamformers_relpower = NotNullColumn("extract_peaks_all_beamformers_relpower", db.Boolean)
+
+    neighborhood_size = NotNullColumn("neighborhood_size", db.Float)
+    maxima_threshold = NotNullColumn("maxima_threshold", db.Float)
+    best_point_count = NotNullColumn("best_point_count", db.Integer)
+    beam_portion_threshold = NotNullColumn("beam_portion_threshold", db.Float)
+
+    semblance_threshold = NotNullColumn("semblance_threshold", db.Float)
+    velocity_threshold = NotNullColumn("velocity_threshold", db.Float)
+    prewhiten = NotNullColumn("prewhiten", db.Boolean)
+    _method = NotNullColumn("method", db.String)
+    _used_component_codes = NotNullColumn("used_component_codes", db.String)
+    minimum_trace_count = NotNullColumn("minimum_trace_count", db.Integer)
 
     qcone_config = db.relationship(
         "QCOneConfig",
@@ -434,17 +463,35 @@ class BeamformingParams(db.Model):
             slowness_y_min: float,
             slowness_y_max: float,
             slowness_step: float,
+            window_length_minimum_periods: Optional[float],
+            window_length: Optional[float],
+            window_step_fraction: Optional[float],
+            window_step: Optional[float],
+            save_average_beamformer_abspower: bool,
+            save_all_beamformers_abspower: bool,
+            save_average_beamformer_relpower: bool,
+            save_all_beamformers_relpower: bool,
+            extract_peaks_average_beamformer_abspower: bool,
+            extract_peaks_all_beamformers_abspower: bool,
+            extract_peaks_average_beamformer_relpower: bool,
+            extract_peaks_all_beamformers_relpower: bool,
+            neighborhood_size: Optional[float],
+            neighborhood_size_xaxis_fraction: Optional[float],
+            maxima_threshold: float,
+            best_point_count: int,
+            beam_portion_threshold: float,
             semblance_threshold: float,
             velocity_threshold: float,
-            window_length: float,
-            window_step: float,
             prewhiten: bool,
             method: str,
             used_component_codes: Tuple[str, ...],
             minimum_trace_count: int,
-            save_result_windows: bool,
-            save_beamformers: bool,
+
     ):
+        validate_exactly_one_argument_provided(window_length, window_length_minimum_periods)
+        validate_exactly_one_argument_provided(window_step, window_step_fraction)
+        validate_exactly_one_argument_provided(neighborhood_size, neighborhood_size_xaxis_fraction)
+
         self.qcone_config_id = qcone_config_id
         self.min_freq = min_freq
         self.max_freq = max_freq
@@ -453,10 +500,38 @@ class BeamformingParams(db.Model):
         self.slowness_y_min = slowness_y_min
         self.slowness_y_max = slowness_y_max
         self.slowness_step = slowness_step
+
+        if window_length is not None:
+            self.window_length = window_length
+        elif window_length_minimum_periods is not None:
+            self.window_length = window_length_minimum_periods/min_freq
+
+        if window_step is not None:
+            self.window_step = window_step
+        elif window_step_fraction is not None:
+            self.window_step = self.window_length*window_step_fraction
+
+        self.save_average_beamformer_abspower = save_average_beamformer_abspower
+        self.save_all_beamformers_abspower = save_all_beamformers_abspower
+        self.save_average_beamformer_relpower = save_average_beamformer_relpower
+        self.save_all_beamformers_relpower = save_all_beamformers_relpower
+
+        self.extract_peaks_average_beamformer_abspower = extract_peaks_average_beamformer_abspower
+        self.extract_peaks_all_beamformers_abspower = extract_peaks_all_beamformers_abspower
+        self.extract_peaks_average_beamformer_relpower = extract_peaks_average_beamformer_relpower
+        self.extract_peaks_all_beamformers_relpower = extract_peaks_all_beamformers_relpower
+
+        if neighborhood_size is not None:
+            self.neighborhood_size = neighborhood_size
+        elif neighborhood_size_xaxis_fraction is not None:
+            self.neighborhood_size = len(self.get_xaxis())*neighborhood_size_xaxis_fraction
+        self.maxima_threshold = maxima_threshold
+        self.best_point_count = int(best_point_count)
+        self.beam_portion_threshold = beam_portion_threshold
+
         self.semblance_threshold = semblance_threshold
         self.velocity_threshold = velocity_threshold
-        self.window_length = window_length
-        self.window_step = window_step
+
         self.prewhiten = prewhiten
         if method in ("beamforming", "capon"):
             self._method = method
@@ -467,8 +542,6 @@ class BeamformingParams(db.Model):
             self.minimum_trace_count = int(minimum_trace_count)
         else:
             ValueError("minimum_trace_count cannot be lower than one.")
-        self.save_beamformers = save_beamformers
-        self.save_result_windows = save_result_windows
 
     @property
     def method(self):
@@ -484,6 +557,40 @@ class BeamformingParams(db.Model):
     @property
     def used_component_codes(self):
         return tuple(self._used_component_codes.split(';'))
+
+    def get_xaxis(self):
+        return np.arange(
+            start=self.slowness_x_min,
+            stop=self.slowness_x_max+self.slowness_step/2,
+            step=self.slowness_step
+        )
+
+    def get_yaxis(self):
+        return np.arange(
+            start=self.slowness_y_min,
+            stop=self.slowness_y_max+self.slowness_step/2,
+            step=self.slowness_step
+        )
+
+    @property
+    def save_abspow(self):
+        return any([
+            self.save_average_beamformer_abspower,
+            self.save_all_beamformers_abspower,
+            self.extract_peaks_average_beamformer_abspower,
+            self.extract_peaks_all_beamformers_abspower,
+
+        ])
+
+    @property
+    def save_relpow(self):
+        return any([
+            self.save_average_beamformer_relpower,
+            self.save_all_beamformers_relpower,
+            self.extract_peaks_average_beamformer_relpower,
+            self.extract_peaks_all_beamformers_relpower,
+
+        ])
 
 
 @dataclass

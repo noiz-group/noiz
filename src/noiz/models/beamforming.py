@@ -4,6 +4,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from noiz.database import db
 from noiz.exceptions import MissingDataFileException
 from noiz.models import Timespan, BeamformingParams, FileModelMixin
+from noiz.models.mixins import BeamformingPeakExtractMixin
 
 
 class BeamformingFile(FileModelMixin):
@@ -29,6 +30,50 @@ association_table_beamforming_results_datachunks = db.Table(
 )
 
 
+association_table_beamforming_result_avg_abspower = db.Table(
+    "beamforming_result_association_avg_abspower",
+    db.metadata,
+    db.Column(
+        "beamforming_peak_average_abspower_id", db.BigInteger, db.ForeignKey("beamforming_peak_average_abspower.id")
+    ),
+    db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
+    db.UniqueConstraint("beamforming_result_id", "beamforming_peak_average_abspower_id"),
+)
+
+
+association_table_beamforming_result_avg_relpower = db.Table(
+    "beamforming_result_association_avg_relpower",
+    db.metadata,
+    db.Column(
+        "beamforming_peak_average_relpower_id", db.BigInteger, db.ForeignKey("beamforming_peak_average_relpower.id")
+    ),
+    db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
+    db.UniqueConstraint("beamforming_result_id", "beamforming_peak_average_relpower_id"),
+)
+
+
+association_table_beamforming_result_all_abspower = db.Table(
+    "beamforming_result_association_all_abspower",
+    db.metadata,
+    db.Column(
+        "beamforming_peak_all_abspower_id", db.BigInteger, db.ForeignKey("beamforming_peak_all_abspower.id")
+    ),
+    db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
+    db.UniqueConstraint("beamforming_result_id", "beamforming_peak_all_abspower_id"),
+)
+
+
+association_table_beamforming_result_all_relpower = db.Table(
+    "beamforming_result_association_all_relpower",
+    db.metadata,
+    db.Column(
+        "beamforming_peak_all_relpower_id", db.BigInteger, db.ForeignKey("beamforming_peak_all_relpower.id")
+    ),
+    db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
+    db.UniqueConstraint("beamforming_result_id", "beamforming_peak_all_relpower_id"),
+)
+
+
 class BeamformingResult(db.Model):
     __tablename__ = "beamforming_result"
     __table_args__ = (
@@ -44,15 +89,6 @@ class BeamformingResult(db.Model):
         nullable=False,
     )
     timespan_id = db.Column("timespan_id", db.Integer, db.ForeignKey("timespan.id"), nullable=False)
-
-    mean_relative_relpow = db.Column("mean_relative_relpow", db.Float, nullable=False)
-    std_relative_relpow = db.Column("std_relative_relpow", db.Float, nullable=False)
-    mean_absolute_relpow = db.Column("mean_absolute_relpow", db.Float, nullable=False)
-    std_absolute_relpow = db.Column("std_absolute_relpow", db.Float, nullable=False)
-    mean_backazimuth = db.Column("mean_backazimuth", db.Float, nullable=False)
-    std_backazimuth = db.Column("std_backazimuth", db.Float, nullable=False)
-    mean_slowness = db.Column("mean_slowness", db.Float, nullable=False)
-    std_slowness = db.Column("std_slowness", db.Float, nullable=False)
 
     used_component_count = db.Column("used_component_count", db.Integer, nullable=False)
 
@@ -84,6 +120,15 @@ class BeamformingResult(db.Model):
         lazy="joined",
     )
 
+    average_abspower_peaks = db.relationship("BeamformingPeakAverageAbspower", lazy="joined",
+                                             secondary=lambda: association_table_beamforming_result_avg_abspower)
+    average_relpower_peaks = db.relationship("BeamformingPeakAverageRelpower", lazy="joined",
+                                             secondary=lambda: association_table_beamforming_result_avg_relpower)
+    all_abspower_peaks = db.relationship("BeamformingPeakAllAbspower", lazy="joined",
+                                         secondary=lambda: association_table_beamforming_result_all_abspower)
+    all_relpower_peaks = db.relationship("BeamformingPeakAllRelpower", lazy="joined",
+                                         secondary=lambda: association_table_beamforming_result_all_relpower)
+
     datachunks = db.relationship("Datachunk", secondary=lambda: association_table_beamforming_results_datachunks)
     datachunk_ids = association_proxy('datachunks', 'id')
 
@@ -93,3 +138,19 @@ class BeamformingResult(db.Model):
             raise NotImplementedError("Not yet implemented, use np.load()")
         else:
             raise MissingDataFileException(f"Inventory file for component {self} is missing")
+
+
+class BeamformingPeakAverageAbspower(BeamformingPeakExtractMixin):
+    __tablename__ = "beamforming_peak_average_abspower"
+
+
+class BeamformingPeakAverageRelpower(BeamformingPeakExtractMixin):
+    __tablename__ = "beamforming_peak_average_relpower"
+
+
+class BeamformingPeakAllAbspower(BeamformingPeakExtractMixin):
+    __tablename__ = "beamforming_peak_all_abspower"
+
+
+class BeamformingPeakAllRelpower(BeamformingPeakExtractMixin):
+    __tablename__ = "beamforming_peak_all_relpower"
