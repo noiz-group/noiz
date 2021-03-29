@@ -1,4 +1,5 @@
 import datetime
+import numpy as np
 import obspy
 import pandas as pd
 from sqlalchemy import func
@@ -122,6 +123,18 @@ class TimespanMixin(db.Model):
 
     def endtime_obspy(self) -> obspy.UTCDateTime:
         return obspy.UTCDateTime(self.endtime)
+
+    @property
+    def starttime_np(self) -> np.datetime64:
+        return pd.Timestamp(self.starttime).to_datetime64()
+
+    @property
+    def midtime_np(self) -> np.datetime64:
+        return pd.Timestamp(self.midtime).to_datetime64()
+
+    @property
+    def endtime_np(self) -> np.datetime64:
+        return pd.Timestamp(self.endtime).to_datetime64()
 
     @property
     def length(self) -> pd.Timedelta:
