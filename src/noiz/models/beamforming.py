@@ -76,10 +76,10 @@ class BeamformingResult(db.Model):
         lazy="joined",
     )
 
-    average_abspower_peaks = db.relationship("BeamformingPeakAverageAbspower")
-    average_relpower_peaks = db.relationship("BeamformingPeakAverageRelpower")
-    all_abspower_peaks = db.relationship("BeamformingPeakAllAbspower")
-    all_relpower_peaks = db.relationship("BeamformingPeakAllRelpower")
+    average_abspower_peaks = db.relationship("BeamformingPeakAverageAbspower", lazy="joined")
+    average_relpower_peaks = db.relationship("BeamformingPeakAverageRelpower", lazy="joined")
+    all_abspower_peaks = db.relationship("BeamformingPeakAllAbspower", lazy="joined")
+    all_relpower_peaks = db.relationship("BeamformingPeakAllRelpower", lazy="joined")
 
     datachunks = db.relationship("Datachunk", secondary=lambda: association_table_beamforming_results_datachunks)
     datachunk_ids = association_proxy('datachunks', 'id')
