@@ -84,7 +84,7 @@ def bulk_add_or_upsert_objects(
     return
 
 
-def bulk_add_or_upsert_file_objects(
+def bulk_add_and_check_objects(
         objects_to_add: Union[BulkAddableFileObjects, Collection[BulkAddableFileObjects]],
 ) -> None:
     """
@@ -145,6 +145,7 @@ def _run_calculate_and_upsert_on_dask(
         batch_size: int = 5000,
         raise_errors: bool = False,
         with_file: bool = False,
+        is_beamforming: bool = False,
 ):
     from dask.distributed import Client
     client = Client()
@@ -161,6 +162,7 @@ def _run_calculate_and_upsert_on_dask(
             upserter_callable=upserter_callable,
             raise_errors=raise_errors,
             with_file=with_file,
+            is_beamforming=is_beamforming,
         )
     client.close()
     return
@@ -211,7 +213,7 @@ def _submit_task_to_client_and_add_results_to_db(
         if with_file:
             files_to_add = [x.file for x in results if x.file is not None]
             if len(files_to_add) > 0:
-                bulk_add_or_upsert_file_objects(
+                bulk_add_and_check_objects(
                     objects_to_add=files_to_add,
                 )
 
@@ -223,7 +225,7 @@ def _submit_task_to_client_and_add_results_to_db(
                 peaks_to_add.extend(res.all_abspower_peaks)
                 peaks_to_add.extend(res.all_relpower_peaks)
             if len(peaks_to_add) > 0:
-                bulk_add_or_upsert_file_objects(
+                bulk_add_and_check_objects(
                     objects_to_add=peaks_to_add,
                 )
 
@@ -242,6 +244,7 @@ def _run_calculate_and_upsert_sequentially(
         batch_size: int = 1000,
         raise_errors: bool = False,
         with_file: bool = False,
+        is_beamforming: bool = False,
 ):
 
     for i, input_batch in enumerate(more_itertools.chunked(iterable=inputs, n=batch_size)):
@@ -277,8 +280,19 @@ def _run_calculate_and_upsert_sequentially(
         if with_file:
             files_to_add = [x.file for x in results if x.file is not None]
             if len(files_to_add) > 0:
-                bulk_add_or_upsert_file_objects(
+                bulk_add_and_check_objects(
                     objects_to_add=files_to_add,
+                )
+        if is_beamforming:
+            peaks_to_add = []
+            for res in results:
+                peaks_to_add.extend(res.average_abspower_peaks)
+                peaks_to_add.extend(res.average_relpower_peaks)
+                peaks_to_add.extend(res.all_abspower_peaks)
+                peaks_to_add.extend(res.all_relpower_peaks)
+            if len(peaks_to_add) > 0:
+                bulk_add_and_check_objects(
+                    objects_to_add=peaks_to_add,
                 )
 
         bulk_add_or_upsert_objects(
