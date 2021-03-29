@@ -57,11 +57,16 @@ class TestBeamformerKeeper:
             bk.save_beamformers(relpow, apow, i_val)
 
         assert bk.midtime_samples == i_vals
-        assert bk.abs_pows == apows
-        assert bk.rel_pows == relpows
+        for expected, got in zip(apows, bk.abs_pows):
+            assert np.array_equal(expected, got)
+        for expected, got in zip(relpows, bk.rel_pows):
+            assert np.array_equal(expected, got)
 
-    def test_save_beamformers_abspows(self, beamformerkeeper):
-        (_, _, _, _, _, bk) = beamformerkeeper
+    def test_save_beamformers_abspows_only(self, beamformerkeeper):
+        (axis, time, st, mt, et, _) = beamformerkeeper
+
+        bk = BeamformerKeeper(xaxis=axis, yaxis=axis, time_vector=time, save_abspow=True, save_relpow=False,
+                              starttime=st, midtime=mt, endtime=et)
 
         apows = [
             np.ones((3, 3)) * 10,
@@ -79,13 +84,15 @@ class TestBeamformerKeeper:
             bk.save_beamformers(relpow, apow, i_val)
 
         assert bk.midtime_samples == i_vals
-        assert bk.abs_pows == apows
-        for exp, got in zip(apows, bk.abs_pows):
-            assert np.array_equal(got, exp)
+        for expected, got in zip(apows, bk.abs_pows):
+            assert np.array_equal(expected, got)
         assert bk.rel_pows == []
 
-    def test_save_beamformers_relpows(self, beamformerkeeper):
-        (_, _, _, _, _, bk) = beamformerkeeper
+    def test_save_beamformers_relpows_only(self, beamformerkeeper):
+        (axis, time, st, mt, et, _) = beamformerkeeper
+
+        bk = BeamformerKeeper(xaxis=axis, yaxis=axis, time_vector=time, save_abspow=False, save_relpow=True,
+                              starttime=st, midtime=mt, endtime=et)
 
         apows = [
             np.ones((3, 3)) * 10,
@@ -104,7 +111,6 @@ class TestBeamformerKeeper:
 
         assert bk.midtime_samples == i_vals
         assert bk.abs_pows == []
-        assert bk.rel_pows == relpows
         for exp, got in zip(relpows, bk.rel_pows):
             assert np.array_equal(got, exp)
 
