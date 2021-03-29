@@ -1,6 +1,5 @@
 from functools import cached_property
 
-from noiz.models.mixins import NotNullColumn
 from noiz.validation_helpers import validate_exactly_one_argument_provided
 
 from typing import Optional, Union, Tuple
@@ -8,7 +7,7 @@ from pydantic.dataclasses import dataclass
 import numpy as np
 import numpy.typing as npt
 
-from noiz.database import db
+from noiz.database import db, NotNullColumn
 from noiz.globals import ExtendedEnum
 
 
