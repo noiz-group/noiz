@@ -41,10 +41,6 @@ class TimespanMixin(db.Model):
     def starttime_year(self) -> int:
         return self.starttime.year  # type: ignore
 
-    @property
-    def starttime_pd(self) -> pd.Timestamp:
-        return pd.Timestamp(self.starttime)
-
     @starttime_year.expression  # type: ignore
     def starttime_year(cls) -> int:  # type: ignore
         return func.date_part("year", cls.starttime)  # type: ignore
@@ -56,10 +52,6 @@ class TimespanMixin(db.Model):
     @starttime_doy.expression
     def starttime_doy(cls) -> int:
         return func.date_part("doy", cls.starttime)  # type: ignore
-
-    @property
-    def midtime_pd(self) -> pd.Timestamp:
-        return pd.Timestamp(self.midtime)
 
     @typed_hybrid_property
     def midtime_year(self) -> int:
@@ -76,10 +68,6 @@ class TimespanMixin(db.Model):
     @midtime_doy.expression
     def midtime_doy(cls) -> int:
         return func.date_part("doy", cls.midtime)  # type: ignore
-
-    @property
-    def endtime_pd(self) -> pd.Timestamp:
-        return pd.Timestamp(self.endtime)
 
     @typed_hybrid_property
     def endtime_year(self) -> int:
@@ -114,13 +102,27 @@ class TimespanMixin(db.Model):
         """
         return self.starttime_pd.floor("D") == (self.endtime_pd - pd.Timedelta(1)).floor("D")
 
-    # TODO convert to property
+    @property
+    def starttime_pd(self) -> pd.Timestamp:
+        return pd.Timestamp(self.starttime)
+
+    @property
+    def midtime_pd(self) -> pd.Timestamp:
+        return pd.Timestamp(self.midtime)
+
+    @property
+    def endtime_pd(self) -> pd.Timestamp:
+        return pd.Timestamp(self.endtime)
+
+    @property
     def starttime_obspy(self) -> obspy.UTCDateTime:
         return obspy.UTCDateTime(self.starttime)
 
+    @property
     def midtime_obspy(self) -> obspy.UTCDateTime:
         return obspy.UTCDateTime(self.midtime)
 
+    @property
     def endtime_obspy(self) -> obspy.UTCDateTime:
         return obspy.UTCDateTime(self.endtime)
 
