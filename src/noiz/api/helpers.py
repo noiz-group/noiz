@@ -217,6 +217,12 @@ def _submit_task_to_client_and_add_results_to_db(
                     objects_to_add=files_to_add,
                 )
 
+        kwargs = BulkAddOrUpsertObjectsInputs(
+            objects_to_add=results,
+            upserter_callable=upserter_callable,
+            bulk_insert=True,
+        )
+        bulk_add_or_upsert_objects(**kwargs)
         if is_beamforming:
             peaks_to_add = []
             for res in results:
@@ -228,13 +234,6 @@ def _submit_task_to_client_and_add_results_to_db(
                 bulk_add_and_check_objects(
                     objects_to_add=peaks_to_add,
                 )
-
-        kwargs = BulkAddOrUpsertObjectsInputs(
-            objects_to_add=results,
-            upserter_callable=upserter_callable,
-            bulk_insert=True,
-        )
-        bulk_add_or_upsert_objects(**kwargs)
 
 
 def _run_calculate_and_upsert_sequentially(
@@ -283,6 +282,13 @@ def _run_calculate_and_upsert_sequentially(
                 bulk_add_and_check_objects(
                     objects_to_add=files_to_add,
                 )
+
+        bulk_add_or_upsert_objects(
+            objects_to_add=results,
+            upserter_callable=upserter_callable,
+            bulk_insert=True
+        )
+
         if is_beamforming:
             peaks_to_add = []
             for res in results:
@@ -294,10 +300,4 @@ def _run_calculate_and_upsert_sequentially(
                 bulk_add_and_check_objects(
                     objects_to_add=peaks_to_add,
                 )
-
-        bulk_add_or_upsert_objects(
-            objects_to_add=results,
-            upserter_callable=upserter_callable,
-            bulk_insert=True
-        )
     logger.info("All processing is done.")
