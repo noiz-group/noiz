@@ -59,9 +59,9 @@ class TestTimespan:
             midtime=datetime.datetime.strptime(f"{myear} {mdoy}", "%Y %j"),
             endtime=datetime.datetime.strptime(f"{eyear} {edoy}", "%Y %j"),
         )
-        assert isinstance(timespan.starttime_obspy(), obspy.UTCDateTime)
-        assert isinstance(timespan.midtime_obspy(), obspy.UTCDateTime)
-        assert isinstance(timespan.endtime_obspy(), obspy.UTCDateTime)
+        assert isinstance(timespan.starttime_obspy, obspy.UTCDateTime)
+        assert isinstance(timespan.midtime_obspy, obspy.UTCDateTime)
+        assert isinstance(timespan.endtime_obspy, obspy.UTCDateTime)
 
     @pytest.mark.parametrize(*params_to_be_instantiated)
     def test_remove_last_nanosecond(self, starttime, midtime, endtime):
