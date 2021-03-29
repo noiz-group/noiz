@@ -437,7 +437,7 @@ class BeamformingParams(db.Model):
 
     neighborhood_size = NotNullColumn("neighborhood_size", db.Float)
     maxima_threshold = NotNullColumn("maxima_threshold", db.Float)
-    best_point_count = NotNullColumn("best_point_count", db.Float)
+    best_point_count = NotNullColumn("best_point_count", db.Integer)
     beam_portion_threshold = NotNullColumn("beam_portion_threshold", db.Float)
 
     semblance_threshold = NotNullColumn("semblance_threshold", db.Float)
@@ -479,7 +479,7 @@ class BeamformingParams(db.Model):
             neighborhood_size: Optional[float],
             neighborhood_size_xaxis_fraction: Optional[float],
             maxima_threshold: float,
-            best_point_count: float,
+            best_point_count: int,
             beam_portion_threshold: float,
             semblance_threshold: float,
             velocity_threshold: float,
@@ -527,7 +527,7 @@ class BeamformingParams(db.Model):
         elif neighborhood_size_xaxis_fraction is not None:
             self.neighborhood_size = len(self.get_xaxis())*neighborhood_size_xaxis_fraction
         self.maxima_threshold = maxima_threshold
-        self.best_point_count = best_point_count
+        self.best_point_count = int(best_point_count)
         self.beam_portion_threshold = beam_portion_threshold
 
         self.semblance_threshold = semblance_threshold
