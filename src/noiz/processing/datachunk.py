@@ -702,7 +702,7 @@ def create_datachunks_for_component(
 
         logger.info(f"Slicing timespan {timespan}")
         trimmed_st: obspy.Stream = st.slice(
-            starttime=timespan.starttime_obspy(),
+            starttime=timespan.starttime_obspy,
             endtime=timespan.remove_last_microsecond(),
             nearest_sample=False,
         )
