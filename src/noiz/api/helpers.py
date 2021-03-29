@@ -1,7 +1,7 @@
 import more_itertools
 from loguru import logger
 from noiz.exceptions import CorruptedDataException, InconsistentDataException, ObspyError
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm.exc import UnmappedInstanceError
 from sqlalchemy.sql import Insert
 from typing import Iterable, Union, List, Tuple, Any, Collection, Callable, get_args
@@ -72,7 +72,7 @@ def bulk_add_or_upsert_objects(
         logger.debug("Trying to do bulk insert")
         try:
             bulk_add_objects(valid_objects)
-        except (IntegrityError, UnmappedInstanceError) as e:
+        except (IntegrityError, UnmappedInstanceError, InvalidRequestError) as e:
             logger.warning(f"There was an integrity error thrown. {e}. Performing rollback.")
             db.session.rollback()
 
@@ -216,13 +216,6 @@ def _submit_task_to_client_and_add_results_to_db(
                 bulk_add_and_check_objects(
                     objects_to_add=files_to_add,
                 )
-
-        kwargs = BulkAddOrUpsertObjectsInputs(
-            objects_to_add=results,
-            upserter_callable=upserter_callable,
-            bulk_insert=True,
-        )
-        bulk_add_or_upsert_objects(**kwargs)
         if is_beamforming:
             peaks_to_add = []
             for res in results:
@@ -234,6 +227,13 @@ def _submit_task_to_client_and_add_results_to_db(
                 bulk_add_and_check_objects(
                     objects_to_add=peaks_to_add,
                 )
+
+        bulk_add_or_upsert_objects(
+            objects_to_add=results,
+            upserter_callable=upserter_callable,
+            bulk_insert=True
+        )
+    return
 
 
 def _run_calculate_and_upsert_sequentially(
@@ -283,12 +283,6 @@ def _run_calculate_and_upsert_sequentially(
                     objects_to_add=files_to_add,
                 )
 
-        bulk_add_or_upsert_objects(
-            objects_to_add=results,
-            upserter_callable=upserter_callable,
-            bulk_insert=True
-        )
-
         if is_beamforming:
             peaks_to_add = []
             for res in results:
@@ -300,4 +294,12 @@ def _run_calculate_and_upsert_sequentially(
                 bulk_add_and_check_objects(
                     objects_to_add=peaks_to_add,
                 )
+
+        bulk_add_or_upsert_objects(
+            objects_to_add=results,
+            upserter_callable=upserter_callable,
+            bulk_insert=True
+        )
+
     logger.info("All processing is done.")
+    return

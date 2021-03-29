@@ -30,6 +30,50 @@ association_table_beamforming_results_datachunks = db.Table(
 )
 
 
+association_table_beamforming_result_avg_abspower = db.Table(
+    "beamforming_result_association_avg_abspower",
+    db.metadata,
+    db.Column(
+        "beamforming_peak_average_abspower_id", db.BigInteger, db.ForeignKey("beamforming_peak_average_abspower.id")
+    ),
+    db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
+    db.UniqueConstraint("beamforming_result_id", "beamforming_peak_average_abspower_id"),
+)
+
+
+association_table_beamforming_result_avg_relpower = db.Table(
+    "beamforming_result_association_avg_relpower",
+    db.metadata,
+    db.Column(
+        "beamforming_peak_average_relpower_id", db.BigInteger, db.ForeignKey("beamforming_peak_average_relpower.id")
+    ),
+    db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
+    db.UniqueConstraint("beamforming_result_id", "beamforming_peak_average_relpower_id"),
+)
+
+
+association_table_beamforming_result_all_abspower = db.Table(
+    "beamforming_result_association_all_abspower",
+    db.metadata,
+    db.Column(
+        "beamforming_peak_all_abspower_id", db.BigInteger, db.ForeignKey("beamforming_peak_all_abspower.id")
+    ),
+    db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
+    db.UniqueConstraint("beamforming_result_id", "beamforming_peak_all_abspower_id"),
+)
+
+
+association_table_beamforming_result_all_relpower = db.Table(
+    "beamforming_result_association_all_relpower",
+    db.metadata,
+    db.Column(
+        "beamforming_peak_all_relpower_id", db.BigInteger, db.ForeignKey("beamforming_peak_all_relpower.id")
+    ),
+    db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
+    db.UniqueConstraint("beamforming_result_id", "beamforming_peak_all_relpower_id"),
+)
+
+
 class BeamformingResult(db.Model):
     __tablename__ = "beamforming_result"
     __table_args__ = (
@@ -76,10 +120,14 @@ class BeamformingResult(db.Model):
         lazy="joined",
     )
 
-    average_abspower_peaks = db.relationship("BeamformingPeakAverageAbspower", lazy="joined")
-    average_relpower_peaks = db.relationship("BeamformingPeakAverageRelpower", lazy="joined")
-    all_abspower_peaks = db.relationship("BeamformingPeakAllAbspower", lazy="joined")
-    all_relpower_peaks = db.relationship("BeamformingPeakAllRelpower", lazy="joined")
+    average_abspower_peaks = db.relationship("BeamformingPeakAverageAbspower", lazy="joined",
+                                             secondary=lambda: association_table_beamforming_result_avg_abspower)
+    average_relpower_peaks = db.relationship("BeamformingPeakAverageRelpower", lazy="joined",
+                                             secondary=lambda: association_table_beamforming_result_avg_relpower)
+    all_abspower_peaks = db.relationship("BeamformingPeakAllAbspower", lazy="joined",
+                                         secondary=lambda: association_table_beamforming_result_all_abspower)
+    all_relpower_peaks = db.relationship("BeamformingPeakAllRelpower", lazy="joined",
+                                         secondary=lambda: association_table_beamforming_result_all_relpower)
 
     datachunks = db.relationship("Datachunk", secondary=lambda: association_table_beamforming_results_datachunks)
     datachunk_ids = association_proxy('datachunks', 'id')
@@ -94,39 +142,15 @@ class BeamformingResult(db.Model):
 
 class BeamformingPeakAverageAbspower(BeamformingPeakExtractMixin):
     __tablename__ = "beamforming_peak_average_abspower"
-    beamforming_result_id = db.Column(
-        "beamforming_result_id",
-        db.Integer,
-        db.ForeignKey("beamforming_result.id"),
-        nullable=False,
-    )
 
 
 class BeamformingPeakAverageRelpower(BeamformingPeakExtractMixin):
     __tablename__ = "beamforming_peak_average_relpower"
-    beamforming_result_id = db.Column(
-        "beamforming_result_id",
-        db.Integer,
-        db.ForeignKey("beamforming_result.id"),
-        nullable=False,
-    )
 
 
 class BeamformingPeakAllAbspower(BeamformingPeakExtractMixin):
     __tablename__ = "beamforming_peak_all_abspower"
-    beamforming_result_id = db.Column(
-        "beamforming_result_id",
-        db.Integer,
-        db.ForeignKey("beamforming_result.id"),
-        nullable=False,
-    )
 
 
 class BeamformingPeakAllRelpower(BeamformingPeakExtractMixin):
     __tablename__ = "beamforming_peak_all_relpower"
-    beamforming_result_id = db.Column(
-        "beamforming_result_id",
-        db.Integer,
-        db.ForeignKey("beamforming_result.id"),
-        nullable=False,
-    )
