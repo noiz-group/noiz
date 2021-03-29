@@ -5,7 +5,6 @@ import math
 import numpy as np
 import pandas as pd
 from loguru import logger
-from numpy import typing as npt
 from scipy import ndimage as ndimage
 from scipy.ndimage import filters as filters
 from typing import Tuple, Collection, Optional, List, Any
@@ -132,29 +131,36 @@ class BeamformerKeeper:
             starttime: np.datetime64,
             midtime: np.datetime64,
             endtime: np.datetime64,
-            xaxis: npt.ArrayLike,
-            yaxis: npt.ArrayLike,
-            time_vector: npt.ArrayLike,
+            xaxis,  #: npt.ArrayLike,
+            yaxis,  #: npt.ArrayLike,
+            time_vector,  #: npt.ArrayLike,
             save_relpow: bool = False,
             save_abspow: bool = True,
     ):
         self.starttime: np.datetime64 = starttime
         self.midtime: np.datetime64 = midtime
         self.endtime: np.datetime64 = endtime
-        self.xaxis: npt.ArrayLike = xaxis
-        self.yaxis: npt.ArrayLike = yaxis
+        self.xaxis = xaxis
+        # self.xaxis: npt.ArrayLike = xaxis
+        self.yaxis = yaxis
+        # self.yaxis: npt.ArrayLike = yaxis
         self.save_relpow: bool = save_relpow
         self.save_abspow: bool = save_abspow
 
-        self.rel_pows: List[npt.ArrayLike] = []
-        self.abs_pows: List[npt.ArrayLike] = []
+        self.rel_pows: List[Any] = []
+        # self.rel_pows: List[npt.ArrayLike] = []
+        self.abs_pows: List[Any] = []
+        # self.abs_pows: List[npt.ArrayLike] = []
         self.midtime_samples: List[int] = []
 
         self.iteration_count: int = 0
-        self.time_vector: npt.ArrayLike = time_vector
+        self.time_vector = time_vector
+        # self.time_vector: npt.ArrayLike = time_vector
 
-        self.average_relpow: Optional[npt.ArrayLike] = None
-        self.average_abspow: Optional[npt.ArrayLike] = None
+        self.average_relpow: Any = None
+        # self.average_relpow: Optional[npt.ArrayLike] = None
+        self.average_abspow: Any = None
+        # self.average_abspow: Optional[npt.ArrayLike] = None
 
     def save_beamforming_file(self, params: BeamformingParams, ts: Timespan) -> Optional[BeamformingFile]:
         bf = BeamformingFile()
@@ -183,11 +189,12 @@ class BeamformerKeeper:
             return None
 
     @lru_cache
-    def get_midtimes(self) -> npt.ArrayLike:
+    def get_midtimes(self):  # -> npt.ArrayLike:
         """filldocs"""
         return np.array([self.time_vector[x] for x in self.midtime_samples])
 
-    def save_beamformers(self, pow_map: npt.ArrayLike, apow_map: npt.ArrayLike, midsample: int) -> None:
+    # def save_beamformers(self, pow_map: npt.ArrayLike, apow_map: npt.ArrayLike, midsample: int) -> None:
+    def save_beamformers(self, pow_map, apow_map, midsample: int) -> None:
         """
         filldocs
 
@@ -461,9 +468,9 @@ def _extract_most_significant_subbeams(
 
 
 def select_local_maxima(
-        data: npt.ArrayLike,
-        xaxis: npt.ArrayLike,
-        yaxis: npt.ArrayLike,
+        data,  #: npt.ArrayLike,
+        xaxis,  #: npt.ArrayLike,
+        yaxis,  #: npt.ArrayLike,
         time: Any,
         neighborhood_size: int,
         maxima_threshold: float,
