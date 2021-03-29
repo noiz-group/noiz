@@ -138,12 +138,6 @@ class FileModelMixin(db.Model):
 class BeamformingPeakExtractMixin(db.Model):
     __abstract__ = True
     id: int = db.Column("id", db.BigInteger, primary_key=True)
-    beamforming_result_id = db.Column(
-        "beamforming_result_id",
-        db.Integer,
-        db.ForeignKey("beamforming_result.id"),
-        nullable=False,
-    )
 
     slowness = db.Column("slowness", db.Float, nullable=False)
     slowness_x = db.Column("slowness_x", db.Float, nullable=False)
