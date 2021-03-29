@@ -384,8 +384,8 @@ class BeamformingParamsHolder:
     slowness_y_min: float
     slowness_y_max: float
     slowness_step: float
-    window_length_minimum_periods: Optional[float] = None
-    window_length: Optional[float] = None
+    window_length_minimum_periods: Optional[Union[int, float]] = None
+    window_length: Optional[Union[int, float]] = None
     window_step_fraction: Optional[float] = None
     window_step: Optional[float] = None
     save_average_beamformer_abspower: bool = True
