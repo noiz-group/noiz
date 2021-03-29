@@ -345,7 +345,7 @@ class BeamformerKeeper:
             maxima_threshold: float,
             best_point_count: int,
             beam_portion_threshold: float,
-    ) -> Tuple[BeamformingPeakAverageAbspower, ...]:
+    ) -> List[BeamformingPeakAverageAbspower]:
         df = self.extract_best_maxima_from_average_abspower(
             neighborhood_size=neighborhood_size,
             maxima_threshold=maxima_threshold,
@@ -359,12 +359,12 @@ class BeamformerKeeper:
                     slowness=row.slowness,
                     slowness_x=row.x,
                     slowness_y=row.y,
-                    amplitude=row.amplitude,
+                    amplitude=row.avg_amplitude,
                     azimuth=row.azimuth,
                     backazimuth=row.backazimuth,
                 )
             )
-        return tuple(res)
+        return res
 
     def get_average_relpower_peaks(
             self,
@@ -372,7 +372,7 @@ class BeamformerKeeper:
             maxima_threshold: float,
             best_point_count: int,
             beam_portion_threshold: float,
-    ) -> Tuple[BeamformingPeakAverageRelpower, ...]:
+    ) -> List[BeamformingPeakAverageRelpower]:
         df = self.extract_best_maxima_from_average_relpower(
             neighborhood_size=neighborhood_size,
             maxima_threshold=maxima_threshold,
@@ -386,12 +386,12 @@ class BeamformerKeeper:
                     slowness=row.slowness,
                     slowness_x=row.x,
                     slowness_y=row.y,
-                    amplitude=row.amplitude,
+                    amplitude=row.avg_amplitude,
                     azimuth=row.azimuth,
                     backazimuth=row.backazimuth,
                 )
             )
-        return tuple(res)
+        return res
 
     def get_all_abspower_peaks(
             self,
@@ -399,7 +399,7 @@ class BeamformerKeeper:
             maxima_threshold: float,
             best_point_count: int,
             beam_portion_threshold: float,
-    ) -> Tuple[BeamformingPeakAllAbspower, ...]:
+    ) -> List[BeamformingPeakAllAbspower]:
         df = self.extract_best_maxima_from_all_abspower(
             neighborhood_size=neighborhood_size,
             maxima_threshold=maxima_threshold,
@@ -413,12 +413,12 @@ class BeamformerKeeper:
                     slowness=row.slowness,
                     slowness_x=row.x,
                     slowness_y=row.y,
-                    amplitude=row.amplitude,
+                    amplitude=row.avg_amplitude,
                     azimuth=row.azimuth,
                     backazimuth=row.backazimuth,
                 )
             )
-        return tuple(res)
+        return res
 
     def get_all_relpower_peaks(
             self,
@@ -426,7 +426,7 @@ class BeamformerKeeper:
             maxima_threshold: float,
             best_point_count: int,
             beam_portion_threshold: float,
-    ) -> Tuple[BeamformingPeakAllRelpower, ...]:
+    ) -> List[BeamformingPeakAllRelpower]:
         df = self.extract_best_maxima_from_all_relpower(
             neighborhood_size=neighborhood_size,
             maxima_threshold=maxima_threshold,
@@ -440,12 +440,12 @@ class BeamformerKeeper:
                     slowness=row.slowness,
                     slowness_x=row.x,
                     slowness_y=row.y,
-                    amplitude=row.amplitude,
+                    amplitude=row.avg_amplitude,
                     azimuth=row.azimuth,
                     backazimuth=row.backazimuth,
                 )
             )
-        return tuple(res)
+        return res
 
 
 def _extract_most_significant_subbeams(
@@ -455,13 +455,13 @@ def _extract_most_significant_subbeams(
     """filldocs"""
 
     df_all = pd.concat(all_maxima).set_index('midtime')
-    total_beam = df_all.loc[:, 'val'].groupby(level=0).sum()
-    df_all.loc[:, 'beam_proportion'] = df_all.apply(lambda row: row.val / total_beam.loc[row.name], axis=1)
+    total_beam = df_all.loc[:, 'amplitude'].groupby(level=0).sum()
+    df_all.loc[:, 'beam_proportion'] = df_all.apply(lambda row: row.amplitude / total_beam.loc[row.name], axis=1)
     df_res = df_all.loc[df_all.loc[:, 'beam_proportion'] > beam_portion_threshold, :]
     maximum_points = df_res.groupby(by=['x', 'y']).mean()
-    maximum_points['occurence_counts'] = df_res.groupby(by=['x', 'y'])['val'].count()
+    maximum_points['occurence_counts'] = df_res.groupby(by=['x', 'y'])['amplitude'].count()
     maximum_points = maximum_points.rename(
-        columns={"val": "avg_val", "beam_proportion": "avg_beam_proportion"}
+        columns={"amplitude": "avg_amplitude", "beam_proportion": "avg_beam_proportion"}
     ).reset_index(level=[0, 1])
 
     return maximum_points
@@ -494,8 +494,9 @@ def select_local_maxima(
         y.append(yaxis[y_center])
         max_vals.append(data[y_center, x_center])
 
-    df = pd.DataFrame(columns=["midtime", "x", "y", "val"], data=np.vstack([[time] * len(x), x, y, max_vals]).T, )
-    df = df.sort_values(by='val', ascending=False)
+    df = pd.DataFrame(columns=["x", "y", "amplitude"], data=np.vstack([x, y, max_vals]).T, )
+    df.loc[:, 'midtime'] = time
+    df = df.sort_values(by='amplitude', ascending=False)
 
     if len(df) == 0:
         raise ValueError("No peaks were found. Adjust neighbourhood_size and maxima_threshold values.")
