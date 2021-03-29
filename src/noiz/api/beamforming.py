@@ -66,6 +66,7 @@ def run_beamforming(
             calculation_task=calculate_beamforming_results_wrapper,  # type: ignore
             upserter_callable=_prepare_upsert_command_beamforming,
             with_file=True,
+            is_beamforming=True,
         )
     else:
         _run_calculate_and_upsert_sequentially(
@@ -75,6 +76,7 @@ def run_beamforming(
             upserter_callable=_prepare_upsert_command_beamforming,
             raise_errors=raise_errors,
             with_file=True,
+            is_beamforming=True,
         )
     return
 
