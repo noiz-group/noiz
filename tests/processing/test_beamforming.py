@@ -134,7 +134,10 @@ class TestBeamformerKeeper:
         assert np.array_equal(bk.average_relpow, expected_average_relpow)
 
     def test_calculate_average_relpower_beamformer_data_not_saved(self, beamformerkeeper):
-        (_, _, _, _, _, bk) = beamformerkeeper
+        (axis, time, st, mt, et, _) = beamformerkeeper
+
+        bk = BeamformerKeeper(xaxis=axis, yaxis=axis, time_vector=time, save_abspow=False, save_relpow=False,
+                              starttime=st, midtime=mt, endtime=et)
 
         apows = [
             np.ones((3, 3)) * 10,
@@ -153,6 +156,9 @@ class TestBeamformerKeeper:
 
         with pytest.raises(ValueError):
             bk.calculate_average_relpower_beamformer()
+
+        with pytest.raises(ValueError):
+            bk.calculate_average_abspower_beamformer()
 
     def test_calculate_average_abspower_beamformer(self, beamformerkeeper):
         (_, _, _, _, _, bk) = beamformerkeeper
