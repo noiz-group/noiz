@@ -135,8 +135,8 @@ class BeamformerKeeper:
             xaxis: npt.ArrayLike,
             yaxis: npt.ArrayLike,
             time_vector: npt.ArrayLike,
-            save_relpow: bool = True,
-            save_abspow: bool = False
+            save_relpow: bool = False,
+            save_abspow: bool = True,
     ):
         self.starttime: np.datetime64 = starttime
         self.midtime: np.datetime64 = midtime
