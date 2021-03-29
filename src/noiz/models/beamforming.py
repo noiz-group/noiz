@@ -94,15 +94,39 @@ class BeamformingResult(db.Model):
 
 class BeamformingPeakAverageAbspower(BeamformingPeakExtractMixin):
     __tablename__ = "beamforming_peak_average_abspower"
+    beamforming_result_id = db.Column(
+        "beamforming_result_id",
+        db.Integer,
+        db.ForeignKey("beamforming_result.id"),
+        nullable=False,
+    )
 
 
 class BeamformingPeakAverageRelpower(BeamformingPeakExtractMixin):
     __tablename__ = "beamforming_peak_average_relpower"
+    beamforming_result_id = db.Column(
+        "beamforming_result_id",
+        db.Integer,
+        db.ForeignKey("beamforming_result.id"),
+        nullable=False,
+    )
 
 
 class BeamformingPeakAllAbspower(BeamformingPeakExtractMixin):
     __tablename__ = "beamforming_peak_all_abspower"
+    beamforming_result_id = db.Column(
+        "beamforming_result_id",
+        db.Integer,
+        db.ForeignKey("beamforming_result.id"),
+        nullable=False,
+    )
 
 
 class BeamformingPeakAllRelpower(BeamformingPeakExtractMixin):
     __tablename__ = "beamforming_peak_all_relpower"
+    beamforming_result_id = db.Column(
+        "beamforming_result_id",
+        db.Integer,
+        db.ForeignKey("beamforming_result.id"),
+        nullable=False,
+    )
