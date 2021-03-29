@@ -164,27 +164,13 @@ def _prepare_upsert_command_beamforming(results: BeamformingResult) -> Insert:
         .values(
             beamforming_params_id=results.beamforming_params_id,
             timespan_id=results.timespan_id,
-            mean_relative_relpow=results.mean_relative_relpow,
-            std_relative_relpow=results.std_relative_relpow,
-            mean_absolute_relpow=results.mean_absolute_relpow,
-            std_absolute_relpow=results.std_absolute_relpow,
-            mean_backazimuth=results.mean_backazimuth,
-            std_backazimuth=results.std_backazimuth,
-            mean_slowness=results.mean_slowness,
-            std_slowness=results.std_slowness,
+            beamforming_file_id=results.beamforming_file_id,
             used_component_count=results.used_component_count,
         )
         .on_conflict_do_update(
             constraint="unique_beam_per_config_per_timespan",
             set_=dict(
-                mean_relative_relpow=results.mean_relative_relpow,
-                std_relative_relpow=results.std_relative_relpow,
-                mean_absolute_relpow=results.mean_absolute_relpow,
-                std_absolute_relpow=results.std_absolute_relpow,
-                mean_backazimuth=results.mean_backazimuth,
-                std_backazimuth=results.std_backazimuth,
-                mean_slowness=results.mean_slowness,
-                std_slowness=results.std_slowness,
+                beamforming_file_id=results.beamforming_file_id,
                 used_component_count=results.used_component_count,
             ),
         )
