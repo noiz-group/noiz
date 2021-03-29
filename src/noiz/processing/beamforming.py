@@ -1,3 +1,7 @@
+from functools import lru_cache
+
+import math
+
 import numpy as np
 import pandas as pd
 from loguru import logger
@@ -12,7 +16,8 @@ from obspy.signal.array_analysis import array_processing
 
 from noiz.models.type_aliases import BeamformingRunnerInputs
 from noiz.models import Timespan, Datachunk, Component
-from noiz.models.beamforming import BeamformingResult
+from noiz.models.beamforming import BeamformingResult, BeamformingFile, BeamformingPeakAllRelpower, \
+    BeamformingPeakAllAbspower, BeamformingPeakAverageRelpower, BeamformingPeakAverageAbspower
 from noiz.models.processing_params import BeamformingParams
 
 
@@ -39,9 +44,11 @@ def calculate_beamforming_results(
     logger.debug("Creating an empty BeamformingResult")
     res = BeamformingResult(timespan_id=timespan.id, beamforming_params_id=beamforming_params.id)
 
-    if len(datachunks) <= 3:
+    if len(datachunks) <= beamforming_params.minimum_trace_count:
         raise NotEnoughDataError(
-            f"You should use more than 3 datachunks for beamforming. You provided {len(datachunks)}")
+            f"There are not enough data for beamforming. "
+            f"Minimum trace count: {beamforming_params.minimum_trace_count} "
+            f"Got: {len(datachunks)}")
 
     logger.debug("Loading seismic files")
     streams = Stream()
@@ -59,6 +66,18 @@ def calculate_beamforming_results(
 
     first_starttime = min([tr.stats.starttime for tr in streams])
     first_endtime = min([tr.stats.endtime for tr in streams])
+    time_vector = [pd.Timestamp.utcfromtimestamp(x).to_datetime64() for x in streams[0].times('timestamp')]
+
+    bk = BeamformerKeeper(
+        starttime=timespan.starttime_np,
+        midtime=timespan.midtime_np,
+        endtime=timespan.endtime_np,
+        xaxis=beamforming_params.get_xaxis(),
+        yaxis=beamforming_params.get_yaxis(),
+        time_vector=time_vector,
+        save_relpow=beamforming_params.save_relpow,
+        save_abspow=beamforming_params.save_abspow,
+    )
 
     array_proc_kwargs = dict(
         # slowness grid: X min, X max, Y min, Y max, Slow Step
@@ -81,24 +100,24 @@ def calculate_beamforming_results(
         stime=first_starttime,
         etime=first_endtime,
         method=beamforming_params.method,
+        store=bk.save_beamformers,
     )
 
     try:
-        out = array_processing(streams, **array_proc_kwargs)
+        _ = array_processing(streams, **array_proc_kwargs)
     except ValueError as e:
         raise ObspyError(f"Ecountered error while running beamforming routine. "
                          f"Error happenned for timespan: {timespan}, beamform_params: {beamforming_params} "
                          f"Error was: {e}")
-    timestamp, relative_relpow, absolute_relpow, backazimuth, slowness = np.hsplit(out, 5)
 
-    res.mean_slowness = np.mean(slowness)
-    res.std_slowness = np.std(slowness)
-    res.mean_relative_relpow = np.mean(relative_relpow)
-    res.std_relative_relpow = np.std(relative_relpow)
-    res.mean_absolute_relpow = np.mean(absolute_relpow)
-    res.std_absolute_relpow = np.std(absolute_relpow)
-    res.mean_backazimuth = np.mean(backazimuth)
-    res.std_backazimuth = np.std(backazimuth)
+    if beamforming_params.extract_peaks_average_beamformer_abspower:
+        res.average_abspower_peaks = bk.get_average_abspower_peaks(
+            neighborhood_size=beamforming_params.neighborhood_size,
+            maxima_threshold=beamforming_params.maxima_threshold,
+            best_point_count=beamforming_params.best_point_count,
+            beam_portion_threshold=beamforming_params.beam_portion_threshold,
+        )
+
     res.used_component_count = len(streams)
     res.datachunks = list(datachunks)
 
@@ -108,7 +127,20 @@ def calculate_beamforming_results(
 class BeamformerKeeper:
     """filldocs"""
 
-    def __init__(self, xaxis, yaxis, time_vector, save_relpow=True, save_abspow=False):
+    def __init__(
+            self,
+            starttime: np.datetime64,
+            midtime: np.datetime64,
+            endtime: np.datetime64,
+            xaxis: npt.ArrayLike,
+            yaxis: npt.ArrayLike,
+            time_vector: npt.ArrayLike,
+            save_relpow: bool = True,
+            save_abspow: bool = False
+    ):
+        self.starttime: np.datetime64 = starttime
+        self.midtime: np.datetime64 = midtime
+        self.endtime: np.datetime64 = endtime
         self.xaxis: npt.ArrayLike = xaxis
         self.yaxis: npt.ArrayLike = yaxis
         self.save_relpow: bool = save_relpow
@@ -124,7 +156,34 @@ class BeamformerKeeper:
         self.average_relpow: Optional[npt.ArrayLike] = None
         self.average_abspow: Optional[npt.ArrayLike] = None
 
-    def get_midtimes(self):
+    def save_beamforming_file(self, params: BeamformingParams, ts: Timespan) -> Optional[BeamformingFile]:
+        bf = BeamformingFile()
+        fpath = bf.find_empty_filepath(ts=ts, params=params)
+
+        res_to_save = dict()
+
+        if params.save_all_beamformers_abspower:
+            for i, arr in self.abs_pows:
+                res_to_save[f"abs_pow_{i}"] = arr
+        if params.save_all_beamformers_relpower:
+            for i, arr in self.rel_pows:
+                res_to_save[f"rel_pow_{i}"] = arr
+        if params.save_average_beamformer_abspower:
+            res_to_save["avg_abs_pow"] = self.average_abspow
+        if params.save_average_beamformer_relpower:
+            res_to_save["avg_abs_pow"] = self.average_relpow
+
+        if len(res_to_save) > 0:
+            logger.info(f"File will be saved at {fpath}")
+            res_to_save["file"] = fpath
+            res_to_save["midtimes"] = self.get_midtimes()
+            np.savez_compressed(**res_to_save)
+            return bf
+        else:
+            return None
+
+    @lru_cache
+    def get_midtimes(self) -> npt.ArrayLike:
         """filldocs"""
         return np.array([self.time_vector[x] for x in self.midtime_samples])
 
@@ -132,15 +191,14 @@ class BeamformerKeeper:
         """
         filldocs
 
-        Important note: It trnsposes the array compared to the obspy one!
         """
         self.iteration_count += 1
 
         self.midtime_samples.append(midsample)
         if self.save_relpow:
-            self.rel_pows.append(pow_map.copy().T)
+            self.rel_pows.append(pow_map.copy())
         if self.save_abspow:
-            self.abs_pows.append(apow_map.copy().T)
+            self.abs_pows.append(apow_map.copy())
 
     def calculate_average_relpower_beamformer(self):
         """filldocs"""
@@ -177,19 +235,21 @@ class BeamformerKeeper:
         if self.average_relpow is None:
             self.calculate_average_relpower_beamformer()
 
-        midtime = min(self.time_vector) + (max(self.time_vector) - min(self.time_vector))/2
-
         maxima = select_local_maxima(
             data=self.average_relpow,
             xaxis=self.xaxis,
             yaxis=self.yaxis,
-            time=midtime,
+            time=self.midtime,
             neighborhood_size=neighborhood_size,
             maxima_threshold=maxima_threshold,
             best_point_count=best_point_count,
         )
 
-        return _extract_most_significant_subbeams(maxima, beam_portion_threshold)
+        df = _extract_most_significant_subbeams([maxima, ], beam_portion_threshold)
+        df = _calculate_slowness(df=df)
+        df = _calculate_azimuth_backazimuth(df=df)
+
+        return df
 
     def extract_best_maxima_from_average_abspower(
             self,
@@ -202,19 +262,21 @@ class BeamformerKeeper:
         if self.average_abspow is None:
             self.calculate_average_abspower_beamformer()
 
-        midtime = min(self.time_vector) + (max(self.time_vector) - min(self.time_vector))/2
-
         maxima = select_local_maxima(
             data=self.average_abspow,
             xaxis=self.xaxis,
             yaxis=self.yaxis,
-            time=midtime,
+            time=self.midtime,
             neighborhood_size=neighborhood_size,
             maxima_threshold=maxima_threshold,
             best_point_count=best_point_count,
         )
 
-        return _extract_most_significant_subbeams(maxima, beam_portion_threshold)
+        df = _extract_most_significant_subbeams([maxima, ], beam_portion_threshold)
+        df = _calculate_slowness(df=df)
+        df = _calculate_azimuth_backazimuth(df=df)
+
+        return df
 
     def extract_best_maxima_from_all_relpower(
             self,
@@ -237,7 +299,11 @@ class BeamformerKeeper:
             )
             all_maxima.append(maxima)
 
-        return _extract_most_significant_subbeams(all_maxima, beam_portion_threshold)
+        df = _extract_most_significant_subbeams(all_maxima, beam_portion_threshold)
+        df = _calculate_slowness(df=df)
+        df = _calculate_azimuth_backazimuth(df=df)
+
+        return df
 
     def extract_best_maxima_from_all_abspower(
             self,
@@ -260,7 +326,119 @@ class BeamformerKeeper:
             )
             all_maxima.append(maxima)
 
-        return _extract_most_significant_subbeams(all_maxima, beam_portion_threshold)
+        df = _extract_most_significant_subbeams(all_maxima, beam_portion_threshold)
+        df = _calculate_slowness(df=df)
+        df = _calculate_azimuth_backazimuth(df=df)
+
+        return df
+
+    def get_average_abspower_peaks(
+            self,
+            neighborhood_size: int,
+            maxima_threshold: float,
+            best_point_count: int,
+            beam_portion_threshold: float,
+    ) -> Tuple[BeamformingPeakAverageAbspower, ...]:
+        df = self.extract_best_maxima_from_average_abspower(
+            neighborhood_size=neighborhood_size,
+            maxima_threshold=maxima_threshold,
+            best_point_count=best_point_count,
+            beam_portion_threshold=beam_portion_threshold,
+        )
+        res = []
+        for i, row in df.iterrows():
+            res.append(
+                BeamformingPeakAverageAbspower(
+                    slowness=row.slowness,
+                    slowness_x=row.x,
+                    slowness_y=row.y,
+                    amplitude=row.amplitude,
+                    azimuth=row.azimuth,
+                    backazimuth=row.backazimuth,
+                )
+            )
+        return tuple(res)
+
+    def get_average_relpower_peaks(
+            self,
+            neighborhood_size: int,
+            maxima_threshold: float,
+            best_point_count: int,
+            beam_portion_threshold: float,
+    ) -> Tuple[BeamformingPeakAverageRelpower, ...]:
+        df = self.extract_best_maxima_from_average_relpower(
+            neighborhood_size=neighborhood_size,
+            maxima_threshold=maxima_threshold,
+            best_point_count=best_point_count,
+            beam_portion_threshold=beam_portion_threshold,
+        )
+        res = []
+        for i, row in df.iterrows():
+            res.append(
+                BeamformingPeakAverageRelpower(
+                    slowness=row.slowness,
+                    slowness_x=row.x,
+                    slowness_y=row.y,
+                    amplitude=row.amplitude,
+                    azimuth=row.azimuth,
+                    backazimuth=row.backazimuth,
+                )
+            )
+        return tuple(res)
+
+    def get_all_abspower_peaks(
+            self,
+            neighborhood_size: int,
+            maxima_threshold: float,
+            best_point_count: int,
+            beam_portion_threshold: float,
+    ) -> Tuple[BeamformingPeakAllAbspower, ...]:
+        df = self.extract_best_maxima_from_all_abspower(
+            neighborhood_size=neighborhood_size,
+            maxima_threshold=maxima_threshold,
+            best_point_count=best_point_count,
+            beam_portion_threshold=beam_portion_threshold,
+        )
+        res = []
+        for i, row in df.iterrows():
+            res.append(
+                BeamformingPeakAllAbspower(
+                    slowness=row.slowness,
+                    slowness_x=row.x,
+                    slowness_y=row.y,
+                    amplitude=row.amplitude,
+                    azimuth=row.azimuth,
+                    backazimuth=row.backazimuth,
+                )
+            )
+        return tuple(res)
+
+    def get_all_relpower_peaks(
+            self,
+            neighborhood_size: int,
+            maxima_threshold: float,
+            best_point_count: int,
+            beam_portion_threshold: float,
+    ) -> Tuple[BeamformingPeakAllRelpower, ...]:
+        df = self.extract_best_maxima_from_all_relpower(
+            neighborhood_size=neighborhood_size,
+            maxima_threshold=maxima_threshold,
+            best_point_count=best_point_count,
+            beam_portion_threshold=beam_portion_threshold,
+        )
+        res = []
+        for i, row in df.iterrows():
+            res.append(
+                BeamformingPeakAllRelpower(
+                    slowness=row.slowness,
+                    slowness_x=row.x,
+                    slowness_y=row.y,
+                    amplitude=row.amplitude,
+                    azimuth=row.azimuth,
+                    backazimuth=row.backazimuth,
+                )
+            )
+        return tuple(res)
 
 
 def _extract_most_significant_subbeams(
@@ -273,8 +451,13 @@ def _extract_most_significant_subbeams(
     total_beam = df_all.loc[:, 'val'].groupby(level=0).sum()
     df_all.loc[:, 'beam_proportion'] = df_all.apply(lambda row: row.val / total_beam.loc[row.name], axis=1)
     df_res = df_all.loc[df_all.loc[:, 'beam_proportion'] > beam_portion_threshold, :]
+    maximum_points = df_res.groupby(by=['x', 'y']).mean()
+    maximum_points['occurence_counts'] = df_res.groupby(by=['x', 'y'])['val'].count()
+    maximum_points = maximum_points.rename(
+        columns={"val": "avg_val", "beam_proportion": "avg_beam_proportion"}
+    ).reset_index(level=[0, 1])
 
-    return df_res.groupby(by=['x', 'y']).mean().reset_index(level=[0, 1])
+    return maximum_points
 
 
 def select_local_maxima(
@@ -287,6 +470,7 @@ def select_local_maxima(
         best_point_count: int
 ) -> pd.DataFrame:
 
+    data = data.T
     data_max = filters.maximum_filter(data, neighborhood_size)
     maxima = (data == data_max)
     data_min = filters.minimum_filter(data, neighborhood_size)
@@ -303,7 +487,27 @@ def select_local_maxima(
         y.append(yaxis[y_center])
         max_vals.append(data[y_center, x_center])
 
-    df = pd.DataFrame(columns=["midtime", "x", "y", "val"], data=np.vstack([[time] * len(x), x, y, max_vals]).T)
+    df = pd.DataFrame(columns=["midtime", "x", "y", "val"], data=np.vstack([[time] * len(x), x, y, max_vals]).T, )
     df = df.sort_values(by='val', ascending=False)
 
+    if len(df) == 0:
+        raise ValueError("No peaks were found. Adjust neighbourhood_size and maxima_threshold values.")
+
     return df.loc[df.index[:best_point_count], :]
+
+
+def _calculate_azimuth_backazimuth(
+        df: pd.DataFrame,
+) -> pd.DataFrame:
+    """filldocs"""
+    df.loc[:, "azimuth"] = df.apply(lambda row: 180 * math.atan2(row.x, row.y) / math.pi, axis=1)
+    df.loc[:, "backazimuth"] = df.apply(lambda row: row.azimuth % -360 + 180, axis=1)
+    return df
+
+
+def _calculate_slowness(
+        df: pd.DataFrame,
+) -> pd.DataFrame:
+    """filldocs"""
+    df.loc[:, 'slowness'] = df.apply(lambda row: np.sqrt(row.x ** 2 + row.y ** 2), axis=1)
+    return df
