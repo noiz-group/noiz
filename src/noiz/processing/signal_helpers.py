@@ -1,8 +1,10 @@
 from collections import Counter
 
+from loguru import logger
 from typing import Union
 
 import obspy
+from noiz.exceptions import NotEnoughDataError, ValidationError
 from noiz.models import Timespan, DatachunkParams
 
 
@@ -72,15 +74,24 @@ def validate_and_fix_subsample_starttime_error(st: obspy.Stream) -> obspy.Stream
     :return: Validated stream
     :rtype: obspy.Stream
     """
+    if len(st) < 3:
+        raise NotEnoughDataError("There should be at least 3 traces in a stream to perform this validation")
+
     delta = st[0].stats.delta
     starttimes = [tr.stats.starttime for tr in st]
+
     min_starttime = min(starttimes)
     max_starttime = max(starttimes)
     most_common_starttime = obspy.UTCDateTime(Counter([s.timestamp for s in starttimes]).most_common()[0][0])
+
+    if 0 == abs(most_common_starttime - min_starttime) and 0 == abs(most_common_starttime - max_starttime):
+        return st
+
     if abs(most_common_starttime - min_starttime) < delta / 2 and \
             abs(most_common_starttime - max_starttime) < delta / 2:
+        logger.warning("Fixing the subsample time error")
         for tr in st:
             tr.stats.starttime = most_common_starttime
     else:
-        raise ValueError("The subsample time error is higher than half of the delta time between samples!")
+        raise ValidationError("The subsample time error is higher than half of the delta time between samples!")
     return st

@@ -52,3 +52,7 @@ class NotEnoughDataError(NoizBaseException):
 
 class SubobjectNotLoadedError(NoizBaseException):
     pass
+
+
+class ValidationError(NoizBaseException):
+    pass
