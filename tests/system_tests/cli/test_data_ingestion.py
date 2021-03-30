@@ -488,7 +488,41 @@ class TestDataIngestionRoutines:
             original_config = toml.load(f)
 
         for key, value in original_config['PPSDParams'].items():
-            if key in ("save_all_windows", "save_compressed"):
+            if key in ("save_all_windows", "save_compressed", "resample"):
+                check.equal(str(fetched_config.__getattribute__(key)), value)
+            if key in (
+                    "resampled_frequency_start",
+                    "resampled_frequency_stop",
+                    "resampled_frequency_step",
+            ):
+                continue
+            else:
+                check.almost_equal(fetched_config.__getattribute__(key), value)
+
+    def test_add_ppsd_params_resample(self, workdir_with_content, noiz_app):
+
+        config_path = workdir_with_content.joinpath('ppsd_params_resampled.toml')
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["configs", "add_ppsd_params", "--add_to_db", "-f", str(config_path)])
+
+        assert result.exit_code == 0
+
+        import toml
+        import pytest_check as check
+        from noiz.api.ppsd import fetch_ppsd_params_by_id
+        from noiz.models.processing_params import PPSDParams
+
+        with noiz_app.app_context():
+            fetched_config = fetch_ppsd_params_by_id(id=2)
+
+        assert isinstance(fetched_config, PPSDParams)
+
+        with open(config_path, 'r') as f:
+            original_config = toml.load(f)
+
+        for key, value in original_config['PPSDParams'].items():
+            if key in ("save_all_windows", "save_compressed", "resample"):
                 check.equal(str(fetched_config.__getattribute__(key)), value)
             else:
                 check.almost_equal(fetched_config.__getattribute__(key), value)
@@ -637,12 +671,34 @@ class TestDataIngestionRoutines:
         from noiz.api.ppsd import fetch_ppsd_results
 
         with noiz_app.app_context():
-            all_ppsd = fetch_ppsd_results()
-            count_res = db.session.query(PPSDResult).count()
+            all_ppsd = fetch_ppsd_results(ppsd_params_id=1)
+            count_res = db.session.query(PPSDResult).filter(PPSDResult.ppsd_params_id == 1).count()
             datachunks = db.session.query(Datachunk).count()
 
         assert len(all_ppsd) == count_res
         assert datachunks == count_res
+
+    def test_calc_ppsd_resampled(self, noiz_app):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["processing", "run_ppsd",
+                                     "-p", "2",
+                                     "-sd", "2019-09-30",
+                                     "-ed", "2019-10-03",
+                                     "--no_parallel",
+                                     ])
+        assert result.exit_code == 0
+
+        from noiz.api.ppsd import fetch_ppsd_results
+
+        with noiz_app.app_context():
+            all_ppsd = fetch_ppsd_results(ppsd_params_id=2)
+            count_res = db.session.query(PPSDResult).filter(PPSDResult.ppsd_params_id == 2).count()
+            datachunks = db.session.query(Datachunk).count()
+
+        assert len(all_ppsd) == count_res
+        assert datachunks == count_res
+
+        # TODO add checks if that data is really resampled
 
     def test_run_qcone(self, noiz_app):
         runner = CliRunner()
