@@ -324,6 +324,7 @@ def create_ppsd_params(
         segment_step=params_holder.segment_step,
         freq_min=params_holder.freq_min,
         freq_max=params_holder.freq_max,
+        resample=params_holder.resample,
         resampled_frequency_start=params_holder.resampled_frequency_start,
         resampled_frequency_stop=params_holder.resampled_frequency_stop,
         resampled_frequency_step=params_holder.resampled_frequency_step,

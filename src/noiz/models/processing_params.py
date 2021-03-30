@@ -607,6 +607,7 @@ class PPSDParamsHolder:
     segment_step: float  # seconds
     freq_min: float
     freq_max: float
+    resample: bool
     resampled_frequency_start: float
     resampled_frequency_stop: float
     resampled_frequency_step: float
@@ -629,6 +630,7 @@ class PPSDParams(db.Model):
     segment_step = db.Column("segment_overlap", db.Float, nullable=False)
     freq_min = db.Column("freq_min", db.Float, nullable=False)
     freq_max = db.Column("freq_max", db.Float, nullable=False)
+    resample = db.Column("resample", db.Boolean, nullable=False)
     resampled_frequency_start = db.Column("resampled_frequency_start", db.Float, nullable=False)
     resampled_frequency_stop = db.Column("resampled_frequency_stop", db.Float, nullable=False)
     resampled_frequency_step = db.Column("resampled_frequency_step", db.Float, nullable=False)
@@ -652,6 +654,7 @@ class PPSDParams(db.Model):
             sampling_rate: Union[float, int],
             freq_min: float,
             freq_max: float,
+            resample: bool,
             resampled_frequency_start: float,
             resampled_frequency_stop: float,
             resampled_frequency_step: float,
@@ -664,6 +667,7 @@ class PPSDParams(db.Model):
         self.segment_step = segment_step
         self.freq_min = freq_min
         self.freq_max = freq_max
+        self.resample = resample
         self.resampled_frequency_start = resampled_frequency_start
         self.resampled_frequency_stop = resampled_frequency_stop
         self.resampled_frequency_step = resampled_frequency_step
