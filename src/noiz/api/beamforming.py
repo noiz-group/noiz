@@ -15,11 +15,12 @@ from noiz.api.qc import fetch_qcone_config_single
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.models.type_aliases import BeamformingRunnerInputs
 from noiz.database import db
-from noiz.exceptions import EmptyResultException, InconsistentDataException
+from noiz.exceptions import EmptyResultException
 from noiz.models import Timespan, Datachunk, QCOneResults
 from noiz.models.beamforming import BeamformingResult
 from noiz.models.processing_params import BeamformingParams
-from noiz.processing.beamforming import calculate_beamforming_results_wrapper
+from noiz.processing.beamforming import calculate_beamforming_results_wrapper, \
+    _validate_if_all_beamforming_params_use_same_component_codes, _validate_if_all_beamforming_params_use_same_qcone
 
 
 def fetch_beamforming_params_single(id: int) -> BeamformingParams:
@@ -181,60 +182,6 @@ def _prepare_inputs_for_beamforming_runner(
             timespan=ts,
             datachunks=tuple(passing_chunks),
         )
-
-
-def _validate_if_all_beamforming_params_use_same_component_codes(
-        params: Collection[BeamformingParams]
-) -> Tuple[str, ...]:
-    """
-    Validates if all passed :py:class:`~noiz.models.processing_params.BeamformingParams` use the same
-    :py:attr:`noiz.models.processing_params.BeamformingParams.used_component_codes`.
-    If yes, returns id of a common value of
-    :py:attr:`noiz.models.processing_params.BeamformingParams.used_component_codes`
-
-    :param params: Beamforming params to be validated
-    :type params: Collection[BeamformingParams]
-    :return: ID of a common QCOneConfig
-    :rtype: int
-    :raises: InconsistentDataException
-    """
-    component_codes_in_beam_params = [x.used_component_codes for x in params]
-    unique_component_codes = list(set(component_codes_in_beam_params))
-    if len(unique_component_codes) > 1:
-        raise InconsistentDataException(
-            f"Mass beamforming can only run if all BeamformingParams use the same use_component_codes. "
-            f"Your query contains {len(unique_component_codes)} different used_component_codes attribute. "
-            f"To help you with debugging, here are all ids of used configs. "
-            f"Tuples of (BeamformingParams.id, BeamformingParams.used_component_codes): \n"
-            f"{[(x.id, x.used_component_codes) for x in params]} "
-        )
-    single_used_component_codes = unique_component_codes[0]
-    return single_used_component_codes
-
-
-def _validate_if_all_beamforming_params_use_same_qcone(params: Collection[BeamformingParams]) -> int:
-    """
-    Validates if all passed :py:class:`~noiz.models.processing_params.BeamformingParams` use the same
-    :py:class:`~noiz.models.qc.QCOneConfig`. If yes, returns id of a common config.
-
-    :param params: Beamforming params to be validated
-    :type params: Collection[BeamformingParams]
-    :return: ID of a common QCOneConfig
-    :rtype: int
-    :raises: InconsistentDataException
-    """
-    qcone_ids_in_beam_params = [x.qcone_config_id for x in params]
-    unique_qcone_config_ids = list(set(qcone_ids_in_beam_params))
-    if len(unique_qcone_config_ids) > 1:
-        raise InconsistentDataException(
-            f"Mass beamforming can only run if all BeamformingParams use the same QCOneConfig. "
-            f"Your query contains {len(unique_qcone_config_ids)} different QCOneConfigs. "
-            f"To help you with debugging, here are all ids of used configs. "
-            f"Tuples of (BeamformingParams.id, BeamformingParams.qcone_config_id): \n"
-            f"{[(x.id, x.qcone_config_id) for x in params]} "
-        )
-    single_qcone_config_id = unique_qcone_config_ids[0]
-    return single_qcone_config_id
 
 
 def _prepare_upsert_command_beamforming(results: BeamformingResult) -> Insert:
