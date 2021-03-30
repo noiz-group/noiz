@@ -116,6 +116,31 @@ def calculate_beamforming_results(
             best_point_count=beamforming_params.best_point_count,
             beam_portion_threshold=beamforming_params.beam_portion_threshold,
         )
+    if beamforming_params.extract_peaks_average_beamformer_relpower:
+        res.average_relpower_peaks = bk.get_average_relpower_peaks(
+            neighborhood_size=beamforming_params.neighborhood_size,
+            maxima_threshold=beamforming_params.maxima_threshold,
+            best_point_count=beamforming_params.best_point_count,
+            beam_portion_threshold=beamforming_params.beam_portion_threshold,
+        )
+    if beamforming_params.extract_peaks_all_beamformers_abspower:
+        res.all_abspower_peaks = bk.get_all_abspower_peaks(
+            neighborhood_size=beamforming_params.neighborhood_size,
+            maxima_threshold=beamforming_params.maxima_threshold,
+            best_point_count=beamforming_params.best_point_count,
+            beam_portion_threshold=beamforming_params.beam_portion_threshold,
+        )
+    if beamforming_params.extract_peaks_all_beamformers_relpower:
+        res.all_relpower_peaks = bk.get_all_relpower_peaks(
+            neighborhood_size=beamforming_params.neighborhood_size,
+            maxima_threshold=beamforming_params.maxima_threshold,
+            best_point_count=beamforming_params.best_point_count,
+            beam_portion_threshold=beamforming_params.beam_portion_threshold,
+        )
+
+    beamforming_file = bk.save_beamforming_file(params=beamforming_params, ts=timespan)
+    if beamforming_file is not None:
+        res.file = beamforming_file
 
     res.used_component_count = len(streams)
     res.datachunks = list(datachunks)
