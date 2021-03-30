@@ -660,7 +660,11 @@ class TestDataIngestionRoutines:
 
         assert qcone_count == datachunk_count
 
-    def test_run_beamforming(self, noiz_app):
+    @pytest.mark.xfail
+    def test_run_beamforming_extract_4_save_4(self, noiz_app):
+        assert False
+
+    def test_run_beamforming_extract_avg_abspower_save_none(self, noiz_app):
         runner = CliRunner()
         result = runner.invoke(cli, ["processing", "run_beamforming",
                                      "-p", "1",
@@ -678,7 +682,11 @@ class TestDataIngestionRoutines:
 
         assert 41 == bf_result_count
         assert bf_file_count == bf_result_count
-        assert peak_count == 0
+        assert peak_count == 245
+
+    @pytest.mark.xfail
+    def test_run_beamforming_multiple_configs(self, noiz_app):
+        assert False
 
     def test_run_datachunk_processing(self, noiz_app):
         runner = CliRunner()
