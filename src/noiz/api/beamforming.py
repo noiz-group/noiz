@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from loguru import logger
+from noiz.validation_helpers import validate_to_tuple
 from sqlalchemy.orm import subqueryload
 from typing import Union, Collection, Optional, List, Tuple, Generator
 from sqlalchemy.dialects.postgresql import insert, Insert
@@ -18,17 +19,18 @@ from noiz.exceptions import EmptyResultException
 from noiz.models import Timespan, Datachunk, QCOneResults
 from noiz.models.beamforming import BeamformingResult
 from noiz.models.processing_params import BeamformingParams
-from noiz.processing.beamforming import calculate_beamforming_results_wrapper
+from noiz.processing.beamforming import calculate_beamforming_results_wrapper, \
+    _validate_if_all_beamforming_params_use_same_component_codes, _validate_if_all_beamforming_params_use_same_qcone
 
 
-def fetch_beamforming_params_by_id(id: int) -> BeamformingParams:
+def fetch_beamforming_params_single(id: int) -> BeamformingParams:
     """
     Fetches a BeamformingParams objects by its ID.
 
     :param id: ID of beamforming params to be fetched
     :type id: int
     :return: fetched BeamformingParams object
-    :rtype: Optional[BeamformingParams]
+    :rtype: BeamformingParams
     """
     fetched_params = BeamformingParams.query.filter_by(id=id).first()
     if fetched_params is None:
@@ -37,8 +39,34 @@ def fetch_beamforming_params_by_id(id: int) -> BeamformingParams:
     return fetched_params
 
 
+def fetch_beamforming_params(
+        ids: Collection[int],
+        load_qcone_config: bool = True,
+) -> List[BeamformingParams]:
+    """
+    Fetches a BeamformingParams objects by its ID.
+
+    :param id: ID of beamforming params to be fetched
+    :type id: Collection[int]
+    :return: List of fetched BeamformingParams objects
+    :rtype: List[BeamformingParams]
+    """
+    opts = []
+    if load_qcone_config:
+        opts.append(subqueryload(BeamformingParams.qcone_config))
+
+    fetched_params = (BeamformingParams.query
+                      .filter(BeamformingParams.id.in_(ids))
+                      .options(opts)
+                      .all())
+    if len(fetched_params) == 0:
+        raise EmptyResultException(f"BeamformingParams with ids of {ids} do not exist.")
+
+    return fetched_params
+
+
 def run_beamforming(
-        beamforming_params_id: int,
+        beamforming_params_ids: Union[int, Tuple[int, ...]],
         starttime: Union[datetime.date, datetime.datetime],
         endtime: Union[datetime.date, datetime.datetime],
         networks: Optional[Union[Collection[str], str]] = None,
@@ -49,8 +77,9 @@ def run_beamforming(
         parallel: bool = True,
         raise_errors: bool = True,
 ):
+
     calculation_inputs = _prepare_inputs_for_beamforming_runner(
-        beamforming_params_id=beamforming_params_id,
+        beamforming_params_ids=validate_to_tuple(beamforming_params_ids, int),
         starttime=starttime,
         endtime=endtime,
         networks=networks,
@@ -82,7 +111,7 @@ def run_beamforming(
 
 
 def _prepare_inputs_for_beamforming_runner(
-        beamforming_params_id: int,
+        beamforming_params_ids: Collection[int],
         starttime: Union[datetime.date, datetime.datetime],
         endtime: Union[datetime.date, datetime.datetime],
         networks: Optional[Union[Collection[str], str]] = None,
@@ -91,12 +120,16 @@ def _prepare_inputs_for_beamforming_runner(
         skip_existing: bool = True,
 ) -> Generator[BeamformingRunnerInputs, None, None]:
 
-    logger.debug(f"Fetching BeamformingParams with id {beamforming_params_id}")
-    params = fetch_beamforming_params_by_id(beamforming_params_id)
-    logger.debug(f"Fetching ProcessedDatachunkParams successful. {params}")
+    logger.debug(f"Fetching BeamformingParams with ids {beamforming_params_ids}")
+    params = fetch_beamforming_params(ids=beamforming_params_ids)
+    logger.debug(f"Fetching BeamformingParams successful. {params}")
 
-    logger.debug(f"Fetching QCOneConfig with id {params.qcone_config_id}")
-    qcone_config = fetch_qcone_config_single(params.qcone_config_id)
+    single_qcone_config_id = _validate_if_all_beamforming_params_use_same_qcone(params)
+    single_used_component_codes = _validate_if_all_beamforming_params_use_same_component_codes(params)
+    global_minimum_trace_count = min([x.minimum_trace_count for x in params])
+
+    logger.debug(f"Fetching QCOneConfig with id {single_qcone_config_id}")
+    qcone_config = fetch_qcone_config_single(single_qcone_config_id)
     logger.debug(f"Fetching QCOneConfig successful. {qcone_config}")
 
     logger.debug(f"Fetching timespans for {starttime} - {endtime}")
@@ -107,7 +140,7 @@ def _prepare_inputs_for_beamforming_runner(
     fetched_components = fetch_components(
         networks=networks,
         stations=stations,
-        components=params.used_component_codes,
+        components=single_used_component_codes,
         component_ids=component_ids,
     )
     logger.debug(f"Fetched {len(fetched_components)} components")
@@ -136,10 +169,11 @@ def _prepare_inputs_for_beamforming_runner(
         group: List[Tuple[Datachunk, QCOneResults]]  # type: ignore
         passing_chunks = [chunk for chunk, qcres in group if qcres.is_passing()]
 
-        if len(passing_chunks) < params.minimum_trace_count:
+        if len(passing_chunks) < global_minimum_trace_count:
             logger.warning(f"There was not enough traces passing QCOne for the beamforming. Skipping this timespan. "
                            f"Timespan: {ts} "
-                           f"Minimum trace count: {params.minimum_trace_count}. Passing traces: {len(passing_chunks)}")
+                           f"Global minimum trace count: {global_minimum_trace_count}. "
+                           f"Passing traces: {len(passing_chunks)}")
             continue
 
         db.session.expunge_all()

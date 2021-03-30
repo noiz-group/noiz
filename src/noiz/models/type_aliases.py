@@ -70,7 +70,7 @@ class QCOneRunnerInputs(TypedDict):
 
 
 class BeamformingRunnerInputs(TypedDict):
-    beamforming_params: BeamformingParams
+    beamforming_params: Collection[BeamformingParams]
     timespan: Timespan
     datachunks: Tuple[Datachunk, ...]
 

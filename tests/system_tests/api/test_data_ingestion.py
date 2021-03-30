@@ -1,7 +1,6 @@
 import pytest
 pytestmark = [pytest.mark.system, pytest.mark.api]
 
-import os
 from pathlib import Path
 import shutil
 
@@ -136,3 +135,59 @@ class TestDataIngestionRoutines:
             kwargs_mod['include_autocorrelation'] = True
             kwargs_mod['include_intracorrelation'] = True
             assert len(fetch_componentpairs(**kwargs_mod)) == 27
+
+    @pytest.mark.xfail
+    def test_run_beamforming_extract_4_save_4(self, noiz_app):
+        assert False
+
+    @pytest.mark.xfail
+    def test_run_beamforming_extract_avg_abspower_save_none(self, noiz_app):
+        assert False
+
+    @pytest.mark.xfail
+    def test_run_beamforming_extract_avg_relpower_save_none(self, noiz_app):
+        assert False
+
+    @pytest.mark.xfail
+    def test_run_beamforming_extract_avg_relpower_avg_abspower_save_none(self, noiz_app):
+        assert False
+
+    @pytest.mark.xfail
+    def test_run_beamforming_extract_all_abspower_save_none(self, noiz_app):
+        assert False
+
+    @pytest.mark.xfail
+    def test_run_beamforming_extract_all_relpower_save_none(self, noiz_app):
+        assert False
+
+    @pytest.mark.xfail
+    def test_run_beamforming_extract_all_relpower_all_abspower_save_none(self, noiz_app):
+        assert False
+
+    @pytest.mark.xfail
+    def test_run_beamforming_save_avg_abspower_extract_none(self, noiz_app):
+        assert False
+
+    @pytest.mark.xfail
+    def test_run_beamforming_save_avg_relpower_extract_none(self, noiz_app):
+        assert False
+
+    @pytest.mark.xfail
+    def test_run_beamforming_save_avg_relpower_avg_abspower_extract_none(self, noiz_app):
+        assert False
+
+    @pytest.mark.xfail
+    def test_run_beamforming_save_all_abspower_extract_none(self, noiz_app):
+        assert False
+
+    @pytest.mark.xfail
+    def test_run_beamforming_save_all_relpower_extract_none(self, noiz_app):
+        assert False
+
+    @pytest.mark.xfail
+    def test_run_beamforming_save_all_relpower_all_abspower_extract_none(self, noiz_app):
+        assert False
+
+    @pytest.mark.xfail
+    def test_run_beamforming_multiple_configs(self, noiz_app):
+        assert False

@@ -544,28 +544,30 @@ class BeamformingParams(db.Model):
             ValueError("minimum_trace_count cannot be lower than one.")
 
     @property
-    def method(self):
+    def method(self) -> int:
         if self._method == "beamforming":
             return 0
-        if self._method == "capon":
+        elif self._method == "capon":
             return 1
+        else:
+            raise ValueError("This should not have happened.")
 
     @property
-    def window_fraction(self):
+    def window_fraction(self) -> float:
         return self.window_length/self.window_step
 
     @property
-    def used_component_codes(self):
+    def used_component_codes(self) -> Tuple[str, ...]:
         return tuple(self._used_component_codes.split(';'))
 
-    def get_xaxis(self):
+    def get_xaxis(self):  # -> npt.ArrayLike:
         return np.arange(
             start=self.slowness_x_min,
             stop=self.slowness_x_max+self.slowness_step/2,
             step=self.slowness_step
         )
 
-    def get_yaxis(self):
+    def get_yaxis(self):  # -> npt.ArrayLike:
         return np.arange(
             start=self.slowness_y_min,
             stop=self.slowness_y_max+self.slowness_step/2,
@@ -573,7 +575,7 @@ class BeamformingParams(db.Model):
         )
 
     @property
-    def save_abspow(self):
+    def save_abspow(self) -> bool:
         return any([
             self.save_average_beamformer_abspower,
             self.save_all_beamformers_abspower,
@@ -583,7 +585,7 @@ class BeamformingParams(db.Model):
         ])
 
     @property
-    def save_relpow(self):
+    def save_relpow(self) -> bool:
         return any([
             self.save_average_beamformer_relpower,
             self.save_all_beamformers_relpower,
