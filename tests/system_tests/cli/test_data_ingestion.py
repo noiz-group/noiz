@@ -490,7 +490,7 @@ class TestDataIngestionRoutines:
         for key, value in original_config['PPSDParams'].items():
             if key in ("save_all_windows", "save_compressed", "resample"):
                 check.equal(str(fetched_config.__getattribute__(key)), value)
-            if key in (
+            elif key in (
                     "resampled_frequency_start",
                     "resampled_frequency_stop",
                     "resampled_frequency_step",
