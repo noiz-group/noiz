@@ -607,11 +607,11 @@ class PPSDParamsHolder:
     segment_step: float  # seconds
     freq_min: float
     freq_max: float
-    resample: bool
-    resampled_frequency_start: float
-    resampled_frequency_stop: float
-    resampled_frequency_step: float
-    rejected_quantile: float
+    resample: bool = False
+    resampled_frequency_start: Optional[float] = None
+    resampled_frequency_stop: Optional[float] = None
+    resampled_frequency_step: Optional[float] = None
+    rejected_windows_quantile: float = 0.1
     save_all_windows: bool = False
     save_compressed: bool = True
 
@@ -631,10 +631,10 @@ class PPSDParams(db.Model):
     freq_min = db.Column("freq_min", db.Float, nullable=False)
     freq_max = db.Column("freq_max", db.Float, nullable=False)
     resample = db.Column("resample", db.Boolean, nullable=False)
-    resampled_frequency_start = db.Column("resampled_frequency_start", db.Float, nullable=False)
-    resampled_frequency_stop = db.Column("resampled_frequency_stop", db.Float, nullable=False)
-    resampled_frequency_step = db.Column("resampled_frequency_step", db.Float, nullable=False)
-    rejected_quantile = db.Column("rejected_quantile", db.Float, nullable=False)
+    resampled_frequency_start = db.Column("resampled_frequency_start", db.Float, nullable=True)
+    resampled_frequency_stop = db.Column("resampled_frequency_stop", db.Float, nullable=True)
+    resampled_frequency_step = db.Column("resampled_frequency_step", db.Float, nullable=True)
+    rejected_windows_quantile = db.Column("rejected_windows_quantile", db.Float, nullable=False)
     save_all_windows = db.Column("save_all_windows", db.Boolean, nullable=False)
     save_compressed = db.Column("save_compressed", db.Boolean, nullable=False)
 
@@ -655,23 +655,40 @@ class PPSDParams(db.Model):
             freq_min: float,
             freq_max: float,
             resample: bool,
-            resampled_frequency_start: float,
-            resampled_frequency_stop: float,
-            resampled_frequency_step: float,
-            rejected_quantile: float,
+            resampled_frequency_start: Optional[float],
+            resampled_frequency_stop: Optional[float],
+            resampled_frequency_step: Optional[float],
+            rejected_windows_quantile: float,
             save_all_windows: bool,
             save_compressed: bool,
     ):
+        if resample and any([
+            resampled_frequency_start is None,
+            resampled_frequency_stop is None,
+            resampled_frequency_step is None,
+        ]):
+            raise ValueError("If you want to resample you have to provide all resampled_* params")
+
+        if resampled_frequency_start is not None and resampled_frequency_start < freq_min:
+            raise ValueError("Frequency vector to which you want to resample cannot start before the accepted "
+                             "frequencies. It has to be resample_frequency_start >= freq_min")
+
+        if resampled_frequency_stop is not None and resampled_frequency_stop > freq_max:
+            raise ValueError("Frequency vector to which you want to resample cannot end after the accepted "
+                             "frequencies. It has to be: resampled_frequency_stop <= freq_max")
+
         self.datachunk_params_id = datachunk_params_id
         self.segment_length = segment_length
         self.segment_step = segment_step
         self.freq_min = freq_min
         self.freq_max = freq_max
+
         self.resample = resample
         self.resampled_frequency_start = resampled_frequency_start
         self.resampled_frequency_stop = resampled_frequency_stop
         self.resampled_frequency_step = resampled_frequency_step
-        self.rejected_quantile = rejected_quantile
+
+        self.rejected_windows_quantile = rejected_windows_quantile
         self.save_all_windows = save_all_windows
         self.save_compressed = save_compressed
 

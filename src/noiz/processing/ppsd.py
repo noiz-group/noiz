@@ -86,8 +86,8 @@ def calculate_ppsd(
     energy_list = np.nansum(all_ffts, axis=1)
 
     acc_windows_by_energy = np.where(
-        (energy_list < np.nanquantile(energy_list, 1 - ppsd_params.rejected_quantile)) &
-        (energy_list > np.nanquantile(energy_list, ppsd_params.rejected_quantile)))[0]
+        (energy_list < np.nanquantile(energy_list, 1 - ppsd_params.rejected_windows_quantile)) &
+        (energy_list > np.nanquantile(energy_list, ppsd_params.rejected_windows_quantile)))[0]
     accepted_windows = all_ffts[acc_windows_by_energy, :]
 
     psd_file = PPSDFile()

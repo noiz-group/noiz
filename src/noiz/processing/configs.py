@@ -328,7 +328,7 @@ def create_ppsd_params(
         resampled_frequency_start=params_holder.resampled_frequency_start,
         resampled_frequency_stop=params_holder.resampled_frequency_stop,
         resampled_frequency_step=params_holder.resampled_frequency_step,
-        rejected_quantile=params_holder.rejected_quantile,
+        rejected_windows_quantile=params_holder.rejected_windows_quantile,
         save_all_windows=params_holder.save_all_windows,
         save_compressed=params_holder.save_compressed,
         sampling_rate=datachunk_params.sampling_rate,
