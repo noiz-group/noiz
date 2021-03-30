@@ -18,7 +18,7 @@ from noiz.models import StackingSchema, QCOneResults, QCTwoResults, DatachunkPar
     ProcessedDatachunkParams, CrosscorrelationParams, Datachunk, DatachunkStats, ProcessedDatachunk, \
     SohGps, SohInstrument, Timespan, CCFStack, Crosscorrelation
 from noiz.models.component import ComponentFile
-from noiz.models.beamforming import BeamformingResult
+from noiz.models.beamforming import BeamformingResult, BeamformingFile, BeamformingPeakAverageAbspower
 from noiz.models.ppsd import PPSDResult
 
 
@@ -423,11 +423,11 @@ class TestDataIngestionRoutines:
 
         import toml
         import pytest_check as check
-        from noiz.api.beamforming import fetch_beamforming_params_by_id
+        from noiz.api.beamforming import fetch_beamforming_params_single
         from noiz.models.processing_params import BeamformingParams
 
         with noiz_app.app_context():
-            fetched_config = fetch_beamforming_params_by_id(id=1)
+            fetched_config = fetch_beamforming_params_single(id=1)
             all_configs = BeamformingParams.query.all()
 
         assert isinstance(fetched_config, BeamformingParams)
@@ -672,8 +672,13 @@ class TestDataIngestionRoutines:
                                      ])
         assert result.exit_code == 0
         with noiz_app.app_context():
-            count = BeamformingResult.query.count()
-        assert 41 == count
+            bf_result_count = BeamformingResult.query.count()
+            bf_file_count = BeamformingFile.query.count()
+            peak_count = BeamformingPeakAverageAbspower.query.count()
+
+        assert 41 == bf_result_count
+        assert bf_file_count == bf_result_count
+        assert peak_count == 0
 
     def test_run_datachunk_processing(self, noiz_app):
         runner = CliRunner()
