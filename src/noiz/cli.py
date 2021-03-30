@@ -617,7 +617,7 @@ def run_qcone(
 @click.option("-s", "--station", multiple=True, type=str, callback=_validate_zero_length_as_none)
 @click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
 @click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
-@click.option("-p", "--beamforming_params_id", nargs=-1, type=int, required=True)
+@click.option("-p", "--beamforming_params_id", multiple=True, type=int, required=True)
 @click.option("-b", "--batch_size", nargs=1, type=int, default=1000, show_default=True)
 @click.option('--parallel/--no_parallel', default=True)
 @click.option('--skip_existing/--no_skip_existing', default=True)
