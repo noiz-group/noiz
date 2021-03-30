@@ -43,13 +43,16 @@ def calculate_beamforming_results(
     for datachunk in datachunks:
         if not isinstance(datachunk.component, Component):
             raise SubobjectNotLoadedError('You should load Component together with the Datachunk.')
-        st = datachunk.load_data()
-        st[0].stats.coordinates = AttribDict({
+        single_st = datachunk.load_data()
+        single_st[0].stats.coordinates = AttribDict({
             'latitude': datachunk.component.lat,
             'elevation': datachunk.component.elevation / 1000,
             'longitude': datachunk.component.lon})
-        st.extend(st)
+        st.extend(single_st)
 
+    logger.info(f"For Timespan {timespan} there are {len(st)} traces loaded.")
+
+    logger.debug("Checking for subsample starttime error.")
     st = validate_and_fix_subsample_starttime_error(st)
 
     logger.debug(f"Preparing stream metadata for beamforming for timespan {timespan}")
@@ -60,15 +63,16 @@ def calculate_beamforming_results(
     results = []
 
     for beamforming_params in beamforming_params_collection:
-        logger.debug(f"Calculating beamforming for timespan {timespan}")
+        logger.debug(f"Calculating beamforming for timespan {timespan} and params {beamforming_params}")
+
         logger.debug("Creating an empty BeamformingResult")
         res = BeamformingResult(timespan_id=timespan.id, beamforming_params_id=beamforming_params.id)
 
-        if len(datachunks) <= beamforming_params.minimum_trace_count:
+        if len(st) <= beamforming_params.minimum_trace_count:
             logger.error(
                 f"There are not enough data for beamforming. "
                 f"Minimum trace count: {beamforming_params.minimum_trace_count} "
-                f"Got: {len(datachunks)}"
+                f"Got: {len(st)}"
             )
             continue
 
@@ -527,11 +531,11 @@ def select_local_maxima(
         max_vals.append(data[y_center, x_center])
 
     df = pd.DataFrame(columns=["x", "y", "amplitude"], data=np.vstack([x, y, max_vals]).T, )
-    df.loc[:, 'midtime'] = time
-    df = df.sort_values(by='amplitude', ascending=False)
-
     if len(df) == 0:
         raise ValueError("No peaks were found. Adjust neighbourhood_size and maxima_threshold values.")
+
+    df.loc[:, 'midtime'] = time
+    df = df.sort_values(by='amplitude', ascending=False)
 
     return df.loc[df.index[:best_point_count], :]
 
