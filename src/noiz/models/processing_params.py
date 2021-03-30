@@ -674,17 +674,17 @@ class PPSDParams(db.Model):
         self.sampling_rate = float(sampling_rate)
 
     @property
-    def expected_sample_count(self):
+    def expected_signal_sample_count(self):
         return int(self.sampling_rate * self.segment_length)
 
     @property
-    def sample_spacing(self):
+    def signal_sample_spacing(self):
         return 1/self.sampling_rate
 
     @cached_property
     def _all_fft_freqs(self):
         from scipy.fft import fftfreq
-        return fftfreq(n=self.expected_sample_count, d=self.sample_spacing)
+        return fftfreq(n=self.expected_signal_sample_count, d=self.signal_sample_spacing)
 
     @cached_property
     def _where_accepted_freqs(self):
@@ -694,6 +694,14 @@ class PPSDParams(db.Model):
     @cached_property
     def expected_fft_freq(self):
         return self._all_fft_freqs[self._where_accepted_freqs]
+
+    @cached_property
+    def resampled_frequency_vector(self):
+        return np.arange(
+            start=self.resampled_frequency_start,
+            stop=self.resampled_frequency_stop,
+            step=self.resampled_frequency_step,
+        )
 
     # use_winter_time = db.Column("use_winter_time", db.Boolean)
     # f_sampling_out = db.Column("f_sampling_out", db.Integer)
