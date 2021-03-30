@@ -2,6 +2,8 @@ from functools import lru_cache
 from loguru import logger
 import math
 import numpy as np
+
+from noiz.processing.signal_helpers import validate_and_fix_subsample_starttime_error
 from obspy.core import AttribDict, Stream
 from obspy.signal.array_analysis import array_processing
 import pandas as pd
@@ -37,7 +39,7 @@ def calculate_beamforming_results(
     """
 
     logger.debug(f"Loading seismic files for timespan {timespan}")
-    streams = Stream()
+    st = Stream()
     for datachunk in datachunks:
         if not isinstance(datachunk.component, Component):
             raise SubobjectNotLoadedError('You should load Component together with the Datachunk.')
@@ -46,12 +48,14 @@ def calculate_beamforming_results(
             'latitude': datachunk.component.lat,
             'elevation': datachunk.component.elevation / 1000,
             'longitude': datachunk.component.lon})
-        streams.extend(st)
+        st.extend(st)
+
+    st = validate_and_fix_subsample_starttime_error(st)
 
     logger.debug(f"Preparing stream metadata for beamforming for timespan {timespan}")
-    first_starttime = min([tr.stats.starttime for tr in streams])
-    first_endtime = min([tr.stats.endtime for tr in streams])
-    time_vector = [pd.Timestamp.utcfromtimestamp(x).to_datetime64() for x in streams[0].times('timestamp')]
+    first_starttime = min([tr.stats.starttime for tr in st])
+    first_endtime = min([tr.stats.endtime for tr in st])
+    time_vector = [pd.Timestamp.utcfromtimestamp(x).to_datetime64() for x in st[0].times('timestamp')]
 
     results = []
 
@@ -104,7 +108,7 @@ def calculate_beamforming_results(
         )
 
         try:
-            _ = array_processing(streams, **array_proc_kwargs)
+            _ = array_processing(st, **array_proc_kwargs)
         except ValueError as e:
             raise ObspyError(f"Ecountered error while running beamforming routine. "
                              f"Error happenned for timespan: {timespan}, beamform_params: {beamforming_params} "
@@ -143,7 +147,7 @@ def calculate_beamforming_results(
         if beamforming_file is not None:
             res.file = beamforming_file
 
-        res.used_component_count = len(streams)
+        res.used_component_count = len(st)
         res.datachunks = list(datachunks)
 
         results.append(res)
