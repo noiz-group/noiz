@@ -61,10 +61,10 @@ def calculate_ppsd(
     starttimes = []
 
     for i, tr_segment in enumerate(subwindow_generator):
-        if tr_segment.stats.npts == ppsd_params.expected_sample_count+1:
+        if tr_segment.stats.npts == ppsd_params.expected_signal_sample_count+1:
             tr_segment.data = tr_segment.data[:-1]
-        elif (tr_segment.stats.npts != ppsd_params.expected_sample_count+1) and \
-                (tr_segment.stats.npts != ppsd_params.expected_sample_count):
+        elif (tr_segment.stats.npts != ppsd_params.expected_signal_sample_count + 1) and \
+                (tr_segment.stats.npts != ppsd_params.expected_signal_sample_count):
             continue
         all_ffts[i, :] = abs(fft(tr_segment.data)[ppsd_params._where_accepted_freqs])
 
