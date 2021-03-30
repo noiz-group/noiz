@@ -22,9 +22,9 @@ from noiz.models.processing_params import BeamformingParams
 
 def calculate_beamforming_results_wrapper(inputs: BeamformingRunnerInputs) -> Tuple[BeamformingResult, ...]:
     """filldocs"""
-    return (
+    return tuple(
         calculate_beamforming_results(
-            beamforming_params=inputs["beamforming_params"],
+            beamforming_params_collection=inputs["beamforming_params"],
             timespan=inputs["timespan"],
             datachunks=inputs["datachunks"],
         ),
@@ -32,24 +32,15 @@ def calculate_beamforming_results_wrapper(inputs: BeamformingRunnerInputs) -> Tu
 
 
 def calculate_beamforming_results(
-        beamforming_params: BeamformingParams,
+        beamforming_params_collection: Collection[BeamformingParams],
         timespan: Timespan,
         datachunks: Tuple[Datachunk, ...],
 
-) -> BeamformingResult:
+) -> List[BeamformingResult]:
     """filldocs
     """
 
-    logger.debug("Creating an empty BeamformingResult")
-    res = BeamformingResult(timespan_id=timespan.id, beamforming_params_id=beamforming_params.id)
-
-    if len(datachunks) <= beamforming_params.minimum_trace_count:
-        raise NotEnoughDataError(
-            f"There are not enough data for beamforming. "
-            f"Minimum trace count: {beamforming_params.minimum_trace_count} "
-            f"Got: {len(datachunks)}")
-
-    logger.debug("Loading seismic files")
+    logger.debug(f"Loading seismic files for timespan {timespan}")
     streams = Stream()
     for datachunk in datachunks:
         if not isinstance(datachunk.component, Component):
@@ -61,91 +52,107 @@ def calculate_beamforming_results(
             'longitude': datachunk.component.lon})
         streams.extend(st)
 
-    logger.debug(f"Calculating beamforming for timespan {timespan}")
-
+    logger.debug(f"Preparing stream metadata for beamforming for timespan {timespan}")
     first_starttime = min([tr.stats.starttime for tr in streams])
     first_endtime = min([tr.stats.endtime for tr in streams])
     time_vector = [pd.Timestamp.utcfromtimestamp(x).to_datetime64() for x in streams[0].times('timestamp')]
 
-    bk = BeamformerKeeper(
-        starttime=timespan.starttime_np,
-        midtime=timespan.midtime_np,
-        endtime=timespan.endtime_np,
-        xaxis=beamforming_params.get_xaxis(),
-        yaxis=beamforming_params.get_yaxis(),
-        time_vector=time_vector,
-        save_relpow=beamforming_params.save_relpow,
-        save_abspow=beamforming_params.save_abspow,
-    )
+    results = []
 
-    array_proc_kwargs = dict(
-        # slowness grid: X min, X max, Y min, Y max, Slow Step
-        sll_x=beamforming_params.slowness_x_min,
-        slm_x=beamforming_params.slowness_x_max,
-        sll_y=beamforming_params.slowness_y_min,
-        slm_y=beamforming_params.slowness_y_max,
-        sl_s=beamforming_params.slowness_step,
-        # sliding window properties
-        win_len=beamforming_params.window_length,
-        win_frac=beamforming_params.window_fraction,
-        # frequency properties
-        frqlow=beamforming_params.min_freq,
-        frqhigh=beamforming_params.max_freq,
-        prewhiten=int(beamforming_params.prewhiten),
-        # restrict output
-        semb_thres=beamforming_params.semblance_threshold,
-        vel_thres=beamforming_params.velocity_threshold,
-        timestamp='julsec',
-        stime=first_starttime,
-        etime=first_endtime,
-        method=beamforming_params.method,
-        store=bk.save_beamformers,
-    )
+    for beamforming_params in beamforming_params_collection:
+        logger.debug(f"Calculating beamforming for timespan {timespan}")
+        logger.debug("Creating an empty BeamformingResult")
+        res = BeamformingResult(timespan_id=timespan.id, beamforming_params_id=beamforming_params.id)
 
-    try:
-        _ = array_processing(streams, **array_proc_kwargs)
-    except ValueError as e:
-        raise ObspyError(f"Ecountered error while running beamforming routine. "
-                         f"Error happenned for timespan: {timespan}, beamform_params: {beamforming_params} "
-                         f"Error was: {e}")
+        if len(datachunks) <= beamforming_params.minimum_trace_count:
+            logger.error(
+                f"There are not enough data for beamforming. "
+                f"Minimum trace count: {beamforming_params.minimum_trace_count} "
+                f"Got: {len(datachunks)}"
+            )
+            continue
 
-    if beamforming_params.extract_peaks_average_beamformer_abspower:
-        res.average_abspower_peaks = bk.get_average_abspower_peaks(
-            neighborhood_size=beamforming_params.neighborhood_size,
-            maxima_threshold=beamforming_params.maxima_threshold,
-            best_point_count=beamforming_params.best_point_count,
-            beam_portion_threshold=beamforming_params.beam_portion_threshold,
-        )
-    if beamforming_params.extract_peaks_average_beamformer_relpower:
-        res.average_relpower_peaks = bk.get_average_relpower_peaks(
-            neighborhood_size=beamforming_params.neighborhood_size,
-            maxima_threshold=beamforming_params.maxima_threshold,
-            best_point_count=beamforming_params.best_point_count,
-            beam_portion_threshold=beamforming_params.beam_portion_threshold,
-        )
-    if beamforming_params.extract_peaks_all_beamformers_abspower:
-        res.all_abspower_peaks = bk.get_all_abspower_peaks(
-            neighborhood_size=beamforming_params.neighborhood_size,
-            maxima_threshold=beamforming_params.maxima_threshold,
-            best_point_count=beamforming_params.best_point_count,
-            beam_portion_threshold=beamforming_params.beam_portion_threshold,
-        )
-    if beamforming_params.extract_peaks_all_beamformers_relpower:
-        res.all_relpower_peaks = bk.get_all_relpower_peaks(
-            neighborhood_size=beamforming_params.neighborhood_size,
-            maxima_threshold=beamforming_params.maxima_threshold,
-            best_point_count=beamforming_params.best_point_count,
-            beam_portion_threshold=beamforming_params.beam_portion_threshold,
+        bk = BeamformerKeeper(
+            starttime=timespan.starttime_np,
+            midtime=timespan.midtime_np,
+            endtime=timespan.endtime_np,
+            xaxis=beamforming_params.get_xaxis(),
+            yaxis=beamforming_params.get_yaxis(),
+            time_vector=time_vector,
+            save_relpow=beamforming_params.save_relpow,
+            save_abspow=beamforming_params.save_abspow,
         )
 
-    beamforming_file = bk.save_beamforming_file(params=beamforming_params, ts=timespan)
-    if beamforming_file is not None:
-        res.file = beamforming_file
+        array_proc_kwargs = dict(
+            # slowness grid: X min, X max, Y min, Y max, Slow Step
+            sll_x=beamforming_params.slowness_x_min,
+            slm_x=beamforming_params.slowness_x_max,
+            sll_y=beamforming_params.slowness_y_min,
+            slm_y=beamforming_params.slowness_y_max,
+            sl_s=beamforming_params.slowness_step,
+            # sliding window properties
+            win_len=beamforming_params.window_length,
+            win_frac=beamforming_params.window_fraction,
+            # frequency properties
+            frqlow=beamforming_params.min_freq,
+            frqhigh=beamforming_params.max_freq,
+            prewhiten=int(beamforming_params.prewhiten),
+            # restrict output
+            semb_thres=beamforming_params.semblance_threshold,
+            vel_thres=beamforming_params.velocity_threshold,
+            timestamp='julsec',
+            stime=first_starttime,
+            etime=first_endtime,
+            method=beamforming_params.method,
+            store=bk.save_beamformers,
+        )
 
-    res.used_component_count = len(streams)
-    res.datachunks = list(datachunks)
+        try:
+            _ = array_processing(streams, **array_proc_kwargs)
+        except ValueError as e:
+            raise ObspyError(f"Ecountered error while running beamforming routine. "
+                             f"Error happenned for timespan: {timespan}, beamform_params: {beamforming_params} "
+                             f"Error was: {e}")
 
-    return res
+        if beamforming_params.extract_peaks_average_beamformer_abspower:
+            res.average_abspower_peaks = bk.get_average_abspower_peaks(
+                neighborhood_size=beamforming_params.neighborhood_size,
+                maxima_threshold=beamforming_params.maxima_threshold,
+                best_point_count=beamforming_params.best_point_count,
+                beam_portion_threshold=beamforming_params.beam_portion_threshold,
+            )
+        if beamforming_params.extract_peaks_average_beamformer_relpower:
+            res.average_relpower_peaks = bk.get_average_relpower_peaks(
+                neighborhood_size=beamforming_params.neighborhood_size,
+                maxima_threshold=beamforming_params.maxima_threshold,
+                best_point_count=beamforming_params.best_point_count,
+                beam_portion_threshold=beamforming_params.beam_portion_threshold,
+            )
+        if beamforming_params.extract_peaks_all_beamformers_abspower:
+            res.all_abspower_peaks = bk.get_all_abspower_peaks(
+                neighborhood_size=beamforming_params.neighborhood_size,
+                maxima_threshold=beamforming_params.maxima_threshold,
+                best_point_count=beamforming_params.best_point_count,
+                beam_portion_threshold=beamforming_params.beam_portion_threshold,
+            )
+        if beamforming_params.extract_peaks_all_beamformers_relpower:
+            res.all_relpower_peaks = bk.get_all_relpower_peaks(
+                neighborhood_size=beamforming_params.neighborhood_size,
+                maxima_threshold=beamforming_params.maxima_threshold,
+                best_point_count=beamforming_params.best_point_count,
+                beam_portion_threshold=beamforming_params.beam_portion_threshold,
+            )
+
+        beamforming_file = bk.save_beamforming_file(params=beamforming_params, ts=timespan)
+        if beamforming_file is not None:
+            res.file = beamforming_file
+
+        res.used_component_count = len(streams)
+        res.datachunks = list(datachunks)
+
+        results.append(res)
+
+    return results
 
 
 class BeamformerKeeper:
