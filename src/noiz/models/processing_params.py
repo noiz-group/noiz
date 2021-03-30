@@ -607,6 +607,9 @@ class PPSDParamsHolder:
     segment_step: float  # seconds
     freq_min: float
     freq_max: float
+    resampled_frequency_start: float
+    resampled_frequency_stop: float
+    resampled_frequency_step: float
     rejected_quantile: float
     save_all_windows: bool = False
     save_compressed: bool = True
@@ -626,6 +629,9 @@ class PPSDParams(db.Model):
     segment_step = db.Column("segment_overlap", db.Float, nullable=False)
     freq_min = db.Column("freq_min", db.Float, nullable=False)
     freq_max = db.Column("freq_max", db.Float, nullable=False)
+    resampled_frequency_start = db.Column("resampled_frequency_start", db.Float, nullable=False)
+    resampled_frequency_stop = db.Column("resampled_frequency_stop", db.Float, nullable=False)
+    resampled_frequency_step = db.Column("resampled_frequency_step", db.Float, nullable=False)
     rejected_quantile = db.Column("rejected_quantile", db.Float, nullable=False)
     save_all_windows = db.Column("save_all_windows", db.Boolean, nullable=False)
     save_compressed = db.Column("save_compressed", db.Boolean, nullable=False)
@@ -646,6 +652,9 @@ class PPSDParams(db.Model):
             sampling_rate: Union[float, int],
             freq_min: float,
             freq_max: float,
+            resampled_frequency_start: float,
+            resampled_frequency_stop: float,
+            resampled_frequency_step: float,
             rejected_quantile: float,
             save_all_windows: bool,
             save_compressed: bool,
@@ -655,6 +664,9 @@ class PPSDParams(db.Model):
         self.segment_step = segment_step
         self.freq_min = freq_min
         self.freq_max = freq_max
+        self.resampled_frequency_start = resampled_frequency_start
+        self.resampled_frequency_stop = resampled_frequency_stop
+        self.resampled_frequency_step = resampled_frequency_step
         self.rejected_quantile = rejected_quantile
         self.save_all_windows = save_all_windows
         self.save_compressed = save_compressed
