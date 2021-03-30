@@ -1,30 +1,28 @@
 from functools import lru_cache
-
-import math
-
-import numpy as np
-import pandas as pd
 from loguru import logger
+import math
+import numpy as np
+
+from noiz.processing.signal_helpers import validate_and_fix_subsample_starttime_error
+from obspy.core import AttribDict, Stream
+from obspy.signal.array_analysis import array_processing
+import pandas as pd
 from scipy import ndimage as ndimage
 from scipy.ndimage import filters as filters
 from typing import Tuple, Collection, Optional, List, Any
 
-from noiz.exceptions import ObspyError, NotEnoughDataError, SubobjectNotLoadedError
-from obspy.core import AttribDict, Stream
-from obspy.signal.array_analysis import array_processing
-
+from noiz.exceptions import ObspyError, SubobjectNotLoadedError, InconsistentDataException
 from noiz.models.type_aliases import BeamformingRunnerInputs
-from noiz.models import Timespan, Datachunk, Component
+from noiz.models import Timespan, Datachunk, Component, BeamformingParams
 from noiz.models.beamforming import BeamformingResult, BeamformingFile, BeamformingPeakAllRelpower, \
     BeamformingPeakAllAbspower, BeamformingPeakAverageRelpower, BeamformingPeakAverageAbspower
-from noiz.models.processing_params import BeamformingParams
 
 
 def calculate_beamforming_results_wrapper(inputs: BeamformingRunnerInputs) -> Tuple[BeamformingResult, ...]:
     """filldocs"""
-    return (
+    return tuple(
         calculate_beamforming_results(
-            beamforming_params=inputs["beamforming_params"],
+            beamforming_params_collection=inputs["beamforming_params"],
             timespan=inputs["timespan"],
             datachunks=inputs["datachunks"],
         ),
@@ -32,95 +30,133 @@ def calculate_beamforming_results_wrapper(inputs: BeamformingRunnerInputs) -> Tu
 
 
 def calculate_beamforming_results(
-        beamforming_params: BeamformingParams,
+        beamforming_params_collection: Collection[BeamformingParams],
         timespan: Timespan,
         datachunks: Tuple[Datachunk, ...],
 
-) -> BeamformingResult:
+) -> List[BeamformingResult]:
     """filldocs
     """
 
-    logger.debug("Creating an empty BeamformingResult")
-    res = BeamformingResult(timespan_id=timespan.id, beamforming_params_id=beamforming_params.id)
-
-    if len(datachunks) <= beamforming_params.minimum_trace_count:
-        raise NotEnoughDataError(
-            f"There are not enough data for beamforming. "
-            f"Minimum trace count: {beamforming_params.minimum_trace_count} "
-            f"Got: {len(datachunks)}")
-
-    logger.debug("Loading seismic files")
-    streams = Stream()
+    logger.debug(f"Loading seismic files for timespan {timespan}")
+    st = Stream()
     for datachunk in datachunks:
         if not isinstance(datachunk.component, Component):
             raise SubobjectNotLoadedError('You should load Component together with the Datachunk.')
-        st = datachunk.load_data()
-        st[0].stats.coordinates = AttribDict({
+        single_st = datachunk.load_data()
+        single_st[0].stats.coordinates = AttribDict({
             'latitude': datachunk.component.lat,
             'elevation': datachunk.component.elevation / 1000,
             'longitude': datachunk.component.lon})
-        streams.extend(st)
+        st.extend(single_st)
 
-    logger.debug(f"Calculating beamforming for timespan {timespan}")
+    logger.info(f"For Timespan {timespan} there are {len(st)} traces loaded.")
 
-    first_starttime = min([tr.stats.starttime for tr in streams])
-    first_endtime = min([tr.stats.endtime for tr in streams])
-    time_vector = [pd.Timestamp.utcfromtimestamp(x).to_datetime64() for x in streams[0].times('timestamp')]
+    logger.debug("Checking for subsample starttime error.")
+    st = validate_and_fix_subsample_starttime_error(st)
 
-    bk = BeamformerKeeper(
-        starttime=timespan.starttime_np,
-        midtime=timespan.midtime_np,
-        endtime=timespan.endtime_np,
-        xaxis=beamforming_params.get_xaxis(),
-        yaxis=beamforming_params.get_yaxis(),
-        time_vector=time_vector,
-        save_relpow=beamforming_params.save_relpow,
-        save_abspow=beamforming_params.save_abspow,
-    )
+    logger.debug(f"Preparing stream metadata for beamforming for timespan {timespan}")
+    first_starttime = min([tr.stats.starttime for tr in st])
+    first_endtime = min([tr.stats.endtime for tr in st])
+    time_vector = [pd.Timestamp.utcfromtimestamp(x).to_datetime64() for x in st[0].times('timestamp')]
 
-    array_proc_kwargs = dict(
-        # slowness grid: X min, X max, Y min, Y max, Slow Step
-        sll_x=beamforming_params.slowness_x_min,
-        slm_x=beamforming_params.slowness_x_max,
-        sll_y=beamforming_params.slowness_y_min,
-        slm_y=beamforming_params.slowness_y_max,
-        sl_s=beamforming_params.slowness_step,
-        # sliding window properties
-        win_len=beamforming_params.window_length,
-        win_frac=beamforming_params.window_fraction,
-        # frequency properties
-        frqlow=beamforming_params.min_freq,
-        frqhigh=beamforming_params.max_freq,
-        prewhiten=int(beamforming_params.prewhiten),
-        # restrict output
-        semb_thres=beamforming_params.semblance_threshold,
-        vel_thres=beamforming_params.velocity_threshold,
-        timestamp='julsec',
-        stime=first_starttime,
-        etime=first_endtime,
-        method=beamforming_params.method,
-        store=bk.save_beamformers,
-    )
+    results = []
 
-    try:
-        _ = array_processing(streams, **array_proc_kwargs)
-    except ValueError as e:
-        raise ObspyError(f"Ecountered error while running beamforming routine. "
-                         f"Error happenned for timespan: {timespan}, beamform_params: {beamforming_params} "
-                         f"Error was: {e}")
+    for beamforming_params in beamforming_params_collection:
+        logger.debug(f"Calculating beamforming for timespan {timespan} and params {beamforming_params}")
 
-    if beamforming_params.extract_peaks_average_beamformer_abspower:
-        res.average_abspower_peaks = bk.get_average_abspower_peaks(
-            neighborhood_size=beamforming_params.neighborhood_size,
-            maxima_threshold=beamforming_params.maxima_threshold,
-            best_point_count=beamforming_params.best_point_count,
-            beam_portion_threshold=beamforming_params.beam_portion_threshold,
+        logger.debug("Creating an empty BeamformingResult")
+        res = BeamformingResult(timespan_id=timespan.id, beamforming_params_id=beamforming_params.id)
+
+        if len(st) <= beamforming_params.minimum_trace_count:
+            logger.error(
+                f"There are not enough data for beamforming. "
+                f"Minimum trace count: {beamforming_params.minimum_trace_count} "
+                f"Got: {len(st)}"
+            )
+            continue
+
+        bk = BeamformerKeeper(
+            starttime=timespan.starttime_np,
+            midtime=timespan.midtime_np,
+            endtime=timespan.endtime_np,
+            xaxis=beamforming_params.get_xaxis(),
+            yaxis=beamforming_params.get_yaxis(),
+            time_vector=time_vector,
+            save_relpow=beamforming_params.save_relpow,
+            save_abspow=beamforming_params.save_abspow,
         )
 
-    res.used_component_count = len(streams)
-    res.datachunks = list(datachunks)
+        array_proc_kwargs = dict(
+            # slowness grid: X min, X max, Y min, Y max, Slow Step
+            sll_x=beamforming_params.slowness_x_min,
+            slm_x=beamforming_params.slowness_x_max,
+            sll_y=beamforming_params.slowness_y_min,
+            slm_y=beamforming_params.slowness_y_max,
+            sl_s=beamforming_params.slowness_step,
+            # sliding window properties
+            win_len=beamforming_params.window_length,
+            win_frac=beamforming_params.window_fraction,
+            # frequency properties
+            frqlow=beamforming_params.min_freq,
+            frqhigh=beamforming_params.max_freq,
+            prewhiten=int(beamforming_params.prewhiten),
+            # restrict output
+            semb_thres=beamforming_params.semblance_threshold,
+            vel_thres=beamforming_params.velocity_threshold,
+            timestamp='julsec',
+            stime=first_starttime,
+            etime=first_endtime,
+            method=beamforming_params.method,
+            store=bk.save_beamformers,
+        )
 
-    return res
+        try:
+            _ = array_processing(st, **array_proc_kwargs)
+        except ValueError as e:
+            raise ObspyError(f"Ecountered error while running beamforming routine. "
+                             f"Error happenned for timespan: {timespan}, beamform_params: {beamforming_params} "
+                             f"Error was: {e}")
+
+        if beamforming_params.extract_peaks_average_beamformer_abspower:
+            res.average_abspower_peaks = bk.get_average_abspower_peaks(
+                neighborhood_size=beamforming_params.neighborhood_size,
+                maxima_threshold=beamforming_params.maxima_threshold,
+                best_point_count=beamforming_params.best_point_count,
+                beam_portion_threshold=beamforming_params.beam_portion_threshold,
+            )
+        if beamforming_params.extract_peaks_average_beamformer_relpower:
+            res.average_relpower_peaks = bk.get_average_relpower_peaks(
+                neighborhood_size=beamforming_params.neighborhood_size,
+                maxima_threshold=beamforming_params.maxima_threshold,
+                best_point_count=beamforming_params.best_point_count,
+                beam_portion_threshold=beamforming_params.beam_portion_threshold,
+            )
+        if beamforming_params.extract_peaks_all_beamformers_abspower:
+            res.all_abspower_peaks = bk.get_all_abspower_peaks(
+                neighborhood_size=beamforming_params.neighborhood_size,
+                maxima_threshold=beamforming_params.maxima_threshold,
+                best_point_count=beamforming_params.best_point_count,
+                beam_portion_threshold=beamforming_params.beam_portion_threshold,
+            )
+        if beamforming_params.extract_peaks_all_beamformers_relpower:
+            res.all_relpower_peaks = bk.get_all_relpower_peaks(
+                neighborhood_size=beamforming_params.neighborhood_size,
+                maxima_threshold=beamforming_params.maxima_threshold,
+                best_point_count=beamforming_params.best_point_count,
+                beam_portion_threshold=beamforming_params.beam_portion_threshold,
+            )
+
+        beamforming_file = bk.save_beamforming_file(params=beamforming_params, ts=timespan)
+        if beamforming_file is not None:
+            res.file = beamforming_file
+
+        res.used_component_count = len(st)
+        res.datachunks = list(datachunks)
+
+        results.append(res)
+
+    return results
 
 
 class BeamformerKeeper:
@@ -495,11 +531,11 @@ def select_local_maxima(
         max_vals.append(data[y_center, x_center])
 
     df = pd.DataFrame(columns=["x", "y", "amplitude"], data=np.vstack([x, y, max_vals]).T, )
-    df.loc[:, 'midtime'] = time
-    df = df.sort_values(by='amplitude', ascending=False)
-
     if len(df) == 0:
         raise ValueError("No peaks were found. Adjust neighbourhood_size and maxima_threshold values.")
+
+    df.loc[:, 'midtime'] = time
+    df = df.sort_values(by='amplitude', ascending=False)
 
     return df.loc[df.index[:best_point_count], :]
 
@@ -519,3 +555,57 @@ def _calculate_slowness(
     """filldocs"""
     df.loc[:, 'slowness'] = df.apply(lambda row: np.sqrt(row.x ** 2 + row.y ** 2), axis=1)
     return df
+
+
+def _validate_if_all_beamforming_params_use_same_component_codes(
+        params: Collection[BeamformingParams]
+) -> Tuple[str, ...]:
+    """
+    Validates if all passed :py:class:`~noiz.models.processing_params.BeamformingParams` use the same
+    :py:attr:`noiz.models.processing_params.BeamformingParams.used_component_codes`.
+    If yes, returns id of a common value of
+    :py:attr:`noiz.models.processing_params.BeamformingParams.used_component_codes`
+
+    :param params: Beamforming params to be validated
+    :type params: Collection[BeamformingParams]
+    :return: ID of a common QCOneConfig
+    :rtype: int
+    :raises: InconsistentDataException
+    """
+    component_codes_in_beam_params = [x.used_component_codes for x in params]
+    unique_component_codes = list(set(component_codes_in_beam_params))
+    if len(unique_component_codes) > 1:
+        raise InconsistentDataException(
+            f"Mass beamforming can only run if all BeamformingParams use the same use_component_codes. "
+            f"Your query contains {len(unique_component_codes)} different used_component_codes attribute. "
+            f"To help you with debugging, here are all ids of used configs. "
+            f"Tuples of (BeamformingParams.id, BeamformingParams.used_component_codes): \n"
+            f"{[(x.id, x.used_component_codes) for x in params]} "
+        )
+    single_used_component_codes = unique_component_codes[0]
+    return single_used_component_codes
+
+
+def _validate_if_all_beamforming_params_use_same_qcone(params: Collection[BeamformingParams]) -> int:
+    """
+    Validates if all passed :py:class:`~noiz.models.processing_params.BeamformingParams` use the same
+    :py:class:`~noiz.models.qc.QCOneConfig`. If yes, returns id of a common config.
+
+    :param params: Beamforming params to be validated
+    :type params: Collection[BeamformingParams]
+    :return: ID of a common QCOneConfig
+    :rtype: int
+    :raises: InconsistentDataException
+    """
+    qcone_ids_in_beam_params = [x.qcone_config_id for x in params]
+    unique_qcone_config_ids = list(set(qcone_ids_in_beam_params))
+    if len(unique_qcone_config_ids) > 1:
+        raise InconsistentDataException(
+            f"Mass beamforming can only run if all BeamformingParams use the same QCOneConfig. "
+            f"Your query contains {len(unique_qcone_config_ids)} different QCOneConfigs. "
+            f"To help you with debugging, here are all ids of used configs. "
+            f"Tuples of (BeamformingParams.id, BeamformingParams.qcone_config_id): \n"
+            f"{[(x.id, x.qcone_config_id) for x in params]} "
+        )
+    single_qcone_config_id = unique_qcone_config_ids[0]
+    return single_qcone_config_id
