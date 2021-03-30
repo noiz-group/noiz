@@ -56,7 +56,7 @@ def fetch_beamforming_params(
         opts.append(subqueryload(BeamformingParams.qcone_config))
 
     fetched_params = (BeamformingParams.query
-                      .filter_by(BeamformingParams.id.in_(ids))
+                      .filter(BeamformingParams.id.in_(ids))
                       .options(opts)
                       .all())
     if len(fetched_params) == 0:
