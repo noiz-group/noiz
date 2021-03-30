@@ -4,6 +4,7 @@ from scipy.fft import fft
 from typing import Tuple, List
 import pandas as pd
 from obspy import UTCDateTime
+from scipy import interpolate
 
 from noiz.models.type_aliases import PPSDRunnerInputs
 from noiz.exceptions import InconsistentDataException
@@ -48,7 +49,10 @@ def calculate_ppsd(
             include_partial_windows=False)
     )
 
-    freqs = ppsd_params.expected_fft_freq
+    if ppsd_params.resample:
+        freqs = ppsd_params.resampled_frequency_vector
+    else:
+        freqs = ppsd_params.expected_fft_freq
 
     all_ffts = np.empty((windows_count, freqs.shape[0]), dtype=np.complex128)
 
@@ -66,7 +70,14 @@ def calculate_ppsd(
         elif (tr_segment.stats.npts != ppsd_params.expected_signal_sample_count + 1) and \
                 (tr_segment.stats.npts != ppsd_params.expected_signal_sample_count):
             continue
-        all_ffts[i, :] = abs(fft(tr_segment.data)[ppsd_params._where_accepted_freqs])
+
+        fft_vec = abs(fft(tr_segment.data)[ppsd_params._where_accepted_freqs])
+
+        if ppsd_params.resample:
+            interpolator = interpolate.interp1d(ppsd_params.expected_fft_freq, fft_vec)
+            fft_vec = interpolator(freqs)
+
+        all_ffts[i, :] = fft_vec
 
         starttimes.append(tr_segment.stats.starttime)
 
