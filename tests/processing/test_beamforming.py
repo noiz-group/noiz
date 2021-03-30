@@ -250,3 +250,57 @@ class TestBeamformerKeeper:
 
         assert isinstance(bk.average_relpow, np.ndarray)
         assert np.array_equal(bk.average_relpow, expected_average_rel)
+
+    @pytest.mark.xfail
+    def test_save_beamformers(self):
+        assert False
+
+
+@pytest.mark.xfail
+def test__validate_if_all_beamforming_params_use_same_qcone():
+    assert False
+
+
+@pytest.mark.xfail
+def test__validate_if_all_beamforming_params_use_same_qcone_raising():
+    assert False
+
+
+@pytest.mark.xfail
+def test__validate_if_all_beamforming_params_use_same_component_codes():
+    assert False
+
+
+@pytest.mark.xfail
+def test__validate_if_all_beamforming_params_use_same_component_codes_raising():
+    assert False
+
+
+@pytest.mark.xfail
+def test__extract_most_significant_subbeams():
+    assert False
+
+
+@pytest.mark.xfail
+def test_select_local_maxima():
+    assert False
+
+
+@pytest.mark.xfail
+def test__calculate_slowness():
+    assert False
+
+
+@pytest.mark.xfail
+def test__calculate_slowness_raise_when_not_expected_columns():
+    assert False
+
+
+@pytest.mark.xfail
+def test__calculate_azimuth_backazimuth():
+    assert False
+
+
+@pytest.mark.xfail
+def test__calculate_azimuth_backazimuth_raise_when_not_expected_columns():
+    assert False
