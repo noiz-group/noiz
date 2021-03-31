@@ -334,6 +334,7 @@ class CrosscorrelationParams(db.Model):
         self._correlation_max_lag = kwargs.get("correlation_max_lag", 60)
 
     def as_dict(self):
+        """filldocs"""
         return dict(
             crosscorrelation_params_id=self.id,
             crosscorrelation_params_processed_datachunk_params_id=self.processed_datachunk_params_id,
@@ -343,14 +344,17 @@ class CrosscorrelationParams(db.Model):
 
     @property
     def sampling_rate(self):
+        """filldocs"""
         return self._sampling_rate
 
     @property
     def correlation_max_lag(self):
+        """filldocs"""
         return self._correlation_max_lag
 
     @cached_property
     def correlation_max_lag_samples(self) -> int:
+        """filldocs"""
         return int(self.correlation_max_lag * self.sampling_rate)
 
     @cached_property
@@ -545,6 +549,7 @@ class BeamformingParams(db.Model):
 
     @property
     def method(self) -> int:
+        """filldocs"""
         if self._method == "beamforming":
             return 0
         elif self._method == "capon":
@@ -554,13 +559,16 @@ class BeamformingParams(db.Model):
 
     @property
     def window_fraction(self) -> float:
+        """filldocs"""
         return self.window_length/self.window_step
 
     @property
     def used_component_codes(self) -> Tuple[str, ...]:
+        """filldocs"""
         return tuple(self._used_component_codes.split(';'))
 
     def get_xaxis(self):  # -> npt.ArrayLike:
+        """filldocs"""
         return np.arange(
             start=self.slowness_x_min,
             stop=self.slowness_x_max+self.slowness_step/2,
@@ -568,6 +576,7 @@ class BeamformingParams(db.Model):
         )
 
     def get_yaxis(self):  # -> npt.ArrayLike:
+        """filldocs"""
         return np.arange(
             start=self.slowness_y_min,
             stop=self.slowness_y_max+self.slowness_step/2,
@@ -576,6 +585,7 @@ class BeamformingParams(db.Model):
 
     @property
     def save_abspow(self) -> bool:
+        """filldocs"""
         return any([
             self.save_average_beamformer_abspower,
             self.save_all_beamformers_abspower,
@@ -586,6 +596,7 @@ class BeamformingParams(db.Model):
 
     @property
     def save_relpow(self) -> bool:
+        """filldocs"""
         return any([
             self.save_average_beamformer_relpower,
             self.save_all_beamformers_relpower,
@@ -593,6 +604,20 @@ class BeamformingParams(db.Model):
             self.extract_peaks_all_beamformers_relpower,
 
         ])
+
+    @property
+    def max_slowness(self):
+        """
+        Returns maximum possible value of slowness for provided values
+
+        :return: Maximum possible slowness
+        :rtype: float
+        """
+        return np.round(
+            np.sqrt(max(abs(self.slowness_x_max), abs(self.slowness_x_min)) ** 2 +
+                    max(abs(self.slowness_y_max), abs(self.slowness_y_min)) ** 2),
+            2
+        )
 
 
 @dataclass
