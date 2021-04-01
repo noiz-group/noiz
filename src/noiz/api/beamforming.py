@@ -1,12 +1,12 @@
 from collections import defaultdict
-
-from loguru import logger
-from noiz.validation_helpers import validate_to_tuple
-from sqlalchemy.orm import subqueryload
-from typing import Union, Collection, Optional, List, Tuple, Generator
-from sqlalchemy.dialects.postgresql import insert, Insert
-
 import datetime
+from loguru import logger
+import pandas as pd
+from sqlalchemy.dialects.postgresql import insert, Insert
+from sqlalchemy.orm import subqueryload, Query
+from sqlalchemy.sql.elements import BinaryExpression
+from typing import Union, Collection, Optional, List, Tuple, Generator
+
 
 from noiz.api.component import fetch_components
 from noiz.api.helpers import extract_object_ids, _run_calculate_and_upsert_sequentially, \
@@ -17,10 +17,12 @@ from noiz.models.type_aliases import BeamformingRunnerInputs
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import Timespan, Datachunk, QCOneResults
-from noiz.models.beamforming import BeamformingResult
+from noiz.models.beamforming import BeamformingResult, BeamformingPeakAverageAbspower, \
+    association_table_beamforming_result_avg_abspower
 from noiz.models.processing_params import BeamformingParams
 from noiz.processing.beamforming import calculate_beamforming_results_wrapper, \
     _validate_if_all_beamforming_params_use_same_component_codes, _validate_if_all_beamforming_params_use_same_qcone
+from noiz.validation_helpers import validate_to_tuple
 
 
 def fetch_beamforming_params_single(id: int) -> BeamformingParams:
@@ -212,3 +214,60 @@ def _prepare_upsert_command_beamforming(results: BeamformingResult) -> Insert:
         )
     )
     return insert_command
+
+
+def fetch_beamforming_peak_average_results_in_freq_slowness(
+        beamforming_params_collection: Optional[Collection[BeamformingParams]] = None,
+        timespans: Optional[Collection[Timespan]] = None,
+        minimum_trace_used_count: Optional[int] = None,
+) -> pd.DataFrame:
+    """filldocs"""
+    filters = _determine_filters_for_fetching_beamforming_peaks(
+        beamforming_params_collection=beamforming_params_collection,
+        timespans=timespans,
+        minimum_trace_used_count=minimum_trace_used_count,
+    )
+    query = _query_beamforming_peaks_avg_abspower(filters)
+    df = _parse_query_as_dataframe(query)
+    return df
+
+
+def _parse_query_as_dataframe(query: Query) -> pd.DataFrame:
+    """filldocs"""
+    c = query.statement.compile(query.session.bind)
+    df = pd.read_sql(c.string, query.session.bind, params=c.params)
+    return df
+
+
+def _query_beamforming_peaks_avg_abspower(filters: Union[List[BinaryExpression], List[bool]]) -> Query:
+    """filldocs"""
+    query = (
+        db.session
+        .query(BeamformingParams.central_freq, BeamformingPeakAverageAbspower.slowness)
+        .select_from(BeamformingResult)
+        .join(BeamformingParams, BeamformingParams.id == BeamformingResult.beamforming_params_id)
+        .join(association_table_beamforming_result_avg_abspower)
+        .join(BeamformingPeakAverageAbspower)
+        .filter(*filters)
+    )
+    return query
+
+
+def _determine_filters_for_fetching_beamforming_peaks(
+        beamforming_params_collection: Optional[Collection[BeamformingParams]] = None,
+        timespans: Optional[Collection[Timespan]] = None,
+        minimum_trace_used_count: Optional[int] = None,
+) -> Union[List[BinaryExpression], List[bool]]:
+    """filldocs"""
+    filters = []
+    if beamforming_params_collection is not None:
+        params_ids = extract_object_ids(beamforming_params_collection)
+        filters.append(BeamformingResult.beamforming_params_id.in_(params_ids))
+    if timespans is not None:
+        timespan_ids = extract_object_ids(timespans)
+        filters.append(BeamformingResult.timespan_id.in_(timespan_ids))
+    if minimum_trace_used_count is not None:
+        filters.append(BeamformingResult.used_component_count >= minimum_trace_used_count)
+    if len(filters) == 0:
+        filters.append(True)
+    return filters
