@@ -216,7 +216,7 @@ def _prepare_upsert_command_beamforming(results: BeamformingResult) -> Insert:
     return insert_command
 
 
-def fetch_beamforming_peak_average_results_in_freq_slowness(
+def fetch_beamforming_peaks_avg_abspower_results_in_freq_slowness(
         beamforming_params_collection: Optional[Collection[BeamformingParams]] = None,
         timespans: Optional[Collection[Timespan]] = None,
         minimum_trace_used_count: Optional[int] = None,
