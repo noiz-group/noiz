@@ -10,7 +10,7 @@ from typing import Union, Collection, Optional, List, Tuple, Generator
 
 from noiz.api.component import fetch_components
 from noiz.api.helpers import extract_object_ids, _run_calculate_and_upsert_sequentially, \
-    _run_calculate_and_upsert_on_dask
+    _run_calculate_and_upsert_on_dask, _parse_query_as_dataframe
 from noiz.api.qc import fetch_qcone_config_single
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.models.type_aliases import BeamformingRunnerInputs
@@ -229,13 +229,6 @@ def fetch_beamforming_peak_average_results_in_freq_slowness(
     )
     query = _query_beamforming_peaks_avg_abspower(filters)
     df = _parse_query_as_dataframe(query)
-    return df
-
-
-def _parse_query_as_dataframe(query: Query) -> pd.DataFrame:
-    """filldocs"""
-    c = query.statement.compile(query.session.bind)
-    df = pd.read_sql(c.string, query.session.bind, params=c.params)
     return df
 
 
