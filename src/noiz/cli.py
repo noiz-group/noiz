@@ -895,6 +895,60 @@ def plot_datachunk_availability(
     return
 
 
+@plotting_group.command("beamforming_freq_slowness")
+@with_appcontext
+@click.option("-sd", "--startdate", nargs=1, type=str,
+              default=DEFAULT_STARTDATE, show_default=True, callback=_parse_as_date)
+@click.option("-ed", "--enddate", nargs=1, type=str,
+              default=DEFAULT_ENDDATE, show_default=True, callback=_parse_as_date)
+@click.option("-p", "--beamforming_params_id", multiple=True, type=int, required=False,
+              callback=_validate_zero_length_as_none)
+@click.option("-t", "--beamforming_result_type", default="avg_abspower",
+              type=click.Choice(["avg_abspower", "avg_relpower", "all_abspower", "all_relpower"], case_sensitive=False))
+@click.option("-m", "--minimum_trace_used_count", nargs=1, type=int, default=None)
+@click.option('--savefig/--no-savefig', default=True)
+@click.option('-pp', '--plotpath', type=click.Path())
+@click.option('--showfig', is_flag=True)
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
+def beamforming_freq_slowness(
+        startdate,
+        enddate,
+        beamforming_params_id,
+        beamforming_result_type,
+        minimum_trace_used_count,
+        savefig,
+        plotpath,
+        showfig,
+        **kwargs
+):
+    """
+    Plot beamforming results in frequency-slowness space
+    """
+
+    if savefig is True and plotpath is None:
+        plotpath = Path('.') \
+            .joinpath(f'beamforming_freq_slowness_{startdate}_{enddate}.png')
+        click.echo(f"The --plotpath argument was not provided."
+                   f"plot will be saved to {plotpath}")
+    elif not isinstance(plotpath, Path):
+        plotpath = Path(plotpath)
+
+    from noiz.api.beamforming_plotting import plot_histogram_frequency_slowness
+
+    plot_histogram_frequency_slowness(
+        beamforming_params_ids=beamforming_params_id,
+        minimum_trace_used_count=minimum_trace_used_count,
+        beamforming_result_type=beamforming_result_type,
+        fig_title=None,
+        filepath=plotpath,
+        showfig=showfig,
+        starttime=startdate,
+        endtime=enddate,
+    )
+    return
+
+
 @plotting_group.command("raw_gps_soh")
 @with_appcontext
 @click.option("-n", "--network", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
