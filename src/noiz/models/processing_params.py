@@ -1,14 +1,18 @@
 from functools import cached_property
-
-from noiz.validation_helpers import validate_exactly_one_argument_provided
-
-from typing import Optional, Union, Tuple
-from pydantic.dataclasses import dataclass
 import numpy as np
 import numpy.typing as npt
+from pydantic.dataclasses import dataclass
+from typing import Optional, Union, Tuple, TYPE_CHECKING
 
 from noiz.database import db, NotNullColumn
 from noiz.globals import ExtendedEnum
+from noiz.validation_helpers import validate_exactly_one_argument_provided
+
+if TYPE_CHECKING:
+    # Use this to make hybrid_property's have the same typing as a normal property until stubs are improved.
+    typed_hybrid_property = property
+else:
+    from sqlalchemy.ext.hybrid import hybrid_property as typed_hybrid_property
 
 
 class ZeroPaddingMethod(ExtendedEnum):
@@ -546,6 +550,10 @@ class BeamformingParams(db.Model):
             self.minimum_trace_count = int(minimum_trace_count)
         else:
             ValueError("minimum_trace_count cannot be lower than one.")
+
+    @typed_hybrid_property
+    def central_freq(self):
+        return (self.min_freq + self.max_freq)/2
 
     @property
     def method(self) -> int:
