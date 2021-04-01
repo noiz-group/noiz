@@ -1,19 +1,23 @@
+import datetime
+
 from pathlib import Path
 
-from typing import Collection, Optional
+from typing import Collection, Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
 from noiz.api.beamforming import fetch_beamforming_peaks_avg_abspower_results_in_freq_slowness, fetch_beamforming_params
-from noiz.models import Timespan, BeamformingParams
+from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.models.beamforming import BeamformingResultType
+from obspy import UTCDateTime
 
 
 def plot_histogram_frequency_slowness(
+        starttime: Union[datetime.date, datetime.datetime, UTCDateTime],
+        endtime: Union[datetime.date, datetime.datetime, UTCDateTime],
         beamforming_params_ids: Optional[Collection[int]] = None,
-        timespans: Optional[Collection[Timespan]] = None,
         minimum_trace_used_count: Optional[int] = None,
         beamforming_result_type: BeamformingResultType = BeamformingResultType.AVGABSPOWER,
         fig_title: Optional[str] = None,
@@ -22,11 +26,13 @@ def plot_histogram_frequency_slowness(
 ) -> plt.Figure:
     """filldocs"""
 
+    fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
+
     fetched_beam_params = fetch_beamforming_params(ids=beamforming_params_ids)
 
     df = fetch_beamforming_peaks_avg_abspower_results_in_freq_slowness(
         beamforming_params_collection=fetched_beam_params,
-        timespans=timespans,
+        timespans=fetched_timespans,
         minimum_trace_used_count=minimum_trace_used_count,
         beamforming_result_type=beamforming_result_type,
     )
@@ -34,7 +40,7 @@ def plot_histogram_frequency_slowness(
     column_to_be_binned = "slowness"
 
     if fig_title is None:
-        fig_title = "Beamforming in frequency-slowness space for "
+        fig_title = f"Beamforming in frequency-slowness space for \n{starttime}-{endtime}"
 
     max_slowness = max([param.max_slowness for param in fetched_beam_params])
     max_step = max([param.slowness_step*np.sqrt(2) for param in fetched_beam_params])
@@ -76,7 +82,7 @@ def _plot_histogram_of_beamforming_in_freq_slow_vel(
         histograms[i, :] = counts
 
     fig, ax = plt.subplots(dpi=120)
-    mappable = ax.pcolormesh(central_freqs, bin_edges[:-1], histograms.T)
+    mappable = ax.pcolormesh(central_freqs, bin_edges[:-1], histograms.T, shading="auto")
 
     ax.set_title(fig_title)
     ax.set_ylabel("Slowness [s/km]")
