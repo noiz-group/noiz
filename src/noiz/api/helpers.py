@@ -1,5 +1,8 @@
 import more_itertools
+import pandas as pd
 from loguru import logger
+from sqlalchemy.orm import Query
+
 from noiz.exceptions import CorruptedDataException, InconsistentDataException, ObspyError
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm.exc import UnmappedInstanceError
@@ -303,3 +306,18 @@ def _run_calculate_and_upsert_sequentially(
 
     logger.info("All processing is done.")
     return
+
+
+def _parse_query_as_dataframe(query: Query) -> pd.DataFrame:
+    """
+    Takes a standard sqlalchemy :py:class:`~sqlalchemy.orm.query.Query`, executes it and parses results as
+    a :py:class:`pandas.DataFrame`.
+
+    :param query: QUery to be processed
+    :type query: Query
+    :return: Results of the query as a DataFrame
+    :rtype: pd.DataFrame
+    """
+    c = query.statement.compile(query.session.bind)
+    df = pd.read_sql(c.string, query.session.bind, params=c.params)
+    return df

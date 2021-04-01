@@ -1,14 +1,18 @@
 from functools import cached_property
-
-from noiz.validation_helpers import validate_exactly_one_argument_provided
-
-from typing import Optional, Union, Tuple
-from pydantic.dataclasses import dataclass
 import numpy as np
 import numpy.typing as npt
+from pydantic.dataclasses import dataclass
+from typing import Optional, Union, Tuple, TYPE_CHECKING
 
 from noiz.database import db, NotNullColumn
 from noiz.globals import ExtendedEnum
+from noiz.validation_helpers import validate_exactly_one_argument_provided
+
+if TYPE_CHECKING:
+    # Use this to make hybrid_property's have the same typing as a normal property until stubs are improved.
+    typed_hybrid_property = property
+else:
+    from sqlalchemy.ext.hybrid import hybrid_property as typed_hybrid_property
 
 
 class ZeroPaddingMethod(ExtendedEnum):
@@ -334,6 +338,7 @@ class CrosscorrelationParams(db.Model):
         self._correlation_max_lag = kwargs.get("correlation_max_lag", 60)
 
     def as_dict(self):
+        """filldocs"""
         return dict(
             crosscorrelation_params_id=self.id,
             crosscorrelation_params_processed_datachunk_params_id=self.processed_datachunk_params_id,
@@ -343,14 +348,17 @@ class CrosscorrelationParams(db.Model):
 
     @property
     def sampling_rate(self):
+        """filldocs"""
         return self._sampling_rate
 
     @property
     def correlation_max_lag(self):
+        """filldocs"""
         return self._correlation_max_lag
 
     @cached_property
     def correlation_max_lag_samples(self) -> int:
+        """filldocs"""
         return int(self.correlation_max_lag * self.sampling_rate)
 
     @cached_property
@@ -543,8 +551,13 @@ class BeamformingParams(db.Model):
         else:
             ValueError("minimum_trace_count cannot be lower than one.")
 
+    @typed_hybrid_property
+    def central_freq(self):
+        return (self.min_freq + self.max_freq)/2
+
     @property
     def method(self) -> int:
+        """filldocs"""
         if self._method == "beamforming":
             return 0
         elif self._method == "capon":
@@ -554,13 +567,16 @@ class BeamformingParams(db.Model):
 
     @property
     def window_fraction(self) -> float:
+        """filldocs"""
         return self.window_length/self.window_step
 
     @property
     def used_component_codes(self) -> Tuple[str, ...]:
+        """filldocs"""
         return tuple(self._used_component_codes.split(';'))
 
     def get_xaxis(self):  # -> npt.ArrayLike:
+        """filldocs"""
         return np.arange(
             start=self.slowness_x_min,
             stop=self.slowness_x_max+self.slowness_step/2,
@@ -568,6 +584,7 @@ class BeamformingParams(db.Model):
         )
 
     def get_yaxis(self):  # -> npt.ArrayLike:
+        """filldocs"""
         return np.arange(
             start=self.slowness_y_min,
             stop=self.slowness_y_max+self.slowness_step/2,
@@ -576,6 +593,7 @@ class BeamformingParams(db.Model):
 
     @property
     def save_abspow(self) -> bool:
+        """filldocs"""
         return any([
             self.save_average_beamformer_abspower,
             self.save_all_beamformers_abspower,
@@ -586,6 +604,7 @@ class BeamformingParams(db.Model):
 
     @property
     def save_relpow(self) -> bool:
+        """filldocs"""
         return any([
             self.save_average_beamformer_relpower,
             self.save_all_beamformers_relpower,
@@ -593,6 +612,20 @@ class BeamformingParams(db.Model):
             self.extract_peaks_all_beamformers_relpower,
 
         ])
+
+    @property
+    def max_slowness(self):
+        """
+        Returns maximum possible value of slowness for provided values
+
+        :return: Maximum possible slowness
+        :rtype: float
+        """
+        return np.round(
+            np.sqrt(max(abs(self.slowness_x_max), abs(self.slowness_x_min)) ** 2 +
+                    max(abs(self.slowness_y_max), abs(self.slowness_y_min)) ** 2),
+            2
+        )
 
 
 @dataclass

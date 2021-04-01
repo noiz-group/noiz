@@ -3,8 +3,16 @@ from sqlalchemy.ext.associationproxy import association_proxy
 
 from noiz.database import db
 from noiz.exceptions import MissingDataFileException
+from noiz.globals import ExtendedEnum
 from noiz.models import Timespan, BeamformingParams, FileModelMixin
 from noiz.models.mixins import BeamformingPeakExtractMixin
+
+
+class BeamformingResultType(ExtendedEnum):
+    AVGABSPOWER = "avg_abspower"
+    AVGRELPOWER = "avg_relpower"
+    ALLABSPOWER = "all_abspower"
+    ALLRELPOWER = "all_relpower"
 
 
 class BeamformingFile(FileModelMixin):
