@@ -13,7 +13,7 @@ import numpy as np
 
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.api.component import fetch_components
-from noiz.api.helpers import extract_object_ids
+from noiz.api.helpers import extract_object_ids, _parse_query_as_dataframe
 from noiz.validation_helpers import validate_exactly_one_argument_provided
 from noiz.database import db
 from noiz.models.component import Component
@@ -109,10 +109,7 @@ def fetch_averaged_soh_gps_df(
         load_timespan=load_timespan,
     )
 
-    c = query.statement.compile(query.session.bind)
-    df = pd.read_sql(c.string, query.session.bind, params=c.params)
-
-    return df
+    return _parse_query_as_dataframe(query=query)
 
 
 def fetch_averaged_soh_gps_all(
@@ -484,8 +481,7 @@ def __calculate_averages_of_gps_soh(
             )
         )
 
-        c = query.statement.compile(query.session.bind)
-        df = pd.read_sql(c.string, query.session.bind, params=c.params)
+        df = _parse_query_as_dataframe(query=query)
 
         try:
             res = __calculate_mean_gps_soh(df, timespan_id=timespan.id)
