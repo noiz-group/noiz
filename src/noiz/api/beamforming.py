@@ -13,12 +13,13 @@ from noiz.api.helpers import extract_object_ids, _run_calculate_and_upsert_seque
     _run_calculate_and_upsert_on_dask, _parse_query_as_dataframe
 from noiz.api.qc import fetch_qcone_config_single
 from noiz.api.timespan import fetch_timespans_between_dates
+from noiz.globals import validate_extended_enum
 from noiz.models.type_aliases import BeamformingRunnerInputs
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import Timespan, Datachunk, QCOneResults
 from noiz.models.beamforming import BeamformingResult, BeamformingPeakAverageAbspower, \
-    association_table_beamforming_result_avg_abspower
+    association_table_beamforming_result_avg_abspower, BeamformingResultType
 from noiz.models.processing_params import BeamformingParams
 from noiz.processing.beamforming import calculate_beamforming_results_wrapper, \
     _validate_if_all_beamforming_params_use_same_component_codes, _validate_if_all_beamforming_params_use_same_qcone
@@ -220,6 +221,7 @@ def fetch_beamforming_peaks_avg_abspower_results_in_freq_slowness(
         beamforming_params_collection: Optional[Collection[BeamformingParams]] = None,
         timespans: Optional[Collection[Timespan]] = None,
         minimum_trace_used_count: Optional[int] = None,
+        beamforming_result_type: Union[str, BeamformingResultType] = BeamformingResultType.AVGABSPOWER,
 ) -> pd.DataFrame:
     """filldocs"""
     filters = _determine_filters_for_fetching_beamforming_peaks(
@@ -227,9 +229,35 @@ def fetch_beamforming_peaks_avg_abspower_results_in_freq_slowness(
         timespans=timespans,
         minimum_trace_used_count=minimum_trace_used_count,
     )
-    query = _query_beamforming_peaks_avg_abspower(filters)
+
+    try:
+        beamforming_result_type = BeamformingResultType(beamforming_result_type)
+    except ValueError:
+        raise ValueError(f"Invalid value of beamforming_result_type. "
+                         f"Accepted values: {list(BeamformingResultType)}; "
+                         f"Got value: {beamforming_result_type} ")
+
+    query = _query_one_of_the_beamforming_result_types_for_freq_slowness(beamforming_result_type, filters)
+
     df = _parse_query_as_dataframe(query)
     return df
+
+
+def _query_one_of_the_beamforming_result_types_for_freq_slowness(
+        beamforming_result_type: BeamformingResultType,
+        filters: Union[List[BinaryExpression], List[bool]],
+) -> Query:
+    if beamforming_result_type is BeamformingResultType.AVGABSPOWER:
+        query = _query_beamforming_peaks_avg_abspower(filters)
+    elif beamforming_result_type is BeamformingResultType.AVGRELPOWER:
+        raise NotImplementedError('Sorry, not yet here.')
+    elif beamforming_result_type is BeamformingResultType.ALLABSPOWER:
+        raise NotImplementedError('Sorry, not yet here.')
+    elif beamforming_result_type is BeamformingResultType.ALLRELPOWER:
+        raise NotImplementedError('Sorry, not yet here.')
+    else:
+        raise NotImplementedError(f'This value is not supported at all. Supported values {list(BeamformingResultType)}')
+    return query
 
 
 def _query_beamforming_peaks_avg_abspower(filters: Union[List[BinaryExpression], List[bool]]) -> Query:
