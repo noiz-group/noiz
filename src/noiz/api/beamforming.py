@@ -13,7 +13,6 @@ from noiz.api.helpers import extract_object_ids, _run_calculate_and_upsert_seque
     _run_calculate_and_upsert_on_dask, _parse_query_as_dataframe
 from noiz.api.qc import fetch_qcone_config_single
 from noiz.api.timespan import fetch_timespans_between_dates
-from noiz.globals import validate_extended_enum
 from noiz.models.type_aliases import BeamformingRunnerInputs
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
@@ -43,7 +42,7 @@ def fetch_beamforming_params_single(id: int) -> BeamformingParams:
 
 
 def fetch_beamforming_params(
-        ids: Collection[int],
+        ids: Optional[Collection[int]] = None,
         load_qcone_config: bool = True,
 ) -> List[BeamformingParams]:
     """
@@ -54,12 +53,17 @@ def fetch_beamforming_params(
     :return: List of fetched BeamformingParams objects
     :rtype: List[BeamformingParams]
     """
+    filters = []
+    if ids is not None:
+        filters.append(BeamformingParams.id.in_(ids))
+    if len(filters) == 0:
+        filters.append(True)
     opts = []
     if load_qcone_config:
         opts.append(subqueryload(BeamformingParams.qcone_config))
 
     fetched_params = (BeamformingParams.query
-                      .filter(BeamformingParams.id.in_(ids))
+                      .filter(*filters)
                       .options(opts)
                       .all())
     if len(fetched_params) == 0:
