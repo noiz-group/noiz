@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from noiz.processing.ppsd import _plot_avg_psds, average_psd_by_component
 from obspy import UTCDateTime
 from pathlib import Path
-from typing import Optional, Union, Tuple
+from typing import Optional, Union, Tuple, Collection
 
 from noiz.api.component import fetch_components
 from noiz.api.datachunk import fetch_datachunks
@@ -17,6 +17,9 @@ def plot_average_psd_between_dates(
         starttime: Union[datetime.date, datetime.datetime, UTCDateTime],
         endtime: Union[datetime.date, datetime.datetime, UTCDateTime],
         ppsd_params_id: int,
+        networks: Optional[Union[Collection[str], str]] = None,
+        stations: Optional[Union[Collection[str], str]] = None,
+        components_codes: Optional[Union[Collection[str], str]] = None,
         fig_title: Optional[str] = None,
         show_legend: bool = True,
         filepath: Optional[Path] = None,
@@ -27,7 +30,7 @@ def plot_average_psd_between_dates(
 
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
     fetched_psd_params = fetch_ppsd_params_by_id(id=ppsd_params_id)
-    fetched_components = fetch_components(components='Z')
+    fetched_components = fetch_components(networks=networks, stations=stations, components=components_codes)
 
     fetched_psds = defaultdict(list)
     for component in fetched_components:
