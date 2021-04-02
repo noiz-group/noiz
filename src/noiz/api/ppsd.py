@@ -1,11 +1,11 @@
 import datetime
 from loguru import logger
-from sqlalchemy.orm import Query
+from sqlalchemy.orm import Query, subqueryload
 from sqlalchemy.dialects.postgresql import Insert, insert
 
 from noiz.api.datachunk import _query_datachunks
 from noiz.models.type_aliases import PPSDRunnerInputs
-from typing import Union, Optional, Collection, Generator, List
+from typing import Union, Optional, Collection, Generator, List, Tuple
 
 from noiz.api.component import fetch_components
 from noiz.api.helpers import _run_calculate_and_upsert_on_dask, _run_calculate_and_upsert_sequentially, \
@@ -40,6 +40,9 @@ def fetch_ppsd_results(
         ppsd_params_id: Optional[int] = None,
         datachunks: Optional[Collection[Datachunk]] = None,
         datachunk_ids: Optional[Collection[int]] = None,
+        load_timespan: bool = False,
+        load_datachunk: bool = False,
+        load_ppsd_params: bool = False,
 ) -> List[PPSDResult]:
     """filldocs"""
     query = _query_ppsd_results(
@@ -47,6 +50,9 @@ def fetch_ppsd_results(
         ppsd_params_id=ppsd_params_id,
         datachunks=datachunks,
         datachunk_ids=datachunk_ids,
+        load_timespan=load_timespan,
+        load_datachunk=load_datachunk,
+        load_ppsd_params=load_ppsd_params,
     )
 
     return query.all()
@@ -74,6 +80,9 @@ def _query_ppsd_results(
         ppsd_params_id: Optional[int] = None,
         datachunks: Optional[Collection[Datachunk]] = None,
         datachunk_ids: Optional[Collection[int]] = None,
+        load_timespan: bool = False,
+        load_datachunk: bool = False,
+        load_ppsd_params: bool = False,
 ) -> Query:
     """filldocs"""
     try:
@@ -84,6 +93,31 @@ def _query_ppsd_results(
         validate_maximum_one_argument_provided(datachunks, datachunk_ids)
     except ValueError:
         raise ValueError('Maximum one of datachunks or datachunk_ids can be provided')
+
+    filters, opts = _determine_filters_and_opts_for_datachunk(
+        ppsd_params=ppsd_params,
+        ppsd_params_id=ppsd_params_id,
+        datachunks=datachunks,
+        datachunk_ids=datachunk_ids,
+        load_timespan=load_timespan,
+        load_datachunk=load_datachunk,
+        load_ppsd_params=load_ppsd_params,
+    )
+
+    query = PPSDResult.query.filter(*filters).options(opts)
+
+    return query
+
+
+def _determine_filters_and_opts_for_datachunk(
+        ppsd_params: Optional[PPSDParams] = None,
+        ppsd_params_id: Optional[int] = None,
+        datachunks: Optional[Collection[Datachunk]] = None,
+        datachunk_ids: Optional[Collection[int]] = None,
+        load_timespan: bool = False,
+        load_datachunk: bool = False,
+        load_ppsd_params: bool = False,
+) -> Tuple[List, List]:
 
     filters = []
     if ppsd_params is not None:
@@ -98,10 +132,14 @@ def _query_ppsd_results(
         filters.append(PPSDResult.datachunk_id.in_(datachunk_ids))
     if len(filters) == 0:
         filters.append(True)
-
-    query = PPSDResult.query.filter(*filters)
-
-    return query
+    opts = []
+    if load_timespan:
+        opts.append(subqueryload(PPSDResult.timespan))
+    if load_datachunk:
+        opts.append(subqueryload(PPSDResult.datachunk))
+    if load_ppsd_params:
+        opts.append(subqueryload(PPSDResult.ppsd_params))
+    return filters, opts
 
 
 def run_psd_calculations(
