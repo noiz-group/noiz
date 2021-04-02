@@ -1,3 +1,5 @@
+import numpy as np
+from numpy.lib.npyio import NpzFile
 from pathlib import Path
 
 from noiz.database import db
@@ -64,10 +66,16 @@ class PPSDResult(db.Model):
         lazy="joined",
     )
 
-    def load_data(self):
-        """filldocs"""
+    def load_data(self) -> NpzFile:
+        """
+        Load npz file associated with this result.
+        Outputs standard output of :py:meth:`numpy.load` called for '*.npz' file.
+
+        :return: Loaded file associated with this result
+        :rtype: NpzFile
+        """
         filepath = Path(self.file.filepath)
         if filepath.exists():
-            raise NotImplementedError("Not yet implemented, use np.load()")
+            return np.load(filepath)
         else:
             raise MissingDataFileException(f"Result file for PPSDResult {self} is missing")
