@@ -954,6 +954,8 @@ def plot_beamforming_freq_slowness(
 @click.option("-ed", "--enddate", nargs=1, type=str,
               default=DEFAULT_ENDDATE, show_default=True, callback=_parse_as_date)
 @click.option("-p", "--psd_params_id", nargs=1, multiple=False, type=int, required=True)
+@click.option("-s", "--station", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-c", "--component_codes", multiple=True, type=str, callback=_validate_zero_length_as_none)
 @click.option('--showfig', is_flag=True)
 @click.option('--show_legend/--no_show_legend', default=True)
 @click.option('--savefig/--no-savefig', default=True)
@@ -964,6 +966,8 @@ def plot_average_psd(
         startdate,
         enddate,
         psd_params_id,
+        stations,
+        component_codes,
         savefig,
         show_legend,
         plotpath,
@@ -988,6 +992,8 @@ def plot_average_psd(
         starttime=startdate,
         endtime=enddate,
         ppsd_params_id=psd_params_id,
+        stations=stations,
+        component_codes=component_codes,
         fig_title=None,
         show_legend=show_legend,
         filepath=plotpath,
