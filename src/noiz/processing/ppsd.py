@@ -1,16 +1,18 @@
+import datetime
+from matplotlib import pyplot as plt
 import numpy as np
 import numpy.typing as npt
-from scipy.fft import fft
-from typing import Tuple, List
-import pandas as pd
 from obspy import UTCDateTime
+import pandas as pd
+from pathlib import Path
 from scipy import interpolate
+from scipy.fft import fft
+from typing import Tuple, List, Union, Optional
 
 from noiz.models.type_aliases import PPSDRunnerInputs
+from noiz.models.ppsd import GroupedPSDs, GroupedAvgPSDs
 from noiz.exceptions import InconsistentDataException
-from noiz.models import Timespan, Datachunk, Component
-from noiz.models.ppsd import PPSDResult, PPSDFile
-from noiz.models.processing_params import PPSDParams
+from noiz.models import Timespan, Datachunk, Component, PPSDParams, PPSDResult, PPSDFile
 
 
 def calculate_ppsd_wrapper(inputs: PPSDRunnerInputs) -> Tuple[PPSDResult, ...]:
@@ -143,3 +145,89 @@ def _save_psd_results(
             **results_to_save
         )
     return
+
+
+def _plot_avg_psds(
+        avg_psds: GroupedAvgPSDs,
+        fetched_psd_params: PPSDParams,
+        fig_title: Optional[str] = None,
+        filepath: Optional[Path] = None,
+        show_legend: bool = True,
+        showfig: bool = False,
+        xlims: Optional[Tuple[float, float]] = None,
+        ylims: Optional[Tuple[float, float]] = None,
+) -> plt.Figure:
+    """
+    Plots PSDs passed in a dictionary where key is :py:class:`~noiz.models.Component` and value is an array to plot.
+    It should be used to plot average PSDs for multiple :py:class:`~noiz.models.Component` instances.
+
+    :param avg_psds: Grouped arrays to plot
+    :type avg_psds: GroupedAvgPSDs
+    :param fetched_psd_params: PPSDParams that the psds were calculated for
+    :type fetched_psd_params: PPSDParams
+    :param fig_title: Title of the figure
+    :type fig_title: Optional[str]
+    :param filepath: Where to save the plot
+    :type filepath: Optional[Path]
+    :param show_legend: If legend should be visible
+    :type show_legend: bool
+    :param showfig: If figure should be explicitly showed
+    :type showfig: bool
+    :param xlims: Maximum extent of Xaxis
+    :type xlims: Optional[Tuple[float, float]]
+    :param ylims: Maximum extent of Yaxis
+    :type ylims: Optional[Tuple[float, float]]
+    :return: Plotted Figure
+    :rtype: plt.Figure
+    """
+    fig, ax = plt.subplots(dpi=180)
+
+    for component, avg_fft in avg_psds.items():
+        ax.semilogx(fetched_psd_params.resampled_frequency_vector, 10 * np.log10(avg_fft), label=str(component))
+
+    ax.set_ylabel("Amplitude [(m/s)^2/Hz] [dB]")
+    ax.set_xlabel("Frequency [Hz]")
+
+    if fig_title is not None:
+        ax.set_title(fig_title)
+    if show_legend:
+        ax.legend()
+    if xlims is not None:
+        ax.set_xlim(xlims)
+    if ylims is not None:
+        ax.set_yxlim(ylims)
+    if filepath is not None:
+        fig.savefig(filepath, bbox_inches='tight')
+    if showfig:
+        fig.show()
+    return fig
+
+
+def average_psd_by_component(psd_params: PPSDParams, grouped_psds: GroupedPSDs) -> GroupedAvgPSDs:
+    """
+    Takes :py:class:`~noiz.models.ppsd.PPSDResult` grouped in a dictionary where the keys are
+    :py:class:`~noiz.models.component.Component` and values are lists of :py:class:`~noiz.models.ppsd.PPSDResult`.
+    It calculates a mean value of all of those PSDs and returns a dictionary where keys are
+    :py:class:`~noiz.models.component.Component` and values are :py:class:`numpy.ndarray` containing the average psd.
+
+    :param psd_params: PPSDParams for which the PSDs were calculated for
+    :type psd_params: PPSDParams
+    :param grouped_psds: PSDResult instances grouped by Component
+    :type grouped_psds: GroupedPSDs
+    :return: Average PSDs grouped by Component
+    :rtype: GroupedAvgPSDs
+    """
+
+    avg_psds = dict()
+    for component, fetched_psds_cmp in grouped_psds.items():
+        average_fft = np.zeros(len(psd_params.resampled_frequency_vector))
+        i = 0
+        for i, psd in enumerate(fetched_psds_cmp):
+            loaded_file = np.load(psd.file.filepath)
+            fft_mean = loaded_file['fft_mean']
+            average_fft += fft_mean
+
+        average_fft /= i + 1
+        avg_psds[component] = average_fft
+
+    return avg_psds

@@ -1,3 +1,5 @@
+from typing import Dict, List
+
 import numpy as np
 from numpy.lib.npyio import NpzFile
 from pathlib import Path
@@ -79,3 +81,7 @@ class PPSDResult(db.Model):
             return np.load(filepath)
         else:
             raise MissingDataFileException(f"Result file for PPSDResult {self} is missing")
+
+
+GroupedPSDs = Dict[Component, List[PPSDResult]]
+GroupedAvgPSDs = Dict[Component, np.array]  # npt.ArrayLike
