@@ -30,14 +30,12 @@ def _register_subgroups_to_cli(cli: AppGroup, custom_groups: Iterable[AppGroup])
 
 def _setup_logging_verbosity(ctx, param, value) -> None:
     if value > 0:
-        click.echo('bum')
         set_global_verbosity(verbosity=value)
         setup_logging()
 
 
 def _setup_quiet(ctx, param, value) -> None:
     if value is True:
-        click.echo('bam')
         set_global_verbosity(verbosity=0, quiet=True)
         setup_logging()
 
@@ -911,7 +909,7 @@ def plot_datachunk_availability(
 @click.option('--showfig', is_flag=True)
 @click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
 @click.option('--quiet', is_flag=True, callback=_setup_quiet)
-def beamforming_freq_slowness(
+def plot_beamforming_freq_slowness(
         startdate,
         enddate,
         beamforming_params_id,
@@ -945,6 +943,55 @@ def beamforming_freq_slowness(
         showfig=showfig,
         starttime=startdate,
         endtime=enddate,
+    )
+    return
+
+
+@plotting_group.command("average_psd")
+@with_appcontext
+@click.option("-sd", "--startdate", nargs=1, type=str,
+              default=DEFAULT_STARTDATE, show_default=True, callback=_parse_as_date)
+@click.option("-ed", "--enddate", nargs=1, type=str,
+              default=DEFAULT_ENDDATE, show_default=True, callback=_parse_as_date)
+@click.option("-p", "--psd_params_id", nargs=1, multiple=False, type=int, required=True)
+@click.option('--showfig', is_flag=True)
+@click.option('--show_legend/--no_show_legend', default=True)
+@click.option('--savefig/--no-savefig', default=True)
+@click.option('-pp', '--plotpath', type=click.Path())
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
+def plot_average_psd(
+        startdate,
+        enddate,
+        psd_params_id,
+        savefig,
+        show_legend,
+        plotpath,
+        showfig,
+        **kwargs
+):
+    """
+    Plot average PSD for multiple Components
+    """
+
+    if savefig is True and plotpath is None:
+        plotpath = Path('.') \
+            .joinpath(f'beamforming_freq_slowness_{startdate}_{enddate}.png')
+        click.echo(f"The --plotpath argument was not provided."
+                   f"plot will be saved to {plotpath}")
+    elif not isinstance(plotpath, Path):
+        plotpath = Path(plotpath)
+
+    from noiz.api.psd_plotting import plot_average_psd_between_dates
+
+    plot_average_psd_between_dates(
+        starttime=startdate,
+        endtime=enddate,
+        ppsd_params_id=psd_params_id,
+        fig_title=None,
+        show_legend=show_legend,
+        filepath=plotpath,
+        showfig=showfig,
     )
     return
 
