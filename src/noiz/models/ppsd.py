@@ -84,4 +84,4 @@ class PPSDResult(db.Model):
 
 
 GroupedPSDs = Dict[Component, List[PPSDResult]]
-GroupedAvgPSDs = Dict[Component, np.array]  # npt.ArrayLike
+GroupedAvgPSDs = Dict[Component, np.ndarray]  # npt.ArrayLike
