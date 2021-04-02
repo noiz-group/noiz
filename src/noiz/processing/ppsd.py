@@ -223,7 +223,7 @@ def average_psd_by_component(psd_params: PPSDParams, grouped_psds: GroupedPSDs) 
         average_fft = np.zeros(len(psd_params.resampled_frequency_vector))
         i = 0
         for i, psd in enumerate(fetched_psds_cmp):
-            loaded_file = np.load(psd.file.filepath)
+            loaded_file = psd.load_data()
             fft_mean = loaded_file['fft_mean']
             average_fft += fft_mean
 
