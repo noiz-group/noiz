@@ -1,8 +1,12 @@
 import pytest
+
+from noiz.api.ppsd import fetch_ppsd_params_by_id
+
 pytestmark = [pytest.mark.system, pytest.mark.cli]
 
 from click.testing import CliRunner
 import datetime
+import numpy as np
 from pathlib import Path
 import shutil
 
@@ -691,6 +695,7 @@ class TestDataIngestionRoutines:
         from noiz.api.ppsd import fetch_ppsd_results
 
         with noiz_app.app_context():
+            params = fetch_ppsd_params_by_id(id=2)
             all_ppsd = fetch_ppsd_results(ppsd_params_id=2)
             count_res = db.session.query(PPSDResult).filter(PPSDResult.ppsd_params_id == 2).count()
             datachunks = db.session.query(Datachunk).count()
@@ -698,7 +703,8 @@ class TestDataIngestionRoutines:
         assert len(all_ppsd) == count_res
         assert datachunks == count_res
 
-        # TODO add checks if that data is really resampled
+        mean_fft = np.load(count_res[0].file.filepath)['fft_mean']
+        assert len(mean_fft) == len(params.resampled_frequency_vector)
 
     def test_plot_average_psd(self, noiz_app, empty_workdir):
         exported_filename = "average_psd.png"
