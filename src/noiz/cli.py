@@ -1015,7 +1015,7 @@ def plot_average_psd(
 @click.option('--log_freq_scale/--no_log_freq_scale', default=True)
 @click.option('--showfig', is_flag=True)
 @click.option('--savefig/--no-savefig', default=True)
-@click.option('-pp', '--dirpath', type=click.Path())
+@click.option('-pp', '--dirpath', type=click.Path(dir_okay=True, file_okay=False))
 @click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
 @click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def plot_spectrogram(
@@ -1041,6 +1041,7 @@ def plot_spectrogram(
                    f"plots will be saved to {dirpath}")
     elif not isinstance(dirpath, Path):
         dirpath = Path(dirpath)
+    dirpath.mkdir(exist_ok=True, parents=True)
 
     from noiz.api.psd_plotting import plot_spectrograms_between_dates
 
