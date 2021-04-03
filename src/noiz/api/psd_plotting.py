@@ -71,7 +71,7 @@ def plot_spectrograms_between_dates(
         log_freq_scale: bool = True,
         vmin: Union[int, float] = -180,
         vmax: Union[int, float] = -120,
-        filepath: Optional[Path] = None,
+        dirpath: Path = Path.cwd(),
         showfig: bool = False,
         xlims: Optional[Tuple[float, float]] = None,
         ylims: Optional[Tuple[float, float]] = None,
@@ -87,6 +87,8 @@ def plot_spectrograms_between_dates(
         if len(datachunks) == 0:
             continue
         fetched_psds = fetch_ppsd_results(ppsd_params_id=ppsd_params_id, datachunks=datachunks)
+
+        filepath = dirpath.joinpath(f"spectrogram_{component}_{starttime}_{endtime}.png")
 
         fig = plot_spectrogram_for_component_and_psds(
             component=component,
