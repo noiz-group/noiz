@@ -741,7 +741,7 @@ class TestDataIngestionRoutines:
     def test_plot_spectrogram(self, noiz_app, empty_workdir):
         exported_filepath = empty_workdir.absolute()
         runner = CliRunner()
-        result = runner.invoke(cli, ["plot", "average_psd",
+        result = runner.invoke(cli, ["plot", "spectrogram",
                                      "-p", "1",
                                      "-sd", "2019-09-01",
                                      "-ed", "2019-11-01",
@@ -753,7 +753,7 @@ class TestDataIngestionRoutines:
     def test_plot_spectrogram_resampled_data(self, noiz_app, empty_workdir):
         exported_filepath = empty_workdir.absolute()
         runner = CliRunner()
-        result = runner.invoke(cli, ["plot", "average_psd",
+        result = runner.invoke(cli, ["plot", "spectrogram",
                                      "-p", "2",
                                      "-sd", "2019-09-01",
                                      "-ed", "2019-11-01",
