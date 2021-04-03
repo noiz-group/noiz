@@ -218,9 +218,14 @@ def average_psd_by_component(psd_params: PPSDParams, grouped_psds: GroupedPSDs) 
     :rtype: GroupedAvgPSDs
     """
 
+    if psd_params.resample:
+        freq_vector = psd_params.resampled_frequency_vector
+    else:
+        freq_vector = psd_params.expected_fft_freq
+
     avg_psds = dict()
     for component, fetched_psds_cmp in grouped_psds.items():
-        average_fft = np.zeros(len(psd_params.resampled_frequency_vector))
+        average_fft = np.zeros(len(freq_vector))
         i = 0
         for i, psd in enumerate(fetched_psds_cmp):
             loaded_file = psd.load_data()
