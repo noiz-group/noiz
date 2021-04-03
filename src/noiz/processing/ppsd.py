@@ -345,7 +345,7 @@ def process_fetched_psds_for_spectrogram(
         psd_array[i, :] = 10*np.log10(fft_mean)
 
     df = pd.DataFrame(columns=freq_vector, index=time_vector, data=psd_array).sort_index()
-    timespan_frequency = (df.index[1:]-df.index[:-1]).min()
+    timespan_frequency = (df.index[1:]-df.index[:-1]).dropna().min()
     df = df.asfreq(timespan_frequency)
 
     if rolling_window is not None:
