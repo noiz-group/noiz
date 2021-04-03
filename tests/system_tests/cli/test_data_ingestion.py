@@ -706,7 +706,8 @@ class TestDataIngestionRoutines:
 
         hand_loaded_file = np.load(first_res.file.filepath)
         loaded_file = first_res.load_data()
-        assert hand_loaded_file == loaded_file
+        for key in hand_loaded_file.keys():
+            assert np.array_equal(hand_loaded_file[key], loaded_file[key])
 
         mean_fft = loaded_file['fft_mean']
         assert len(mean_fft) == len(params.resampled_frequency_vector)
