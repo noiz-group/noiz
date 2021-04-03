@@ -19,7 +19,7 @@ def plot_average_psd_between_dates(
         ppsd_params_id: int,
         networks: Optional[Union[Collection[str], str]] = None,
         stations: Optional[Union[Collection[str], str]] = None,
-        components_codes: Optional[Union[Collection[str], str]] = None,
+        component_codes: Optional[Union[Collection[str], str]] = None,
         fig_title: Optional[str] = None,
         show_legend: bool = True,
         filepath: Optional[Path] = None,
@@ -30,7 +30,7 @@ def plot_average_psd_between_dates(
 
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
     fetched_psd_params = fetch_ppsd_params_by_id(id=ppsd_params_id)
-    fetched_components = fetch_components(networks=networks, stations=stations, components=components_codes)
+    fetched_components = fetch_components(networks=networks, stations=stations, components=component_codes)
 
     fetched_psds = defaultdict(list)
     for component in fetched_components:
