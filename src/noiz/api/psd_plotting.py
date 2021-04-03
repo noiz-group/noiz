@@ -1,11 +1,8 @@
 from collections import defaultdict
 import datetime
 import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 
-from noiz.models import PPSDParams, PPSDResult, Component
-from noiz.processing.ppsd import _plot_avg_psds, average_psd_by_component
+from noiz.processing.ppsd import _plot_avg_psds, average_psd_by_component, plot_spectrogram_for_component_and_psds
 from obspy import UTCDateTime
 from pathlib import Path
 from typing import Optional, Union, Tuple, Collection
@@ -30,6 +27,7 @@ def plot_average_psd_between_dates(
         xlims: Optional[Tuple[float, float]] = None,
         ylims: Optional[Tuple[float, float]] = None,
 ) -> plt.Figure:
+    """filldocs"""
 
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
     fetched_psd_params = fetch_ppsd_params_by_id(id=ppsd_params_id)
@@ -78,6 +76,7 @@ def plot_spectrograms_between_dates(
         xlims: Optional[Tuple[float, float]] = None,
         ylims: Optional[Tuple[float, float]] = None,
 ) -> plt.Figure:
+    """filldocs"""
 
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
     fetched_psd_params = fetch_ppsd_params_by_id(id=ppsd_params_id)
@@ -105,112 +104,3 @@ def plot_spectrograms_between_dates(
         )
 
         yield fig
-
-
-def plot_spectrogram_for_component_and_psds(
-        component: Component,
-        fetched_psd_params: PPSDParams,
-        fetched_psds: Collection[PPSDResult],
-        rolling_window: Optional[str] = None,
-        fig_title: Optional[str] = None,
-        log_freq_scale: bool = True,
-        filepath: Optional[Path] = None,
-        showfig: bool = False,
-        vmin: Union[int, float] = -180,
-        vmax: Union[int, float] = -120,
-        xlims: Optional[Tuple[float, float]] = None,
-        ylims: Optional[Tuple[float, float]] = None,
-) -> plt.Figure:
-
-    if fig_title is not None:
-        fig_title = f"Spectrogram of {component}"
-        if rolling_window is not None:
-            fig_title = f"Spectrogram of {component} with rolling average of {rolling_window}"
-
-    df = process_fetched_psds_for_spectrogram(
-        fetched_psd_params=fetched_psd_params,
-        fetched_psds=fetched_psds,
-        rolling_window=rolling_window,
-    )
-
-    fig = _plot_spectrogram(
-        df=df,
-        fig_title=fig_title,
-        log_freq_scale=log_freq_scale,
-        filepath=filepath,
-        showfig=showfig,
-        vmin=vmin,
-        vmax=vmax,
-        xlims=xlims,
-        ylims=ylims,
-    )
-    return fig
-
-
-def _plot_spectrogram(
-        df: pd.DataFrame,
-        fig_title: Optional[str] = None,
-        log_freq_scale: bool = True,
-        filepath: Optional[Path] = None,
-        showfig: bool = False,
-        vmin: Union[int, float] = -180,
-        vmax: Union[int, float] = -120,
-        xlims: Optional[Tuple[float, float]] = None,
-        ylims: Optional[Tuple[float, float]] = None,
-) -> plt.Figure:
-    fig, ax = plt.subplots(dpi=150, constrained_layout=True)
-
-    mappable = ax.pcolormesh(df.index, df.columns, df.to_numpy().T, shading="auto", vmin=vmin, vmax=vmax)
-
-    for label in ax.get_xticklabels():
-        label.set_ha("right")
-        label.set_rotation(45)
-
-    if log_freq_scale:
-        ax.set_yscale('log')
-
-    ax.set_ylabel("Frequency [Hz]")
-
-    if fig_title is not None:
-        ax.set_title(fig_title)
-    if xlims is not None:
-        ax.set_xlim(xlims)
-    if ylims is not None:
-        ax.set_yxlim(ylims)
-    if filepath is not None:
-        fig.savefig(filepath, bbox_inches='tight')
-    if showfig:
-        fig.show()
-
-    cb = fig.colorbar(mappable)
-    cb.set_label("Amplitude [(m/s)^2/Hz] [dB]")
-    return fig
-
-
-def process_fetched_psds_for_spectrogram(
-        fetched_psd_params: PPSDParams,
-        fetched_psds: Collection[PPSDResult],
-        rolling_window: Optional[str] = None
-) -> pd.DataFrame:
-
-    if fetched_psd_params.resample:
-        freq_vector = fetched_psd_params.resampled_frequency_vector
-    else:
-        freq_vector = fetched_psd_params.expected_fft_freq
-
-    psd_array = np.zeros((len(fetched_psds), len(freq_vector)))
-    time_vector = np.zeros(len(fetched_psds), dtype="datetime64[ns]")
-
-    for i, psd in enumerate(fetched_psds):
-        time_vector[i] = psd.timespan.midtime_np
-        fft_mean = np.load(psd.file.filepath)['fft_mean']
-        psd_array[i, :] = 10*np.log10(fft_mean)
-
-    df = pd.DataFrame(columns=freq_vector, index=time_vector, data=psd_array).sort_index()
-    timespan_frequency = (df.index[1:]-df.index[:-1]).min()
-    df = df.asfreq(timespan_frequency)
-
-    if rolling_window is not None:
-        df = df.rolling(window=rolling_window).mean()
-
-    return df
