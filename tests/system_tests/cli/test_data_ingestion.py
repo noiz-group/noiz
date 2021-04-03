@@ -724,6 +724,18 @@ class TestDataIngestionRoutines:
         assert result.exit_code == 0
         assert exported_filepath.exists()
 
+    def test_plot_spectrogram(self, noiz_app, empty_workdir):
+        exported_filepath = empty_workdir.absolute()
+        runner = CliRunner()
+        result = runner.invoke(cli, ["plot", "average_psd",
+                                     "-p", "1",
+                                     "-sd", "2019-09-01",
+                                     "-ed", "2019-11-01",
+                                     "--savefig",
+                                     "-pp", str(exported_filepath)])
+        assert result.exit_code == 0
+        assert len(list(exported_filepath.glob("*.png"))) > 0
+
     def test_run_qcone(self, noiz_app):
         runner = CliRunner()
         result = runner.invoke(cli, ["processing", "run_qcone",
