@@ -698,12 +698,17 @@ class TestDataIngestionRoutines:
             params = fetch_ppsd_params_by_id(id=2)
             all_ppsd = fetch_ppsd_results(ppsd_params_id=2)
             count_res = db.session.query(PPSDResult).filter(PPSDResult.ppsd_params_id == 2).count()
+            first_res = db.session.query(PPSDResult).filter(PPSDResult.ppsd_params_id == 2).first()
             datachunks = db.session.query(Datachunk).count()
 
         assert len(all_ppsd) == count_res
         assert datachunks == count_res
 
-        mean_fft = np.load(count_res[0].file.filepath)['fft_mean']
+        hand_loaded_file = np.load(first_res.file.filepath)
+        loaded_file = first_res.load_data()
+        assert hand_loaded_file == loaded_file
+
+        mean_fft = loaded_file['fft_mean']
         assert len(mean_fft) == len(params.resampled_frequency_vector)
 
     def test_plot_average_psd(self, noiz_app, empty_workdir):
