@@ -1002,6 +1002,63 @@ def plot_average_psd(
     return
 
 
+@plotting_group.command("spectrogram")
+@with_appcontext
+@click.option("-sd", "--startdate", nargs=1, type=str,
+              default=DEFAULT_STARTDATE, show_default=True, callback=_parse_as_date)
+@click.option("-ed", "--enddate", nargs=1, type=str,
+              default=DEFAULT_ENDDATE, show_default=True, callback=_parse_as_date)
+@click.option("-p", "--psd_params_id", nargs=1, multiple=False, type=int, required=True)
+@click.option("-s", "--station", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-c", "--component_codes", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-r", "--rolling_window_average", nargs=1, type=str)
+@click.option('--log_freq_scale/--no_log_freq_scale', default=True)
+@click.option('--showfig', is_flag=True)
+@click.option('--savefig/--no-savefig', default=True)
+@click.option('-pp', '--dirpath', type=click.Path())
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
+def plot_spectrogram(
+        startdate,
+        enddate,
+        psd_params_id,
+        stations,
+        component_codes,
+        rolling_window_average,
+        log_freq_scale,
+        savefig,
+        dirpath,
+        showfig,
+        **kwargs
+):
+    """
+    Plot spectrogram for multiple Components
+    """
+
+    if savefig is True and dirpath is None:
+        dirpath = Path.cwd()
+        click.echo(f"The --plotpath argument was not provided."
+                   f"plots will be saved to {dirpath}")
+    elif not isinstance(dirpath, Path):
+        dirpath = Path(dirpath)
+
+    from noiz.api.psd_plotting import plot_spectrograms_between_dates
+
+    plot_spectrograms_between_dates(
+        starttime=startdate,
+        endtime=enddate,
+        ppsd_params_id=psd_params_id,
+        stations=stations,
+        component_codes=component_codes,
+        fig_title=None,
+        dirpath=dirpath,
+        showfig=showfig,
+        rolling_window=rolling_window_average,
+        log_freq_scale=log_freq_scale,
+    )
+    return
+
+
 @plotting_group.command("raw_gps_soh")
 @with_appcontext
 @click.option("-n", "--network", multiple=True, type=str, default=None, callback=_validate_zero_length_as_none)
