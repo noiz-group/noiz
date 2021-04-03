@@ -1,4 +1,3 @@
-import datetime
 from matplotlib import pyplot as plt
 import numpy as np
 import numpy.typing as npt
@@ -182,8 +181,13 @@ def _plot_avg_psds(
     """
     fig, ax = plt.subplots(dpi=180)
 
+    if fetched_psd_params.resample:
+        freqs = fetched_psd_params.resampled_frequency_vector
+    else:
+        freqs = fetched_psd_params.expected_fft_freq
+
     for component, avg_fft in avg_psds.items():
-        ax.semilogx(fetched_psd_params.resampled_frequency_vector, 10 * np.log10(avg_fft), label=str(component))
+        ax.semilogx(freqs, 10 * np.log10(avg_fft), label=str(component))
 
     ax.set_ylabel("Amplitude [(m/s)^2/Hz] [dB]")
     ax.set_xlabel("Frequency [Hz]")
