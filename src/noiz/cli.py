@@ -954,8 +954,9 @@ def plot_beamforming_freq_slowness(
 @click.option("-ed", "--enddate", nargs=1, type=str,
               default=DEFAULT_ENDDATE, show_default=True, callback=_parse_as_date)
 @click.option("-p", "--psd_params_id", nargs=1, multiple=False, type=int, required=True)
-@click.option("-s", "--station", multiple=True, type=str, callback=_validate_zero_length_as_none)
-@click.option("-c", "--component_codes", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-s", "--station", multiple=True, type=str, required=False, callback=_validate_zero_length_as_none)
+@click.option("-c", "--component_codes", multiple=True, type=str, required=False,
+              callback=_validate_zero_length_as_none)
 @click.option('--showfig', is_flag=True)
 @click.option('--show_legend/--no_show_legend', default=True)
 @click.option('--savefig/--no-savefig', default=True)
@@ -1009,8 +1010,9 @@ def plot_average_psd(
 @click.option("-ed", "--enddate", nargs=1, type=str,
               default=DEFAULT_ENDDATE, show_default=True, callback=_parse_as_date)
 @click.option("-p", "--psd_params_id", nargs=1, multiple=False, type=int, required=True)
-@click.option("-s", "--station", multiple=True, type=str, callback=_validate_zero_length_as_none)
-@click.option("-c", "--component_codes", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-s", "--station", multiple=True, type=str, required=False, callback=_validate_zero_length_as_none)
+@click.option("-c", "--component_codes", multiple=True, type=str, required=False,
+              callback=_validate_zero_length_as_none)
 @click.option("-r", "--rolling_window_average", nargs=1, type=str)
 @click.option('--log_freq_scale/--no_log_freq_scale', default=True)
 @click.option('--showfig', is_flag=True)
