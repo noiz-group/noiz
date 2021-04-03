@@ -40,7 +40,7 @@ def plot_histogram_frequency_slowness(
     column_to_be_binned = "slowness"
 
     if fig_title is None:
-        fig_title = f"Beamforming in frequency-slowness space for \n{starttime}-{endtime}"
+        fig_title = f"Beamforming in frequency-slowness space for \n{starttime} - {endtime}"
 
     max_slowness = max([param.max_slowness for param in fetched_beam_params])
     max_step = max([param.slowness_step*np.sqrt(2) for param in fetched_beam_params])

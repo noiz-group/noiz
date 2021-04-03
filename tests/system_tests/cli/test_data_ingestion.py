@@ -1,8 +1,12 @@
 import pytest
+
+from noiz.api.ppsd import fetch_ppsd_params_by_id
+
 pytestmark = [pytest.mark.system, pytest.mark.cli]
 
 from click.testing import CliRunner
 import datetime
+import numpy as np
 from pathlib import Path
 import shutil
 
@@ -691,14 +695,72 @@ class TestDataIngestionRoutines:
         from noiz.api.ppsd import fetch_ppsd_results
 
         with noiz_app.app_context():
+            params = fetch_ppsd_params_by_id(id=2)
             all_ppsd = fetch_ppsd_results(ppsd_params_id=2)
             count_res = db.session.query(PPSDResult).filter(PPSDResult.ppsd_params_id == 2).count()
+            first_res = db.session.query(PPSDResult).filter(PPSDResult.ppsd_params_id == 2).first()
             datachunks = db.session.query(Datachunk).count()
 
         assert len(all_ppsd) == count_res
         assert datachunks == count_res
 
-        # TODO add checks if that data is really resampled
+        hand_loaded_file = np.load(first_res.file.filepath)
+        loaded_file = first_res.load_data()
+        for key in hand_loaded_file.keys():
+            assert np.array_equal(hand_loaded_file[key], loaded_file[key])
+
+        mean_fft = loaded_file['fft_mean']
+        assert len(mean_fft) == len(params.resampled_frequency_vector)
+
+    def test_plot_average_psd(self, noiz_app, empty_workdir):
+        exported_filename = "average_psd.png"
+        exported_filepath = empty_workdir.joinpath(exported_filename).absolute()
+        runner = CliRunner()
+        result = runner.invoke(cli, ["plot", "average_psd",
+                                     "-p", "1",
+                                     "-sd", "2019-09-01",
+                                     "-ed", "2019-11-01",
+                                     "--savefig",
+                                     "-pp", str(exported_filepath)])
+        assert result.exit_code == 0
+        assert exported_filepath.exists()
+
+    def test_plot_average_psd_resampled_data(self, noiz_app, empty_workdir):
+        exported_filename = "average_psd.png"
+        exported_filepath = empty_workdir.joinpath(exported_filename).absolute()
+        runner = CliRunner()
+        result = runner.invoke(cli, ["plot", "average_psd",
+                                     "-p", "2",
+                                     "-sd", "2019-09-01",
+                                     "-ed", "2019-11-01",
+                                     "--savefig",
+                                     "-pp", str(exported_filepath)])
+        assert result.exit_code == 0
+        assert exported_filepath.exists()
+
+    def test_plot_spectrogram(self, noiz_app, empty_workdir):
+        exported_filepath = empty_workdir.absolute()
+        runner = CliRunner()
+        result = runner.invoke(cli, ["plot", "spectrogram",
+                                     "-p", "1",
+                                     "-sd", "2019-09-01",
+                                     "-ed", "2019-11-01",
+                                     "--savefig",
+                                     "-pp", str(exported_filepath)])
+        assert result.exit_code == 0
+        assert len(list(exported_filepath.glob("*.png"))) > 0
+
+    def test_plot_spectrogram_resampled_data(self, noiz_app, empty_workdir):
+        exported_filepath = empty_workdir.absolute()
+        runner = CliRunner()
+        result = runner.invoke(cli, ["plot", "spectrogram",
+                                     "-p", "2",
+                                     "-sd", "2019-09-01",
+                                     "-ed", "2019-11-01",
+                                     "--savefig",
+                                     "-pp", str(exported_filepath)])
+        assert result.exit_code == 0
+        assert len(list(exported_filepath.glob("*.png"))) > 0
 
     def test_run_qcone(self, noiz_app):
         runner = CliRunner()
