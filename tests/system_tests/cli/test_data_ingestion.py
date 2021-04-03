@@ -724,11 +724,36 @@ class TestDataIngestionRoutines:
         assert result.exit_code == 0
         assert exported_filepath.exists()
 
+    def test_plot_average_psd_resampled_data(self, noiz_app, empty_workdir):
+        exported_filename = "average_psd.png"
+        exported_filepath = empty_workdir.joinpath(exported_filename).absolute()
+        runner = CliRunner()
+        result = runner.invoke(cli, ["plot", "average_psd",
+                                     "-p", "2",
+                                     "-sd", "2019-09-01",
+                                     "-ed", "2019-11-01",
+                                     "--savefig",
+                                     "-pp", str(exported_filepath)])
+        assert result.exit_code == 0
+        assert exported_filepath.exists()
+
     def test_plot_spectrogram(self, noiz_app, empty_workdir):
         exported_filepath = empty_workdir.absolute()
         runner = CliRunner()
         result = runner.invoke(cli, ["plot", "average_psd",
                                      "-p", "1",
+                                     "-sd", "2019-09-01",
+                                     "-ed", "2019-11-01",
+                                     "--savefig",
+                                     "-pp", str(exported_filepath)])
+        assert result.exit_code == 0
+        assert len(list(exported_filepath.glob("*.png"))) > 0
+
+    def test_plot_spectrogram_resampled_data(self, noiz_app, empty_workdir):
+        exported_filepath = empty_workdir.absolute()
+        runner = CliRunner()
+        result = runner.invoke(cli, ["plot", "average_psd",
+                                     "-p", "2",
                                      "-sd", "2019-09-01",
                                      "-ed", "2019-11-01",
                                      "--savefig",
