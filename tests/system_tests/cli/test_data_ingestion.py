@@ -481,20 +481,17 @@ class TestDataIngestionRoutines:
 
         assert result.exit_code == 0
 
-        import toml
-        import pytest_check as check
-        from noiz.api.beamforming import fetch_beamforming_params_single
         from noiz.models.processing_params import BeamformingParams
 
         with noiz_app.app_context():
             fetched_configs = BeamformingParams.query.filter(
                 BeamformingParams.min_freq >= 30,
-                BeamformingParams.max_freq <= 40,
+                BeamformingParams.min_freq <= 40,
             ).all()
 
         for config in fetched_configs:
             assert isinstance(config, BeamformingParams)
-        assert len(fetched_configs) == 10
+        assert len(fetched_configs) == 100
 
     def test_add_ppsd_params(self, workdir_with_content, noiz_app):
 
