@@ -190,6 +190,7 @@ def add_beamforming_params(
 @click.option("-fx", "--freq_max", nargs=1, type=float, required=True)
 @click.option("-fp", "--freq_step", nargs=1, type=float, required=True)
 @click.option("-fw", "--freq_window_width", nargs=1, type=float, required=True)
+@click.option("-rp", "--rounding_precision", nargs=1, type=int)
 @click.option('--add_to_db', is_flag=True, expose_value=True,
               prompt='Are you sure you want to add BeamformingParams to DB? `N` will just preview it. ')
 @click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
@@ -201,6 +202,7 @@ def generate_beamforming_params(
         freq_max: float,
         freq_step: float,
         freq_window_width: float,
+        rounding_precision: int,
         **kwargs
 ):
     """Generate multiple BeamformingParams for different frequencies based on a TOML file
@@ -215,6 +217,7 @@ def generate_beamforming_params(
         freq_max=freq_max,
         freq_step=freq_step,
         freq_window_width=freq_window_width,
+        rounding_precision=rounding_precision,
     )
 
     click.echo(f"There were {len(results)} param sets generated.")

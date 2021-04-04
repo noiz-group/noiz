@@ -398,6 +398,7 @@ def generate_multiple_beamforming_configs_based_on_single_holder(
         freq_max: Optional[float],
         freq_step: Optional[float],
         freq_window_width: Optional[float],
+        rounding_precision: int = 4
 ) -> List[BeamformingParamsHolder]:
     """
     Generates multiple :py:class:`~noiz.models.processing_params.BeamformingParamsHolder` based on single
@@ -439,8 +440,8 @@ def generate_multiple_beamforming_configs_based_on_single_holder(
 
     param_holders = []
     for start in window_starts:
-        min_freq = start
-        max_freq = start + freq_window_width
+        min_freq = np.round(start, rounding_precision)
+        max_freq = np.round(start + freq_window_width, rounding_precision)
         logger.debug(f"Generating beamforming params for {min_freq}-{max_freq}Hz. ")
 
         new_param_holder = copy.deepcopy(params_holder)
