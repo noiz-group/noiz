@@ -76,24 +76,26 @@ class FileModelMixin(db.Model):
             ts: Timespan,
             cmp: Optional[Union[Component, ComponentPair]],
     ) -> Path:
+        year = str(ts.starttime.year)
+        doy = ts.starttime.strftime("%j")
         if isinstance(cmp, Component):
             return (
                 Path(PROCESSED_DATA_DIR)
                 .joinpath(self.file_model_type)
                 .joinpath(str(params.id))
-                .joinpath(str(ts.starttime_year))
+                .joinpath(year)
                 .joinpath(cmp.network)
                 .joinpath(cmp.station)
                 .joinpath(cmp.component)
-                .joinpath(str(ts.starttime_doy))
+                .joinpath(doy)
             )
         elif isinstance(cmp, ComponentPair):
             return (
                 Path(PROCESSED_DATA_DIR)
                 .joinpath(self.file_model_type)
                 .joinpath(str(params.id))
-                .joinpath(str(ts.starttime_year))
-                .joinpath(str(ts.starttime_doy))
+                .joinpath(year)
+                .joinpath(doy)
                 .joinpath(cmp.component_code_pair)
                 .joinpath(f"{cmp.component_a.network}.{cmp.component_a.station}-"
                           f"{cmp.component_b.network}.{cmp.component_b.station}")
@@ -103,8 +105,8 @@ class FileModelMixin(db.Model):
                 Path(PROCESSED_DATA_DIR)
                 .joinpath(self.file_model_type)
                 .joinpath(str(params.id))
-                .joinpath(str(ts.starttime_year))
-                .joinpath(str(ts.starttime_doy))
+                .joinpath(year)
+                .joinpath(doy)
             )
         else:
             raise TypeError(f"Expected either Component, ComponentPair or None. Got {type(cmp)}")
