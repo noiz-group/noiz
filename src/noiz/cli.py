@@ -1095,6 +1095,7 @@ def plot_spectrogram(
         ppsd_params_id=psd_params_id,
         stations=station,
         component_codes=component_codes,
+        return_figures=False,
         fig_title=None,
         dirpath=dirpath,
         showfig=showfig,
