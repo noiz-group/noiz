@@ -844,6 +844,18 @@ class TestDataIngestionRoutines:
         assert result.exit_code == 0
         assert exported_filepath.exists()
 
+    def test_plot_beamforming_freq_velocity(self, noiz_app, empty_workdir):
+        exported_filename = "beamforming_freq_velocity.png"
+        exported_filepath = empty_workdir.joinpath(exported_filename).absolute()
+        runner = CliRunner()
+        result = runner.invoke(cli, ["plot", "beamforming_freq_velocity",
+                                     "-sd", "2019-09-01",
+                                     "-ed", "2019-11-01",
+                                     "--savefig",
+                                     "-pp", str(exported_filepath)])
+        assert result.exit_code == 0
+        assert exported_filepath.exists()
+
     def test_run_datachunk_processing(self, noiz_app):
         runner = CliRunner()
         result = runner.invoke(cli, ["processing", "process_datachunks",

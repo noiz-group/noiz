@@ -1,22 +1,26 @@
 import datetime
-
-from pathlib import Path
-
-from typing import Collection, Optional, Union
-
 import matplotlib.pyplot as plt
 import numpy as np
+from obspy import UTCDateTime
 import pandas as pd
+from pathlib import Path
+from typing import Collection, Optional, Union
 
 from noiz.api.beamforming import fetch_beamforming_peaks_avg_abspower_results_in_freq_slowness, fetch_beamforming_params
 from noiz.api.timespan import fetch_timespans_between_dates
+from noiz.globals import ExtendedEnum
 from noiz.models.beamforming import BeamformingResultType
-from obspy import UTCDateTime
 
 
-def plot_histogram_frequency_slowness(
+class HistogramSpaceTypes(ExtendedEnum):
+    SLOWNESS = "slowness"
+    VELOCITY = "velocity"
+
+
+def plot_histogram_frequency_slowness_velocity(
         starttime: Union[datetime.date, datetime.datetime, UTCDateTime],
         endtime: Union[datetime.date, datetime.datetime, UTCDateTime],
+        histogram_space_type: Union[HistogramSpaceTypes, str] = HistogramSpaceTypes.SLOWNESS,
         beamforming_params_ids: Optional[Collection[int]] = None,
         minimum_trace_used_count: Optional[int] = None,
         beamforming_result_type: BeamformingResultType = BeamformingResultType.AVGABSPOWER,
@@ -37,7 +41,14 @@ def plot_histogram_frequency_slowness(
         beamforming_result_type=beamforming_result_type,
     )
 
-    column_to_be_binned = "slowness"
+    if not isinstance(histogram_space_type, HistogramSpaceTypes):
+        try:
+            histogram_space_type = HistogramSpaceTypes(histogram_space_type)
+        except ValueError:
+            raise ValueError(f"histogram_space_type has to be one of {list(HistogramSpaceTypes)}. "
+                             f"Provided value was: {histogram_space_type}")
+    if histogram_space_type == HistogramSpaceTypes.VELOCITY:
+        df.loc[:, "velocity"] = 1/df.loc[:, "slowness"]
 
     if fig_title is None:
         fig_title = f"Beamforming in frequency-slowness space for \n{starttime} - {endtime}"
@@ -49,7 +60,7 @@ def plot_histogram_frequency_slowness(
     fig = _plot_histogram_of_beamforming_in_freq_slow_vel(
         df=df,
         bin_edges=bin_edges,
-        column_to_be_binned=column_to_be_binned,
+        column_to_be_binned=histogram_space_type.value,
         fig_title=fig_title,
         filepath=filepath,
         showfig=showfig,
