@@ -393,10 +393,10 @@ def create_stacking_params(
 
 def generate_multiple_beamforming_configs_based_on_single_holder(
         params_holder: BeamformingParamsHolder,
-        freq_min: float,
-        freq_max: float,
-        freq_step: float,
-        freq_window_width: float,
+        freq_min: Optional[float],
+        freq_max: Optional[float],
+        freq_step: Optional[float],
+        freq_window_width: Optional[float],
 ) -> List[BeamformingParamsHolder]:
     """
     Generates multiple :py:class:`~noiz.models.processing_params.BeamformingParamsHolder` based on single
@@ -413,13 +413,13 @@ def generate_multiple_beamforming_configs_based_on_single_holder(
     :param params_holder:
     :type params_holder: BeamformingParamsHolder
     :param freq_min: Minimum frequency generated
-    :type freq_min: float
+    :type freq_min: Optional[float]
     :param freq_max: Maximum frequency generated
-    :type freq_max: float
+    :type freq_max: Optional[float]
     :param freq_step: Step based on which starts of frequency bands will be generated
-    :type freq_step: float
+    :type freq_step: Optional[float]
     :param freq_window_width: Width of generated frequency band
-    :type freq_window_width: float
+    :type freq_window_width: Optional[float]
     :return: List of generated BeamformingParamsHolder for different frequency bands
     :rtype: List[BeamformingParamsHolder]
     """
@@ -428,7 +428,7 @@ def generate_multiple_beamforming_configs_based_on_single_holder(
         raise ValueError("If you want to generate multiple params you have to provide freq_min, freq_max, "
                          "freq_step, freq_window_width. ")
 
-    if freq_window_width < 0:
+    if freq_window_width is not None and freq_window_width < 0.:  # This None check is for mypy to be satisfied
         raise ValueError('The freq_window_width has to be a positive value.')
 
     window_starts = np.arange(start=freq_min, stop=freq_max, step=freq_step)
