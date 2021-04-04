@@ -39,7 +39,7 @@ class TimespanMixin(db.Model):
 
     @typed_hybrid_property
     def starttime_year(self) -> int:
-        return self.starttime.year  # type: ignore
+        return self.starttime.year
 
     @starttime_year.expression  # type: ignore
     def starttime_year(cls) -> int:  # type: ignore
@@ -52,6 +52,22 @@ class TimespanMixin(db.Model):
     @starttime_doy.expression
     def starttime_doy(cls) -> int:
         return func.date_part("doy", cls.starttime)  # type: ignore
+
+    @typed_hybrid_property
+    def starttime_isoweekday(self) -> int:
+        return self.midtime.isoweekday()
+
+    @starttime_isoweekday.expression
+    def starttime_isoweekday(cls) -> int:
+        return func.date_part("isodow", cls.starttime)  # type: ignore
+
+    @typed_hybrid_property
+    def starttime_hour(self) -> int:
+        return self.starttime.hour
+
+    @starttime_hour.expression
+    def starttime_hour(cls) -> int:
+        return func.date_part("hour", cls.starttime)  # type: ignore
 
     @typed_hybrid_property
     def midtime_year(self) -> int:
@@ -70,6 +86,22 @@ class TimespanMixin(db.Model):
         return func.date_part("doy", cls.midtime)  # type: ignore
 
     @typed_hybrid_property
+    def midtime_isoweekday(self) -> int:
+        return self.midtime.isoweekday()
+
+    @midtime_isoweekday.expression
+    def midtime_isoweekday(cls) -> int:
+        return func.date_part("isodow", cls.midtime)  # type: ignore
+
+    @typed_hybrid_property
+    def midtime_hour(self) -> int:
+        return self.midtime.hour
+
+    @midtime_hour.expression
+    def midtime_hour(cls) -> int:
+        return func.date_part("hour", cls.midtime)  # type: ignore
+
+    @typed_hybrid_property
     def endtime_year(self) -> int:
         return self.endtime.year
 
@@ -84,6 +116,22 @@ class TimespanMixin(db.Model):
     @endtime_doy.expression
     def endtime_doy(cls) -> int:
         return func.date_part("doy", cls.endtime)  # type: ignore
+
+    @typed_hybrid_property
+    def endtime_isoweekday(self) -> int:
+        return self.endtime.isoweekday()
+
+    @endtime_isoweekday.expression
+    def endtime_isoweekday(cls) -> int:
+        return func.date_part("isodow", cls.endtime)  # type: ignore
+
+    @typed_hybrid_property
+    def endtime_hour(self) -> int:
+        return self.endtime.hour
+
+    @endtime_hour.expression
+    def endtime_hour(cls) -> int:
+        return func.date_part("hour", cls.endtime)  # type: ignore
 
     def remove_last_microsecond(self) -> obspy.UTCDateTime:
         return obspy.UTCDateTime(self.endtime_pd - pd.Timedelta(microseconds=1))
