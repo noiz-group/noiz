@@ -190,7 +190,7 @@ def add_beamforming_params(
 @click.option("-fx", "--freq_max", nargs=1, type=float, required=True)
 @click.option("-fp", "--freq_step", nargs=1, type=float, required=True)
 @click.option("-fw", "--freq_window_width", nargs=1, type=float, required=True)
-@click.option("-rp", "--rounding_precision", nargs=1, type=int)
+@click.option("-rp", "--rounding_precision", nargs=1, type=int, default=4)
 @click.option('--add_to_db', is_flag=True, expose_value=True,
               prompt='Are you sure you want to add BeamformingParams to DB? `N` will just preview it. ')
 @click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
