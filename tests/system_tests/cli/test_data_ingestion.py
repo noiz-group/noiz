@@ -467,6 +467,35 @@ class TestDataIngestionRoutines:
                 continue
             check.almost_equal(fetched_config.__getattribute__(key), value)
 
+    def test_generate_beamforming_params(self, workdir_with_content, noiz_app):
+        config_path = workdir_with_content.joinpath('beamforming_params.toml')
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["configs", "generate_beamforming_params",
+                                     "-fn", "30",
+                                     "-fx", "40",
+                                     "-fp", "0.1",
+                                     "-fw", "0.15",
+                                     "--add_to_db",
+                                     "-f", str(config_path)])
+
+        assert result.exit_code == 0
+
+        import toml
+        import pytest_check as check
+        from noiz.api.beamforming import fetch_beamforming_params_single
+        from noiz.models.processing_params import BeamformingParams
+
+        with noiz_app.app_context():
+            fetched_configs = BeamformingParams.query.filter(
+                BeamformingParams.min_freq >= 30,
+                BeamformingParams.max_freq <= 40,
+            ).all()
+
+        for config in fetched_configs:
+            assert isinstance(config, BeamformingParams)
+        assert len(fetched_configs) == 10
+
     def test_add_ppsd_params(self, workdir_with_content, noiz_app):
 
         config_path = workdir_with_content.joinpath('ppsd_params.toml')
