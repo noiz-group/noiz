@@ -178,7 +178,7 @@ def add_beamforming_params(
         params = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
         click.echo(f"The BeamformingParams were added to db with id {params.id}")
     else:
-        parsing_results, _ = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
+        parsing_results = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
         click.echo("\n")
         click.echo(parsing_results)
 
@@ -210,17 +210,21 @@ def generate_beamforming_params(
     results = create_and_add_beamforming_params_from_toml(
         filepath=Path(filepath),
         add_to_db=add_to_db,
+        generate_multiple=True,
         freq_min=freq_min,
         freq_max=freq_max,
         freq_step=freq_step,
         freq_window_width=freq_window_width,
     )
+
+    click.echo(f"There were {len(results)} param sets generated.")
     if add_to_db:
         param_ids = [str(params.id) for params in results]
         click.echo(f"The BeamformingParams were added to db with ids {', '.join(param_ids)}")
     else:
-        click.echo("\n")
-        click.echo(results)
+        for holder, _ in results:
+            click.echo("\n")
+            click.echo(holder)
 
 
 @configs_group.command("add_ppsd_params")
