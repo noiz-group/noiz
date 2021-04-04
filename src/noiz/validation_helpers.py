@@ -125,7 +125,7 @@ def _validate_as_pytimedelta_or_none(
 
 
 def _validate_timestamp_as_pydatetime(
-    time_obj: Union[pd.Timestamp, datetime.datetime, np.datetime64, str]
+    time_obj: Union[pd.Timestamp, datetime.datetime, np.datetime64, obspy.UTCDateTime, str]
 ) -> datetime.datetime:
     """
     Takes a time object and converts it to a pd.Timestamp if originally it was either datetime.datetime,
@@ -146,6 +146,8 @@ def _validate_timestamp_as_pydatetime(
         return pd.Timestamp(time_obj).to_pydatetime()
     elif isinstance(time_obj, datetime.datetime):
         return time_obj
+    elif isinstance(time_obj, obspy.UTCDateTime):
+        return time_obj.datetime
     elif isinstance(time_obj, str):
         return _validate_timestamp_as_pydatetime(pd.Timestamp(time_obj))
     else:
