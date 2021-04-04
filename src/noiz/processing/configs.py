@@ -2,6 +2,7 @@ import copy
 
 import numpy as np
 import toml
+from loguru import logger
 
 from typing import Dict, Optional, Union, List
 from pathlib import Path
@@ -438,9 +439,13 @@ def generate_multiple_beamforming_configs_based_on_single_holder(
 
     param_holders = []
     for start in window_starts:
+        min_freq = start
+        max_freq = start + freq_window_width
+        logger.debug(f"Generating beamforming params for {min_freq}-{max_freq}Hz. ")
+
         new_param_holder = copy.deepcopy(params_holder)
-        new_param_holder.min_freq = start
-        new_param_holder.max_freq = start + freq_window_width
+        new_param_holder.min_freq = min_freq
+        new_param_holder.max_freq = max_freq
 
         param_holders.append(new_param_holder)
     return param_holders

@@ -211,6 +211,7 @@ def create_and_add_beamforming_params_from_toml(
         else:
             return (params_holder, params)
     else:
+        logger.debug("Generating multiple beamforming param holders. ")
         param_holders = generate_multiple_beamforming_configs_based_on_single_holder(
             params_holder=params_holder,
             freq_min=freq_min,
@@ -218,19 +219,23 @@ def create_and_add_beamforming_params_from_toml(
             freq_step=freq_step,
             freq_window_width=freq_window_width,
         )
-
-        results = []
+        logger.debug(f"Generated {len(param_holders)}.")
+        logger.debug("Converting holders to BeamformingParams. ")
+        generated_params = []
         for holder in param_holders:
             params = create_beamforming_params(params_holder=holder)
-            results.append((holder, params))
+            generated_params.append((holder, params))
+        logger.debug(f"Generated {len(generated_params)} BeamformingParams. ")
 
         if add_to_db:
+            logger.debug("Starting insertion of BeamformingParams to DB. ")
             added_params = []
-            for _, params in results:
+            for _, params in generated_params:
                 added_params.append(_insert_params_into_db(params=params))
+            logger.debug(f"Successfully added to DB {len(added_params)} BeamformingParams.")
             return added_params
         else:
-            return results
+            return generated_params
 
 
 def create_and_add_ppsd_params_from_toml(
