@@ -178,9 +178,53 @@ def add_beamforming_params(
         params = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
         click.echo(f"The BeamformingParams were added to db with id {params.id}")
     else:
-        parsing_results, _ = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
+        parsing_results = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
         click.echo("\n")
         click.echo(parsing_results)
+
+
+@configs_group.command("generate_beamforming_params")
+@with_appcontext
+@click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
+@click.option("-fn", "--freq_min", nargs=1, type=float, required=True)
+@click.option("-fx", "--freq_max", nargs=1, type=float, required=True)
+@click.option("-fp", "--freq_step", nargs=1, type=float, required=True)
+@click.option("-fw", "--freq_window_width", nargs=1, type=float, required=True)
+@click.option('--add_to_db', is_flag=True, expose_value=True,
+              prompt='Are you sure you want to add BeamformingParams to DB? `N` will just preview it. ')
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
+def generate_beamforming_params(
+        filepath: str,
+        add_to_db: bool,
+        freq_min: float,
+        freq_max: float,
+        freq_step: float,
+        freq_window_width: float,
+        **kwargs
+):
+    """Generate multiple BeamformingParams for different frequencies based on a TOML file
+     with a single BeamformingParams config and add them to db."""
+
+    from noiz.api.processing_config import create_and_add_beamforming_params_from_toml
+    results = create_and_add_beamforming_params_from_toml(
+        filepath=Path(filepath),
+        add_to_db=add_to_db,
+        generate_multiple=True,
+        freq_min=freq_min,
+        freq_max=freq_max,
+        freq_step=freq_step,
+        freq_window_width=freq_window_width,
+    )
+
+    click.echo(f"There were {len(results)} param sets generated.")
+    if add_to_db:
+        param_ids = [str(params.id) for params in results]
+        click.echo(f"The BeamformingParams were added to db with ids {', '.join(param_ids)}")
+    else:
+        for holder, _ in results:
+            click.echo("\n")
+            click.echo(holder)
 
 
 @configs_group.command("add_ppsd_params")
