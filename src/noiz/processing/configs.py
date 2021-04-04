@@ -1,11 +1,13 @@
+import copy
+
+import numpy as np
 import toml
 
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, List
 from pathlib import Path
 
 from noiz.globals import ExtendedEnum
-from noiz.models import DatachunkParams
-from noiz.models.processing_params import DatachunkParamsHolder, ProcessedDatachunkParamsHolder, \
+from noiz.models.processing_params import DatachunkParams, DatachunkParamsHolder, ProcessedDatachunkParamsHolder, \
     ProcessedDatachunkParams, CrosscorrelationParamsHolder, CrosscorrelationParams, BeamformingParamsHolder, \
     BeamformingParams, PPSDParamsHolder, PPSDParams
 from noiz.models.qc import QCOneConfigRejectedTimeHolder, QCOneConfigHolder, QCTwoConfigHolder, \
@@ -387,3 +389,58 @@ def create_stacking_params(
         stacking_overlap=params_holder.stacking_overlap,
     )
     return params
+
+
+def generate_multiple_beamforming_configs_based_on_single_holder(
+        params_holder: BeamformingParamsHolder,
+        freq_min: float,
+        freq_max: float,
+        freq_step: float,
+        freq_window_width: float,
+) -> List[BeamformingParamsHolder]:
+    """
+    Generates multiple :py:class:`~noiz.models.processing_params.BeamformingParamsHolder` based on single
+    :py:class:`~noiz.models.processing_params.BeamformingParamsHolder`. The only difference of generated
+    :py:class:`~noiz.models.processing_params.BeamformingParamsHolder` are values of
+    :py:attr::`~noiz.models.processing_params.BeamformingParamsHolder.freq_min` and
+    :py:attr::`~noiz.models.processing_params.BeamformingParamsHolder.freq_max` which are generated based on provided
+    arguments to that function.
+    To generate :py:attr::`~noiz.models.processing_params.BeamformingParamsHolder.freq_min` values,
+    a :py:meth:`numpy.arange` is used and the
+    :py:attr::`~noiz.models.processing_params.BeamformingParamsHolder.freq_max` is calculated as sum of
+    :py:attr::`~noiz.models.processing_params.BeamformingParamsHolder.freq_min` and `freq_window_width` argument.
+
+    :param params_holder:
+    :type params_holder: BeamformingParamsHolder
+    :param freq_min: Minimum frequency generated
+    :type freq_min: float
+    :param freq_max: Maximum frequency generated
+    :type freq_max: float
+    :param freq_step: Step based on which starts of frequency bands will be generated
+    :type freq_step: float
+    :param freq_window_width: Width of generated frequency band
+    :type freq_window_width: float
+    :return: List of generated BeamformingParamsHolder for different frequency bands
+    :rtype: List[BeamformingParamsHolder]
+    """
+
+    if any([x is None for x in (freq_min, freq_max, freq_step, freq_window_width)]):
+        raise ValueError("If you want to generate multiple params you have to provide freq_min, freq_max, "
+                         "freq_step, freq_window_width. ")
+
+    if freq_window_width < 0:
+        raise ValueError('The freq_window_width has to be a positive value.')
+
+    window_starts = np.arange(start=freq_min, stop=freq_max, step=freq_step)
+    if len(window_starts) < 1:
+        raise ValueError("Based on provided freq_min, freq_max, freq_step method `np.arange` produced less than"
+                         "one result. Provide proper values.")
+
+    param_holders = []
+    for start in window_starts:
+        new_param_holder = copy.deepcopy(params_holder)
+        new_param_holder.min_freq = start
+        new_param_holder.max_freq = start + freq_window_width
+
+        param_holders.append(new_param_holder)
+    return param_holders
