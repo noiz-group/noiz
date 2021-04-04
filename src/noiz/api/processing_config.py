@@ -13,7 +13,7 @@ from noiz.models.processing_params import BeamformingParams, BeamformingParamsHo
 
 from noiz.processing.configs import parse_single_config_toml, DefinedConfigs, \
     create_datachunkparams, create_processed_datachunk_params, create_crosscorrelation_params, create_stacking_params, \
-    create_beamforming_params, create_ppsd_params
+    create_beamforming_params, create_ppsd_params, generate_multiple_beamforming_configs_based_on_single_holder
 
 from noiz.api.component import fetch_components
 from noiz.api.component_pair import fetch_componentpairs
@@ -180,8 +180,16 @@ def create_and_add_processed_datachunk_params_from_toml(
 
 def create_and_add_beamforming_params_from_toml(
         filepath: Path,
-        add_to_db: bool = False
-) -> Union[BeamformingParams, Tuple[BeamformingParamsHolder, BeamformingParams]]:
+        add_to_db: bool = False,
+        generate_multiple: bool = False,
+        freq_min: Optional[float] = None,
+        freq_max: Optional[float] = None,
+        freq_step: Optional[float] = None,
+        freq_window_width: Optional[float] = None
+) -> Union[
+    Union[BeamformingParams, Tuple[BeamformingParamsHolder, BeamformingParams]],
+    Union[List[BeamformingParams], List[Tuple[BeamformingParamsHolder, BeamformingParams]]],
+]:
     """
     filldocs
     """
@@ -195,13 +203,34 @@ def create_and_add_beamforming_params_from_toml(
     except EmptyResultException:
         raise EmptyResultException(f"There is no QCOneConfig in the database with requested id: "
                                    f"{params_holder.qcone_config_id}")
+    if not generate_multiple:
+        params = create_beamforming_params(params_holder=params_holder)
 
-    params = create_beamforming_params(params_holder=params_holder)
-
-    if add_to_db:
-        return _insert_params_into_db(params=params)
+        if add_to_db:
+            return _insert_params_into_db(params=params)
+        else:
+            return (params_holder, params)
     else:
-        return (params_holder, params)
+        param_holders = generate_multiple_beamforming_configs_based_on_single_holder(
+            params_holder=params_holder,
+            freq_min=freq_min,
+            freq_max=freq_max,
+            freq_step=freq_step,
+            freq_window_width=freq_window_width,
+        )
+
+        results = []
+        for holder in param_holders:
+            params = create_beamforming_params(params_holder=holder)
+            results.append((holder, params))
+
+        if add_to_db:
+            added_params = []
+            for _, params in results:
+                added_params.append(_insert_params_into_db(params=params))
+            return added_params
+        else:
+            return results
 
 
 def create_and_add_ppsd_params_from_toml(
