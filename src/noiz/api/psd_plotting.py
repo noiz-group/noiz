@@ -73,6 +73,7 @@ def plot_spectrograms_between_dates(
         stations: Optional[Union[Collection[str], str]] = None,
         component_codes: Optional[Union[Collection[str], str]] = None,
         rolling_window: Optional[str] = None,
+        return_figures: bool = True,
         fig_title: Optional[str] = None,
         log_freq_scale: bool = True,
         vmin: Union[int, float] = -180,
@@ -122,8 +123,10 @@ def plot_spectrograms_between_dates(
             xlims=xlims,
             ylims=ylims,
         )
-
-        figs.append(fig)
+        if return_figures:
+            figs.append(fig)
+        else:
+            plt.close(fig)
         logger.debug(f"Plotting of psds for {component} finished")
 
     return tuple(figs)
