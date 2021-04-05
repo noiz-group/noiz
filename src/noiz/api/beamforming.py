@@ -174,11 +174,14 @@ def _prepare_inputs_for_beamforming_runner(
 
         grouped_by_tid: Dict[Timespan, List[Tuple[Datachunk, QCOneResults]]] = defaultdict(list)
 
+        logger.debug("Grouping potential inputs by timespan")
         for timespan, datachunk, qconeresult in selection:
             grouped_by_tid[timespan].append((datachunk, qconeresult))
+        logger.debug(f"Grouping done. There are {len(grouped_by_tid)} timespans with data.")
 
         grouped_existing_beam_param_ids: Dict[int, List[int]] = defaultdict(list)
         if skip_existing:
+            logger.debug("Querying for existing beamforming results")
             existing_res = (
                 db.session.query(Timespan.id, BeamformingResult.beamforming_params_id)
                 .select_from(Timespan)
@@ -187,13 +190,15 @@ def _prepare_inputs_for_beamforming_runner(
                 .filter(BeamformingResult.beamforming_params_id.in_(fetched_params_ids))
                 .all()
             )
-            for tid, paramid in existing_res:
-                grouped_existing_beam_param_ids[tid].append(paramid)
+
+            for tid, params_id in existing_res:
+                grouped_existing_beam_param_ids[tid].append(params_id)
 
         for ts, group in grouped_by_tid.items():
             if skip_existing:
                 existing_beamforming_for_timespan = grouped_existing_beam_param_ids[ts.id]
                 existing_beamforming_for_timespan.sort()
+
                 if existing_beamforming_for_timespan == fetched_params_ids:
                     logger.debug(f"All beamforming operations for timespan {ts} are finished")
                     continue
@@ -201,8 +206,11 @@ def _prepare_inputs_for_beamforming_runner(
                     used_params = [x for x in params if x.id not in grouped_existing_beam_param_ids[ts.id]]
             else:
                 used_params = params
+            logger.debug(f"There are {len(used_params)} beamformings to be done for timespan {ts}. ")
 
             passing_chunks = [chunk for chunk, qconeresult in group if qconeresult.is_passing()]
+            logger.debug(f"There are {len(passing_chunks)} passing QCOne out of {len(group)} datachunks in total "
+                         f"for timespan {ts}")
 
             if len(passing_chunks) < global_minimum_trace_count:
                 logger.warning(f"There was not enough traces passing QCOne for the beamforming. "
