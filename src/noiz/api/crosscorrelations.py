@@ -1,32 +1,26 @@
-from pathlib import Path
-
 import datetime
 from loguru import logger
-from sqlalchemy.sql import Insert
-
 from obspy.signal.cross_correlation import correlate
+from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import subqueryload, Query
+from sqlalchemy.sql import Insert
 from typing import List, Union, Optional, Collection, Dict, Generator, Tuple, Any
-
-from noiz.models.type_aliases import CrosscorrelationRunnerInputs
-from noiz.processing.io import write_ccfs_to_npz
-from noiz.database import db
-from noiz.exceptions import InconsistentDataException, CorruptedDataException
-from noiz.models import ComponentPair, CrosscorrelationFile, Crosscorrelation, Datachunk, ProcessedDatachunk, \
-    CrosscorrelationParams, Timespan
-from noiz.processing.crosscorrelations import (
-    validate_component_code_pairs,
-    group_chunks_by_timespanid_componentid,
-    load_data_for_chunks, extract_component_ids_from_component_pairs, assembly_ccf_dataframe,
-)
 
 from noiz.api.component_pair import fetch_componentpairs, fetch_componentpairs_by_id
 from noiz.api.helpers import extract_object_ids, _run_calculate_and_upsert_on_dask, \
     _run_calculate_and_upsert_sequentially
-from noiz.validation_helpers import validate_to_tuple
 from noiz.api.processing_config import fetch_crosscorrelation_params_by_id
 from noiz.api.timespan import fetch_timespans_between_dates
+from noiz.database import db
+from noiz.exceptions import InconsistentDataException, CorruptedDataException
+from noiz.models import ComponentPair, CrosscorrelationFile, Crosscorrelation, Datachunk, ProcessedDatachunk, \
+    CrosscorrelationParams, Timespan
+from noiz.models.type_aliases import CrosscorrelationRunnerInputs
+from noiz.processing.crosscorrelations import validate_component_code_pairs, group_chunks_by_timespanid_componentid, \
+    load_data_for_chunks, extract_component_ids_from_component_pairs, assembly_ccf_dataframe
+from noiz.processing.io import write_ccfs_to_npz
+from noiz.validation_helpers import validate_to_tuple
 
 
 def fetch_crosscorrelation(
@@ -141,7 +135,8 @@ def perform_crosscorrelations(
 ) -> None:
     """
     Performs crosscorrelations according to provided set of selectors.
-    Uses Dask.distributed for parallelism
+    Uses Dask.distributed for parallelism.
+    All the calculations are divided into batches in order to speed up queries that gather all the inputs.
 
     :param crosscorrelation_params_id: ID of CrosscorrelationParams object to be used as config
     :type crosscorrelation_params_id: int
@@ -161,6 +156,8 @@ def perform_crosscorrelations(
     :type station_codes_b: Optional[Union[Collection[str], str]]
     :param component_codes_b: Selector for component code of B station in the pair
     :type component_codes_b: Optional[Union[Collection[str], str]]
+    :param accepted_component_code_pairs: Collection of component code pairs that should be fetched
+    :type accepted_component_code_pairs: Optional[Union[Collection[str], str]]
     :param include_autocorrelation: If autocorrelation pairs should be also included
     :type include_autocorrelation: Optional[bool]
     :param include_intracorrelation: If intracorrelation pairs should be also included
@@ -171,6 +168,10 @@ def perform_crosscorrelations(
     :type only_intracorrelation: Optional[bool]
     :param raise_errors: If errors should be raised or just logged
     :type raise_errors: bool
+    :param batch_size: How big should be the batch of calculations
+    :type batch_size: int
+    :param parallel: If the calculations should be done in parallel
+    :type parallel: bool
     :return: None
     :rtype: NoneType
     """
