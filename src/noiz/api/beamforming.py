@@ -1,12 +1,12 @@
 from collections import defaultdict
 import datetime
+import more_itertools
 from loguru import logger
 import pandas as pd
 from sqlalchemy.dialects.postgresql import insert, Insert
 from sqlalchemy.orm import subqueryload, Query
 from sqlalchemy.sql.elements import BinaryExpression
-from typing import Union, Collection, Optional, List, Tuple, Generator
-
+from typing import Union, Collection, Optional, List, Tuple, Generator, Dict
 
 from noiz.api.component import fetch_components
 from noiz.api.helpers import extract_object_ids, _run_calculate_and_upsert_sequentially, \
@@ -80,7 +80,7 @@ def run_beamforming(
         stations: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
         skip_existing: bool = True,
-        batch_size: int = 2500,
+        batch_size: int = 500,
         parallel: bool = True,
         raise_errors: bool = True,
 ):
@@ -92,7 +92,8 @@ def run_beamforming(
         networks=networks,
         stations=stations,
         component_ids=component_ids,
-        skip_existing=skip_existing
+        skip_existing=skip_existing,
+        batch_size=batch_size
     )
 
     if parallel:
@@ -125,10 +126,12 @@ def _prepare_inputs_for_beamforming_runner(
         stations: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
         skip_existing: bool = True,
+        batch_size: int = 500,
 ) -> Generator[BeamformingRunnerInputs, None, None]:
 
     logger.debug(f"Fetching BeamformingParams with ids {beamforming_params_ids}")
     params = fetch_beamforming_params(ids=beamforming_params_ids)
+    fetched_params_ids = extract_object_ids(params)
     logger.debug(f"Fetching BeamformingParams successful. {params}")
 
     single_qcone_config_id = _validate_if_all_beamforming_params_use_same_qcone(params)
@@ -152,43 +155,63 @@ def _prepare_inputs_for_beamforming_runner(
     )
     logger.debug(f"Fetched {len(fetched_components)} components")
 
-    selection = (
-        db.session.query(Timespan, Datachunk, QCOneResults)
-                  .select_from(Timespan)
-                  .join(Datachunk, Datachunk.timespan_id == Timespan.id)
-                  .join(QCOneResults, Datachunk.id == QCOneResults.datachunk_id)
-                  .filter(Timespan.id.in_(extract_object_ids(fetched_timespans)))  # type: ignore
-                  .filter(Datachunk.component_id.in_(extract_object_ids(fetched_components)))
-                  .filter(QCOneResults.qcone_config_id == qcone_config.id)
-                  .options(subqueryload(Datachunk.component))
-                  .all()
-    )
+    for timespan_batch in more_itertools.chunked(iterable=fetched_timespans, n=batch_size):
 
-    grouped_by_tid = defaultdict(list)
-
-    for sel in selection:
-        grouped_by_tid[sel[0]].append(sel[1:])
-
-    if skip_existing:
-        raise NotImplementedError("Not yet implemented")
-
-    for ts, group in grouped_by_tid.items():
-        group: List[Tuple[Datachunk, QCOneResults]]  # type: ignore
-        passing_chunks = [chunk for chunk, qcres in group if qcres.is_passing()]
-
-        if len(passing_chunks) < global_minimum_trace_count:
-            logger.warning(f"There was not enough traces passing QCOne for the beamforming. Skipping this timespan. "
-                           f"Timespan: {ts} "
-                           f"Global minimum trace count: {global_minimum_trace_count}. "
-                           f"Passing traces: {len(passing_chunks)}")
-            continue
-
-        db.session.expunge_all()
-        yield BeamformingRunnerInputs(
-            beamforming_params=params,
-            timespan=ts,
-            datachunks=tuple(passing_chunks),
+        selection: List[Tuple[Timespan, Datachunk, QCOneResults]] = (
+            db.session.query(Timespan, Datachunk, QCOneResults)
+                      .select_from(Timespan)
+                      .join(Datachunk, Datachunk.timespan_id == Timespan.id)
+                      .join(QCOneResults, Datachunk.id == QCOneResults.datachunk_id)
+                      .filter(Timespan.id.in_(extract_object_ids(timespan_batch)))  # type: ignore
+                      .filter(Datachunk.component_id.in_(extract_object_ids(fetched_components)))
+                      .filter(QCOneResults.qcone_config_id == qcone_config.id)
+                      .options(subqueryload(Datachunk.component))
+                      .order_by(Timespan.id)
+                      .all()
         )
+
+        grouped_by_tid: Dict[Timespan, List[Tuple[Datachunk, QCOneResults]]] = defaultdict(list)
+
+        for timespan, datachunk, qconeresult in selection:
+            grouped_by_tid[timespan].append((datachunk, qconeresult))
+
+        grouped_existing_beam_param_ids: Dict[int, List[int]] = defaultdict(list)
+        if skip_existing:
+            existing_res = (
+                db.session.query(Timespan.id, BeamformingResult.beamforming_params_id)
+                .select_from(Timespan)
+                .join(BeamformingResult, BeamformingResult.timespan_id == Timespan.id)
+                .filter(Timespan.id.in_(extract_object_ids(timespan_batch)))  # type: ignore
+                .filter(BeamformingResult.beamforming_params_id.in_(fetched_params_ids))
+                .all()
+            )
+            for tid, paramid in existing_res:
+                grouped_existing_beam_param_ids[tid].append(paramid)
+
+        for ts, group in grouped_by_tid.items():
+            if skip_existing:
+                if grouped_existing_beam_param_ids[ts.id] == fetched_params_ids:
+                    continue
+                else:
+                    used_params = [x for x in params if x.id not in grouped_existing_beam_param_ids[ts.id]]
+            else:
+                used_params = params
+
+            passing_chunks = [chunk for chunk, qconeresult in group if qconeresult.is_passing()]
+
+            if len(passing_chunks) < global_minimum_trace_count:
+                logger.warning(f"There was not enough traces passing QCOne for the beamforming. Skipping this timespan. "
+                               f"Timespan: {ts} "
+                               f"Global minimum trace count: {global_minimum_trace_count}. "
+                               f"Passing traces: {len(passing_chunks)}")
+                continue
+
+            db.session.expunge_all()
+            yield BeamformingRunnerInputs(
+                beamforming_params=used_params,
+                timespan=ts,
+                datachunks=tuple(passing_chunks),
+            )
 
 
 def _prepare_upsert_command_beamforming(results: BeamformingResult) -> Insert:
