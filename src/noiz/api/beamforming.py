@@ -166,7 +166,7 @@ def _prepare_inputs_for_beamforming_runner(
                       .filter(Datachunk.component_id.in_(extract_object_ids(fetched_components)))
                       .filter(QCOneResults.qcone_config_id == qcone_config.id)
                       .options(subqueryload(Datachunk.component))
-                      .sort_by(Timespan.id)
+                      .order_by(Timespan.id)
                       .all()
         )
 
