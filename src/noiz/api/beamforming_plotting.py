@@ -47,11 +47,15 @@ def plot_histogram_frequency_slowness_velocity(
         except ValueError:
             raise ValueError(f"histogram_space_type has to be one of {list(HistogramSpaceTypes)}. "
                              f"Provided value was: {histogram_space_type}")
+
     if histogram_space_type == HistogramSpaceTypes.VELOCITY:
         df.loc[:, "velocity"] = 1/df.loc[:, "slowness"]
 
     if fig_title is None:
-        fig_title = f"Beamforming in frequency-slowness space for \n{starttime} - {endtime}"
+        if histogram_space_type == HistogramSpaceTypes.SLOWNESS:
+            fig_title = f"Beamforming in frequency-slowness space for \n{starttime} - {endtime}"
+        else:
+            fig_title = f"Beamforming in frequency-velocity space for \n{starttime} - {endtime}"
 
     max_slowness = max([param.max_slowness for param in fetched_beam_params])
     max_step = max([param.slowness_step*np.sqrt(2) for param in fetched_beam_params])
@@ -60,7 +64,7 @@ def plot_histogram_frequency_slowness_velocity(
     fig = _plot_histogram_of_beamforming_in_freq_slow_vel(
         df=df,
         bin_edges=bin_edges,
-        column_to_be_binned=histogram_space_type.value,
+        histogram_space_type=histogram_space_type,
         fig_title=fig_title,
         filepath=filepath,
         showfig=showfig,
@@ -72,15 +76,15 @@ def plot_histogram_frequency_slowness_velocity(
 def _plot_histogram_of_beamforming_in_freq_slow_vel(
         df: pd.DataFrame,
         bin_edges,  # : npt.ArrayLike
-        column_to_be_binned: str,
+        histogram_space_type: HistogramSpaceTypes,
         fig_title: str,
         filepath: Optional[Path],
         showfig: bool
 ) -> plt.Figure:
     """filldocs"""
 
-    if column_to_be_binned not in df.columns:
-        raise ValueError(f"column_to_be_binned has to be one of {df.columns}")
+    if histogram_space_type.value not in df.columns:
+        raise ValueError(f"{histogram_space_type.value} has to be one of {df.columns}")
 
     central_freqs = df.loc[:, "central_freq"].unique()
     central_freqs.sort()
@@ -88,7 +92,7 @@ def _plot_histogram_of_beamforming_in_freq_slow_vel(
 
     for i, central_freq in enumerate(central_freqs):
         counts, _ = np.histogram(
-            df.loc[df.loc[:, "central_freq"] == central_freq, column_to_be_binned].to_numpy(),
+            df.loc[df.loc[:, "central_freq"] == central_freq, histogram_space_type].to_numpy(),
             bins=bin_edges
         )
         histograms[i, :] = counts
@@ -97,7 +101,11 @@ def _plot_histogram_of_beamforming_in_freq_slow_vel(
     mappable = ax.pcolormesh(central_freqs, bin_edges[:-1], histograms.T, shading="auto")
 
     ax.set_title(fig_title)
-    ax.set_ylabel("Slowness [s/km]")
+    if histogram_space_type == HistogramSpaceTypes.SLOWNESS:
+        ax.set_ylabel("Slowness [s/km]")
+    else:
+        ax.set_ylabel("Velocity [km/s]")
+
     ax.set_xlabel("Frequency")
 
     fig.colorbar(mappable, label="Counts")
