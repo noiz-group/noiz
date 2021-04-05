@@ -20,7 +20,7 @@ from noiz.models import Timespan, Datachunk, QCOneResults, BeamformingParams
 from noiz.models.beamforming import BeamformingResult, BeamformingPeakAverageAbspower, \
     association_table_beamforming_result_avg_abspower, BeamformingResultType
 from noiz.processing.beamforming import calculate_beamforming_results_wrapper, \
-    _validate_if_all_beamforming_params_use_same_component_codes, _validate_if_all_beamforming_params_use_same_qcone
+    validate_if_all_beamforming_params_use_same_component_codes, validate_if_all_beamforming_params_use_same_qcone
 from noiz.validation_helpers import validate_to_tuple
 
 
@@ -136,8 +136,8 @@ def _prepare_inputs_for_beamforming_runner(
     fetched_params_ids.sort()
     logger.debug(f"Fetching BeamformingParams successful. {params}")
 
-    single_qcone_config_id = _validate_if_all_beamforming_params_use_same_qcone(params)
-    single_used_component_codes = _validate_if_all_beamforming_params_use_same_component_codes(params)
+    single_qcone_config_id = validate_if_all_beamforming_params_use_same_qcone(params)
+    single_used_component_codes = validate_if_all_beamforming_params_use_same_component_codes(params)
     global_minimum_trace_count = min([x.minimum_trace_count for x in params])
 
     logger.debug(f"Fetching QCOneConfig with id {single_qcone_config_id}")

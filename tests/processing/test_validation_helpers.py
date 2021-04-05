@@ -4,7 +4,7 @@ import pytest
 
 from obspy import Stream
 
-from noiz.validation_helpers import count_consecutive_trues, _validate_stream_with_single_trace
+from noiz.validation_helpers import count_consecutive_trues, validate_stream_with_single_trace
 
 
 @pytest.mark.parametrize(["input", "output"],
@@ -30,7 +30,7 @@ def test__validate_stream_with_single_trace():
     s = os.linesep.join(s)
     st = Stream._dummy_stream_from_string(s)
 
-    assert None is _validate_stream_with_single_trace(st=st)
+    assert None is validate_stream_with_single_trace(st=st)
 
 
 def test__validate_stream_with_single_trace_multiple_traces():
@@ -45,7 +45,7 @@ def test__validate_stream_with_single_trace_multiple_traces():
     st = Stream._dummy_stream_from_string(s)
 
     with pytest.raises(ValueError):
-        _validate_stream_with_single_trace(st=st)
+        validate_stream_with_single_trace(st=st)
 
 
 def test__validate_stream_with_single_trace_wrong_type():
@@ -59,4 +59,4 @@ def test__validate_stream_with_single_trace_wrong_type():
     tr = st[0]
 
     with pytest.raises(TypeError):
-        _validate_stream_with_single_trace(st=tr)
+        validate_stream_with_single_trace(st=tr)
