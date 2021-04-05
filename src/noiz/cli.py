@@ -5,7 +5,7 @@ import os
 import pendulum
 
 from flask.cli import AppGroup, with_appcontext, FlaskGroup
-from pendulum.date import Date
+import datetime
 from pathlib import Path
 from typing import Iterable, Optional
 
@@ -18,8 +18,8 @@ processing_group = AppGroup("processing")  # type: ignore
 plotting_group = AppGroup("plotting")  # type: ignore
 export_group = AppGroup("export")  # type: ignore
 
-DEFAULT_STARTDATE = pendulum.Pendulum(2010, 1, 1).date()
-DEFAULT_ENDDATE = pendulum.today().date()
+DEFAULT_STARTDATE = pendulum.datetime(2010, 1, 1, 0, 0)
+DEFAULT_ENDDATE = pendulum.today(tz="UTC")
 
 
 def _register_subgroups_to_cli(cli: AppGroup, custom_groups: Iterable[AppGroup]):
@@ -40,15 +40,15 @@ def _setup_quiet(ctx, param, value) -> None:
         setup_logging()
 
 
-def _parse_as_date(ctx, param, value) -> Optional[Date]:
+def _parse_as_date(ctx, param, value) -> Optional[datetime.datetime]:
     """
-    This method is used internally as a callback for date arguments to parse the input string and
-    return a :class:`pendulum.date.Date` object
+    This method is used internally as a callback for date arguments to parse the input string
+    with use of :py:meth:`pendulum.parse` and return a :class:`datetime.date` object
     """
     if value is None:
         return value
-    if not isinstance(value, Date):
-        return pendulum.parse(value).date()
+    if not isinstance(value, datetime.datetime):
+        return pendulum.parse(value)
     else:
         return value
 
