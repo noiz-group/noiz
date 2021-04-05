@@ -2,36 +2,33 @@ import datetime
 from loguru import logger
 from sqlalchemy.orm import Query, subqueryload
 from sqlalchemy.dialects.postgresql import Insert, insert
-
-from noiz.api.datachunk import _query_datachunks
-from noiz.models.type_aliases import PPSDRunnerInputs
 from typing import Union, Optional, Collection, Generator, List, Tuple
 
 from noiz.api.component import fetch_components
+from noiz.api.datachunk import _query_datachunks
 from noiz.api.helpers import _run_calculate_and_upsert_on_dask, _run_calculate_and_upsert_sequentially, \
     extract_object_ids
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
-from noiz.models import Datachunk
-from noiz.models.ppsd import PPSDResult
-from noiz.models.processing_params import PPSDParams
+from noiz.models import Datachunk, PPSDResult, PPSDParams
+from noiz.models.type_aliases import PPSDRunnerInputs
 from noiz.processing.ppsd import calculate_ppsd_wrapper
 from noiz.validation_helpers import validate_maximum_one_argument_provided, validate_to_tuple
 
 
-def fetch_ppsd_params_by_id(id: int) -> PPSDParams:
+def fetch_ppsd_params_by_id(params_id: int) -> PPSDParams:
     """
     Fetches a single PPSDParams objects by its ID.
 
-    :param id: ID of PPSDParams to be fetched
-    :type id: int
+    :param params_id: ID of PPSDParams to be fetched
+    :type params_id: int
     :return: fetched PPSDParams object
     :rtype: PPSDParams
     """
-    fetched_params = PPSDParams.query.filter_by(id=id).first()
+    fetched_params = PPSDParams.query.filter_by(id=params_id).first()
     if fetched_params is None:
-        raise EmptyResultException(f"PPSDParams object of id {id} does not exist.")
+        raise EmptyResultException(f"PPSDParams object of id {params_id} does not exist.")
     return fetched_params
 
 
@@ -202,7 +199,7 @@ def _prepare_inputs_for_psd_calculation(
         skip_existing: bool = True,
 ) -> Generator[PPSDRunnerInputs, None, None]:
 
-    params = fetch_ppsd_params_by_id(id=ppsd_params_id)
+    params = fetch_ppsd_params_by_id(params_id=ppsd_params_id)
 
     timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
 
