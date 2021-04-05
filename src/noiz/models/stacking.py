@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import ARRAY
 from noiz.models.timespan import TimespanMixin
 from noiz.database import db
 from noiz.processing.time_utils import calculate_window_step_or_overlap
-from noiz.validation_helpers import _validate_as_pytimedelta_or_none
+from noiz.validation_helpers import validate_as_pytimedelta_or_none
 
 
 class StackingTimespan(TimespanMixin):
@@ -81,9 +81,9 @@ class StackingSchema(db.Model):
         self.starttime = kwargs.get("starttime")
         self.endtime = kwargs.get("endtime")
 
-        self.stacking_length = _validate_as_pytimedelta_or_none(kwargs.get("stacking_length", None))
-        self.stacking_step = _validate_as_pytimedelta_or_none(kwargs.get("stacking_step", None))
-        self.stacking_overlap = _validate_as_pytimedelta_or_none(kwargs.get("stacking_overlap", None))
+        self.stacking_length = validate_as_pytimedelta_or_none(kwargs.get("stacking_length", None))
+        self.stacking_step = validate_as_pytimedelta_or_none(kwargs.get("stacking_step", None))
+        self.stacking_overlap = validate_as_pytimedelta_or_none(kwargs.get("stacking_overlap", None))
 
         if self.stacking_step is None and self.stacking_overlap is None:
             raise ValueError("You have to provide either stacking_step or stacking_overlap.")

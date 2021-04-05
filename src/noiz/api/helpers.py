@@ -1,17 +1,15 @@
+from loguru import logger
 import more_itertools
 import pandas as pd
-from loguru import logger
 from sqlalchemy.orm import Query
-
-from noiz.exceptions import CorruptedDataException, InconsistentDataException, ObspyError
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm.exc import UnmappedInstanceError
 from sqlalchemy.sql import Insert
 from typing import Iterable, Union, List, Tuple, Any, Collection, Callable, get_args
 
-from noiz.models.type_aliases import BulkAddableObjects, InputsForMassCalculations, BulkAddOrUpsertObjectsInputs, \
-    BulkAddableFileObjects
 from noiz.database import db
+from noiz.exceptions import CorruptedDataException, InconsistentDataException, ObspyError
+from noiz.models.type_aliases import BulkAddableObjects, InputsForMassCalculations, BulkAddableFileObjects
 
 
 def extract_object_ids(

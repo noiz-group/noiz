@@ -557,7 +557,7 @@ def _calculate_slowness(
     return df
 
 
-def _validate_if_all_beamforming_params_use_same_component_codes(
+def validate_if_all_beamforming_params_use_same_component_codes(
         params: Collection[BeamformingParams]
 ) -> Tuple[str, ...]:
     """
@@ -586,7 +586,7 @@ def _validate_if_all_beamforming_params_use_same_component_codes(
     return single_used_component_codes
 
 
-def _validate_if_all_beamforming_params_use_same_qcone(params: Collection[BeamformingParams]) -> int:
+def validate_if_all_beamforming_params_use_same_qcone(params: Collection[BeamformingParams]) -> int:
     """
     Validates if all passed :py:class:`~noiz.models.processing_params.BeamformingParams` use the same
     :py:class:`~noiz.models.qc.QCOneConfig`. If yes, returns id of a common config.

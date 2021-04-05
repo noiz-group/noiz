@@ -17,7 +17,7 @@ from noiz.models.timespan import Timespan
 from noiz.processing.path_helpers import assembly_filepath, assembly_sds_like_dir, assembly_preprocessing_filename, \
     increment_filename_counter, parent_directory_exists_or_create
 from noiz.processing.signal_helpers import get_min_sample_count, get_expected_sample_count, get_max_sample_count
-from noiz.validation_helpers import count_consecutive_trues, _validate_stream_with_single_trace
+from noiz.validation_helpers import count_consecutive_trues, validate_stream_with_single_trace
 
 
 def next_pow_2(number: Union[int, float]) -> int:
@@ -294,7 +294,7 @@ def _interpolate_ends_to_zero_to_timespan(
     :raises ValueError
     """
 
-    _validate_stream_with_single_trace(st)
+    validate_stream_with_single_trace(st)
 
     tr_temp = obspy.Trace()
     tr_temp.stats = st[0].stats.copy()
@@ -335,7 +335,7 @@ def _check_and_remove_extra_samples_on_the_end(st: obspy.Stream, expected_no_sam
     :return:
     :rtype:
     """
-    _validate_stream_with_single_trace(st=st)
+    validate_stream_with_single_trace(st=st)
 
     tr = st[0]
     if len(tr.data) > expected_no_samples:
