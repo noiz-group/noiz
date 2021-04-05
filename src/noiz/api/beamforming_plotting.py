@@ -92,7 +92,7 @@ def _plot_histogram_of_beamforming_in_freq_slow_vel(
 
     for i, central_freq in enumerate(central_freqs):
         counts, _ = np.histogram(
-            df.loc[df.loc[:, "central_freq"] == central_freq, histogram_space_type].to_numpy(),
+            df.loc[df.loc[:, "central_freq"] == central_freq, histogram_space_type.value].to_numpy(),
             bins=bin_edges
         )
         histograms[i, :] = counts
