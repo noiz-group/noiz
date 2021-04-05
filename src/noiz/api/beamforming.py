@@ -132,6 +132,7 @@ def _prepare_inputs_for_beamforming_runner(
     logger.debug(f"Fetching BeamformingParams with ids {beamforming_params_ids}")
     params = fetch_beamforming_params(ids=beamforming_params_ids)
     fetched_params_ids = extract_object_ids(params)
+    fetched_params_ids.sort()
     logger.debug(f"Fetching BeamformingParams successful. {params}")
 
     single_qcone_config_id = _validate_if_all_beamforming_params_use_same_qcone(params)
@@ -190,7 +191,10 @@ def _prepare_inputs_for_beamforming_runner(
 
         for ts, group in grouped_by_tid.items():
             if skip_existing:
-                if grouped_existing_beam_param_ids[ts.id] == fetched_params_ids:
+                existing_beamforming_for_timespan = grouped_existing_beam_param_ids[ts.id]
+                existing_beamforming_for_timespan.sort()
+                if existing_beamforming_for_timespan == fetched_params_ids:
+                    logger.debug(f"All beamforming operations for timespan {ts} are finished")
                     continue
                 else:
                     used_params = [x for x in params if x.id not in grouped_existing_beam_param_ids[ts.id]]
