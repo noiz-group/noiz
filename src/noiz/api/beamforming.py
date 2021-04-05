@@ -80,7 +80,7 @@ def run_beamforming(
         stations: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
         skip_existing: bool = True,
-        batch_size: int = 2500,
+        batch_size: int = 500,
         parallel: bool = True,
         raise_errors: bool = True,
 ):
@@ -92,7 +92,8 @@ def run_beamforming(
         networks=networks,
         stations=stations,
         component_ids=component_ids,
-        skip_existing=skip_existing
+        skip_existing=skip_existing,
+        batch_size=batch_size
     )
 
     if parallel:
