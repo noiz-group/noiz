@@ -83,6 +83,7 @@ def _plot_histogram_of_beamforming_in_freq_slow_vel(
         raise ValueError(f"column_to_be_binned has to be one of {df.columns}")
 
     central_freqs = df.loc[:, "central_freq"].unique()
+    central_freqs.sort()
     histograms = np.zeros((len(central_freqs), len(bin_edges) - 1))
 
     for i, central_freq in enumerate(central_freqs):
