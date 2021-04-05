@@ -31,7 +31,7 @@ def plot_average_psd_between_dates(
     """filldocs"""
 
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
-    fetched_psd_params = fetch_ppsd_params_by_id(id=ppsd_params_id)
+    fetched_psd_params = fetch_ppsd_params_by_id(params_id=ppsd_params_id)
     fetched_components = fetch_components(networks=networks, stations=stations, components=component_codes)
 
     grouped_psds = defaultdict(list)
@@ -89,7 +89,7 @@ def plot_spectrograms_between_dates(
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
     logger.debug(f"There were {len(fetched_timespans)} timespans fetched")
     logger.debug("Fetching PSDParams")
-    fetched_psd_params = fetch_ppsd_params_by_id(id=ppsd_params_id)
+    fetched_psd_params = fetch_ppsd_params_by_id(params_id=ppsd_params_id)
     logger.debug(f"Fetched PSDParams {fetched_psd_params}")
     logger.debug("Fetching components")
     fetched_components = fetch_components(networks=networks, stations=stations, components=component_codes)

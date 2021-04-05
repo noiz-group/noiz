@@ -42,7 +42,7 @@ def count_consecutive_trues(arr: npt.ArrayLike) -> npt.ArrayLike:
     return counted_true_vals
 
 
-def _validate_stream_with_single_trace(st: obspy.Stream) -> None:
+def validate_stream_with_single_trace(st: obspy.Stream) -> None:
     """
     This is small helper method that checks if provided argument is :class:`obspy.Stream` and contains only one
     :class:`obspy.Trace` inside.
@@ -59,7 +59,7 @@ def _validate_stream_with_single_trace(st: obspy.Stream) -> None:
         raise ValueError(f"This method expects exactly one trace in the stream! There were {len(st)} traces found.")
 
 
-def _validate_timedelta_as_pytimedelta(
+def validate_timedelta_as_pytimedelta(
         timedelta: Union[pd.Timedelta, datetime.timedelta, str]
 ) -> datetime.timedelta:
     """
@@ -82,7 +82,7 @@ def _validate_timedelta_as_pytimedelta(
                         f"Provided variable is {type(timedelta)}")
 
 
-def _validate_timedelta_as_pdtimedelta(
+def validate_timedelta_as_pdtimedelta(
         timedelta: Union[pd.Timedelta, datetime.timedelta, str]
 ) -> pd.Timedelta:
     """
@@ -105,7 +105,7 @@ def _validate_timedelta_as_pdtimedelta(
                         f"Provided variable is {type(timedelta)}")
 
 
-def _validate_as_pytimedelta_or_none(
+def validate_as_pytimedelta_or_none(
         var: Optional[Union[pd.Timedelta, datetime.timedelta, str]]
 ) -> Optional[datetime.timedelta]:
     """
@@ -120,12 +120,12 @@ def _validate_as_pytimedelta_or_none(
     :rtype: Optional[datetime.timedelta]
     """
     if var is not None:
-        return _validate_timedelta_as_pytimedelta(var)
+        return validate_timedelta_as_pytimedelta(var)
     else:
         return None
 
 
-def _validate_timestamp_as_pydatetime(
+def validate_timestamp_as_pydatetime(
     time_obj: Union[pd.Timestamp, datetime.datetime, np.datetime64, obspy.UTCDateTime, pendulum.DateTime, str]
 ) -> datetime.datetime:
     """
@@ -152,14 +152,14 @@ def _validate_timestamp_as_pydatetime(
     elif isinstance(time_obj, pendulum.DateTime):
         return time_obj
     elif isinstance(time_obj, str):
-        return _validate_timestamp_as_pydatetime(pd.Timestamp(time_obj))
+        return validate_timestamp_as_pydatetime(pd.Timestamp(time_obj))
     else:
         raise TypeError(f"Valid types are: pd.Timestamp, datetime.datetime or np.datetime64 "
                         f"or str that can be casted to pd.Timestamp. "
                         f"Provided variable is {type(time_obj)}")
 
 
-def _validate_timestamp_as_pdtimestamp(
+def validate_timestamp_as_pdtimestamp(
     time_obj: Union[pd.Timestamp, datetime.datetime, np.datetime64]
 ) -> pd.Timestamp:
     """

@@ -431,7 +431,7 @@ class TestDataIngestionRoutines:
         from noiz.models.processing_params import BeamformingParams
 
         with noiz_app.app_context():
-            fetched_config = fetch_beamforming_params_single(id=1)
+            fetched_config = fetch_beamforming_params_single(params_id=1)
             all_configs = BeamformingParams.query.all()
 
         assert isinstance(fetched_config, BeamformingParams)
@@ -508,7 +508,7 @@ class TestDataIngestionRoutines:
         from noiz.models.processing_params import PPSDParams
 
         with noiz_app.app_context():
-            fetched_config = fetch_ppsd_params_by_id(id=1)
+            fetched_config = fetch_ppsd_params_by_id(params_id=1)
             all_configs = PPSDParams.query.all()
 
         assert isinstance(fetched_config, PPSDParams)
@@ -544,7 +544,7 @@ class TestDataIngestionRoutines:
         from noiz.models.processing_params import PPSDParams
 
         with noiz_app.app_context():
-            fetched_config = fetch_ppsd_params_by_id(id=2)
+            fetched_config = fetch_ppsd_params_by_id(params_id=2)
 
         assert isinstance(fetched_config, PPSDParams)
 
@@ -721,7 +721,7 @@ class TestDataIngestionRoutines:
         from noiz.api.ppsd import fetch_ppsd_results
 
         with noiz_app.app_context():
-            params = fetch_ppsd_params_by_id(id=2)
+            params = fetch_ppsd_params_by_id(params_id=2)
             all_ppsd = fetch_ppsd_results(ppsd_params_id=2)
             count_res = db.session.query(PPSDResult).filter(PPSDResult.ppsd_params_id == 2).count()
             first_res = db.session.query(PPSDResult).filter(PPSDResult.ppsd_params_id == 2).first()

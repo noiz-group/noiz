@@ -9,27 +9,19 @@ from sqlalchemy.dialects.postgresql import Insert, insert
 from sqlalchemy.orm import subqueryload, Query
 from typing import List, Tuple, Collection, Optional, Dict, Union, Generator
 
+from noiz.api.component import fetch_components
 from noiz.api.helpers import extract_object_ids, _run_calculate_and_upsert_on_dask, \
     _run_calculate_and_upsert_sequentially
-from noiz.api.component import fetch_components
+from noiz.api.processing_config import fetch_datachunkparams_by_id, fetch_processed_datachunk_params_by_id
 from noiz.api.timeseries import fetch_raw_timeseries
 from noiz.api.timespan import fetch_timespans_for_doy, fetch_timespans_between_dates
-from noiz.api.processing_config import fetch_datachunkparams_by_id, fetch_processed_datachunk_params_by_id
 from noiz.database import db
 from noiz.exceptions import NoDataException
-from noiz.models import (
-    AveragedSohGps,
-    Component,
-    Datachunk,
-    DatachunkParams,
-    DatachunkStats,
-    ProcessedDatachunk,
-    QCOneConfig,
-    QCOneResults,
-    Timespan
-)
+from noiz.models import AveragedSohGps, Component, Datachunk, DatachunkParams, DatachunkStats, ProcessedDatachunk, \
+    QCOneConfig, QCOneResults, Timespan
+from noiz.models.type_aliases import CalculateDatachunkStatsInputs, RunDatachunkPreparationInputs, \
+    ProcessDatachunksInputs
 from noiz.processing.datachunk import create_datachunks_for_component_wrapper, calculate_datachunk_stats_wrapper
-from noiz.models.type_aliases import CalculateDatachunkStatsInputs, RunDatachunkPreparationInputs, ProcessDatachunksInputs
 from noiz.processing.datachunk_processing import process_datachunk_wrapper
 from noiz.validation_helpers import validate_maximum_one_argument_provided
 
@@ -139,6 +131,8 @@ def fetch_datachunks(
     :param load_processing_params: Loads also the associated DatachunkParams object \
         so it is available for usage without context
     :type load_processing_params: bool
+    :param order_by_id: If results of the query should be ordered by id in ascending order
+    :type order_by_id: bool
     :return: List of Datachunks loaded from DB
     :rtype: List[Datachunk]
     """
@@ -334,8 +328,8 @@ def _prepare_upsert_command_datachunk(datachunk: Datachunk) -> Insert:
 def _generate_datachunk_preparation_inputs(
         stations: Optional[Tuple[str]],
         components: Optional[Tuple[str]],
-        startdate: datetime.date,
-        enddate: datetime.date,
+        startdate: datetime.datetime,
+        enddate: datetime.datetime,
         processing_config_id: int,
         skip_existing: bool = True,
 ) -> Generator[RunDatachunkPreparationInputs, None, None]:
@@ -403,8 +397,8 @@ def _generate_datachunk_preparation_inputs(
 def run_datachunk_preparation(
         stations: Tuple[str],
         components: Tuple[str],
-        startdate: datetime.date,
-        enddate: datetime.date,
+        startdate: datetime.datetime,
+        enddate: datetime.datetime,
         processing_config_id: int,
         parallel: bool = True,
         batch_size: int = 1000,

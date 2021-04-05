@@ -1,19 +1,15 @@
 from loguru import logger
-from noiz.api.helpers import extract_object_ids
-from noiz.exceptions import EmptyResultException
-from noiz.validation_helpers import validate_to_tuple
 from typing import Optional, List, Union, Collection
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import aliased, subqueryload
 
-from noiz.database import db
-from noiz.models.component import Component
-from noiz.models.component_pair import ComponentPair
-from noiz.processing.component_pair import (
-    prepare_componentpairs,
-)
-
 from noiz.api.component import fetch_components
+from noiz.api.helpers import extract_object_ids
+from noiz.database import db
+from noiz.exceptions import EmptyResultException
+from noiz.models import Component, ComponentPair
+from noiz.processing.component_pair import prepare_componentpairs
+from noiz.validation_helpers import validate_to_tuple
 
 
 def upsert_componentpairs(component_pairs: List[ComponentPair]) -> None:
