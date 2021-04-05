@@ -176,7 +176,7 @@ def perform_crosscorrelations(
     :rtype: NoneType
     """
 
-    calculation_inputs = _prepare_inputs_for_crosscorrelating(
+    calculation_inputs = _prepare_inputs_for_crosscorrelations(
         crosscorrelation_params_id=crosscorrelation_params_id,
         starttime=starttime,
         endtime=endtime,
@@ -213,7 +213,7 @@ def perform_crosscorrelations(
     return
 
 
-def _prepare_inputs_for_crosscorrelating(
+def _prepare_inputs_for_crosscorrelations(
         crosscorrelation_params_id: int,
         starttime: Union[datetime.date, datetime.datetime],
         endtime: Union[datetime.date, datetime.datetime],
@@ -348,7 +348,7 @@ def assembly_ccf_filename(
     year = str(timespan.starttime.year)
     doy_time = timespan.starttime.strftime("%j.%H%M")
 
-    fname = ".".join([
+    filename = ".".join([
         component_pair.component_a.network,
         component_pair.component_a.station,
         component_pair.component_a.component,
@@ -361,12 +361,12 @@ def assembly_ccf_filename(
         ".npz"
     ])
 
-    return fname
+    return filename
 
 
 def assembly_ccf_dir(component_pair: ComponentPair, timespan: Timespan) -> Path:
     """
-    Asembles a Path object in a SDS manner. Object consists of year/network/station/component codes.
+    Assembles a Path object in a SDS manner. Object consists of year/network/station/component codes.
 
     Warning: The component here is a single letter component!
 
@@ -374,7 +374,7 @@ def assembly_ccf_dir(component_pair: ComponentPair, timespan: Timespan) -> Path:
     :type component_pair: Component
     :param timespan: Timespan object containing information about time
     :type timespan: Timespan
-    :return:  Pathlike object containing SDS-like directory hierarchy.
+    :return:  Path object containing SDS-like directory hierarchy.
     :rtype: Path
     """
     return (
