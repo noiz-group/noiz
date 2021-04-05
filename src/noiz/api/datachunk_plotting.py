@@ -1,11 +1,8 @@
 from collections import defaultdict
-
-import matplotlib
-from typing import Optional, Collection, List, Dict
-
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 from pathlib import Path
+from typing import Optional, Collection, List, Dict
 
 from noiz.api.component import fetch_components
 from noiz.api.datachunk import fetch_datachunks
@@ -22,7 +19,7 @@ def plot_datachunk_availability(
         endtime: datetime = datetime(2030, 1, 1),
         filepath: Optional[Path] = None,
         showfig: bool = False,
-) -> matplotlib.pyplot.Figure:
+) -> plt.Figure:
     """
     Method that allows for selection and plotting of which datachunks are available for given set of requirements.
 
@@ -43,7 +40,7 @@ def plot_datachunk_availability(
     :param showfig: If the figure should be showed
     :type showfig: bool
     :return: Figure object with the plot for further manipulation
-    :rtype: matplotlib.pyplot.Figure
+    :rtype: matppltlotlib.Figure
     """
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime,
                                                       endtime=endtime)
@@ -86,7 +83,7 @@ def __plot_availability(
         endtime: datetime,
         fig_title: str,
         availability: Dict[str, float]
-) -> matplotlib.pyplot.Figure:
+) -> plt.Figure:
     """
     Internam method that creates plots of data availability type, based on the midtimes of Timespans.
 
@@ -102,7 +99,7 @@ def __plot_availability(
     availability of data in requested time period.
     :type availability: Dict[str, float]
     :return: Plotted figure
-    :rtype: matplotlib.pyplot.Figure
+    :rtype: plt.Figure
     """
 
     days = (starttime - endtime).days
