@@ -334,12 +334,12 @@ def _prepare_upsert_command_datachunk(datachunk: Datachunk) -> Insert:
 def _generate_datachunk_preparation_inputs(
         stations: Optional[Tuple[str]],
         components: Optional[Tuple[str]],
-        startdate: pendulum.Pendulum,
-        enddate: pendulum.Pendulum,
+        startdate: datetime.date,
+        enddate: datetime.date,
         processing_config_id: int,
         skip_existing: bool = True,
 ) -> Generator[RunDatachunkPreparationInputs, None, None]:
-    date_period = pendulum.period(startdate, enddate)
+    date_period = pendulum.period(startdate, enddate)  # type: ignore
 
     logger.info("Fetching processing config, timespans and components from db. ")
     processing_params = fetch_datachunkparams_by_id(id=processing_config_id)
@@ -403,8 +403,8 @@ def _generate_datachunk_preparation_inputs(
 def run_datachunk_preparation(
         stations: Tuple[str],
         components: Tuple[str],
-        startdate: pendulum.Pendulum,
-        enddate: pendulum.Pendulum,
+        startdate: datetime.date,
+        enddate: datetime.date,
         processing_config_id: int,
         parallel: bool = True,
         batch_size: int = 1000,

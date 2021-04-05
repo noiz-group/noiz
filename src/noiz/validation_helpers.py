@@ -3,6 +3,7 @@ import numpy as np
 import numpy.typing as npt
 import obspy
 import pandas as pd
+import pendulum
 from typing import Union, Optional, Tuple, Any, Type, List
 
 
@@ -125,7 +126,7 @@ def _validate_as_pytimedelta_or_none(
 
 
 def _validate_timestamp_as_pydatetime(
-    time_obj: Union[pd.Timestamp, datetime.datetime, np.datetime64, str]
+    time_obj: Union[pd.Timestamp, datetime.datetime, np.datetime64, obspy.UTCDateTime, pendulum.DateTime, str]
 ) -> datetime.datetime:
     """
     Takes a time object and converts it to a pd.Timestamp if originally it was either datetime.datetime,
@@ -145,6 +146,10 @@ def _validate_timestamp_as_pydatetime(
     elif isinstance(time_obj, np.datetime64):
         return pd.Timestamp(time_obj).to_pydatetime()
     elif isinstance(time_obj, datetime.datetime):
+        return time_obj
+    elif isinstance(time_obj, obspy.UTCDateTime):
+        return time_obj.datetime
+    elif isinstance(time_obj, pendulum.DateTime):
         return time_obj
     elif isinstance(time_obj, str):
         return _validate_timestamp_as_pydatetime(pd.Timestamp(time_obj))
