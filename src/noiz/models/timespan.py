@@ -12,7 +12,7 @@ else:
     from sqlalchemy.ext.hybrid import hybrid_property as typed_hybrid_property
 
 from noiz.database import db
-from noiz.validation_helpers import _validate_timestamp_as_pydatetime
+from noiz.validation_helpers import validate_timestamp_as_pydatetime
 
 
 class TimespanMixin(db.Model):
@@ -30,9 +30,9 @@ class TimespanMixin(db.Model):
 
     def __init__(self, **kwargs):
         super(TimespanMixin, self).__init__(**kwargs)
-        self.starttime: datetime.datetime = _validate_timestamp_as_pydatetime(kwargs.get("starttime"))
-        self.midtime: datetime.datetime = _validate_timestamp_as_pydatetime(kwargs.get("midtime"))
-        self.endtime: datetime.datetime = _validate_timestamp_as_pydatetime(kwargs.get("endtime"))
+        self.starttime: datetime.datetime = validate_timestamp_as_pydatetime(kwargs.get("starttime"))
+        self.midtime: datetime.datetime = validate_timestamp_as_pydatetime(kwargs.get("midtime"))
+        self.endtime: datetime.datetime = validate_timestamp_as_pydatetime(kwargs.get("endtime"))
 
     def __repr__(self):
         return f"Timespan id: {self.id} from {self.starttime} -- {self.endtime}"

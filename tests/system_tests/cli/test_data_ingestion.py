@@ -431,7 +431,7 @@ class TestDataIngestionRoutines:
         from noiz.models.processing_params import BeamformingParams
 
         with noiz_app.app_context():
-            fetched_config = fetch_beamforming_params_single(id=1)
+            fetched_config = fetch_beamforming_params_single(params_id=1)
             all_configs = BeamformingParams.query.all()
 
         assert isinstance(fetched_config, BeamformingParams)

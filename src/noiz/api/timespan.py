@@ -10,7 +10,7 @@ from typing import Iterable, List, Union, Optional, Generator, Any, Collection
 from noiz.database import db
 from noiz.models.timespan import Timespan
 from noiz.processing.timespan import generate_timespans
-from noiz.validation_helpers import _validate_timestamp_as_pydatetime, validate_to_tuple
+from noiz.validation_helpers import validate_timestamp_as_pydatetime, validate_to_tuple
 
 
 def create_and_insert_timespans_to_db(
@@ -154,8 +154,8 @@ def fetch_timespans_between_dates(
     :rtype: List[Timespan]
     """
 
-    py_starttime = _validate_timestamp_as_pydatetime(starttime)
-    py_endtime = _validate_timestamp_as_pydatetime(endtime)
+    py_starttime = validate_timestamp_as_pydatetime(starttime)
+    py_endtime = validate_timestamp_as_pydatetime(endtime)
 
     timespans = Timespan.query.filter(
         Timespan.starttime >= py_starttime,
@@ -262,10 +262,10 @@ def _determine_filters_and_opts_for_timespan(
 ) -> Union[List[BinaryExpression], List[bool]]:
     filters = []
     if starttime is not None:
-        py_starttime = _validate_timestamp_as_pydatetime(starttime)
+        py_starttime = validate_timestamp_as_pydatetime(starttime)
         filters.append(Timespan.starttime >= py_starttime)
     if endtime is not None:
-        py_endtime = _validate_timestamp_as_pydatetime(endtime)
+        py_endtime = validate_timestamp_as_pydatetime(endtime)
         filters.append(Timespan.starttime <= py_endtime)
     if accepted_timespan_ids is not None:
         filters.append(Timespan.id.in_(validate_to_tuple(accepted_timespan_ids, int)))  # type: ignore
