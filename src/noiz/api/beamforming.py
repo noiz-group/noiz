@@ -16,27 +16,26 @@ from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.models.type_aliases import BeamformingRunnerInputs
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
-from noiz.models import Timespan, Datachunk, QCOneResults
+from noiz.models import Timespan, Datachunk, QCOneResults, BeamformingParams
 from noiz.models.beamforming import BeamformingResult, BeamformingPeakAverageAbspower, \
     association_table_beamforming_result_avg_abspower, BeamformingResultType
-from noiz.models.processing_params import BeamformingParams
 from noiz.processing.beamforming import calculate_beamforming_results_wrapper, \
     _validate_if_all_beamforming_params_use_same_component_codes, _validate_if_all_beamforming_params_use_same_qcone
 from noiz.validation_helpers import validate_to_tuple
 
 
-def fetch_beamforming_params_single(id: int) -> BeamformingParams:
+def fetch_beamforming_params_single(params_id: int) -> BeamformingParams:
     """
     Fetches a BeamformingParams objects by its ID.
 
-    :param id: ID of beamforming params to be fetched
-    :type id: int
+    :param params_id: ID of beamforming params to be fetched
+    :type params_id: int
     :return: fetched BeamformingParams object
     :rtype: BeamformingParams
     """
-    fetched_params = BeamformingParams.query.filter_by(id=id).first()
+    fetched_params = BeamformingParams.query.filter_by(id=params_id).first()
     if fetched_params is None:
-        raise EmptyResultException(f"BeamformingParams object of id {id} does not exist.")
+        raise EmptyResultException(f"BeamformingParams object of id {params_id} does not exist.")
 
     return fetched_params
 
@@ -48,8 +47,10 @@ def fetch_beamforming_params(
     """
     Fetches a BeamformingParams objects by its ID.
 
-    :param id: ID of beamforming params to be fetched
-    :type id: Collection[int]
+    :param ids: ID of beamforming params to be fetched
+    :type ids: Collection[int]
+    :param load_qcone_config: If qcone_config should be subquery loaded
+    :type load_qcone_config: bool
     :return: List of fetched BeamformingParams objects
     :rtype: List[BeamformingParams]
     """
@@ -204,8 +205,8 @@ def _prepare_inputs_for_beamforming_runner(
             passing_chunks = [chunk for chunk, qconeresult in group if qconeresult.is_passing()]
 
             if len(passing_chunks) < global_minimum_trace_count:
-                logger.warning(f"There was not enough traces passing QCOne for the beamforming. Skipping this timespan. "
-                               f"Timespan: {ts} "
+                logger.warning(f"There was not enough traces passing QCOne for the beamforming. "
+                               f"Skipping this timespan. Timespan: {ts} "
                                f"Global minimum trace count: {global_minimum_trace_count}. "
                                f"Passing traces: {len(passing_chunks)}")
                 continue
