@@ -10,7 +10,7 @@ class TestAssemblySationXMLFilename:
     @pytest.mark.parametrize(
         "network_name, station_name, component_name, counter",
         (
-                ("SI", "SI13", "Z", 1),
+                ("TD", "TD13", "Z", 1),
                 ("XY", "GH", "X", 3),
                 ("ZZZZ", "BG", "U", 7),
                 ("WT", "GRT", "N", 10),

@@ -97,7 +97,7 @@ def test__postprocess_soh_miniseed_instrument_centaur_all_channels_present():
 
 
 def test__read_single_soh_miniseed_gpstime_centaur_empty_channels():
-    filepath = Path(__file__).parent.joinpath("data", "SI.SI09.D0.SOH_centaur-3_1492_20180616_040000.miniseed")
+    filepath = Path(__file__).parent.joinpath("data", "TD.TD09.D0.SOH_centaur-3_1492_20180616_040000.miniseed")
     parsing_params = load_parsing_parameters(
         station_type=SohInstrumentNames.CENTAUR.value, soh_type=SohType.MINISEED_GPSTIME.value)
 
@@ -112,7 +112,7 @@ def test__read_single_soh_miniseed_gpstime_centaur_empty_channels():
 
 
 def test__read_single_soh_miniseed_instrument_centaur_empty_channels():
-    filepath = Path(__file__).parent.joinpath("data", "SI.SI09.D0.SOH_centaur-3_1492_20180616_040000.miniseed")
+    filepath = Path(__file__).parent.joinpath("data", "TD.TD09.D0.SOH_centaur-3_1492_20180616_040000.miniseed")
     parsing_params = load_parsing_parameters(
         station_type=SohInstrumentNames.CENTAUR.value, soh_type=SohType.MINISEED_INSTRUMENT.value)
 
@@ -132,7 +132,7 @@ def test__read_single_soh_miniseed_instrument_centaur_empty_channels():
 
 
 def test__postprocess_soh_miniseed_instrument_centaur_empty_channels():
-    filepath = Path(__file__).parent.joinpath("data", "SI.SI09.D0.SOH_centaur-3_1492_20180616_040000.miniseed")
+    filepath = Path(__file__).parent.joinpath("data", "TD.TD09.D0.SOH_centaur-3_1492_20180616_040000.miniseed")
     parsing_params = load_parsing_parameters(
         station_type=SohInstrumentNames.CENTAUR.value, soh_type=SohType.MINISEED_INSTRUMENT.value)
 
