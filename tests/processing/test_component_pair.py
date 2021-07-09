@@ -17,10 +17,10 @@ class TestIsAutocorrelation:
         [
             (
                 Component(
-                    network="SI", station="SI03", component="Z", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2
                 ),
                 Component(
-                    network="SI", station="SI03", component="Z", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2
                 ),
             ),
             (
@@ -41,42 +41,42 @@ class TestIsAutocorrelation:
         [
             (
                 Component(
-                    network="SI", station="SI03", component="E", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="E", lat=32.5, lon=8.2
                 ),
                 Component(
-                    network="SI", station="SI03", component="Z", lat=32.5, lon=8.2
-                ),
-            ),
-            (
-                Component(
-                    network="SI", station="SI03", component="E", lat=32.5, lon=8.2
-                ),
-                Component(
-                    network="SI", station="SI03", component="N", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2
                 ),
             ),
             (
                 Component(
-                    network="SI", station="SI13", component="Z", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="E", lat=32.5, lon=8.2
                 ),
                 Component(
-                    network="SI", station="SI03", component="Z", lat=32.5, lon=8.2
-                ),
-            ),
-            (
-                Component(
-                    network="XX", station="SI03", component="N", lat=32.5, lon=8.2
-                ),
-                Component(
-                    network="SI", station="SI03", component="N", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="N", lat=32.5, lon=8.2
                 ),
             ),
             (
                 Component(
-                    network="SI", station="SI03", component="E", lat=32.5, lon=8.2
+                    network="TD", station="TD13", component="Z", lat=32.5, lon=8.2
                 ),
                 Component(
-                    network="XZ", station="SI13", component="N", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2
+                ),
+            ),
+            (
+                Component(
+                    network="XX", station="TD03", component="N", lat=32.5, lon=8.2
+                ),
+                Component(
+                    network="TD", station="TD03", component="N", lat=32.5, lon=8.2
+                ),
+            ),
+            (
+                Component(
+                    network="TD", station="TD03", component="E", lat=32.5, lon=8.2
+                ),
+                Component(
+                    network="XZ", station="TD13", component="N", lat=32.5, lon=8.2
                 ),
             ),
         ],
@@ -91,10 +91,10 @@ class TestIsIntrastationCorrelation:
         [
             (
                 Component(
-                    network="SI", station="SI03", component="Z", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2
                 ),
                 Component(
-                    network="SI", station="SI03", component="N", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="N", lat=32.5, lon=8.2
                 ),
             ),
             (
@@ -123,42 +123,42 @@ class TestIsIntrastationCorrelation:
         [
             (
                 Component(
-                    network="SI", station="SI03", component="Z", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2
                 ),
                 Component(
-                    network="SI", station="SI03", component="Z", lat=32.5, lon=8.2
-                ),
-            ),
-            (
-                Component(
-                    network="SI", station="SI17", component="E", lat=32.5, lon=8.2
-                ),
-                Component(
-                    network="SI", station="SI03", component="N", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2
                 ),
             ),
             (
                 Component(
-                    network="XX", station="SI03", component="N", lat=32.5, lon=8.2
+                    network="TD", station="TD17", component="E", lat=32.5, lon=8.2
                 ),
                 Component(
-                    network="SI", station="SI03", component="Z", lat=32.5, lon=8.2
-                ),
-            ),
-            (
-                Component(
-                    network="XX", station="SI03", component="N", lat=32.5, lon=8.2
-                ),
-                Component(
-                    network="SI", station="SI03", component="Z", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="N", lat=32.5, lon=8.2
                 ),
             ),
             (
                 Component(
-                    network="SI", station="SI03", component="E", lat=32.5, lon=8.2
+                    network="XX", station="TD03", component="N", lat=32.5, lon=8.2
                 ),
                 Component(
-                    network="XZ", station="SI13", component="N", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2
+                ),
+            ),
+            (
+                Component(
+                    network="XX", station="TD03", component="N", lat=32.5, lon=8.2
+                ),
+                Component(
+                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2
+                ),
+            ),
+            (
+                Component(
+                    network="TD", station="TD03", component="E", lat=32.5, lon=8.2
+                ),
+                Component(
+                    network="XZ", station="TD13", component="N", lat=32.5, lon=8.2
                 ),
             ),
         ],

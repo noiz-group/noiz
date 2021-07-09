@@ -414,7 +414,7 @@ def run_datachunk_preparation(
     )
 
     # TODO add more checks for bad seed files because they are crashing.
-    # And instead of datachunk id there was something weird produced. It was found on SI26 in
+    # And instead of datachunk id there was something weird produced. It was found on TD26 in
     # 2019.04.~10-15
 
     if parallel:
