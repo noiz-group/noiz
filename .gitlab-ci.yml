@@ -55,7 +55,7 @@ type-check:
   image: $UNITTESTING_IMAGE_TAG
   stage: linting
   script:
-    - mypy src/noiz
+    - mypy --install-types --non-interactive src/noiz
 
 flake8:
   image: $UNITTESTING_IMAGE_TAG
