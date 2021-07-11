@@ -9,3 +9,5 @@ mock~=4.0.2
 mypy~=0.790
 sqlalchemy-stubs~=0.4
 flake8~=3.8.4
+types-python-dateutil~=0.1.4
+types-toml~=0.1.3
