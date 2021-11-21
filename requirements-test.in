@@ -1,4 +1,4 @@
--c requirements.in
+-c requirements.txt
 # black
 # pre_commit
 pytest~=6.1.2
