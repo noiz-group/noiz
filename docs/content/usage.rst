@@ -132,7 +132,6 @@ Using noiz
 First of all, you have to prepare database structure and make sure it contains all the tables that are required.
 For that you need to execute::
 
-    noiz db init
     noiz db migrate
     noiz db upgrade
 
@@ -146,7 +145,7 @@ It contains a sample dataset with all required data::
 Now, you can for example add the inventory file to the DB so Noiz will store the information about all components that
 you are having in your network::
 
-    noiz data add_inventory STI_station_minimal.xml
+    noiz data add_inventory station.xml
 
 .. _Docker: https://www.docker.com/products/docker-desktop
 .. _PostgreSQL: https://www.postgresql.org/
