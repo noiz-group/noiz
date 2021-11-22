@@ -50,7 +50,7 @@ WORKDIR /noiz
 COPY ../.. /noiz/
 
 RUN cd /noiz/ && \
-  python -m pip install -r requirements.txt --no-cache-dir && \
+  python -m pip install -r requirements.txt -r requirements-docs.txt -r requirements-test.txt --no-cache-dir && \
   python -m pip install jupyterlab --no-cache-dir && \
   pip install -e .
 ENV FLASK_APP="autoapp.py"
