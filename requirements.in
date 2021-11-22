@@ -19,7 +19,7 @@ tqdm
 toml
 utm
 beautifulsoup4
-dask[complete]==2.28.0
+dask[complete]
 pendulum
 wheel
 
