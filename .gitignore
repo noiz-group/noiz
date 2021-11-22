@@ -111,3 +111,5 @@ postgres.env
 docs/_build
 .dmypy.json
 src/noiz/dashapp
+.tool-versions
+noiz-venv
