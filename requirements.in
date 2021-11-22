@@ -9,7 +9,7 @@ jupyterlab
 loguru
 matplotlib
 numpy
-obspy~=1.2.2
+obspy
 pandas
 psycopg2-binary
 rich
@@ -34,7 +34,7 @@ pytest-mock
 mock
 mypy
 sqlalchemy-stubs
-flake8~=3.8.4
+flake8
 types-python-dateutil
 types-toml
 

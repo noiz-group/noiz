@@ -102,7 +102,7 @@ entrypoints==0.3
     #   nbconvert
 environs==9.3.5
     # via -r requirements.in
-flake8==3.8.4
+flake8==4.0.1
     # via -r requirements.in
 flask==2.0.2
     # via
@@ -322,7 +322,7 @@ ptyprocess==0.7.0
     #   terminado
 py==1.11.0
     # via pytest
-pycodestyle==2.6.0
+pycodestyle==2.8.0
     # via flake8
 pycparser==2.21
     # via cffi
@@ -330,7 +330,7 @@ pydantic==1.8.2
     # via -r requirements.in
 pydata-sphinx-theme==0.4.3
     # via -r requirements.in
-pyflakes==2.2.0
+pyflakes==2.4.0
     # via flake8
 pygments==2.10.0
     # via
