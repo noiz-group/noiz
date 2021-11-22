@@ -6,22 +6,22 @@ flask~=1.1.2
 flask-sqlalchemy~=2.4.4
 flask-migrate~=2.5.3
 jupyterlab~=2.2.8
-loguru~=0.5.3
-matplotlib~=3.3.2
-numpy~=1.20.1
+loguru
+matplotlib
+numpy
 obspy~=1.2.2
-pandas~=1.2.2
+pandas
 psycopg2-binary~=2.8.6
-rich~=9.3.0
-pydantic~=1.7.3
+rich
+pydantic
 scipy~=1.5.4
-tqdm~=4.50.0
-toml~=0.10.2
-utm~=0.6.0
+tqdm
+toml
+utm
 beautifulsoup4~=4.9.2
 dask[complete]==2.28.0
-pendulum~=2.1.2
-wheel==0.37.0
+pendulum
+wheel
 
 # Requirements for tests
 # black
