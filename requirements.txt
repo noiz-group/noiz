@@ -50,7 +50,7 @@ chardet==4.0.0
     # via doc8
 charset-normalizer==2.0.7
     # via requests
-click==7.1.2
+click==8.0.3
     # via
     #   -r requirements.in
     #   distributed
@@ -100,18 +100,18 @@ entrypoints==0.3
     #   jupyter-client
     #   jupyterlab-server
     #   nbconvert
-environs==9.2.0
+environs==9.3.5
     # via -r requirements.in
 flake8==3.8.4
     # via -r requirements.in
-flask==1.1.4
+flask==2.0.2
     # via
     #   -r requirements.in
     #   flask-migrate
     #   flask-sqlalchemy
-flask-migrate==2.5.3
+flask-migrate==3.1.0
     # via -r requirements.in
-flask-sqlalchemy==2.4.4
+flask-sqlalchemy==2.5.1
     # via
     #   -r requirements.in
     #   flask-migrate
@@ -144,11 +144,11 @@ ipython-genutils==0.2.0
     #   jupyter-server
     #   nbformat
     #   notebook
-itsdangerous==1.1.0
+itsdangerous==2.0.1
     # via flask
 jedi==0.18.1
     # via ipython
-jinja2==2.11.3
+jinja2==3.0.3
     # via
     #   bokeh
     #   dask[complete]
@@ -226,7 +226,7 @@ mistune==0.8.4
     # via nbconvert
 mock==4.0.3
     # via -r requirements.in
-more-itertools==8.6.0
+more-itertools==8.11.0
     # via -r requirements.in
 msgpack==1.0.2
     # via distributed
@@ -314,7 +314,7 @@ prompt-toolkit==3.0.22
     # via ipython
 psutil==5.8.0
     # via distributed
-psycopg2-binary==2.8.6
+psycopg2-binary==2.9.2
     # via -r requirements.in
 ptyprocess==0.7.0
     # via
@@ -535,7 +535,7 @@ websocket-client==1.2.1
     # via jupyter-server
 webtest==3.0.0
     # via autodoc
-werkzeug==1.0.1
+werkzeug==2.0.2
     # via flask
 wheel==0.37.0
     # via -r requirements.in
