@@ -1,0 +1,53 @@
+more-itertools
+sqlalchemy~=1.3.20
+click
+environs
+flask
+flask-sqlalchemy
+flask-migrate
+jupyterlab
+loguru
+matplotlib
+numpy
+obspy
+pandas
+psycopg2-binary
+rich
+pydantic
+scipy
+tqdm
+toml
+utm
+beautifulsoup4
+dask[complete]
+pendulum
+wheel
+
+# Requirements for tests
+# black
+# pre_commit
+pytest
+pytest-check
+pytest-cov
+pytest-dependency
+pytest-mock
+mock
+mypy
+sqlalchemy-stubs
+flake8
+types-python-dateutil
+types-toml
+
+# Requirements for docs
+sphinx~=3.3.1
+sphinx-autobuild~=2020.9.1
+sphinx-autoapi~=1.5.1
+sphinx-paramlinks~=0.4.3
+
+# if using typehints
+sphinx-autodoc-typehints~=1.10.0
+
+autodoc~=0.5.0
+
+pydata-sphinx-theme~=0.4.0
+doc8~=0.8.1
