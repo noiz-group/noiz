@@ -16,6 +16,7 @@ from datetime import date
 
 file_loc = os.path.split(__file__)[0]
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(file_loc), ".")))
+sys.path.insert(0, os.path.abspath('../src/noiz'))
 
 try:
     import noiz
@@ -39,15 +40,15 @@ release = version
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "sphinx.ext.todo",
     "sphinx.ext.autodoc",
+    "sphinx.ext.todo",
     "sphinx.ext.coverage",
     "sphinx.ext.mathjax",
     "sphinx_paramlinks",
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
     "sphinx.ext.viewcode",
-    # "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
     'autoapi.extension',
 ]
 
@@ -55,13 +56,17 @@ autoapi_type = 'python'
 autoapi_dirs = ['../src/noiz']
 autoapi_root = "content/autoapi"
 autoapi_keep_files = True
-# autoapi_member_order = ''
-autoapi_python_use_implicit_namespaces=True
-autoapi_generate_api_docs=False
-autodoc_default_options = {
-    'private-members': True,
-}
+autoapi_member_order = 'groupwise'
+autoapi_python_use_implicit_namespaces = True
+autoapi_generate_api_docs = False
+autoapi_add_toctree_entry = True
+
+
+# autodoc_default_options = {
+#     'private-members': True,
+# }
 autodoc_typehints = "description"
+# autosummary_generate = True
 
 
 # Add any paths that contain templates here, relative to this directory.
@@ -77,8 +82,11 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#
-html_theme = "pydata_sphinx_theme"
+
+# html_theme = "pydata_sphinx_theme"
+# html_theme = 'sphinx_rtd_theme'
+# html_theme = 'press'
+html_theme = 'furo'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
