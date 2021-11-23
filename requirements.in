@@ -48,6 +48,5 @@ sphinx-paramlinks
 sphinx-autodoc-typehints
 
 autodoc
-
-pydata-sphinx-theme
+furo
 doc8
