@@ -58,7 +58,7 @@ autoapi_root = "content/autoapi"
 autoapi_keep_files = True
 autoapi_member_order = 'groupwise'
 autoapi_python_use_implicit_namespaces = True
-autoapi_generate_api_docs = False
+autoapi_generate_api_docs = True
 autoapi_add_toctree_entry = True
 
 
