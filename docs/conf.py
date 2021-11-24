@@ -56,18 +56,27 @@ autoapi_type = 'python'
 autoapi_dirs = ['../src/noiz']
 autoapi_root = "content/autoapi"
 autoapi_keep_files = True
-autoapi_member_order = 'groupwise'
-autoapi_python_use_implicit_namespaces = True
-autoapi_generate_api_docs = True
-autoapi_add_toctree_entry = True
+# autoapi_member_order = 'groupwise'
+# autoapi_python_use_implicit_namespaces = True
+# autoapi_generate_api_docs = True
+# autoapi_add_toctree_entry = True
+#
+#
+# # autodoc_default_options = {
+# #     'private-members': True,
+# # }
+# autodoc_typehints = "description"
+# # autosummary_generate = True
 
-
-# autodoc_default_options = {
-#     'private-members': True,
-# }
+#To de deleted beginning
+# autoapi_member_order = ''
+autoapi_python_use_implicit_namespaces=True
+autoapi_generate_api_docs=True
+autodoc_default_options = {
+    'private-members': True,
+}
 autodoc_typehints = "description"
-# autosummary_generate = True
-
+#to be deleted end
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
