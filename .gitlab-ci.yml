@@ -66,8 +66,9 @@ flake8:
 .build-docs-parent:
   image: registry.gitlab.com/noiz-group/noiz:docsbuilding
   stage: documentation
+  before_script:
+    - *install_noiz_complete
   script:
-    - python -m pip install sphinx-paramlinks~=0.4.3
     - cd docs
     - make html
   artifacts:

@@ -24,6 +24,10 @@ It is under heavy development and the API might change without notice.
    content/datachunk
 
 
+.. autosummary::
+   :toctree: noiz
+
+
 Indices and tables
 ==================
 

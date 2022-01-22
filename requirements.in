@@ -39,15 +39,14 @@ types-python-dateutil
 types-toml
 
 # Requirements for docs
-sphinx~=3.3.1
-sphinx-autobuild~=2020.9.1
-sphinx-autoapi~=1.5.1
-sphinx-paramlinks~=0.4.3
+sphinx
+sphinx-autobuild
+sphinx-autoapi
+sphinx-paramlinks
 
 # if using typehints
-sphinx-autodoc-typehints~=1.10.0
+sphinx-autodoc-typehints
 
-autodoc~=0.5.0
-
-pydata-sphinx-theme~=0.4.0
-doc8~=0.8.1
+autodoc
+furo
+doc8
