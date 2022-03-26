@@ -22,7 +22,6 @@ def create_app(
     register_extensions(app)
     register_blueprints(app)
 
-    load_noiz_config(app)
     with app.app_context():
         set_global_verbosity(verbosity=verbosity, quiet=quiet)
         setup_logging()
@@ -69,19 +68,6 @@ def setup_logging():
     # for hndlr in app.logger.handlers:
     #     app.logger.removeHandler(hndlr)
     # app.logger.addHandler(handler)
-
-
-def load_noiz_config(app: Flask):
-    # FIXME Remove that noiz config, it's useless I think. Fix usages in inventory CLI also
-    app.noiz_config = {}
-    processed_data_dir = os.environ.get("PROCESSED_DATA_DIR")
-    if processed_data_dir is None:
-        raise ValueError("You have to set a PROCESSED_DATA_DIR env variable.")
-    if not Path(processed_data_dir).exists():
-        raise NotADirectoryError(f"Directory provided with `PROCESSED_DATA_DIR` have to exist. {processed_data_dir} ")
-    app.noiz_config["processed_data_dir"] = processed_data_dir
-
-    return None
 
 
 def register_extensions(app: Flask):

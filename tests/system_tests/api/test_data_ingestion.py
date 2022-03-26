@@ -6,6 +6,7 @@ import shutil
 
 from noiz.app import create_app
 from noiz.api.component_pair import fetch_componentpairs
+from noiz.globals import PROCESSED_DATA_DIR
 
 
 @pytest.fixture(scope="class")
@@ -27,7 +28,7 @@ def noiz_app():
 @pytest.mark.system
 class TestDataIngestionRoutines:
     def test_existence_of_processed_data_dir(self, noiz_app):
-        assert Path(noiz_app.noiz_config['processed_data_dir']).exists()
+        assert Path(PROCESSED_DATA_DIR).absolute().exists()
 
     @pytest.mark.xfail
     def test_add_seismic_data(self):
