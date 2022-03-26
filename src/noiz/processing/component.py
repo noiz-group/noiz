@@ -84,13 +84,15 @@ def parse_inventory_for_single_component_db_entries(
 ) -> Tuple[Tuple[Component, ...], Tuple[Device, ...]]:
     """
     Reads provided inventory file and tries to split it into a single component files that will be saved
-    inside of the provided inventory_dir.
+    inside the provided inventory_dir.
     It creates a database object of Component and Component files ready to be stored in the DB.
 
     :param inventory_path:
     :type inventory_path: Path
     :param inventory_dir:
     :type inventory_dir: Path
+    :param filetype: Filetype of the inventory. Passed directly to :func:`~obspy.read_inventory`
+    :type filetype: str
     :return: Tuple of Component objects ready to be added to database
     :rtype: Tuple[Component]
     """

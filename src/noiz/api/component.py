@@ -7,6 +7,7 @@ from noiz.validation_helpers import validate_to_tuple
 from noiz.database import db
 from noiz.models.component import Component
 from noiz.processing.component import parse_inventory_for_single_component_db_entries
+from noiz.globals import PROCESSED_DATA_DIR
 
 
 def fetch_components_by_id(component_ids: Collection[int]) -> List[Component]:
@@ -97,7 +98,7 @@ def get_processed_inventory_dir() -> Path:
     :return: Processed inventory dir
     :rtype: Path
     """
-    processed_data_dir = Path(current_app.noiz_config.get("processed_data_dir")).absolute()
+    processed_data_dir = Path(PROCESSED_DATA_DIR).absolute()
     inventory_dir = processed_data_dir.joinpath("inventory")
     inventory_dir.mkdir(exist_ok=True)
     return inventory_dir

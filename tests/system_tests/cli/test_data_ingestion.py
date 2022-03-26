@@ -18,6 +18,7 @@ from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.app import create_app
 from noiz.cli import cli
 from noiz.database import db
+from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models import StackingSchema, QCOneResults, QCTwoResults, DatachunkParams, \
     ProcessedDatachunkParams, CrosscorrelationParams, Datachunk, DatachunkStats, ProcessedDatachunk, \
     SohGps, SohInstrument, Timespan, CCFStack, Crosscorrelation
@@ -51,7 +52,7 @@ def noiz_app():
 @pytest.mark.system
 class TestDataIngestionRoutines:
     def test_existence_of_processed_data_dir(self, noiz_app):
-        assert Path(noiz_app.noiz_config['processed_data_dir']).exists()
+        assert Path(PROCESSED_DATA_DIR).absolute().exists()
 
     def test_add_inventory_data(self, workdir_with_content, noiz_app):
 
