@@ -169,7 +169,7 @@ def _check_if_gaps_short_enough(st: obspy.Stream, params: DatachunkParams) -> bo
     # noinspection PyTypeChecker
     if any(gap_counts > max_gap):
         raise ValueError(f"Some of the gaps or overlaps are longer than set maximum of {max_gap} samples. "
-                         f"Found gaps have {gap_counts} samples.")
+                         f"Found gaps have {gap_counts!r} samples.")
     else:
         return True
 
