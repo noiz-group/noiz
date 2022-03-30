@@ -205,6 +205,7 @@ def create_datachunkparams(
         preprocessing_taper_max_length=params_holder.preprocessing_taper_max_length,
         preprocessing_taper_max_percentage=params_holder.preprocessing_taper_max_percentage,
         remove_response=params_holder.remove_response,
+        response_constant_coefficient=params_holder.response_constant_coefficient,
         datachunk_sample_tolerance=params_holder.datachunk_sample_tolerance,
         zero_padding_method=params_holder.zero_padding_method,
         padding_taper_type=params_holder.padding_taper_type,

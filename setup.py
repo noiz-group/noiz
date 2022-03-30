@@ -8,7 +8,7 @@ setup(
     include_package_data=True,
     author="Damian Kula",
     author_email="dkula@unistra.fr",
-    version="0.5.20210405",
+    version="0.5.20220330",
     entry_points={"console_scripts": ["noiz=noiz.cli:cli"]},
     install_requires=[
         "flask",
