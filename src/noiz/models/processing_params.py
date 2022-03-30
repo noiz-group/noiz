@@ -48,6 +48,8 @@ class DatachunkParams(db.Model):
     _padding_taper_max_length = db.Column("padding_taper_max_length", db.Float, nullable=True)
     _padding_taper_max_percentage = db.Column("padding_taper_max_percentage", db.Float, nullable=True)
 
+    _response_constant_coefficient = db.Column("response_constant_coefficient", db.Float, nullable=True)
+
     # TODO explore if bac_populates here makes sense
     processed_datachunk_params = db.relationship(
         "ProcessedDatachunkParams", uselist=True, back_populates="datachunk_params"
@@ -66,6 +68,7 @@ class DatachunkParams(db.Model):
         self._preprocessing_taper_max_percentage = kwargs.get("preprocessing_taper_max_percentage", 0.1)
 
         self._remove_response = kwargs.get("remove_response", True)
+        self._response_constant_coefficient = kwargs.get("response_constant_coefficient", 0.)
 
         self._spectral_whitening = kwargs.get("spectral_whitening", True)  # deprecatethis
         self._one_bit = kwargs.get("one_bit", True)  # deprecatethis
@@ -106,6 +109,7 @@ class DatachunkParams(db.Model):
             datachunk_params_preprocessing_taper_max_length=self.preprocessing_taper_max_length,
             datachunk_params_preprocessing_taper_max_percentage=self.preprocessing_taper_max_percentage,
             datachunk_params_remove_response=self.remove_response,
+            datachunk_params_response_constant_coefficient=self.response_constant_coefficient,
             datachunk_params_datachunk_sample_tolerance=self.datachunk_sample_tolerance,
             datachunk_params_max_gap_for_merging=self.max_gap_for_merging,
             datachunk_params_zero_padding_method=self.zero_padding_method,
@@ -150,6 +154,18 @@ class DatachunkParams(db.Model):
     @property
     def remove_response(self):
         return self._remove_response
+
+    @property
+    def response_constant_coefficient(self) -> float:
+        """
+        Constant response coefficient, used as a flag to either launch
+        trace.remove_sensitivity() or as a multiplicative coefficient to
+        correct data amplitude.
+
+        :return:
+        :rtype: float
+        """
+        return self._response_constant_coefficient
 
     @property
     def spectral_whitening(self):
@@ -237,6 +253,11 @@ class DatachunkParamsHolder:
     padding_taper_type: str
     padding_taper_max_length: float
     padding_taper_max_percentage: float
+    response_constant_coefficient: Optional[float] = None
+
+    def __post_init__(self):
+        if self.response_constant_coefficient is not None:
+            self.remove_response = False
 
 
 @dataclass

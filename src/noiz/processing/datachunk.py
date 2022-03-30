@@ -348,7 +348,7 @@ def _check_and_remove_extra_samples_on_the_end(st: obspy.Stream, expected_no_sam
     return obspy.Stream(traces=tr)
 
 
-def preprocess_sliced_stream_for_datachunk(
+def preprocess_sliced_stream_for_datachunk( # noqa: max-complexity: 22
         trimmed_st: obspy.Stream,
         inventory: obspy.Inventory,
         processing_params: DatachunkParams,
@@ -357,7 +357,8 @@ def preprocess_sliced_stream_for_datachunk(
 ) -> Tuple[obspy.Stream, Dict[str, obspy.Stream]]:
     """
     Applies standard preprocessing to a :class:`~obspy.Stream`.
-    It consist of tapering, detrending, response removal and filtering.
+    It consist of tapering, detrending, response removal, response calibration
+    and filtering.
 
     :param trimmed_st: Stream to be treated
     :type trimmed_st: obspy.Stream
@@ -439,6 +440,16 @@ def preprocess_sliced_stream_for_datachunk(
         if verbose_output:
             steps_dict['removed_response'] = trimmed_st.copy()
 
+    if processing_params.response_constant_coefficient is not None:
+        logger.debug("Response calibration")
+        try:
+            trimmed_st = _response_constant_calibration(trimmed_st, inventory, processing_params)
+        except ValueError as e:
+            raise ResponseRemovalError(f"There was a problem with response removal from slice {trimmed_st} that was "
+                                       f"prepared for Timespan {timespan}. Original exception: {e}")
+        if verbose_output:
+            steps_dict['response_calibrated'] = trimmed_st.copy()
+
     logger.debug(
         f"Filtering with bandpass;"
         f"low: {processing_params.prefiltering_low}; "
@@ -458,6 +469,32 @@ def preprocess_sliced_stream_for_datachunk(
     logger.debug("Finished preprocessing with success")
 
     return trimmed_st, steps_dict
+
+
+def _response_constant_calibration(
+    stream: obspy.Stream,
+    inventory: obspy.Inventory,
+    processing_params: DatachunkParams,
+) -> obspy.Stream:
+    """
+    Takes a obspy Stream and calibrate its data either by removing its instrument sensitivity,
+    or multiplying its data by a real constant coefficient.
+
+    :param stream: a obspy.Stream to be calibrated
+    :type stream: obspy.Stream
+    :param inventory: a obspy.Inventory describing the given obspy.Stream
+    :type inventory: obspy.Inventory
+    :param processing_params: DatachunkParams that datachunk is being processed with
+    :type processing_params: DatachunkParams
+    :return: stream stream
+    :rtype: obspy.Stream
+    """
+    if processing_params.response_constant_coefficient == 0:
+        stream.remove_sensitivity(inventory)
+    else:
+        for trace in stream:
+            trace.data = trace.data * processing_params.response_constant_coefficient
+    return stream
 
 
 def validate_slice(
