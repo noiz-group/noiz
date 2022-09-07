@@ -432,8 +432,17 @@ def preprocess_sliced_stream_for_datachunk( # noqa: max-complexity: 22
 
     if processing_params.remove_response:
         logger.debug("Removing response")
+
+        taper_percentage = processing_params.preprocessing_taper_max_length / (
+                           trimmed_st[0].stats.npts / trimmed_st[0].stats.sampling_rate)
+        taper_percentage = min(
+                               taper_percentage,
+                               processing_params.preprocessing_taper_max_percentage*0.01,
+                               0.05
+                            )
+
         try:
-            trimmed_st.remove_response(inventory)
+            trimmed_st.remove_response(inventory, taper_fraction=taper_percentage)
         except ValueError as e:
             raise ResponseRemovalError(f"There was a problem with response removal from slice {trimmed_st} that was "
                                        f"prepared for Timespan {timespan}. Original exception: {e}")
