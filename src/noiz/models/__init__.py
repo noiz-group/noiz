@@ -7,7 +7,8 @@ from noiz.models.component_pair import ComponentPair
 from noiz.models.mixins import FileModelMixin
 from noiz.models.processing_params import DatachunkParams, DatachunkParamsHolder, ProcessedDatachunkParams, \
     ProcessedDatachunkParamsHolder, CrosscorrelationParams, CrosscorrelationParamsHolder, \
-    PPSDParams, PPSDParamsHolder, BeamformingParams, BeamformingParamsHolder
+    PPSDParams, PPSDParamsHolder, BeamformingParams, BeamformingParamsHolder, EventDetectionParams, \
+    EventDetectionParamsHolder, EventConfirmationParams, EventConfirmationParamsHolder
 from noiz.models.timeseries import Tsindex
 from noiz.models.soh import SohInstrument, SohGps, AveragedSohGps
 from noiz.models.datachunk import Datachunk, DatachunkFile, DatachunkStats, ProcessedDatachunk, ProcessedDatachunkFile
@@ -17,3 +18,5 @@ from noiz.models.qc import QCOneConfig, QCOneConfigHolder, QCOneRejectedTime, QC
 from noiz.models.beamforming import BeamformingResult, BeamformingFile
 from noiz.models.crosscorrelation import CrosscorrelationOld, Crosscorrelation, CrosscorrelationFile
 from noiz.models.stacking import CCFStack, StackingSchema, StackingSchemaHolder, StackingTimespan
+from noiz.models.event_detection import EventDetectionResult, EventDetectionFile, EventConfirmationResult, EventConfirmationFile, \
+    EventConfirmationRun

@@ -5,7 +5,8 @@ from noiz.models import CrosscorrelationOld, CCFStack, DatachunkStats, Processed
     Datachunk, DatachunkFile, QCOneConfig, AveragedSohGps, ComponentPair, StackingSchema, StackingTimespan, Component, \
     Timespan, Tsindex, DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams, ProcessedDatachunkFile, \
     BeamformingFile, BeamformingResult, PPSDParams, Crosscorrelation, CrosscorrelationFile, PPSDFile, PPSDResult, \
-    BeamformingParams
+    BeamformingParams, EventDetectionParams, EventDetectionResult, EventDetectionFile, EventConfirmationParams, EventConfirmationResult, \
+    EventConfirmationFile, EventConfirmationRun
 from noiz.models.beamforming import BeamformingPeakAverageAbspower, BeamformingPeakAverageRelpower, \
     BeamformingPeakAllAbspower, BeamformingPeakAllRelpower
 
@@ -23,6 +24,9 @@ BulkAddableObjects = Union[
     DatachunkFile,
     CrosscorrelationFile,
     ProcessedDatachunkFile,
+    EventDetectionResult,
+    EventConfirmationResult,
+    EventConfirmationRun
     ]
 
 BulkAddableFileObjects = Union[
@@ -35,6 +39,8 @@ BulkAddableFileObjects = Union[
     BeamformingPeakAverageRelpower,
     BeamformingPeakAllAbspower,
     BeamformingPeakAllRelpower,
+    EventDetectionFile,
+    EventConfirmationFile,
 ]
 
 
@@ -96,6 +102,22 @@ class StackingInputs(TypedDict):
     stacking_timespan: StackingTimespan
 
 
+class EventDetectionRunnerInputs(TypedDict):
+    event_detection_params: EventDetectionParams
+    timespan: Timespan
+    datachunk: Datachunk
+    component: Component
+    event_detection_run_id: int
+    plot_figures: bool
+
+
+class EventConfirmationRunnerInputs(TypedDict):
+    event_confirmation_params: EventConfirmationParams
+    timespan: Timespan
+    event_detection_results: Collection[EventDetectionResult]
+    event_confirmation_run: EventConfirmationRun
+
+
 InputsForMassCalculations = Union[
     CalculateDatachunkStatsInputs,
     RunDatachunkPreparationInputs,
@@ -105,6 +127,8 @@ InputsForMassCalculations = Union[
     ProcessDatachunksInputs,
     CrosscorrelationRunnerInputs,
     StackingInputs,
+    EventDetectionRunnerInputs,
+    EventConfirmationRunnerInputs,
 ]
 
 

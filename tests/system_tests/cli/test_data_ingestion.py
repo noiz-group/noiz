@@ -603,7 +603,7 @@ class TestDataIngestionRoutines:
         fetched_timespans = list(fetched_timespans)
 
         assert isinstance(fetched_timespans[0], Timespan)
-        assert len(fetched_timespans) == 145
+        assert len(fetched_timespans) == 144
 
     def test_run_datachunk_creation(self, noiz_app):
         runner = CliRunner()
@@ -652,7 +652,7 @@ class TestDataIngestionRoutines:
             )
             components = fetch_components()
             fetched_soh = fetch_averaged_soh_gps_all(components=components, timespans=timespans)
-        assert len(fetched_soh) == 97
+        assert len(fetched_soh) == 96
 
     @pytest.mark.xfail
     def test_plot_averaged_gps_soh(self, noiz_app):

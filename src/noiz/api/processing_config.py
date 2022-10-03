@@ -8,12 +8,14 @@ from noiz.exceptions import EmptyResultException
 from noiz.models import QCOneConfig, QCOneConfigRejectedTimeHolder, QCOneRejectedTime, QCOneConfigHolder, \
     QCTwoConfigRejectedTimeHolder, QCTwoRejectedTime, QCTwoConfigHolder, QCTwoConfig, StackingSchemaHolder, \
     StackingSchema, DatachunkParams, DatachunkParamsHolder, ProcessedDatachunkParams, \
-    ProcessedDatachunkParamsHolder, CrosscorrelationParams, CrosscorrelationParamsHolder
+    ProcessedDatachunkParamsHolder, CrosscorrelationParams, CrosscorrelationParamsHolder, EventDetectionParams, \
+    EventDetectionParamsHolder, EventConfirmationParams, EventConfirmationParamsHolder
 from noiz.models.processing_params import BeamformingParams, BeamformingParamsHolder, PPSDParams, PPSDParamsHolder
 
 from noiz.processing.configs import parse_single_config_toml, DefinedConfigs, \
     create_datachunkparams, create_processed_datachunk_params, create_crosscorrelation_params, create_stacking_params, \
-    create_beamforming_params, create_ppsd_params, generate_multiple_beamforming_configs_based_on_single_holder
+    create_beamforming_params, create_ppsd_params, create_event_detection_params, create_event_confirmation_params, \
+    generate_multiple_beamforming_configs_based_on_single_holder
 
 from noiz.api.component import fetch_components
 from noiz.api.component_pair import fetch_componentpairs
@@ -374,6 +376,38 @@ def create_and_add_qctwo_config_from_toml(
         return _insert_params_into_db(params=qqtwo)
     else:
         return (params_holder, qqtwo)
+
+
+def create_and_add_event_detection_params_from_toml(
+        filepath: Path,
+        add_to_db: bool = False
+) -> Union[EventDetectionParams, Tuple[EventDetectionParamsHolder, EventDetectionParams]]:
+    """
+    filldocs
+    """
+    params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.EVENTDETECTIONPARAMS)
+    params = create_event_detection_params(params_holder=params_holder)
+
+    if add_to_db:
+        return _insert_params_into_db(params=params)
+    else:
+        return (params_holder, params)
+
+
+def create_and_add_event_confirmation_params_from_toml(
+        filepath: Path,
+        add_to_db: bool = False
+) -> Union[EventConfirmationParams, Tuple[EventConfirmationParamsHolder, EventConfirmationParams]]:
+    """
+    filldocs
+    """
+    params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.EVENTCONFIRMATIONPARAMS)
+    params = create_event_confirmation_params(params_holder=params_holder)
+
+    if add_to_db:
+        return _insert_params_into_db(params=params)
+    else:
+        return (params_holder, params)
 
 
 def create_qcone_rejected_time(

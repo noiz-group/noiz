@@ -53,7 +53,7 @@ def generate_starttimes_endtimes(
         )
 
     starttimes = pd.date_range(
-        start=startdate, end=enddate, freq=starttime_freq, normalize=True
+        start=startdate, end=enddate, freq=starttime_freq, normalize=True, closed='left'
     )
     endtimes = starttimes + window_length
     if not generate_midtimes:
