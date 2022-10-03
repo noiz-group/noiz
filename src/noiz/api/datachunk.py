@@ -182,6 +182,72 @@ def fetch_datachunks_without_stats(
     return query.filter(~Datachunk.stats.has()).all()
 
 
+def fetch_datachunks_from_other_channels(
+        datachunk: Optional[Datachunk] = None,
+        datachunk_id: Optional[int] = None,
+        load_component: bool = False,
+        load_stats: bool = False,
+        load_timespan: bool = False,
+        load_processing_params: bool = False,
+        order_by_id: bool = True,
+) -> List[Datachunk]:
+    """
+    Fetches datachunks from the other channels with the same station, network,
+    timespan and datachunk_params as the datachunk given in argument. The given
+    datachunk will also be returned alongside the other two.
+
+    Either a datachunk or datachunk_id is required.
+
+    If no datachunks fitting the query are found,
+    an empty list will be returned.
+
+    :param datachunk: datachunk whose other channels need to be fetch
+    :type datachunk: Optional[Datachunk]
+    :param datachunk_ids: Ids of Datachunk objects to be fetched
+    :type datachunk_ids: Optional[int]
+    :param load_component: Loads also the associated Component object so it is available for usage \
+        without context
+    :type load_component: bool
+    :param load_stats: Loads also the associated DatachunkStats object so it is available for usage \
+        without context
+    :type load_stats: bool
+    :param load_timespan: Loads also the associated Timespan object so it is available for usage \
+        without context
+    :type load_timespan: bool
+    :param load_processing_params: Loads also the associated DatachunkParams object \
+        so it is available for usage without context
+    :type load_processing_params: bool
+    :param order_by_id: If results of the query should be ordered by id in ascending order
+    :type order_by_id: bool
+    :return: List of Datachunks loaded from DB
+    :rtype: List[Datachunk]
+    """
+
+    if datachunk is None and datachunk_id is None:
+        raise ValueError("Neither `datachunk` nor `datachunk_id` argument was provided. It is required to provide exactly one of them")
+    elif None not in (datachunk, datachunk_id):
+        raise ValueError("A datachunk AND a datachunk_id cannot be given at the same time.")
+
+    if datachunk_id is not None:
+        datachunk = fetch_datachunks(datachunk_ids=[datachunk_id])[0]
+
+    query = _query_datachunks(
+        components=fetch_components(
+            networks=datachunk.component.network,  # type: ignore
+            stations=datachunk.component.station,  # type: ignore
+            ),
+        timespans=[datachunk.timespan],  # type: ignore
+        datachunk_params_id=datachunk.datachunk_params_id,  # type: ignore
+        load_component=load_component,
+        load_stats=load_stats,
+        load_timespan=load_timespan,
+        load_processing_params=load_processing_params,
+        order_by_id=order_by_id,
+    )
+
+    return query.all()
+
+
 def query_datachunks_without_qcone(
         qc_one: QCOneConfig,
         components: Optional[Collection[Component]] = None,

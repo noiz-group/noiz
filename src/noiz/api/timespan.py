@@ -19,6 +19,7 @@ def create_and_insert_timespans_to_db(
     window_length: Union[float, int],
     window_overlap: Optional[Union[float, int]] = None,
     generate_over_midnight: bool = False,
+    bulk_insert: bool = True,
     add_to_db: bool = False
 ) -> Optional[Generator[Timespan, Any, Any]]:
     """
@@ -41,6 +42,8 @@ def create_and_insert_timespans_to_db(
     :type window_overlap: Optional[Union[int, float]]
     :param generate_over_midnight: If windows spanning over midnight should be included
     :type generate_over_midnight: bool
+    :param bulk_insert: If bulk insert function should be used. Can be used to add missing timespans.
+    :type bulk_insert: bool
     :param add_to_db: If timespans should be inserted into db or just returned
     :type add_to_db: bool
     :return: Optionally returns generated timespans for verification
@@ -54,7 +57,7 @@ def create_and_insert_timespans_to_db(
         generate_over_midnight=generate_over_midnight,
     )
     if add_to_db:
-        insert_timespans_into_db(timespans=timespans, bulk_insert=True)
+        insert_timespans_into_db(timespans=timespans, bulk_insert=bulk_insert)
         return None
     else:
         return timespans
@@ -81,7 +84,6 @@ def insert_timespans_into_db(timespans: Iterable[Timespan], bulk_insert: bool) -
         db.session.commit()
         return
 
-    con = db.session.connection()
     for ts in timespans:
         insert_command = (
             insert(Timespan)
@@ -111,7 +113,8 @@ def insert_timespans_into_db(timespans: Iterable[Timespan], bulk_insert: bool) -
                 ),
             )
         )
-        con.execute(insert_command)
+        db.session.execute(insert_command)
+    db.session.commit()
     return
 
 

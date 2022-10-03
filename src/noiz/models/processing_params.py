@@ -856,3 +856,222 @@ ParamsLike = Union[
     PPSDParams,
     BeamformingParams,
 ]
+
+
+@dataclass
+class EventDetectionParamsHolder:
+    """
+        This simple dataclass is just helping to validate :py:class:`~noiz.models.EventDetectionParams`
+        values loaded from the TOML file
+    """
+    minimum_frequency: float
+    maximum_frequency: float
+    output_margin_length_sec: float
+    datachunk_params_id: int
+    detection_type: str
+    trace_trimming_sec: Optional[float] = None
+    n_short_time_average: Optional[int] = None
+    n_long_time_average: Optional[int] = None
+    trigger_value: Optional[float] = None
+    detrigger_value: Optional[float] = None
+    peak_ground_velocity_threshold: Optional[float] = None
+
+    def __post_init__(self):
+        if self.detection_type == "sta_lta":
+            if None in (
+                    self.n_short_time_average,
+                    self.n_long_time_average,
+                    self.trigger_value,
+                    self.detrigger_value,
+                    ):
+                raise ValueError("EventDetectionParams is invalid:"
+                                 "At least one parameter required for a StaLta detection is missing."
+                                 "n_short_time_average, n_long_time_average, trigger_value"
+                                 "and detrigger_value are all required.")
+        elif self.detection_type == "amplitude_spike":
+            if self.peak_ground_velocity_threshold is None:
+                raise ValueError("EventDetectionParams is invalid:"
+                                 "peak_ground_velocity_threshold is required for an AmplitudeSpike detection.")
+        else:
+            raise ValueError("EventDetectionParams is invalid:"
+                             "detection_type is neither 'sta_lta' nor 'amplitude_spike'.")
+
+
+class EventDetectionParams(db.Model):
+    __tablename__ = "event_detection_params"
+
+    id = db.Column("id", db.Integer, primary_key=True)
+
+    datachunk_params_id = db.Column(
+        "datachunk_params_id", db.Integer, db.ForeignKey("datachunk_params.id"), nullable=False
+    )
+
+    _detection_type = db.Column("detection_type", db.UnicodeText, nullable=False)
+    _trace_trimming_sec = db.Column("trace_trimming_sec", db.Float, nullable=True)
+
+    _n_short_time_average = db.Column("n_short_time_average", db.Integer, nullable=True)
+    _n_long_time_average = db.Column("n_long_time_average", db.Integer, nullable=True)
+    _trigger_value = db.Column("trigger_value", db.Float, nullable=True)
+    _detrigger_value = db.Column("detrigger_value", db.Float, nullable=True)
+
+    _peak_ground_velocity_threshold = db.Column("peak_ground_velocity_threshold", db.Float, nullable=True)
+
+    _minimum_frequency = db.Column("minimum_frequency", db.Float, nullable=False)
+    _maximum_frequency = db.Column("maximum_frequency", db.Float, nullable=False)
+    _output_margin_length_sec = db.Column("output_margin_length_sec", db.Float, default=5, nullable=False)
+
+    datachunk_params = db.relationship(
+        "DatachunkParams",
+        foreign_keys=[datachunk_params_id],
+        lazy="joined",
+    )
+
+    def __init__(self, **kwargs):
+        self.datachunk_params_id = kwargs.get("datachunk_params_id")
+        self._detection_type = kwargs.get("detection_type")
+        self._n_short_time_average = kwargs.get("n_short_time_average")
+        self._n_long_time_average = kwargs.get("n_long_time_average")
+        self._trigger_value = kwargs.get("trigger_value")
+        self._detrigger_value = kwargs.get("detrigger_value")
+        self._peak_ground_velocity_threshold = kwargs.get("peak_ground_velocity_threshold")
+        self._minimum_frequency = kwargs.get("minimum_frequency")
+        self._maximum_frequency = kwargs.get("maximum_frequency")
+        self._output_margin_length_sec = kwargs.get("output_margin_length_sec")
+        self._trace_trimming_sec = kwargs.get("trace_trimming_sec")
+
+    def as_dict(self):
+        return dict(
+            event_detection_params_id=self.id,
+            event_detection_params_datachunk_params_id=self.datachunk_params_id,
+            event_detection_params_detection_type=self.detection_type,
+            event_detection_params_n_short_time_average=self.n_short_time_average,
+            event_detection_params_n_long_time_average=self.n_long_time_average,
+            event_detection_params_trigger_value=self.trigger_value,
+            event_detection_params_detrigger_value=self.detrigger_value,
+            event_detection_params_peak_ground_velocity_threshold=self.peak_ground_velocity_threshold,
+            event_detection_params_minimum_frequency=self.minimum_frequency,
+            event_detection_params_maximum_frequency=self.maximum_frequency,
+            event_detection_params_output_margin_length_sec=self.output_margin_length_sec,
+            event_detection_params_trace_trimming_sec=self.trace_trimming_sec,
+        )
+
+    @property
+    def detection_type(self):
+        return self._detection_type
+
+    @property
+    def n_short_time_average(self):
+        return self._n_short_time_average
+
+    @property
+    def n_long_time_average(self):
+        return self._n_long_time_average
+
+    @property
+    def trigger_value(self):
+        return self._trigger_value
+
+    @property
+    def detrigger_value(self):
+        return self._detrigger_value
+
+    @property
+    def peak_ground_velocity_threshold(self):
+        return self._peak_ground_velocity_threshold
+
+    @property
+    def minimum_frequency(self):
+        return self._minimum_frequency
+
+    @property
+    def maximum_frequency(self):
+        return self._maximum_frequency
+
+    @property
+    def output_margin_length_sec(self):
+        return self._output_margin_length_sec
+
+    @property
+    def trace_trimming_sec(self):
+        return self._trace_trimming_sec
+
+
+@dataclass
+class EventConfirmationParamsHolder:
+    """
+        This simple dataclass is just helping to validate :py:class:`~noiz.models.EventConfirmationParams`
+        values loaded from the TOML file
+    """
+    datachunk_params_id: int
+    event_detection_params_id: int
+    time_lag: float
+    sampling_step: float
+    vote_threshold: int
+    vote_weight: Optional[Tuple[str, ...]] = None
+
+
+class EventConfirmationParams(db.Model):
+    __tablename__ = "event_confirmation_params"
+
+    id = db.Column("id", db.Integer, primary_key=True)
+
+    datachunk_params_id = db.Column(
+        "datachunk_params_id", db.Integer, db.ForeignKey("datachunk_params.id"), nullable=False
+    )
+    event_detection_params_id = db.Column(
+        "event_detection_params_id", db.Integer, db.ForeignKey("event_detection_params.id"), nullable=False
+    )
+    _time_lag = db.Column("time_lag", db.Float, nullable=False)
+    _vote_threshold = db.Column("vote_threshold", db.Integer, nullable=False)
+    _sampling_step = db.Column("sampling_step", db.Float, nullable=False)
+    _vote_weight = db.Column("vote_weight", db.String, nullable=True)
+
+    datachunk_params = db.relationship(
+        "DatachunkParams",
+        foreign_keys=[datachunk_params_id],
+        lazy="joined",
+    )
+    event_detection_params = db.relationship(
+        "EventDetectionParams",
+        foreign_keys=[event_detection_params_id],
+        lazy="joined",
+    )
+
+    def __init__(self, **kwargs):
+        self.datachunk_params_id = kwargs.get("datachunk_params_id")
+        self.event_detection_params_id = kwargs.get("event_detection_params_id")
+        self._time_lag = kwargs.get("time_lag")
+        self._vote_threshold = kwargs.get("vote_threshold")
+        self._sampling_step = kwargs.get("sampling_step")
+        if kwargs.get("vote_weight") is not None:
+            self._vote_weight = ";".join(kwargs.get("vote_weight"))  # type: ignore
+
+    def as_dict(self):
+        return dict(
+            event_confirmation_params_id=self.id,
+            event_confirmation_params_datachunk_params_id=self.datachunk_params_id,
+            event_confirmation_params_event_detection_params_id=self.event_detection_params_id,
+            event_confirmation_params_time_lag=self.time_lag,
+            event_confirmation_params_vote_threshold=self.vote_threshold,
+            event_confirmation_params_sampling_step=self.sampling_step,
+            event_confirmation_params_vote_weight=self.vote_weight,
+        )
+
+    @property
+    def time_lag(self):
+        return self._time_lag
+
+    @property
+    def sampling_step(self):
+        return self._sampling_step
+
+    @property
+    def vote_threshold(self):
+        return self._vote_threshold
+
+    @property
+    def vote_weight(self):
+        """filldocs"""
+        if self._vote_weight is not None:
+            return tuple(self._vote_weight.split(';'))
+        return None

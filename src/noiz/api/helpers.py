@@ -46,6 +46,23 @@ def bulk_add_objects(objects_to_add: Collection[BulkAddableObjects]) -> None:
     return
 
 
+def bulk_merge_objects(objects_to_merge: Collection[BulkAddableObjects]) -> None:
+    """
+    Tries to perform bulk merge of objects to database.
+
+    :param objects_to_merge: Objects to be inserted to the db
+    :type objects_to_merge: BulkAddableObjects
+    :return: None
+    :rtype: None
+    """
+    logger.debug("Performing bulk merge operation")
+    for ob in objects_to_merge:
+        db.session.merge(ob)
+    logger.debug("Committing")
+    db.session.commit()
+    return
+
+
 def bulk_add_or_upsert_objects(
         objects_to_add: Union[BulkAddableObjects, Collection[BulkAddableObjects]],
         upserter_callable: Callable[[BulkAddableObjects], Insert],
@@ -73,6 +90,45 @@ def bulk_add_or_upsert_objects(
         logger.debug("Trying to do bulk insert")
         try:
             bulk_add_objects(valid_objects)
+        except (IntegrityError, UnmappedInstanceError, InvalidRequestError) as e:
+            logger.warning(f"There was an integrity error thrown. {e}. Performing rollback.")
+            db.session.rollback()
+
+            logger.warning("Retrying with upsert")
+            _run_upsert_commands(objects_to_add=valid_objects, upserter_callable=upserter_callable)
+    else:
+        logger.info("Starting to perform careful upsert")
+        _run_upsert_commands(objects_to_add=valid_objects, upserter_callable=upserter_callable)
+    return
+
+
+def bulk_merge_or_upsert_objects(
+        objects_to_merge: Union[BulkAddableObjects, Collection[BulkAddableObjects]],
+        upserter_callable: Callable[[BulkAddableObjects], Insert],
+        bulk_insert: bool = True,
+) -> None:
+    """
+    Merges in bulk or upserts provided Collection of objects to DB.
+
+    :param objects_to_merge: Objects to be added to database
+    :type objects_to_merge: Collection[BulkAddableObjects]
+    :param upserter_callable: Callable with upsert method to be used in case of bulk add failure
+    :type upserter_callable: Callable[[Collection[BulkAddableObjects]], None]
+    :param bulk_insert: If bulk add should be even attempted
+    :type bulk_insert: bool
+    :return: None
+    :rtype: NoneType
+    """
+
+    if isinstance(objects_to_merge, Collection):
+        valid_objects = objects_to_merge
+    else:
+        valid_objects = (objects_to_merge,)
+
+    if bulk_insert:
+        logger.debug("Trying to do bulk insert")
+        try:
+            bulk_merge_objects(valid_objects)
         except (IntegrityError, UnmappedInstanceError, InvalidRequestError) as e:
             logger.warning(f"There was an integrity error thrown. {e}. Performing rollback.")
             db.session.rollback()
@@ -147,6 +203,7 @@ def _run_calculate_and_upsert_on_dask(
         raise_errors: bool = False,
         with_file: bool = False,
         is_beamforming: bool = False,
+        is_event_confirmation: bool = False,
 ):
     from dask.distributed import Client
     client = Client()
@@ -164,6 +221,7 @@ def _run_calculate_and_upsert_on_dask(
             raise_errors=raise_errors,
             with_file=with_file,
             is_beamforming=is_beamforming,
+            is_event_confirmation=is_event_confirmation,
         )
     client.close()
     return
@@ -176,7 +234,8 @@ def _submit_task_to_client_and_add_results_to_db(
         upserter_callable: Callable[[BulkAddableObjects], Insert],
         raise_errors: bool = False,
         with_file: bool = False,
-        is_beamforming: bool = False
+        is_beamforming: bool = False,
+        is_event_confirmation: bool = False,
 ):
     from dask.distributed import as_completed
 
@@ -229,11 +288,19 @@ def _submit_task_to_client_and_add_results_to_db(
                     objects_to_add=peaks_to_add,
                 )
 
-        bulk_add_or_upsert_objects(
-            objects_to_add=results,
-            upserter_callable=upserter_callable,
-            bulk_insert=True
-        )
+        if is_event_confirmation:
+            bulk_merge_or_upsert_objects(
+                objects_to_merge=results,
+                upserter_callable=upserter_callable,
+                bulk_insert=True
+            )
+        else:
+            bulk_add_or_upsert_objects(
+                objects_to_add=results,
+                upserter_callable=upserter_callable,
+                bulk_insert=True
+            )
+
     return
 
 
@@ -245,6 +312,7 @@ def _run_calculate_and_upsert_sequentially(
         raise_errors: bool = False,
         with_file: bool = False,
         is_beamforming: bool = False,
+        is_event_confirmation: bool = False,
 ):
 
     for i, input_batch in enumerate(more_itertools.chunked(iterable=inputs, n=batch_size)):
@@ -296,11 +364,18 @@ def _run_calculate_and_upsert_sequentially(
                     objects_to_add=peaks_to_add,
                 )
 
-        bulk_add_or_upsert_objects(
-            objects_to_add=results,
-            upserter_callable=upserter_callable,
-            bulk_insert=True
-        )
+        if is_event_confirmation:
+            bulk_merge_or_upsert_objects(
+                objects_to_merge=results,
+                upserter_callable=upserter_callable,
+                bulk_insert=True
+            )
+        else:
+            bulk_add_or_upsert_objects(
+                objects_to_add=results,
+                upserter_callable=upserter_callable,
+                bulk_insert=True
+            )
 
     logger.info("All processing is done.")
     return

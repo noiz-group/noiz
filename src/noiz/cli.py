@@ -1,5 +1,6 @@
 # mypy: ignore-errors
 
+from email.policy import default
 import click
 import os
 import pendulum
@@ -255,6 +256,56 @@ def add_ppsd_params(
         click.echo(parsing_results)
 
 
+@configs_group.command("add_event_detection_params")
+@with_appcontext
+@click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
+@click.option('--add_to_db', is_flag=True, expose_value=True,
+              prompt='Are you sure you want to add EventDetectionParams to DB? `N` will just preview it. ')
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
+def add_event_detection_params(
+        filepath: str,
+        add_to_db: bool,
+        **kwargs
+):
+    """Read a TOML file with EventDetectionParams config and add to db."""
+
+    from noiz.api.processing_config import create_and_add_event_detection_params_from_toml as parse_and_add
+
+    if add_to_db:
+        params = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
+        click.echo(f"The EventDetectionParams were added to db with id {params.id}")
+    else:
+        parsing_results, _ = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
+        click.echo("\n")
+        click.echo(parsing_results)
+
+
+@configs_group.command("add_event_confirmation_params")
+@with_appcontext
+@click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
+@click.option('--add_to_db', is_flag=True, expose_value=True,
+              prompt='Are you sure you want to add EventConfirmationParams to DB? `N` will just preview it. ')
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
+def add_event_confirmation_params(
+        filepath: str,
+        add_to_db: bool,
+        **kwargs
+):
+    """Read a TOML file with EventDetectionParams config and add to db."""
+
+    from noiz.api.processing_config import create_and_add_event_confirmation_params_from_toml as parse_and_add
+
+    if add_to_db:
+        params = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
+        click.echo(f"The EventDetectionParams were added to db with id {params.id}")
+    else:
+        parsing_results, _ = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
+        click.echo("\n")
+        click.echo(parsing_results)
+
+
 @configs_group.command("add_qcone_config")
 @with_appcontext
 @click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
@@ -401,6 +452,7 @@ def add_inventory(
 @click.option("-wl", "--window_length", nargs=1, type=int, required=True)
 @click.option("-wo", "--window_overlap", nargs=1, type=int, required=False)
 @click.option('--generate_over_midnight', is_flag=True, expose_value=True)
+@click.option('--bulk_insert/--no_bulk_insert', is_flag=True, expose_value=True, default=True, required=False)
 @click.option('--add_to_db', is_flag=True, expose_value=True,
               prompt='Are you sure you want to add those timespans to DB? `N` will just preview it. ')
 @click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
@@ -411,6 +463,7 @@ def add_timespans(
         window_length,
         window_overlap,
         generate_over_midnight,
+        bulk_insert,
         add_to_db,
         **kwargs
 ):
@@ -425,6 +478,7 @@ def add_timespans(
             window_length=window_length,
             window_overlap=window_overlap,
             generate_over_midnight=generate_over_midnight,
+            bulk_insert=bulk_insert,
             add_to_db=add_to_db,
         )
     else:
@@ -877,6 +931,98 @@ def run_stacking(
         raise_errors=raise_errors,
         batch_size=batch_size,
         parallel=parallel,
+    )
+
+
+@processing_group.command("run_event_detection")
+@with_appcontext
+@click.option("-n", "--network", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-s", "--station", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-c", "--component", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-p", "--event_detection_params_id", nargs=1, type=int, required=True)
+@click.option("-b", "--batch_size", nargs=1, type=int, default=100, show_default=True)
+@click.option('--plot_figures/--no_plot_figures', is_flag=True, expose_value=True, default=True, required=False)
+@click.option('--parallel/--no_parallel', default=True)
+@click.option('--skip_existing/--no_skip_existing', default=True)
+@click.option('--raise_errors/--no_raise_errors', default=True)
+def run_event_detection(
+        network,
+        station,
+        component,
+        startdate,
+        enddate,
+        event_detection_params_id,
+        plot_figures,
+        batch_size,
+        parallel,
+        skip_existing,
+        raise_errors,
+):
+    """Start event detection"""
+
+    from noiz.api.event_detection import perform_event_detection
+    perform_event_detection(
+        networks=network,
+        stations=station,
+        components=component,
+        starttime=startdate,
+        endtime=enddate,
+        event_detection_params_id=event_detection_params_id,
+        plot_figures=plot_figures,
+        batch_size=batch_size,
+        parallel=parallel,
+        skip_existing=skip_existing,
+        raise_errors=raise_errors
+    )
+
+
+@processing_group.command("run_event_confirmation")
+@with_appcontext
+@click.option("-n", "--network", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-s", "--station", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-ex", "--exclude_station", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-sp", "--specific_params_station", multiple=True, type=str, callback=_validate_zero_length_as_none,
+              help="arg must be in a station:event_detection_params_id format. Can be repeated.")
+@click.option("-c", "--component", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-p", "--event_confirmation_params_id", nargs=1, type=int, required=True)
+@click.option("-b", "--batch_size", nargs=1, type=int, default=100, show_default=True)
+@click.option('--parallel/--no_parallel', default=True)
+@click.option('--skip_existing/--no_skip_existing', default=True)
+@click.option('--raise_errors/--no_raise_errors', default=True)
+def run_event_confirmation(
+        network,
+        station,
+        exclude_station,
+        specific_params_station,
+        component,
+        startdate,
+        enddate,
+        event_confirmation_params_id,
+        batch_size,
+        parallel,
+        skip_existing,
+        raise_errors,
+):
+    """Start event confirmation"""
+
+    from noiz.api.event_detection import perform_event_confirmation
+    perform_event_confirmation(
+        networks=network,
+        stations=station,
+        exclude_stations=exclude_station,
+        specific_stations_params=specific_params_station,
+        components=component,
+        starttime=startdate,
+        endtime=enddate,
+        event_confirmation_params_id=event_confirmation_params_id,
+        batch_size=batch_size,
+        parallel=parallel,
+        skip_existing=skip_existing,
+        raise_errors=raise_errors
     )
 
 

@@ -10,7 +10,8 @@ from pathlib import Path
 from noiz.globals import ExtendedEnum
 from noiz.models.processing_params import DatachunkParams, DatachunkParamsHolder, ProcessedDatachunkParamsHolder, \
     ProcessedDatachunkParams, CrosscorrelationParamsHolder, CrosscorrelationParams, BeamformingParamsHolder, \
-    BeamformingParams, PPSDParamsHolder, PPSDParams
+    BeamformingParams, PPSDParamsHolder, PPSDParams, EventDetectionParamsHolder, EventDetectionParams, EventConfirmationParamsHolder, \
+    EventConfirmationParams
 from noiz.models.qc import QCOneConfigRejectedTimeHolder, QCOneConfigHolder, QCTwoConfigHolder, \
     QCTwoConfigRejectedTimeHolder
 from noiz.models.stacking import StackingSchemaHolder, StackingSchema
@@ -23,6 +24,8 @@ class DefinedConfigs(ExtendedEnum):
     PPSDPARAMS = "PPSDParams"
     PROCESSEDDATACHUNKPARAMS = "ProcessedDatachunkParams"
     CROSSCORRELATIONPARAMS = "CrosscorrelationParams"
+    EVENTDETECTIONPARAMS = "EventDetectionParams"
+    EVENTCONFIRMATIONPARAMS = "EventConfirmationParams"
     QCONE = "QCOne"
     QCTWO = "QCTwo"
     STACKINGSCHEMA = "StackingSchema"
@@ -42,6 +45,10 @@ def _select_validator_for_config_type(config_type: DefinedConfigs):
         return validate_config_dict_as_ppsdparams
     elif config_type is DefinedConfigs.CROSSCORRELATIONPARAMS:
         return validate_config_dict_as_crosscorrelationparams
+    elif config_type is DefinedConfigs.EVENTDETECTIONPARAMS:
+        return validate_config_dict_as_eventdetectionparams
+    elif config_type is DefinedConfigs.EVENTCONFIRMATIONPARAMS:
+        return validate_config_dict_as_eventconfirmationparams
     elif config_type is DefinedConfigs.QCONE:
         return validate_dict_as_qcone_holder
     elif config_type is DefinedConfigs.QCTWO:
@@ -167,6 +174,16 @@ def validate_config_dict_as_ppsdparams(loaded_dict: Dict) -> PPSDParamsHolder:
 def validate_config_dict_as_crosscorrelationparams(loaded_dict: Dict) -> CrosscorrelationParamsHolder:
     # filldocs
     return CrosscorrelationParamsHolder(**loaded_dict)
+
+
+def validate_config_dict_as_eventdetectionparams(loaded_dict: Dict) -> EventDetectionParamsHolder:
+    # filldocs
+    return EventDetectionParamsHolder(**loaded_dict)
+
+
+def validate_config_dict_as_eventconfirmationparams(loaded_dict: Dict) -> EventConfirmationParamsHolder:
+    # filldocs
+    return EventConfirmationParamsHolder(**loaded_dict)
 
 
 def validate_config_dict_as_stacking_schema(loaded_dict: Dict) -> StackingSchemaHolder:
@@ -389,6 +406,60 @@ def create_stacking_params(
         stacking_length=params_holder.stacking_length,
         stacking_step=params_holder.stacking_step,
         stacking_overlap=params_holder.stacking_overlap,
+    )
+    return params
+
+
+def create_event_detection_params(
+        params_holder: EventDetectionParamsHolder,
+) -> EventDetectionParams:
+    """
+    This method takes a :py:class:`~noiz.models.processing_params.EventDetectionParamsHolder` instance and based on
+    it creates an instance of database model :py:class:`~noiz.models.processing_params.EventDetectionParams`.
+
+    :param params_holder: Object containing all required elements to create a EventDetectionParams instance
+    :type params_holder: EventDetectionParamsHolder
+    :return: Working EventDetectionParams model that needs to be inserted into db
+    :rtype: EventDetectionParams
+    """
+
+    params = EventDetectionParams(
+        detection_type=params_holder.detection_type,
+        n_short_time_average=params_holder.n_short_time_average,
+        n_long_time_average=params_holder.n_long_time_average,
+        datachunk_params_id=params_holder.datachunk_params_id,
+        trigger_value=params_holder.trigger_value,
+        detrigger_value=params_holder.detrigger_value,
+        peak_ground_velocity_threshold=params_holder.peak_ground_velocity_threshold,
+        minimum_frequency=params_holder.minimum_frequency,
+        maximum_frequency=params_holder.maximum_frequency,
+        output_margin_length_sec=params_holder.output_margin_length_sec,
+        trace_trimming_sec=params_holder.trace_trimming_sec,
+
+    )
+    return params
+
+
+def create_event_confirmation_params(
+        params_holder: EventConfirmationParamsHolder,
+) -> EventConfirmationParams:
+    """
+    This method takes a :py:class:`~noiz.models.processing_params.EventConfirmationParamsHolder` instance and based on
+    it creates an instance of database model :py:class:`~noiz.models.processing_params.EventConfirmationParams`.
+
+    :param params_holder: Object containing all required elements to create a EventConfirmationParams instance
+    :type params_holder: EventConfirmationParamsHolder
+    :return: Working EventConfirmationParams model that needs to be inserted into db
+    :rtype: EventConfirmationParams
+    """
+
+    params = EventConfirmationParams(
+        datachunk_params_id=params_holder.datachunk_params_id,
+        event_detection_params_id=params_holder.event_detection_params_id,
+        time_lag=params_holder.time_lag,
+        sampling_step=params_holder.sampling_step,
+        vote_threshold=params_holder.vote_threshold,
+        vote_weight=params_holder.vote_weight,
     )
     return params
 
