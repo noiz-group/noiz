@@ -16,6 +16,6 @@ RUN apt-get update -yqq && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN python -m pip install --use-feature=2020-resolver --upgrade --no-cache-dir pip setuptools wheel && \
-    python -m pip install --use-feature=2020-resolver -r /requirements.txt --no-cache-dir && \
+RUN python -m pip install --upgrade --no-cache-dir pip setuptools wheel && \
+    python -m pip install -r /requirements.txt --no-cache-dir && \
     rm -rv /requirements*.txt
