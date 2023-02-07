@@ -792,7 +792,7 @@ class TestDataIngestionRoutines:
     def test_run_qcone(self, noiz_app):
         runner = CliRunner()
         result = runner.invoke(cli, ["processing", "run_qcone",
-                                     "-c", "1",
+                                     "-p", "1",
                                      "-sd", "2019-09-30",
                                      "-ed", "2019-10-03",
                                      "--no_parallel",
