@@ -110,6 +110,13 @@ def process_datachunk(
     if params.spectral_whitening:
         logger.debug("Performing spectral whitening")
         st[0] = whiten_trace(st[0])
+        logger.debug("Performing bandpass filter")
+        st[0].filter(
+            type="bandpass",
+            freqmin=params.filtering_low,
+            freqmax=params.filtering_high,
+            corners=params.filtering_order,
+        )
 
     if params.one_bit:
         logger.debug("Performing one bit normalization")

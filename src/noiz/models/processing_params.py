@@ -268,6 +268,9 @@ class ProcessedDatachunkParamsHolder:
     """
     datachunk_params_id: int
     qcone_config_id: Optional[int]
+    filtering_low : float
+    filtering_high : float
+    filtering_order : int
     spectral_whitening: bool
     one_bit: bool
 
@@ -280,6 +283,10 @@ class ProcessedDatachunkParams(db.Model):
         "datachunk_params_id", db.Integer, db.ForeignKey("datachunk_params.id"), nullable=False
     )
     qcone_config_id = db.Column("qcone_config_id", db.Integer, db.ForeignKey("qcone_config.id"), nullable=False)
+
+    _filtering_low = db.Column("filtering_low", db.Float, nullable=False)
+    _filtering_high = db.Column("filtering_high", db.Float, nullable=False)
+    _filtering_order = db.Column("filtering_order", db.Integer, nullable=False)
 
     _spectral_whitening = db.Column("spectral_whitening", db.Boolean, default=True, nullable=False)
     _one_bit = db.Column("one_bit", db.Boolean, default=True, nullable=False)
@@ -304,6 +311,9 @@ class ProcessedDatachunkParams(db.Model):
     def __init__(self, **kwargs):
         self.datachunk_params_id = kwargs.get("datachunk_params_id")
         self.qcone_config_id = kwargs.get("qcone_config_id")
+        self._filtering_low = kwargs.get("filtering_low")
+        self._filtering_high = kwargs.get("filtering_high")
+        self._filtering_order = kwargs.get("filtering_order")
         self._spectral_whitening = kwargs.get("spectral_whitening", True)
         self._one_bit = kwargs.get("one_bit", True)
 
@@ -312,9 +322,24 @@ class ProcessedDatachunkParams(db.Model):
             processeddatachunk_params_id=self.id,
             processeddatachunk_params_datachunk_params_id=self.datachunk_params_id,
             processeddatachunk_params_qcone_config_id=self.qcone_config_id,
+            processeddatachunk_params_filtering_low=self.filtering_low,
+            processeddatachunk_params_filtering_high=self.filtering_high,
+            processeddatachunk_params_filtering_order=self.filtering_order,
             processeddatachunk_params_spectral_whitening=self.spectral_whitening,
             processeddatachunk_params_one_bit=self.one_bit,
         )
+
+    @property
+    def filtering_low(self):
+        return self._filtering_low
+
+    @property
+    def filtering_high(self):
+        return self._filtering_high
+
+    @property
+    def filtering_order(self):
+        return self._filtering_order
 
     @property
     def spectral_whitening(self):

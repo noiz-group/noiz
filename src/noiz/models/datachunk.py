@@ -130,7 +130,7 @@ class ProcessedDatachunk(db.Model):
     processed_datachunk_params_id = db.Column(
         "processed_datachunk_params_id",
         db.Integer,
-        db.ForeignKey("datachunk_params.id"),
+        db.ForeignKey("processed_datachunk_params.id"),
         nullable=False,
     )
     datachunk_id = db.Column(
@@ -148,7 +148,7 @@ class ProcessedDatachunk(db.Model):
 
     datachunk = db.relationship("Datachunk", foreign_keys=[datachunk_id], back_populates="processed_datachunks")
     datachunk_processing_config = db.relationship(
-        "DatachunkParams", foreign_keys=[processed_datachunk_params_id],
+        "ProcessedDatachunkParams", foreign_keys=[processed_datachunk_params_id],
     )
     file = db.relationship(
         "ProcessedDatachunkFile",

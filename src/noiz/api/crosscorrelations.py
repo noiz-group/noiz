@@ -358,7 +358,7 @@ def assembly_ccf_filename(
         year,
         doy_time,
         str(count),
-        ".npz"
+        "npy"
     ])
 
     return filename

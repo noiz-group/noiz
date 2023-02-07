@@ -256,6 +256,9 @@ def create_processed_datachunk_params(
     params = ProcessedDatachunkParams(
         datachunk_params_id=params_holder.datachunk_params_id,
         qcone_config_id=params_holder.qcone_config_id,
+        filtering_low=params_holder.filtering_low,
+        filtering_high=params_holder.filtering_high,
+        filtering_order=params_holder.filtering_order,
         spectral_whitening=params_holder.spectral_whitening,
         one_bit=params_holder.one_bit,
     )

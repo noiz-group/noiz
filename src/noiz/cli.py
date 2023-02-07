@@ -681,7 +681,7 @@ def average_soh_gps(
 @click.option("-c", "--component", multiple=True, type=str, callback=_validate_zero_length_as_none)
 @click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
 @click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
-@click.option("-c", "--qcone_config_id", nargs=1, type=int, default=1, show_default=True)
+@click.option("-p", "--qcone_config_id", nargs=1, type=int, default=1, show_default=True)
 @click.option("-b", "--batch_size", nargs=1, type=int, default=1000, show_default=True)
 @click.option('--parallel/--no_parallel', default=True)
 @click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)

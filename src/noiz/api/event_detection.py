@@ -91,6 +91,7 @@ def fetch_event_detection_results(
         load_timespan: bool = False,
         load_datachunk: bool = False,
         load_event_detection_params: bool = False,
+        batch_size: Optional[int] = None,
 ) -> List[EventDetectionResult]:
     """
     Fetches EventDetectionResult objects using varying optional filters. Associated Timespan, \
@@ -131,6 +132,9 @@ def fetch_event_detection_results(
         load_datachunk=load_datachunk,
         load_event_detection_params=load_event_detection_params,
     )
+
+    if batch_size is not None:
+        return query.yield_per(batch_size).enable_eagerloads(False)  # type: ignore
 
     return query.all()
 
