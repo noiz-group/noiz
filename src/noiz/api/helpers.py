@@ -1,6 +1,7 @@
 from loguru import logger
 import more_itertools
 import pandas as pd
+from time import sleep
 from sqlalchemy.orm import Query
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm.exc import UnmappedInstanceError
@@ -211,8 +212,12 @@ def _run_calculate_and_upsert_on_dask(
                 f'You can monitor execution on {client.dashboard_link}')
     logger.info(f"Processing will be executed in batches. The chunks size is {batch_size}")
     for i, input_batch in enumerate(more_itertools.chunked(iterable=inputs, n=batch_size)):
+        if i != 0:
+            logger.info("Restarting client to clear unmanaged memory.")
+            # Prevents client.restart() crash if exception occured in the previous tasks.
+            sleep(2)
+            client.restart()
         logger.info(f"Starting processing of chunk no.{i}")
-
         _submit_task_to_client_and_add_results_to_db(
             client=client,
             inputs_to_process=input_batch,
