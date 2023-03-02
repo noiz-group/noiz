@@ -271,8 +271,16 @@ class ProcessedDatachunkParamsHolder:
     filtering_low : float
     filtering_high : float
     filtering_order : int
+    waterlevel_ratio_to_max : float
+    convolution_sliding_window_min_samples : int
+    convolution_sliding_window_max_ratio_to_fmin : float
+    convolution_sliding_window_ratio_to_bandwidth : float
+    quefrency_filter_lowpass_pct : float
+    quefrency_filter_taper_min_samples : int
+    quefrency_filter_taper_length_ratio_to_length_cepstrum : float
     spectral_whitening: bool
     one_bit: bool
+    quefrency: bool
 
 
 class ProcessedDatachunkParams(db.Model):
@@ -287,9 +295,18 @@ class ProcessedDatachunkParams(db.Model):
     _filtering_low = db.Column("filtering_low", db.Float, nullable=False)
     _filtering_high = db.Column("filtering_high", db.Float, nullable=False)
     _filtering_order = db.Column("filtering_order", db.Integer, nullable=False)
+    _waterlevel_ratio_to_max = db.Column("waterlevel_ratio_to_max", db.Float, default=0.001, nullable=False)
+
+    _convolution_sliding_window_min_samples = db.Column("convolution_sliding_window_min_samples", db.Integer, default=10,  nullable=False)
+    _convolution_sliding_window_max_ratio_to_fmin = db.Column("convolution_sliding_window_max_ratio_to_fmin", db.Float, default=0.5, nullable=False)
+    _convolution_sliding_window_ratio_to_bandwidth = db.Column("convolution_sliding_window_ratio_to_bandwidth", db.Float, default=0.15, nullable=False)
+    _quefrency_filter_lowpass_pct = db.Column("quefrency_filter_lowpass_pct", db.Float, default=0.5, nullable=False)
+    _quefrency_filter_taper_min_samples = db.Column("quefrency_filter_taper_min_samples", db.Integer, default=10,  nullable=False)
+    _quefrency_filter_taper_length_ratio_to_length_cepstrum = db.Column("quefrency_filter_taper_length_ratio_to_length_cepstrum", db.Float, default=0.01, nullable=False)
 
     _spectral_whitening = db.Column("spectral_whitening", db.Boolean, default=True, nullable=False)
     _one_bit = db.Column("one_bit", db.Boolean, default=True, nullable=False)
+    _quefrency = db.Column("quefrency", db.Boolean, default=True, nullable=False)
 
     datachunk_params = db.relationship(
         "DatachunkParams",
@@ -314,8 +331,16 @@ class ProcessedDatachunkParams(db.Model):
         self._filtering_low = kwargs.get("filtering_low")
         self._filtering_high = kwargs.get("filtering_high")
         self._filtering_order = kwargs.get("filtering_order")
+        self._waterlevel_ratio_to_max = kwargs.get("waterlevel_ratio_to_max", 0.001)
+        self._convolution_sliding_window_min_samples = kwargs.get("convolution_sliding_window_min_samples", 10)
+        self._convolution_sliding_window_max_ratio_to_fmin = kwargs.get("convolution_sliding_window_max_ratio_to_fmin ", 0.5)
+        self._convolution_sliding_window_ratio_to_bandwidth = kwargs.get("convolution_sliding_window_ratio_to_bandwidth", 0.15)
+        self._quefrency_filter_lowpass_pct = kwargs.get("quefrency_filter_lowpass_pct", 0.5)
+        self._quefrency_filter_taper_min_samples = kwargs.get("quefrency_filter_taper_min_samples", 10)
+        self._quefrency_filter_taper_length_ratio_to_length_cepstrum = kwargs.get("quefrency_filter_taper_length_ratio_to_length_cepstrum", 0.01)
         self._spectral_whitening = kwargs.get("spectral_whitening", True)
         self._one_bit = kwargs.get("one_bit", True)
+        self._quefrency = kwargs.get("quefrency", True)
 
     def as_dict(self):
         return dict(
@@ -325,8 +350,16 @@ class ProcessedDatachunkParams(db.Model):
             processeddatachunk_params_filtering_low=self.filtering_low,
             processeddatachunk_params_filtering_high=self.filtering_high,
             processeddatachunk_params_filtering_order=self.filtering_order,
+            processeddatachunk_params_waterlevel_ratio_to_max=self.waterlevel_ratio_to_max,
+            processeddatachunk_params_convolution_sliding_window_min_samples=self.convolution_sliding_window_min_samples,
+            processeddatachunk_params_convolution_sliding_window_max_ratio_to_fmin=self.convolution_sliding_window_max_ratio_to_fmin,
+            processeddatachunk_params_convolution_sliding_window_ratio_to_bandwidth=self.convolution_sliding_window_ratio_to_bandwidth,
+            processeddatachunk_params_quefrency_filter_lowpass_pct=self.quefrency_filter_lowpass_pct,
+            processeddatachunk_params_quefrency_filter_taper_min_samples=self.quefrency_filter_taper_min_samples,
+            processeddatachunk_params_quefrency_filter_taper_length_ratio_to_length_cepstrum=self.quefrency_filter_taper_length_ratio_to_length_cepstrum,
             processeddatachunk_params_spectral_whitening=self.spectral_whitening,
             processeddatachunk_params_one_bit=self.one_bit,
+            processeddatachunk_params_quefrency=self.quefrency,
         )
 
     @property
@@ -342,12 +375,44 @@ class ProcessedDatachunkParams(db.Model):
         return self._filtering_order
 
     @property
+    def waterlevel_ratio_to_max(self):
+        return self._waterlevel_ratio_to_max
+
+    @property
+    def convolution_sliding_window_min_samples(self):
+        return self._convolution_sliding_window_min_samples
+
+    @property
+    def convolution_sliding_window_max_ratio_to_fmin(self):
+        return self._convolution_sliding_window_max_ratio_to_fmin
+
+    @property
+    def convolution_sliding_window_ratio_to_bandwidth(self):
+        return self._convolution_sliding_window_ratio_to_bandwidth
+
+    @property
+    def quefrency_filter_lowpass_pct(self):
+        return self._quefrency_filter_lowpass_pct
+
+    @property
+    def quefrency_filter_taper_min_samples(self):
+        return self._quefrency_filter_taper_min_samples
+
+    @property
+    def quefrency_filter_taper_length_ratio_to_length_cepstrum(self):
+        return self._quefrency_filter_taper_length_ratio_to_length_cepstrum
+
+    @property
     def spectral_whitening(self):
         return self._spectral_whitening
 
     @property
     def one_bit(self):
         return self._one_bit
+
+    @property
+    def quefrency(self):
+        return self._quefrency
 
 
 @dataclass
