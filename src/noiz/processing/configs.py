@@ -259,8 +259,16 @@ def create_processed_datachunk_params(
         filtering_low=params_holder.filtering_low,
         filtering_high=params_holder.filtering_high,
         filtering_order=params_holder.filtering_order,
+        waterlevel_ratio_to_max=params_holder.waterlevel_ratio_to_max,
+        convolution_sliding_window_min_samples=params_holder.convolution_sliding_window_min_samples,
+        convolution_sliding_window_max_ratio_to_fmin=params_holder.convolution_sliding_window_max_ratio_to_fmin,
+        convolution_sliding_window_ratio_to_bandwidth=params_holder.convolution_sliding_window_ratio_to_bandwidth,
+        quefrency_filter_lowpass_pct=params_holder.quefrency_filter_lowpass_pct,
+        quefrency_filter_taper_min_samples=params_holder.quefrency_filter_taper_min_samples,
+        quefrency_filter_taper_length_ratio_to_length_cepstrum=params_holder.quefrency_filter_taper_length_ratio_to_length_cepstrum,
         spectral_whitening=params_holder.spectral_whitening,
         one_bit=params_holder.one_bit,
+        quefrency=params_holder.quefrency
     )
     return params
 

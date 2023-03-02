@@ -570,7 +570,7 @@ def validate_slice(
             f"It will be padded with {deficit} zeros to match exact length."
         )
         try:
-
+            trimmed_st = perform_padding_according_to_config(trimmed_st, timespan, expected_no_samples, processing_params)
             if verbose_output:
                 steps_dict['padded'] = trimmed_st.copy()
         except ValueError as e:
