@@ -1,4 +1,4 @@
-__version__ = "0.5.20210405"
+__version__ = "0.6.0"
 __author__ = "Damian Kula"
 
 from . import validation_helpers
