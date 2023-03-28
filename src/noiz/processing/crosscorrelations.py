@@ -8,7 +8,7 @@ from typing import Tuple, Dict, DefaultDict, Collection, List
 
 from noiz.exceptions import CorruptedDataException
 from noiz.models import Crosscorrelation, CrosscorrelationParams
-from noiz.models.component_pair import ComponentPair
+from noiz.models.component_pair import ComponentPairCartesian
 from noiz.models.datachunk import ProcessedDatachunk
 from noiz.models.timespan import Timespan
 
@@ -93,13 +93,13 @@ def validate_component_code_pairs(component_pairs: Collection[str]) -> Tuple[str
     return tuple(set(component_pairs))
 
 
-def extract_component_ids_from_component_pairs(fetched_component_pairs: Collection[ComponentPair]) -> Tuple[int, ...]:
+def extract_component_ids_from_component_pairs(fetched_component_pairs: Collection[ComponentPairCartesian]) -> Tuple[int, ...]:
     """
-    Takes a collection of :py:class:`noiz.models.component_pair.ComponentPair` and extracts ids of all components that
+    Takes a collection of :py:class:`noiz.models.component_pair.ComponentPairCartesian` and extracts ids of all components that
     are included in them. Resulting tuple does not contain repetitions of values.
 
-    :param fetched_component_pairs: ComponentPairs to be processed
-    :type fetched_component_pairs: Collection[ComponentPair]
+    :param fetched_component_pairs: componentpairs_cartesian to be processed
+    :type fetched_component_pairs: Collection[ComponentPairCartesian]
     :return: Ids of all components that are in input pairs
     :rtype: Tuple[int, ...]
     """

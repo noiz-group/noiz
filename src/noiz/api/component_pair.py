@@ -7,21 +7,21 @@ from noiz.api.component import fetch_components
 from noiz.api.helpers import extract_object_ids
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
-from noiz.models import Component, ComponentPair
-from noiz.processing.component_pair import prepare_componentpairs
+from noiz.models import Component, ComponentPairCartesian, ComponentPairCylindrical
+from noiz.processing.component_pair import prepare_componentpairs_cartesian, prepare_componentpairs_cylindrical
 from noiz.validation_helpers import validate_to_tuple
 
 
-def upsert_componentpairs(component_pairs: List[ComponentPair]) -> None:
+def upsert_componentpairs_cartesian(component_pairs: List[ComponentPairCartesian]) -> None:
     """
-    Takes iterable of ComponentPairs and inserts it into database.
+    Takes iterable of componentpairs_cartesian and inserts it into database.
     In case of conflict on `single_component_pair` constraint, updates the entry.
 
     Warning: Used UPSERT operation is PostgreSQL specific due to used SQLAlchemy command.
     Warning: Has to be run within application context.
 
-    :param component_pairs: List of ComponentPairs to be upserted into db
-    :type component_pairs: List[ComponentPair]
+    :param component_pairs: List of componentpairs_cartesian to be upserted into db
+    :type component_pairs: List[ComponentPairCartesian]
     :return: None
     :rtype: None
     """
@@ -29,7 +29,7 @@ def upsert_componentpairs(component_pairs: List[ComponentPair]) -> None:
     logger.info(f"There are {no} component pairs to process")
     for i, component_pair in enumerate(component_pairs):
         insert_command = (
-            insert(ComponentPair)
+            insert(ComponentPairCartesian)
             .values(
                 component_a_id=component_pair.component_a_id,
                 component_b_id=component_pair.component_b_id,
@@ -62,7 +62,7 @@ def upsert_componentpairs(component_pairs: List[ComponentPair]) -> None:
     return
 
 
-def create_all_componentpairs() -> None:
+def create_all_componentpairs_cartesian() -> None:
     """
     Fetches all components from the database, creates all component pairs possible and upserts them into db.
 
@@ -73,34 +73,34 @@ def create_all_componentpairs() -> None:
     """
     components = fetch_components()
 
-    component_pairs = prepare_componentpairs(components)
+    component_pairs = prepare_componentpairs_cartesian(components)
 
-    upsert_componentpairs(component_pairs)
+    upsert_componentpairs_cartesian(component_pairs)
     return
 
 
-def fetch_componentpairs_by_id(
+def fetch_componentpairs_cartesian_by_id(
         component_pair_id: Union[Collection[int], int]
-) -> List[ComponentPair]:
+) -> List[ComponentPairCartesian]:
     """
-    Fetches :py:class:`~noiz.models.component_pair.ComponentPair` from the database by id.
+    Fetches :py:class:`~noiz.models.component_pair.ComponentPairCartesian` from the database by id.
     By default it also loads both Components that belong to the pair.
 
     :param component_pair_id: Accepts either single id or multiple ids
     :type component_pair_id: Union[Collection[int], int]
     :return: Fetched Pairs
-    :rtype: List[ComponentPair]
+    :rtype: List[ComponentPairCartesian]
     """
     pair_ids = validate_to_tuple(component_pair_id, int)
 
     component_pairs = (
-        db.session.query(ComponentPair)
+        db.session.query(ComponentPairCartesian)
         .filter(
-            ComponentPair.id.in_(pair_ids)
+            ComponentPairCartesian.id.in_(pair_ids)
         )
         .options(
-            subqueryload(ComponentPair.component_a),
-            subqueryload(ComponentPair.component_b),
+            subqueryload(ComponentPairCartesian.component_a),
+            subqueryload(ComponentPairCartesian.component_b),
         )
         .all()
     )
@@ -111,7 +111,7 @@ def fetch_componentpairs_by_id(
     return component_pairs
 
 
-def fetch_componentpairs(
+def fetch_componentpairs_cartesian(
         network_codes_a: Optional[Union[Collection[str], str]] = None,
         station_codes_a: Optional[Union[Collection[str], str]] = None,
         component_codes_a: Optional[Union[Collection[str], str]] = None,
@@ -123,11 +123,11 @@ def fetch_componentpairs(
         include_intracorrelation: Optional[bool] = False,
         only_autocorrelation: Optional[bool] = False,
         only_intracorrelation: Optional[bool] = False,
-) -> List[ComponentPair]:
+) -> List[ComponentPairCartesian]:
     """
     Fetched requested component pairs.
     You can pass either selection for both station A and station B or just for A.
-    By default, if none of selectors for station A will be provided, all ComponentPairs will be retrieved.
+    By default, if none of selectors for station A will be provided, all componentpairs_cartesian will be retrieved.
     If you won't pass any values for any of the station B selectors, selectors for A will be used.
     You can choose to fetch intracorrelation or autocorrelations.
 
@@ -151,8 +151,8 @@ def fetch_componentpairs(
     :type only_autocorrelation: Optional[bool]
     :param only_intracorrelation: If only intracorrelation pairs should be selected
     :type only_intracorrelation: Optional[bool]
-    :return: Selected ComponentPair objects
-    :rtype: List[ComponentPair]
+    :return: Selected ComponentPairCartesian objects
+    :rtype: List[ComponentPairCartesian]
     """
     if only_autocorrelation and only_intracorrelation:
         raise ValueError("You cannot use only_autocorrelation and only_intracorrelation at the same time")
@@ -184,31 +184,31 @@ def fetch_componentpairs(
 
     if accepted_component_code_pairs is not None:
         accepted_component_code_pairs = validate_to_tuple(accepted_component_code_pairs, str)
-        filters.append(ComponentPair.component_code_pair.in_(accepted_component_code_pairs))
+        filters.append(ComponentPairCartesian.component_code_pair.in_(accepted_component_code_pairs))
 
     if include_autocorrelation:
-        autocorr_filter = ComponentPair.autocorrelation.in_((True, False))
+        autocorr_filter = ComponentPairCartesian.autocorrelation.in_((True, False))
     elif only_autocorrelation:
-        autocorr_filter = ComponentPair.autocorrelation.in_((True, ))
+        autocorr_filter = ComponentPairCartesian.autocorrelation.in_((True, ))
     else:
-        autocorr_filter = ComponentPair.autocorrelation.in_((False, ))
+        autocorr_filter = ComponentPairCartesian.autocorrelation.in_((False, ))
     filters.append(autocorr_filter)
 
     if include_intracorrelation:
-        intracorr_filter = ComponentPair.intracorrelation.in_((True, False))
+        intracorr_filter = ComponentPairCartesian.intracorrelation.in_((True, False))
     elif only_intracorrelation:
-        intracorr_filter = ComponentPair.intracorrelation.in_((True, ))
+        intracorr_filter = ComponentPairCartesian.intracorrelation.in_((True, ))
     else:
-        intracorr_filter = ComponentPair.intracorrelation.in_((False, ))
+        intracorr_filter = ComponentPairCartesian.intracorrelation.in_((False, ))
     filters.append(intracorr_filter)
 
     component_pairs = (
-        db.session.query(ComponentPair)
-          .join(cmp_a, ComponentPair.component_a)
-          .join(cmp_b, ComponentPair.component_b)
+        db.session.query(ComponentPairCartesian)
+          .join(cmp_a, ComponentPairCartesian.component_a)
+          .join(cmp_b, ComponentPairCartesian.component_b)
           .options(
-              subqueryload(ComponentPair.component_a),
-              subqueryload(ComponentPair.component_b),
+              subqueryload(ComponentPairCartesian.component_a),
+              subqueryload(ComponentPairCartesian.component_b),
         )
         .filter(*filters)
         .all()
@@ -218,3 +218,71 @@ def fetch_componentpairs(
         EmptyResultException("There were no pairs in database that fit this query.")
 
     return component_pairs
+
+
+def create_all_componentpairs_cylindrical() -> None:
+    """
+    Fetches all components from the database, creates all component pairs possible and upserts them into db.
+
+    Has to be run within app_context.
+
+    :return: None
+    :rtype: None
+    """
+    components = fetch_components()
+    station_unique = list(set([cp.station for cp in components]))
+    station_unique.sort()
+    logger.info("Station fetch done")
+    check_sta = []  # type: list
+    for sta in station_unique:
+        componentpair = fetch_componentpairs_cartesian(station_codes_a=sta, station_codes_b=tuple(station_unique))
+        componentpair += fetch_componentpairs_cartesian(station_codes_a=tuple(station_unique), station_codes_b=sta)
+        if sta == station_unique[0]:
+            component_pairs_cylindrical = prepare_componentpairs_cylindrical(componentpair, station_unique, sta, check_sta)
+        else:
+            component_pairs_cylindrical += prepare_componentpairs_cylindrical(componentpair, station_unique, sta, check_sta)
+        check_sta.append(sta)
+    upsert_componentpairs_cylindrical(component_pairs_cylindrical)
+    return
+
+
+def upsert_componentpairs_cylindrical(component_pairs_cylindrical: List[ComponentPairCylindrical]) -> None:
+    """
+    Takes iterable of ComponentPairCylindrical and inserts it into database.
+
+    Warning: Used UPSERT operation is PostgreSQL specific due to used SQLAlchemy command.
+    Warning: Has to be run within application context.
+
+    :param component_pairs_cylindrical: List of component_pairs_cylindrical to be upserted into db
+    :type ComponentPairCylindrical: List[ComponentPairCylindrical]
+    :return: None
+    :rtype: None
+    """
+    no = len(component_pairs_cylindrical)
+    logger.info(f"There are {no} component pairs to process")
+
+    for i, component_pair_cylindrical in enumerate(component_pairs_cylindrical):
+        insert_command = (
+            insert(ComponentPairCylindrical)
+            .values(
+                component_aE_id=component_pair_cylindrical.component_aE_id,
+                component_bE_id=component_pair_cylindrical.component_bE_id,
+                component_aN_id=component_pair_cylindrical.component_aN_id,
+                component_bN_id=component_pair_cylindrical.component_bN_id,
+                component_aZ_id=component_pair_cylindrical.component_aZ_id,
+                component_bZ_id=component_pair_cylindrical.component_bZ_id,
+                component_cylindrical_code_pair=component_pair_cylindrical.component_cylindrical_code_pair,
+                autocorrelation=component_pair_cylindrical.autocorrelation,
+                intracorrelation=component_pair_cylindrical.intracorrelation,
+                azimuth=component_pair_cylindrical.azimuth,
+                backazimuth=component_pair_cylindrical.backazimuth,
+                distance=component_pair_cylindrical.distance,
+                arcdistance=component_pair_cylindrical.arcdistance,
+            )
+        )
+        db.session.execute(insert_command)
+        logger.info(f"Inserted {i}/{no - 1} component_pairs_cylindrical")
+    logger.info("Commiting changes")
+    db.session.commit()
+    logger.info("Commit successfull")
+    return

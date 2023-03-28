@@ -2,7 +2,7 @@ from sqlalchemy.sql import Insert
 from typing import Union, TypedDict, Collection, Callable, Optional, List, Tuple, Dict
 
 from noiz.models import CrosscorrelationOld, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults, \
-    Datachunk, DatachunkFile, QCOneConfig, AveragedSohGps, ComponentPair, StackingSchema, StackingTimespan, Component, \
+    Datachunk, DatachunkFile, QCOneConfig, AveragedSohGps, ComponentPairCartesian, StackingSchema, StackingTimespan, Component, \
     Timespan, Tsindex, DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams, ProcessedDatachunkFile, \
     BeamformingFile, BeamformingResult, PPSDParams, Crosscorrelation, CrosscorrelationFile, PPSDFile, PPSDResult, \
     BeamformingParams, EventDetectionParams, EventDetectionResult, EventDetectionFile, EventConfirmationParams, EventConfirmationResult, \
@@ -92,12 +92,12 @@ class CrosscorrelationRunnerInputs(TypedDict):
     timespan: Timespan
     crosscorrelation_params: CrosscorrelationParams
     grouped_processed_chunks: Dict[int, ProcessedDatachunk]
-    component_pairs: Tuple[ComponentPair, ...]
+    component_pairs: Tuple[ComponentPairCartesian, ...]
 
 
 class StackingInputs(TypedDict):
     qctwo_ccfs_container: List[Tuple[QCTwoResults, Crosscorrelation]]
-    componentpair: ComponentPair
+    componentpair_cartesian: ComponentPairCartesian
     stacking_schema: StackingSchema
     stacking_timespan: StackingTimespan
 

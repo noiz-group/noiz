@@ -4,7 +4,7 @@ from pathlib import Path
 
 from noiz.database import db
 from noiz.globals import PROCESSED_DATA_DIR
-from noiz.models import Component, Timespan, ComponentPair
+from noiz.models import Component, Timespan, ComponentPairCartesian
 from noiz.models.custom_db_types import PathInDB
 from noiz.processing.path_helpers import directory_exists_or_create, increment_filename_counter
 
@@ -32,7 +32,7 @@ class FileModelMixin(db.Model):
 
     def _assemble_filename(
             self,
-            cmp: Optional[Union[Component, ComponentPair]],
+            cmp: Optional[Union[Component, ComponentPairCartesian]],
             ts: Timespan,
             count: int = 0,
     ) -> str:
@@ -49,8 +49,8 @@ class FileModelMixin(db.Model):
                 doy,
                 time,
             ]
-        elif isinstance(cmp, ComponentPair):
-            raise NotImplementedError("For componentpair is not yet implemented")
+        elif isinstance(cmp, ComponentPairCartesian):
+            raise NotImplementedError("For componentpair_cartesian is not yet implemented")
         elif cmp is None:
             filename_elements = [
                 self.file_model_type,
@@ -59,7 +59,7 @@ class FileModelMixin(db.Model):
                 time,
             ]
         else:
-            raise TypeError(f"Expected either Component, ComponentPair or None. Got {type(cmp)}")
+            raise TypeError(f"Expected either Component, ComponentPairCartesian or None. Got {type(cmp)}")
 
         extensions = [str(count), ]
 
@@ -74,7 +74,7 @@ class FileModelMixin(db.Model):
             self,
             params: ParamsLike,
             ts: Timespan,
-            cmp: Optional[Union[Component, ComponentPair]],
+            cmp: Optional[Union[Component, ComponentPairCartesian]],
     ) -> Path:
         year = str(ts.starttime.year)
         doy = ts.starttime.strftime("%j")
@@ -89,7 +89,7 @@ class FileModelMixin(db.Model):
                 .joinpath(cmp.component)
                 .joinpath(doy)
             )
-        elif isinstance(cmp, ComponentPair):
+        elif isinstance(cmp, ComponentPairCartesian):
             return (
                 Path(PROCESSED_DATA_DIR)
                 .joinpath(self.file_model_type)
@@ -109,13 +109,13 @@ class FileModelMixin(db.Model):
                 .joinpath(doy)
             )
         else:
-            raise TypeError(f"Expected either Component, ComponentPair or None. Got {type(cmp)}")
+            raise TypeError(f"Expected either Component, ComponentPairCartesian or None. Got {type(cmp)}")
 
     def _prepare_dirpath(
             self,
             params: ParamsLike,
             ts: Timespan,
-            cmp: Optional[Union[Component, ComponentPair]],
+            cmp: Optional[Union[Component, ComponentPairCartesian]],
     ) -> Path:
         """filldocs"""
         dirpath = self._assemble_dirpath(params=params, ts=ts, cmp=cmp)
@@ -126,7 +126,7 @@ class FileModelMixin(db.Model):
             self,
             ts: Timespan,
             params: ParamsLike,
-            cmp: Optional[Union[Component, ComponentPair]]
+            cmp: Optional[Union[Component, ComponentPairCartesian]]
     ) -> Path:
         """filldocs"""
         dirpath = self._prepare_dirpath(params=params, ts=ts, cmp=None)

@@ -1,9 +1,9 @@
 import pytest
 
-from noiz.models.component_pair import ComponentPair
+from noiz.models.component_pair import ComponentPairCartesian
 
 
-class TestComponentPair:
+class TestComponentPairCartesian:
     @pytest.mark.xfail
     def test_set_same_station(self):
         assert False

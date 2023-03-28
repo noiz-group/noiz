@@ -24,7 +24,7 @@ class CrosscorrelationOld(db.Model):
     componentpair_id = db.Column(
         "componentpair_id",
         db.Integer,
-        db.ForeignKey("componentpair.id"),
+        db.ForeignKey("componentpair_cartesian.id"),
         nullable=False,
     )
     timespan_id = db.Column(
@@ -38,7 +38,7 @@ class CrosscorrelationOld(db.Model):
     )
     ccf = db.Column("ccf", ARRAY(db.Float))
 
-    componentpair = db.relationship("ComponentPair", foreign_keys=[componentpair_id])
+    componentpair_cartesian = db.relationship("ComponentPairCartesian", foreign_keys=[componentpair_id])
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
     crosscorrelation_params = db.relationship(
         "CrosscorrelationParams", foreign_keys=[crosscorrelation_params_id]
@@ -70,7 +70,7 @@ class Crosscorrelation(db.Model):
     componentpair_id = db.Column(
         "componentpair_id",
         db.Integer,
-        db.ForeignKey("componentpair.id"),
+        db.ForeignKey("componentpair_cartesian.id"),
         nullable=False,
     )
     timespan_id = db.Column(
@@ -90,7 +90,7 @@ class Crosscorrelation(db.Model):
         nullable=True,
     )
 
-    componentpair = db.relationship("ComponentPair", foreign_keys=[componentpair_id])
+    componentpair_cartesian = db.relationship("ComponentPairCartesian", foreign_keys=[componentpair_id])
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
     crosscorrelation_params = db.relationship(
         "CrosscorrelationParams", foreign_keys=[crosscorrelation_params_id]

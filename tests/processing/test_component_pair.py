@@ -1,7 +1,7 @@
 import pytest
 
 from noiz.models.component import Component
-from noiz.models.component_pair import ComponentPair
+from noiz.models.component_pair import ComponentPairCartesian
 
 from noiz.processing.component_pair import (
     is_autocorrelation,

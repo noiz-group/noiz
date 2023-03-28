@@ -7,14 +7,14 @@ from sqlalchemy.orm import subqueryload, Query
 from sqlalchemy.sql import Insert
 from typing import List, Union, Optional, Collection, Dict, Generator, Tuple, Any
 
-from noiz.api.component_pair import fetch_componentpairs, fetch_componentpairs_by_id
+from noiz.api.component_pair import fetch_componentpairs_cartesian, fetch_componentpairs_cartesian_by_id
 from noiz.api.helpers import extract_object_ids, _run_calculate_and_upsert_on_dask, \
     _run_calculate_and_upsert_sequentially
 from noiz.api.processing_config import fetch_crosscorrelation_params_by_id
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.database import db
 from noiz.exceptions import InconsistentDataException, CorruptedDataException
-from noiz.models import ComponentPair, CrosscorrelationFile, Crosscorrelation, Datachunk, ProcessedDatachunk, \
+from noiz.models import ComponentPairCartesian, CrosscorrelationFile, Crosscorrelation, Datachunk, ProcessedDatachunk, \
     CrosscorrelationParams, Timespan
 from noiz.models.type_aliases import CrosscorrelationRunnerInputs
 from noiz.processing.crosscorrelations import validate_component_code_pairs, group_chunks_by_timespanid_componentid, \
@@ -90,7 +90,7 @@ def _query_crosscorrelation(
     if load_timespan:
         opts.append(subqueryload(Crosscorrelation.timespan))
     if load_componentpair:
-        opts.append(subqueryload(Crosscorrelation.componentpair))
+        opts.append(subqueryload(Crosscorrelation.componentpair_cartesian))
     if load_crosscorrelation_params:
         opts.append(subqueryload(Crosscorrelation.crosscorrelation_params))
 
@@ -272,7 +272,7 @@ def _prepare_inputs_for_crosscorrelations(
             component_pairs=validate_to_tuple(accepted_component_code_pairs, str)
         )
 
-    fetched_component_pairs: List[ComponentPair] = fetch_componentpairs(
+    fetched_component_pairs: List[ComponentPairCartesian] = fetch_componentpairs_cartesian(
         network_codes_a=network_codes_a,
         station_codes_a=station_codes_a,
         component_codes_a=component_codes_a,
@@ -341,7 +341,7 @@ def _crosscorrelate_for_timespan_wrapper(
 
 
 def assembly_ccf_filename(
-        component_pair: ComponentPair,
+        component_pair: ComponentPairCartesian,
         timespan: Timespan,
         count: int = 0
 ) -> str:
@@ -364,7 +364,7 @@ def assembly_ccf_filename(
     return filename
 
 
-def assembly_ccf_dir(component_pair: ComponentPair, timespan: Timespan) -> Path:
+def assembly_ccf_dir(component_pair: ComponentPairCartesian, timespan: Timespan) -> Path:
     """
     Assembles a Path object in a SDS manner. Object consists of year/network/station/component codes.
 
@@ -390,7 +390,7 @@ def _crosscorrelate_for_timespan(
         timespan: Timespan,
         params: CrosscorrelationParams,
         grouped_processed_chunks: Dict[int, ProcessedDatachunk],
-        component_pairs: Tuple[ComponentPair, ...]
+        component_pairs: Tuple[ComponentPairCartesian, ...]
 ) -> List[Crosscorrelation]:
     """filldocs"""
     from noiz.globals import PROCESSED_DATA_DIR
@@ -484,7 +484,7 @@ def fetch_crosscorrelations_and_save(
         only_autocorrelation: Optional[bool] = False,
         only_intracorrelation: Optional[bool] = False,
 ):
-    component_pairs = fetch_componentpairs(
+    component_pairs = fetch_componentpairs_cartesian(
         network_codes_a=network_codes_a,
         station_codes_a=station_codes_a,
         component_codes_a=component_codes_a,
@@ -537,7 +537,7 @@ def fetch_crosscorrelations_single_pair_and_save(
         starttime: Union[datetime.date, datetime.datetime],
         endtime: Union[datetime.date, datetime.datetime],
         filepath: Path,
-        component_pair: Optional[ComponentPair] = None,
+        component_pair: Optional[ComponentPairCartesian] = None,
         component_pair_id: Optional[int] = None,
         overwrite: bool = False,
 ) -> Optional[Path]:
@@ -546,7 +546,7 @@ def fetch_crosscorrelations_single_pair_and_save(
     if component_pair_id is None and component_pair is None:
         raise ValueError("You have to provide one of component_pair or component_pair_id")
     if component_pair_id is not None:
-        pairs = fetch_componentpairs_by_id(component_pair_id=component_pair_id)
+        pairs = fetch_componentpairs_cartesian_by_id(component_pair_id=component_pair_id)
         if len(pairs) != 1:
             raise ValueError(f"Expected only one component pair. Got {len(pairs)}.")
         else:
@@ -582,7 +582,7 @@ def fetch_crosscorrelations_single_pair_and_save(
     return filepath
 
 
-def prepare_metadata_for_saving_raw_ccf_file(pair: ComponentPair, starttime, endtime, config):
+def prepare_metadata_for_saving_raw_ccf_file(pair: ComponentPairCartesian, starttime, endtime, config):
     from noiz import __version__
 
     processing_parameters_dict = get_parent_configs_as_dict(config=config)

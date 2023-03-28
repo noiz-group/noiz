@@ -10,11 +10,11 @@ from obspy import UTCDateTime
 from sqlalchemy.dialects.postgresql import insert
 from typing import Collection, Union, List, Optional, Tuple, Generator
 
-from noiz.api.component_pair import fetch_componentpairs
+from noiz.api.component_pair import fetch_componentpairs_cartesian
 from noiz.api.qc import fetch_qctwo_config_single, count_qctwo_results
 from noiz.database import db
 from noiz.models import Crosscorrelation, StackingTimespan, Timespan, CCFStack, \
-    QCTwoResults, ComponentPair, StackingSchema
+    QCTwoResults, ComponentPairCartesian, StackingSchema
 from noiz.api.processing_config import fetch_stacking_schema_by_id
 from noiz.processing.stacking import _generate_stacking_timespans, do_linear_stack_of_crosscorrelations
 
@@ -219,7 +219,7 @@ def _prepare_inputs_for_stacking_ccfs(
     no_timespans = len(stacking_timespans)
     logger.info(f"There are {no_timespans} timespans to stack for")
     qctwo_config = fetch_qctwo_config_single(id=stacking_schema.qctwo_config_id)
-    componentpairs = fetch_componentpairs(
+    componentpairs_cartesian = fetch_componentpairs_cartesian(
         network_codes_a=network_codes_a,
         station_codes_a=station_codes_a,
         component_codes_a=component_codes_a,
@@ -232,20 +232,20 @@ def _prepare_inputs_for_stacking_ccfs(
         only_autocorrelation=only_autocorrelation,
         only_intracorrelation=only_intracorrelation,
     )
-    logger.info(f"There are {len(componentpairs)} ComponentPairs to stack for")
+    logger.info(f"There are {len(componentpairs_cartesian)} componentpairs_cartesian to stack for")
 
     if count_qctwo_results(qctwo_config=qctwo_config) == 0:
         raise MissingProcessingStepError("There are no QCTwo results for that QCTwoConfig. Are you sure you ran QCTwo "
                                          "before?")
 
-    for stacking_timespan, componentpair in itertools.product(stacking_timespans, componentpairs):
+    for stacking_timespan, componentpair_cartesian in itertools.product(stacking_timespans, componentpairs_cartesian):
         fetched_qc_ccfs = (
             db.session.query(QCTwoResults, Crosscorrelation)
             .filter(QCTwoResults.qctwo_config_id == qctwo_config.id)
             .join(Crosscorrelation, QCTwoResults.crosscorrelation_id == Crosscorrelation.id)
             .join(Timespan, Crosscorrelation.timespan_id == Timespan.id)
             .filter(
-                Crosscorrelation.componentpair_id == componentpair.id,
+                Crosscorrelation.componentpair_id == componentpair_cartesian.id,
                 Timespan.starttime >= stacking_timespan.starttime,
                 Timespan.endtime <= stacking_timespan.endtime,
             )
@@ -258,7 +258,7 @@ def _prepare_inputs_for_stacking_ccfs(
 
         yield StackingInputs(
             qctwo_ccfs_container=fetched_qc_ccfs,
-            componentpair=componentpair,
+            componentpair_cartesian=componentpair_cartesian,
             stacking_schema=stacking_schema,
             stacking_timespan=stacking_timespan
         )
@@ -270,7 +270,7 @@ def _validate_and_stack_ccfs_wrapper(
     return (
         _validate_and_stack_ccfs(
             qctwo_ccfs_container=inputs["qctwo_ccfs_container"],
-            componentpair=inputs["componentpair"],
+            componentpair_cartesian=inputs["componentpair_cartesian"],
             stacking_schema=inputs["stacking_schema"],
             stacking_timespan=inputs["stacking_timespan"],
         ),
@@ -279,7 +279,7 @@ def _validate_and_stack_ccfs_wrapper(
 
 def _validate_and_stack_ccfs(
         qctwo_ccfs_container: List[Tuple[QCTwoResults, Crosscorrelation]],
-        componentpair: ComponentPair,
+        componentpair_cartesian: ComponentPairCartesian,
         stacking_schema: StackingSchema,
         stacking_timespan: StackingTimespan,
 ) -> Optional[CCFStack]:
@@ -294,8 +294,8 @@ def _validate_and_stack_ccfs(
 
     :param qctwo_ccfs_container: Crosscorrelations to be stacked together with associated QCTwoResult instances
     :type qctwo_ccfs_container: List[Tuple[QCTwoResults, Crosscorrelation]]
-    :param componentpair: ComponentPair for which the stack is done
-    :type componentpair: ComponentPair
+    :param componentpair_cartesian: ComponentPairCartesian for which the stack is done
+    :type componentpair_cartesian: ComponentPairCartesian
     :param stacking_schema: StackingSchema defining that stack
     :type stacking_schema: StackingSchema
     :param stacking_timespan: StackingTimespan that is defining that stack
@@ -316,14 +316,14 @@ def _validate_and_stack_ccfs(
         )
         return None
 
-    logger.debug(f"Calculating linear stack for {componentpair} {stacking_schema} {stacking_timespan}")
+    logger.debug(f"Calculating linear stack for {componentpair_cartesian} {stacking_schema} {stacking_timespan}")
     mean_ccf = do_linear_stack_of_crosscorrelations(ccfs=valid_ccfs)
 
     stack = CCFStack(
         stacking_timespan_id=stacking_timespan.id,
         stacking_schema_id=stacking_schema.id,
         stack=mean_ccf,
-        componentpair_id=componentpair.id,
+        componentpair_id=componentpair_cartesian.id,
         no_ccfs=no_ccfs,
         ccfs=list(valid_ccfs),
     )

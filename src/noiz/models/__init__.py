@@ -3,7 +3,7 @@
 from noiz.models.custom_db_types import PathInDB
 from noiz.models.timespan import Timespan
 from noiz.models.component import Component, Device
-from noiz.models.component_pair import ComponentPair
+from noiz.models.component_pair import ComponentPairCartesian, ComponentPairCylindrical
 from noiz.models.mixins import FileModelMixin
 from noiz.models.processing_params import DatachunkParams, DatachunkParamsHolder, ProcessedDatachunkParams, \
     ProcessedDatachunkParamsHolder, CrosscorrelationParams, CrosscorrelationParamsHolder, \

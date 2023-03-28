@@ -138,7 +138,7 @@ class CCFStack(db.Model):
     componentpair_id = db.Column(
         "componentpair_id",
         db.Integer,
-        db.ForeignKey("componentpair.id"),
+        db.ForeignKey("componentpair_cartesian.id"),
         nullable=False,
     )
     stack = db.Column("stack", ARRAY(db.Float), nullable=False)

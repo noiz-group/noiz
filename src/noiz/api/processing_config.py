@@ -18,7 +18,7 @@ from noiz.processing.configs import parse_single_config_toml, DefinedConfigs, \
     generate_multiple_beamforming_configs_based_on_single_holder
 
 from noiz.api.component import fetch_components
-from noiz.api.component_pair import fetch_componentpairs
+from noiz.api.component_pair import fetch_componentpairs_cartesian
 
 
 def fetch_datachunkparams_by_id(id: int) -> DatachunkParams:
@@ -512,7 +512,7 @@ def create_qctwo_rejected_time(
     :return: Instance of a model, ready to be added to to the database
     :rtype: QCTwoRejectedTime
     """
-    fetched_components_pairs = fetch_componentpairs(
+    fetched_components_pairs = fetch_componentpairs_cartesian(
         network_codes_a=holder.network_a,
         station_codes_a=holder.station_a,
         component_codes_a=holder.component_a,
@@ -523,7 +523,7 @@ def create_qctwo_rejected_time(
         include_autocorrelation=True,
     )
     if len(fetched_components_pairs) == 0:
-        reversed_components_pair = fetch_componentpairs(
+        reversed_components_pair = fetch_componentpairs_cartesian(
             network_codes_b=holder.network_a,
             station_codes_b=holder.station_a,
             component_codes_b=holder.component_a,

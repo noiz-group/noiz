@@ -434,14 +434,34 @@ def add_inventory(
     Also creates all components pairs for added components."""
 
     from noiz.api.component import parse_inventory_insert_stations_and_components_into_db
-    from noiz.api.component_pair import create_all_componentpairs
+    from noiz.api.component_pair import create_all_componentpairs_cartesian
 
     if upsert:
         raise NotImplementedError("This option is not implemented yet. You cannot update the inventory entries in DB.")
 
     parse_inventory_insert_stations_and_components_into_db(inventory_path=filepath, filetype=filetype)
 
-    create_all_componentpairs()
+    create_all_componentpairs_cartesian()
+    return
+
+
+@data_group.command("add_cylindrical_componentpair")
+@with_appcontext
+@click.option('--upsert/--no-upsert', default=False)
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
+def add_cylindrical_component(
+        upsert,
+        **kwargs
+):
+    """
+        From existing components in database, creating cylindrical components pair. Cartesian pairs need to be created before.
+    """
+
+    from noiz.api.component_pair import create_all_componentpairs_cylindrical
+
+    create_all_componentpairs_cylindrical()
+
     return
 
 
