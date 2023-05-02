@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: CECILL-B
+# Copyright © 2015-2019 EOST UNISTRA, Storengy SAS, Damian Kula
+# Copyright © 2019-2023 Contributors to the Noiz project.
+
 from sqlalchemy.sql import Insert
 from typing import Union, TypedDict, Collection, Callable, Optional, List, Tuple, Dict
 

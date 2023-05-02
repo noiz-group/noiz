@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: CECILL-B
+# Copyright © 2015-2019 EOST UNISTRA, Storengy SAS, Damian Kula
+# Copyright © 2019-2023 Contributors to the Noiz project.
+
 # Do not reorder, models are dependent on each other
 
 from noiz.models.custom_db_types import PathInDB

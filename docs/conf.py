@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: CECILL-B
+# Copyright © 2015-2019 EOST UNISTRA, Storengy SAS, Damian Kula
+# Copyright © 2019-2023 Contributors to the Noiz project.
+
 # Configuration file for the Sphinx documentation builder.
 #
 # This file only contains a selection of the most common options. For a full
