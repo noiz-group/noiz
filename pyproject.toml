@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "noiz"
 dynamic = ["version"]
-readme = "README.md"
+readme = "README.rst"
 license = ""
 authors = [
     { name = "Damian Kula", email = "heavelock@gmail.com" },
