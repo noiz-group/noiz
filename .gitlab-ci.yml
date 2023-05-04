@@ -2,6 +2,10 @@
 # Copyright © 2015-2019 EOST UNISTRA, Storengy SAS, Damian Kula
 # Copyright © 2019-2023 Contributors to the Noiz project.
 
+include: # include our template script collection
+    - local: "/.gitlab/templates/linting.yml"
+
+
 image: python:3.8
 
 stages:
@@ -55,59 +59,6 @@ test-noiz:
   script:
     - pytest --cov=noiz
 
-type-check:
-  image: $UNITTESTING_IMAGE_TAG
-  stage: linting
-  script:
-    - mypy --install-types --non-interactive src/noiz
-
-flake8:
-  image: $UNITTESTING_IMAGE_TAG
-  stage: linting
-  script:
-    - flake8 .
-
-.build-docs-parent:
-  image: registry.gitlab.com/noiz-group/noiz:docsbuilding
-  stage: documentation
-  before_script:
-    - *install_noiz_complete
-  script:
-    - cd docs
-    - make html
-  artifacts:
-    paths:
-    - docs/_build/html/
-
-build-docs-tests:
-  extends: .build-docs-parent
-  only:
-    refs:
-      - branches
-    changes:
-      - docs/*
-      - docs/content/*
-      - docs/*/*
-  except:
-    - master
-
-build-docs-master:
-  extends: .build-docs-parent
-  before_script:
-    - *install_noiz_complete
-  only:
-    - master
-
-pages:
-  stage: documentation-deployment
-  image: alpine
-  script:
-  - mv docs/_build/html/ public/
-  artifacts:
-    paths:
-    - public
-  only:
-  - master
 
 .image_building_parent:
   stage: image-building
@@ -189,12 +140,12 @@ cli_system_tests:
       coverage_report:
         coverage_format:  cobertura
         path: coverage.xml
-
-trigger_airflow_master:
-  stage: downstream
-  image: alpine
-  script:
-    - apk update && apk add curl
-    - "curl -X POST -F token=$TOKEN_TRIGGER_MASTER_AIRFLOW -F ref=master https://gitlab.com/api/v4/projects/13151521/trigger/pipeline"
   only:
-  - master
+    changes:
+      - requirements.txt
+      - pyproject.toml
+      - src/*/*
+      - tests/*/*
+      - docker/*/*
+      - ./*.py
+      - .gitmodules

@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: CECILL-B
+# Copyright © 2015-2019 EOST UNISTRA, Storengy SAS, Damian Kula
+# Copyright © 2019-2023 Contributors to the Noiz project.
+
+
+.build-docs-parent:
+  image: registry.gitlab.com/noiz-group/noiz:docsbuilding
+  stage: documentation
+  before_script:
+    - *install_noiz_complete
+  script:
+    - cd docs
+    - make html
+  artifacts:
+    paths:
+    - docs/_build/html/
+
+build-docs-tests:
+  extends: .build-docs-parent
+  only:
+    refs:
+      - branches
+    changes:
+      - docs/*
+      - docs/content/*
+      - docs/*/*
+  except:
+    - master
+
+build-docs-master:
+  extends: .build-docs-parent
+  before_script:
+    - *install_noiz_complete
+  only:
+    - master
+
+pages:
+  stage: documentation-deployment
+  image: alpine
+  script:
+  - mv docs/_build/html/ public/
+  artifacts:
+    paths:
+    - public
+  only:
+  - master

@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: CECILL-B
+# Copyright © 2015-2019 EOST UNISTRA, Storengy SAS, Damian Kula
+# Copyright © 2019-2023 Contributors to the Noiz project.
+
+type-check:
+  image: $UNITTESTING_IMAGE_TAG
+  stage: linting
+  script:
+    - mypy --install-types --non-interactive src/noiz
+
+flake8:
+  image: $UNITTESTING_IMAGE_TAG
+  stage: linting
+  script:
+    - flake8 .
