@@ -133,19 +133,10 @@ build_postgres:
 cli_system_tests:
   extends: .system_test_parent
   script:
-    - pytest --cov=noiz --runcli
+    - SQLALCHEMY_WARN_20=1 pytest --cov=noiz --runcli
     - coverage xml
   artifacts:
     reports:
       coverage_report:
         coverage_format:  cobertura
         path: coverage.xml
-  only:
-    changes:
-      - requirements.txt
-      - pyproject.toml
-      - src/*/*
-      - tests/*/*
-      - docker/*/*
-      - ./*.py
-      - .gitmodules

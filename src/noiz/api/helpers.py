@@ -400,6 +400,6 @@ def _parse_query_as_dataframe(query: Query) -> pd.DataFrame:
     :return: Results of the query as a DataFrame
     :rtype: pd.DataFrame
     """
-    c = query.statement.compile(query.session.bind)
+    c = query.statement.compile(query.session.bind, compile_kwargs={"render_postcompile": True})
     df = pd.read_sql(c.string, query.session.bind, params=c.params)
     return df
