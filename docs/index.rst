@@ -23,6 +23,7 @@ It is under heavy development and the API might change without notice.
    :caption: Contents:
 
    content/usage
+   content/miscellaneous
    content/cli
    content/docker
    content/datachunk
