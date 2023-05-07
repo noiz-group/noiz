@@ -28,6 +28,7 @@ Maintenance
 ------------------
 - Released dependency locks on multiple dependencies. !200
 - Migrated build system to hatchling. !194
+- Added file .git-blame-ignore-revs and documentation about it. !199
 
 Documentation
 ------------------
