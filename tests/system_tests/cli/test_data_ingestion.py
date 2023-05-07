@@ -65,6 +65,8 @@ class TestDataIngestionRoutines:
         runner = CliRunner()
         result = runner.invoke(cli, ["data", "add_inventory", str(inventory_path)])
 
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
 
         with noiz_app.app_context():
@@ -196,6 +198,8 @@ class TestDataIngestionRoutines:
                                      '--soh_type', soh_type,
                                      str(soh_dir)])
 
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
         with noiz_app.app_context():
             found_in_db = db.session.query(SohGps) \
@@ -218,6 +222,8 @@ class TestDataIngestionRoutines:
                                      '--soh_type', soh_type,
                                      str(soh_dir)])
 
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
         with noiz_app.app_context():
             found_in_db = db.session.query(SohInstrument) \
@@ -240,6 +246,8 @@ class TestDataIngestionRoutines:
                                      '--soh_type', soh_type,
                                      str(soh_dir)])
 
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
 
     def test_add_seismic_data(self, workdir_with_content, noiz_app):
@@ -250,6 +258,8 @@ class TestDataIngestionRoutines:
                                      "--filename_pattern", "*.???.resampled",
                                      str(basedir)])
 
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
         from noiz.models.timeseries import Tsindex
         from noiz.database import db
@@ -266,6 +276,8 @@ class TestDataIngestionRoutines:
         runner = CliRunner()
         result = runner.invoke(cli, ["configs", "add_datachunk_params", "--add_to_db", "-f", str(config_path)])
 
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
 
         with noiz_app.app_context():
@@ -282,6 +294,8 @@ class TestDataIngestionRoutines:
         runner = CliRunner()
         result = runner.invoke(cli, ["configs", "add_qcone_config", "--add_to_db", "-f", str(config_path)])
 
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
 
         import toml
@@ -321,6 +335,8 @@ class TestDataIngestionRoutines:
         runner = CliRunner()
         result = runner.invoke(cli, ["configs", "add_qcone_config", "--add_to_db", "-f", str(config_path)])
 
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
 
         import toml
@@ -360,6 +376,8 @@ class TestDataIngestionRoutines:
         runner = CliRunner()
         result = runner.invoke(cli, ["configs", "add_processed_datachunk_params", "--add_to_db", "-f", str(config_path)])
 
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
 
         with noiz_app.app_context():
@@ -376,6 +394,8 @@ class TestDataIngestionRoutines:
         runner = CliRunner()
         result = runner.invoke(cli, ["configs", "add_crosscorrelation_params", "--add_to_db", "-f", str(config_path)])
 
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
 
         with noiz_app.app_context():
@@ -394,6 +414,8 @@ class TestDataIngestionRoutines:
         runner = CliRunner()
         result = runner.invoke(cli, ["configs", "add_qctwo_config", "--add_to_db", "-f", str(config_path)])
 
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
 
         import toml
@@ -428,6 +450,8 @@ class TestDataIngestionRoutines:
         runner = CliRunner()
         result = runner.invoke(cli, ["configs", "add_beamforming_params", "--add_to_db", "-f", str(config_path)])
 
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
 
         import toml
@@ -484,6 +508,8 @@ class TestDataIngestionRoutines:
                                      "--add_to_db",
                                      "-f", str(config_path)])
 
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
 
         from noiz.models.processing_params import BeamformingParams
@@ -505,6 +531,8 @@ class TestDataIngestionRoutines:
         runner = CliRunner()
         result = runner.invoke(cli, ["configs", "add_ppsd_params", "--add_to_db", "-f", str(config_path)])
 
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
 
         import toml
@@ -541,6 +569,8 @@ class TestDataIngestionRoutines:
         runner = CliRunner()
         result = runner.invoke(cli, ["configs", "add_ppsd_params", "--add_to_db", "-f", str(config_path)])
 
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
 
         import toml
@@ -569,6 +599,8 @@ class TestDataIngestionRoutines:
         runner = CliRunner()
         result = runner.invoke(cli, ["configs", "add_stacking_schema", "--add_to_db", "-f", str(config_path)])
 
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
 
         with noiz_app.app_context():
@@ -597,6 +629,8 @@ class TestDataIngestionRoutines:
             "--add_to_db"
         ])
 
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
 
         with noiz_app.app_context():
@@ -616,6 +650,8 @@ class TestDataIngestionRoutines:
                                      "-ed", "2019-10-03",
                                      "--no_parallel",
                                      ])
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
 
         from noiz.api.datachunk import fetch_datachunks
@@ -638,6 +674,10 @@ class TestDataIngestionRoutines:
                                      "-ed", "2019-11-01",
                                      "--savefig",
                                      "-pp", str(exported_filepath)])
+        if result.exit_code != 0:
+            raise result.exception
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
         assert exported_filepath.exists()
 
@@ -648,6 +688,10 @@ class TestDataIngestionRoutines:
                                      "-sd", "2019-09-01",
                                      "-ed", "2019-11-01",
                                      ])
+        if result.exit_code != 0:
+            raise result.exception
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
         with noiz_app.app_context():
             timespans = fetch_timespans_between_dates(
@@ -671,6 +715,8 @@ class TestDataIngestionRoutines:
                                      "-ed", "2019-11-01",
                                      '-p', str(exported_filepath)
                                      ])
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
         assert exported_filepath.exists()
 
@@ -682,6 +728,8 @@ class TestDataIngestionRoutines:
                                      "-ed", "2019-10-03",
                                      "--no_parallel",
                                      ])
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
 
         from noiz.api.datachunk import fetch_datachunks_without_stats
@@ -701,6 +749,8 @@ class TestDataIngestionRoutines:
                                      "-ed", "2019-10-03",
                                      "--no_parallel",
                                      ])
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
 
         from noiz.api.ppsd import fetch_ppsd_results
@@ -721,6 +771,8 @@ class TestDataIngestionRoutines:
                                      "-ed", "2019-10-03",
                                      "--no_parallel",
                                      ])
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
 
         from noiz.api.ppsd import fetch_ppsd_results
@@ -753,6 +805,8 @@ class TestDataIngestionRoutines:
                                      "-ed", "2019-11-01",
                                      "--savefig",
                                      "-pp", str(exported_filepath)])
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
         assert exported_filepath.exists()
 
@@ -766,6 +820,8 @@ class TestDataIngestionRoutines:
                                      "-ed", "2019-11-01",
                                      "--savefig",
                                      "-pp", str(exported_filepath)])
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
         assert exported_filepath.exists()
 
@@ -778,6 +834,8 @@ class TestDataIngestionRoutines:
                                      "-ed", "2019-11-01",
                                      "--savefig",
                                      "-pp", str(exported_filepath)])
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
         assert len(list(exported_filepath.glob("*.png"))) > 0
 
@@ -790,6 +848,8 @@ class TestDataIngestionRoutines:
                                      "-ed", "2019-11-01",
                                      "--savefig",
                                      "-pp", str(exported_filepath)])
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
         assert len(list(exported_filepath.glob("*.png"))) > 0
 
@@ -801,6 +861,8 @@ class TestDataIngestionRoutines:
                                      "-ed", "2019-10-03",
                                      "--no_parallel",
                                      ])
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
 
         with noiz_app.app_context():
@@ -823,6 +885,8 @@ class TestDataIngestionRoutines:
                                      "--no_skip_existing",
                                      "--no_raise_errors",
                                      ])
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
         with noiz_app.app_context():
             bf_result_count = BeamformingResult.query.count()
@@ -846,6 +910,8 @@ class TestDataIngestionRoutines:
                                      "-ed", "2019-11-01",
                                      "--savefig",
                                      "-pp", str(exported_filepath)])
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
         assert exported_filepath.exists()
 
@@ -858,6 +924,8 @@ class TestDataIngestionRoutines:
                                      "-ed", "2019-11-01",
                                      "--savefig",
                                      "-pp", str(exported_filepath)])
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
         assert exported_filepath.exists()
 
@@ -868,6 +936,8 @@ class TestDataIngestionRoutines:
                                      "-ed", "2019-10-03",
                                      "--no_parallel",
                                      ])
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
         with noiz_app.app_context():
             processed_datachunk_count = ProcessedDatachunk.query.count()
@@ -881,6 +951,8 @@ class TestDataIngestionRoutines:
                                      "-c", "ZZ",
                                      "--no_parallel",
                                      ])
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
         with noiz_app.app_context():
             crosscorrelation_count = Crosscorrelation.query.count()
@@ -892,6 +964,8 @@ class TestDataIngestionRoutines:
                                      "-c", "ZE",
                                      "--no_parallel",
                                      ])
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
         with noiz_app.app_context():
             crosscorrelation_count = Crosscorrelation.query.count()
@@ -906,6 +980,8 @@ class TestDataIngestionRoutines:
         result = runner.invoke(cli, ["processing", "run_qctwo",
                                      "-c", "1",
                                      ])
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
 
         with noiz_app.app_context():
@@ -921,6 +997,8 @@ class TestDataIngestionRoutines:
                                      "-ed", "2019-10-03",
                                      "--no_parallel",
                                      ])
+        if result.exit_code != 0:
+            raise result.exception
         assert result.exit_code == 0
         with noiz_app.app_context():
             stack_count = CCFStack.query.count()

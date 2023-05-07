@@ -43,8 +43,7 @@ def fetch_raw_soh_gps_df(
         load_components=load_components,
     )
 
-    c = query.statement.compile(query.session.bind)
-    df = pd.read_sql(c.string, query.session.bind, params=c.params)
+    df = _parse_query_as_dataframe(query=query)
 
     return df
 
