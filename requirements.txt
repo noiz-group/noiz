@@ -180,10 +180,8 @@ pluggy==1.0.0
     # via pytest
 psutil==5.9.5
     # via distributed
-psycopg[binary]==3.1.9
+psycopg2-binary==2.9.2
     # via noiz (pyproject.toml)
-psycopg-binary==3.1.9
-    # via psycopg
 py==1.11.0
     # via pytest
 pycodestyle==2.8.0
@@ -322,7 +320,6 @@ typing-extensions==4.5.0
     #   alembic
     #   astroid
     #   mypy
-    #   psycopg
     #   pydantic
     #   setuptools-scm
     #   sqlalchemy-stubs
