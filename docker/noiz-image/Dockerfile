@@ -5,7 +5,7 @@
 # Copyright © 2019-2023 Contributors to the Noiz project.
 
 
-FROM python:3.8.11-bullseye
+FROM python:3.8
 LABEL name="noiz"
 LABEL description="Base image for Noiz"
 LABEL maintainer="Damian Kula, dkula@unistra.fr"
