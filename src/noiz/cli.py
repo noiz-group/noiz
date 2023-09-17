@@ -4,7 +4,6 @@
 
 # mypy: ignore-errors
 
-from email.policy import default
 import click
 import os
 import pendulum
