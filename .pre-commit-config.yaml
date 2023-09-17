@@ -16,7 +16,7 @@ repos:
         hooks:
             - id: flake8
     -   repo: https://github.com/PyCQA/doc8.git
-        rev: b6df95f87b9d1c47c21ececf19ca8bba794ca38a
+        rev: v1.1.1
         hooks:
             - id: doc8
     -   repo: https://github.com/pre-commit/mirrors-mypy
