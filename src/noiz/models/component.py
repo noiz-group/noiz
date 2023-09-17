@@ -7,6 +7,7 @@ from obspy.core.util import AttribDict
 from obspy import read_inventory
 from pathlib import Path
 from typing import Optional, Tuple
+from numpy import deprecate_with_doc
 import utm
 
 from noiz.database import db
@@ -117,6 +118,7 @@ class Component(db.Model):
         self.lat = lat
         self.lon = lon
 
+    @deprecate_with_doc(msg="This function is deprecated. use load_data instead.")
     def read_inventory(self):
         # FIXME add deprecation warning
         return self.load_data()
