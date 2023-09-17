@@ -72,3 +72,6 @@ include = [
     "/src",
     "/tests",
 ]
+
+[tool.doc8]
+max_line_length = 120

@@ -28,8 +28,6 @@ add_files_recursively
 
 This command serves a purpose of
 
-
-
 Plotting
 ==========================
 
