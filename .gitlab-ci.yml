@@ -140,3 +140,11 @@ cli_system_tests:
       coverage_report:
         coverage_format:  cobertura
         path: coverage.xml
+
+cli_system_tests_parallel:
+  extends: .system_test_parent
+  variables:
+    NOIZ_RUN_SYSTEM_TESTS_PARALLEL: "True"
+  script:
+    - SQLALCHEMY_WARN_20=1 pytest --runcli
+  allow_failure: true

@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: CECILL-B
 # Copyright © 2015-2019 EOST UNISTRA, Storengy SAS, Damian Kula
 # Copyright © 2019-2023 Contributors to the Noiz project.
+import os
+from typing import Optional
 
 import pytest
 
@@ -39,6 +41,14 @@ def workdir_with_content(tmp_path_factory) -> Path:
     shutil.copytree(src=original_data_dir, dst=test_workdir, dirs_exist_ok=True)
 
     return test_workdir
+
+
+@pytest.fixture(scope="class")
+def run_sequential() -> Optional[str]:
+    if os.getenv(key="NOIZ_RUN_SYSTEM_TESTS_PARALLEL", default=""):
+        return None
+    else:
+        return "--no_parallel"
 
 
 @pytest.fixture(scope="function")
@@ -643,13 +653,17 @@ class TestDataIngestionRoutines:
         assert isinstance(fetched_timespans[0], Timespan)
         assert len(fetched_timespans) == 144
 
-    def test_run_datachunk_creation(self, noiz_app):
+    def test_run_datachunk_creation(self, noiz_app, run_sequential):
         runner = CliRunner()
-        result = runner.invoke(cli, ["processing", "prepare_datachunks",
-                                     "-sd", "2019-09-30",
-                                     "-ed", "2019-10-03",
-                                     "--no_parallel",
-                                     ])
+        args = [
+            "processing", "prepare_datachunks",
+            "-sd", "2019-09-30",
+            "-ed", "2019-10-03",
+         ]
+        if run_sequential:
+            args.append(run_sequential)
+
+        result = runner.invoke(cli, args=args)
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
@@ -720,14 +734,18 @@ class TestDataIngestionRoutines:
         assert result.exit_code == 0
         assert exported_filepath.exists()
 
-    def test_calc_datachunk_stats(self, noiz_app):
+    def test_calc_datachunk_stats(self, noiz_app, run_sequential):
         runner = CliRunner()
-        result = runner.invoke(cli, ["processing", "calc_datachunk_stats",
-                                     "-p", "1",
-                                     "-sd", "2019-09-30",
-                                     "-ed", "2019-10-03",
-                                     "--no_parallel",
-                                     ])
+        args = [
+            "processing", "calc_datachunk_stats",
+            "-p", "1",
+            "-sd", "2019-09-30",
+            "-ed", "2019-10-03",
+        ]
+        if run_sequential:
+            args.append(run_sequential)
+
+        result = runner.invoke(cli, args=args)
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
@@ -741,14 +759,19 @@ class TestDataIngestionRoutines:
         assert len(datachunks_without_stats) == 0
         assert len(datachunks) == len(stats)
 
-    def test_calc_ppsd(self, noiz_app):
+    def test_calc_ppsd(self, noiz_app, run_sequential):
         runner = CliRunner()
-        result = runner.invoke(cli, ["processing", "run_ppsd",
-                                     "-p", "1",
-                                     "-sd", "2019-09-30",
-                                     "-ed", "2019-10-03",
-                                     "--no_parallel",
-                                     ])
+        args = [
+            "processing", "run_ppsd",
+            "-p", "1",
+            "-sd", "2019-09-30",
+            "-ed", "2019-10-03",
+        ]
+        if run_sequential:
+            args.append(run_sequential)
+
+        result = runner.invoke(cli, args=args)
+
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
@@ -763,14 +786,18 @@ class TestDataIngestionRoutines:
         assert len(all_ppsd) == count_res
         assert datachunks == count_res
 
-    def test_calc_ppsd_resampled(self, noiz_app):
+    def test_calc_ppsd_resampled(self, noiz_app, run_sequential):
         runner = CliRunner()
-        result = runner.invoke(cli, ["processing", "run_ppsd",
-                                     "-p", "2",
-                                     "-sd", "2019-09-30",
-                                     "-ed", "2019-10-03",
-                                     "--no_parallel",
-                                     ])
+        args = [
+            "processing", "run_ppsd",
+            "-p", "2",
+            "-sd", "2019-09-30",
+            "-ed", "2019-10-03",
+        ]
+        if run_sequential:
+            args.append(run_sequential)
+
+        result = runner.invoke(cli, args=args)
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
@@ -853,14 +880,19 @@ class TestDataIngestionRoutines:
         assert result.exit_code == 0
         assert len(list(exported_filepath.glob("*.png"))) > 0
 
-    def test_run_qcone(self, noiz_app):
+    def test_run_qcone(self, noiz_app, run_sequential):
         runner = CliRunner()
-        result = runner.invoke(cli, ["processing", "run_qcone",
-                                     "-p", "1",
-                                     "-sd", "2019-09-30",
-                                     "-ed", "2019-10-03",
-                                     "--no_parallel",
-                                     ])
+        args = [
+            "processing", "run_qcone",
+            "-p", "1",
+            "-sd", "2019-09-30",
+            "-ed", "2019-10-03",
+        ]
+        if run_sequential:
+            args.append(run_sequential)
+
+        result = runner.invoke(cli, args=args)
+
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
@@ -875,16 +907,21 @@ class TestDataIngestionRoutines:
     def test_run_beamforming_extract_4_save_4(self, noiz_app):
         assert False
 
-    def test_run_beamforming_extract_avg_abspower_save_avg_abspower(self, noiz_app):
+    def test_run_beamforming_extract_avg_abspower_save_avg_abspower(self, noiz_app, run_sequential):
         runner = CliRunner()
-        result = runner.invoke(cli, ["processing", "run_beamforming",
-                                     "-p", "1",
-                                     "-sd", "2019-10-02",
-                                     "-ed", "2019-10-04",
-                                     "--no_parallel",
-                                     "--no_skip_existing",
-                                     "--no_raise_errors",
-                                     ])
+        args = [
+            "processing", "run_beamforming",
+            "-p", "1",
+            "-sd", "2019-10-02",
+            "-ed", "2019-10-04",
+            "--no_skip_existing",
+            "--no_raise_errors",
+        ]
+        if run_sequential:
+            args.append(run_sequential)
+
+        result = runner.invoke(cli, args=args)
+
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
@@ -929,13 +966,18 @@ class TestDataIngestionRoutines:
         assert result.exit_code == 0
         assert exported_filepath.exists()
 
-    def test_run_datachunk_processing(self, noiz_app):
+    def test_run_datachunk_processing(self, noiz_app, run_sequential):
         runner = CliRunner()
-        result = runner.invoke(cli, ["processing", "process_datachunks",
-                                     "-sd", "2019-09-30",
-                                     "-ed", "2019-10-03",
-                                     "--no_parallel",
-                                     ])
+        args = [
+            "processing", "process_datachunks",
+            "-sd", "2019-09-30",
+            "-ed", "2019-10-03",
+        ]
+        if run_sequential:
+            args.append(run_sequential)
+
+        result = runner.invoke(cli, args=args)
+
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
@@ -943,14 +985,19 @@ class TestDataIngestionRoutines:
             processed_datachunk_count = ProcessedDatachunk.query.count()
         assert 570 == processed_datachunk_count
 
-    def test_run_crosscorrelations(self, noiz_app):
+    def test_run_crosscorrelations_ZZ(self, noiz_app, run_sequential):
         runner = CliRunner()
-        result = runner.invoke(cli, ["processing", "run_crosscorrelations",
-                                     "-sd", "2019-09-30",
-                                     "-ed", "2019-10-03",
-                                     "-c", "ZZ",
-                                     "--no_parallel",
-                                     ])
+        args = [
+            "processing", "run_crosscorrelations",
+            "-sd", "2019-09-30",
+            "-ed", "2019-10-03",
+            "-c", "ZZ",
+        ]
+        if run_sequential:
+            args.append(run_sequential)
+
+        result = runner.invoke(cli, args=args)
+
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
@@ -958,12 +1005,18 @@ class TestDataIngestionRoutines:
             crosscorrelation_count = Crosscorrelation.query.count()
         assert 0 == crosscorrelation_count
 
-        result = runner.invoke(cli, ["processing", "run_crosscorrelations",
-                                     "-sd", "2019-09-30",
-                                     "-ed", "2019-10-03",
-                                     "-c", "ZE",
-                                     "--no_parallel",
-                                     ])
+    def test_run_crosscorrelations_ZE(self, noiz_app, run_sequential):
+        runner = CliRunner()
+        args = [
+            "processing", "run_crosscorrelations",
+            "-sd", "2019-09-30",
+            "-ed", "2019-10-03",
+            "-c", "ZE",
+        ]
+        if run_sequential:
+            args.append(run_sequential)
+
+        result = runner.invoke(cli, args=args)
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
@@ -990,13 +1043,18 @@ class TestDataIngestionRoutines:
 
         assert qctwo_count == ccf_count
 
-    def test_run_stacking(self, noiz_app):
+    def test_run_stacking(self, noiz_app, run_sequential):
         runner = CliRunner()
-        result = runner.invoke(cli, ["processing", "run_stacking",
-                                     "-sd", "2019-09-30",
-                                     "-ed", "2019-10-03",
-                                     "--no_parallel",
-                                     ])
+        args = [
+            "processing", "run_stacking",
+            "-sd", "2019-09-30",
+            "-ed", "2019-10-03",
+        ]
+        if run_sequential:
+            args.append(run_sequential)
+
+        result = runner.invoke(cli, args=args)
+
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
