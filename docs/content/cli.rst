@@ -31,8 +31,7 @@ This command serves a purpose of
 Plotting
 ==========================
 
-Subgroup `plotting` consists of a few commands that will create plot
-based on arguments you pass to it.
+Subgroup `plotting` consists of a few commands that will create plot based on arguments you pass to it.
 
 datachunk_availability
 -------------------------
