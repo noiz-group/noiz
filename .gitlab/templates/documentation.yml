@@ -42,5 +42,8 @@ pages:
   artifacts:
     paths:
     - public
+    environment:
+      name: production
+      url: https://$CI_PROJECT_NAMESPACE.gitlab.io
   only:
   - master

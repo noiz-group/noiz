@@ -37,4 +37,4 @@ based on arguments you pass to it.
 datachunk_availability
 -------------------------
 
-This command serves a purpose of
+This command serves a purpose of plotting which datachunks were processed with noiz.
