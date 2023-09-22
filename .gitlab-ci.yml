@@ -4,6 +4,7 @@
 
 include: # include our template script collection
     - local: "/.gitlab/templates/linting.yml"
+    - local: "/.gitlab/templates/documentation.yml"
 
 
 image: python:3.8
