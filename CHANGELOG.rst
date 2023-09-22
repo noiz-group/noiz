@@ -34,6 +34,7 @@ Maintenance
 - Added a __main__.py file with entrypoint to the cli. !209
 - Removed some random import that was introduced by mistake. !209
 - Fixes for building images in out pipeline. !206
+- Simplified and fixed docs building in CI. !214
 
 Documentation
 ------------------
