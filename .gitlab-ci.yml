@@ -38,28 +38,20 @@ variables:
   DIND_SERVICE: docker:19.03.12-dind
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
-.install_noiz_complete: &install_noiz_complete
-  - python -m pip install --upgrade pip setuptools wheel
-  - python -m pip install -r requirements.txt
-  - python -m pip install .
-
-.login_dockerhub: &login_dockerhub
-  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-
-.start_ssh_agent: &start_ssh_agent
-  - export DOCKER_BUILDKIT=1
-  - 'which ssh-agent || ( apk update && apk add --no-cache openssh-client )'
-  - eval $(ssh-agent -s)
-  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-
-test-noiz:
+.test_parent:
   image: $UNITTESTING_IMAGE_TAG
   stage: testing
   before_script:
-    - *install_noiz_complete
+    - python -m pip install --upgrade pip setuptools wheel
+    - python -m pip install -r requirements.txt
+    - python -m pip install .
   script:
     - pytest --cov=noiz
 
+test-noiz:
+  extends: .test_parent
+  script:
+    - pytest --cov=noiz
 
 .image_building_parent:
   stage: image-building
@@ -67,8 +59,11 @@ test-noiz:
   services:
     - $DIND_SERVICE
   before_script:
-    - *login_dockerhub
-    - *start_ssh_agent
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - export DOCKER_BUILDKIT=1
+    - 'which ssh-agent || ( apk update && apk add --no-cache openssh-client )'
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
   after_script:
     - docker push $CI_REGISTRY_IMAGE
 
@@ -120,7 +115,7 @@ build_postgres:
     PROCESSED_DATA_DIR: /processed-data-dir
     GIT_SUBMODULE_STRATEGY: recursive
   before_script:
-    - *install_noiz_complete
+    - !reference [ .test_parent, before_script ]
     - mkdir -p $PROCESSED_DATA_DIR
 #    - noiz db init
     - noiz db migrate

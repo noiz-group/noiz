@@ -2,12 +2,13 @@
 # Copyright © 2015-2019 EOST UNISTRA, Storengy SAS, Damian Kula
 # Copyright © 2019-2023 Contributors to the Noiz project.
 
-
 .build-docs-parent:
   image: registry.gitlab.com/noiz-group/noiz:docsbuilding
   stage: documentation
   before_script:
-    - *install_noiz_complete
+    - python -m pip install --upgrade pip setuptools wheel
+    - python -m pip install -r requirements.txt
+    - python -m pip install .
   script:
     - cd docs
     - make html
@@ -29,8 +30,6 @@ build-docs-tests:
 
 build-docs-master:
   extends: .build-docs-parent
-  before_script:
-    - *install_noiz_complete
   only:
     - master
 
@@ -42,8 +41,5 @@ pages:
   artifacts:
     paths:
     - public
-    environment:
-      name: production
-      url: https://$CI_PROJECT_NAMESPACE.gitlab.io
   only:
   - master
