@@ -13,7 +13,8 @@ from pathlib import Path
 
 from noiz.globals import ExtendedEnum
 from noiz.models.processing_params import DatachunkParams, DatachunkParamsHolder, ProcessedDatachunkParamsHolder, \
-    ProcessedDatachunkParams, CrosscorrelationParamsHolder, CrosscorrelationParams, BeamformingParamsHolder, \
+    ProcessedDatachunkParams, CrosscorrelationCartesianParamsHolder, CrosscorrelationCartesianParams, BeamformingParamsHolder, \
+    CrosscorrelationCylindricalParams, CrosscorrelationCylindricalParamsHolder, \
     BeamformingParams, PPSDParamsHolder, PPSDParams, EventDetectionParamsHolder, EventDetectionParams, EventConfirmationParamsHolder, \
     EventConfirmationParams
 from noiz.models.qc import QCOneConfigRejectedTimeHolder, QCOneConfigHolder, QCTwoConfigHolder, \
@@ -27,7 +28,8 @@ class DefinedConfigs(ExtendedEnum):
     BEAMFORMINGPARAMS = "BeamformingParams"
     PPSDPARAMS = "PPSDParams"
     PROCESSEDDATACHUNKPARAMS = "ProcessedDatachunkParams"
-    CROSSCORRELATIONPARAMS = "CrosscorrelationParams"
+    CROSSCORRELATIONCARTESIANPARAMS = "CrosscorrelationCartesianParams"
+    CROSSCORRELATIONCYLINDRICALPARAMS = "CrosscorrelationCylindricalParams"
     EVENTDETECTIONPARAMS = "EventDetectionParams"
     EVENTCONFIRMATIONPARAMS = "EventConfirmationParams"
     QCONE = "QCOne"
@@ -47,8 +49,10 @@ def _select_validator_for_config_type(config_type: DefinedConfigs):
         return validate_config_dict_as_beamformingparams
     elif config_type is DefinedConfigs.PPSDPARAMS:
         return validate_config_dict_as_ppsdparams
-    elif config_type is DefinedConfigs.CROSSCORRELATIONPARAMS:
-        return validate_config_dict_as_crosscorrelationparams
+    elif config_type is DefinedConfigs.CROSSCORRELATIONCARTESIANPARAMS:
+        return validate_config_dict_as_crosscorrelation_cartesianparams
+    elif config_type is DefinedConfigs.CROSSCORRELATIONCYLINDRICALPARAMS:
+        return validate_config_dict_as_crosscorrelation_cylindricalparams
     elif config_type is DefinedConfigs.EVENTDETECTIONPARAMS:
         return validate_config_dict_as_eventdetectionparams
     elif config_type is DefinedConfigs.EVENTCONFIRMATIONPARAMS:
@@ -175,9 +179,14 @@ def validate_config_dict_as_ppsdparams(loaded_dict: Dict) -> PPSDParamsHolder:
     return PPSDParamsHolder(**loaded_dict)
 
 
-def validate_config_dict_as_crosscorrelationparams(loaded_dict: Dict) -> CrosscorrelationParamsHolder:
+def validate_config_dict_as_crosscorrelation_cartesianparams(loaded_dict: Dict) -> CrosscorrelationCartesianParamsHolder:
     # filldocs
-    return CrosscorrelationParamsHolder(**loaded_dict)
+    return CrosscorrelationCartesianParamsHolder(**loaded_dict)
+
+
+def validate_config_dict_as_crosscorrelation_cylindricalparams(loaded_dict: Dict) -> CrosscorrelationCylindricalParamsHolder:
+    # filldocs
+    return CrosscorrelationCylindricalParamsHolder(**loaded_dict)
 
 
 def validate_config_dict_as_eventdetectionparams(loaded_dict: Dict) -> EventDetectionParamsHolder:
@@ -372,27 +381,45 @@ def create_ppsd_params(
     return params
 
 
-def create_crosscorrelation_params(
-        params_holder: CrosscorrelationParamsHolder,
+def create_crosscorrelation_cartesian_params(
+        params_holder: CrosscorrelationCartesianParamsHolder,
         processed_params: ProcessedDatachunkParams,
-) -> CrosscorrelationParams:
+) -> CrosscorrelationCartesianParams:
     """
-    This method takes a :py:class:`~noiz.models.processing_params.CrosscorrelationParamsHolder` instance and based on
-    it creates an instance of database model :py:class:`~noiz.models.processing_params.CrosscorrelationParams`.
+    This method takes a :py:class:`~noiz.models.processing_params.CrosscorrelationCartesianParamsHolder` instance and based on
+    it creates an instance of database model :py:class:`~noiz.models.processing_params.CrosscorrelationCartesianParams`.
 
-    :param params_holder: Object containing all required elements to create a CrosscorrelationParams instance
-    :type params_holder: CrosscorrelationParamsHolder
+    :param params_holder: Object containing all required elements to create a CrosscorrelationCartesianParams instance
+    :type params_holder: CrosscorrelationCartesianParamsHolder
     :param processed_params: ProcessedDatachunkParams to be associated with this set of params. \
     It has to include eager loaded DatachunkParams
     :type processed_params: ProcessedDatachunkParams
-    :return: Working CrosscorrelationParams model that needs to be inserted into db
-    :rtype: CrosscorrelationParams
+    :return: Working CrosscorrelationCartesianParams model that needs to be inserted into db
+    :rtype: CrosscorrelationCartesianParams
     """
 
-    params = CrosscorrelationParams(
+    params = CrosscorrelationCartesianParams(
         processed_datachunk_params_id=params_holder.processed_datachunk_params_id,
         correlation_max_lag=params_holder.correlation_max_lag,
         sampling_rate=processed_params.datachunk_params.sampling_rate,
+    )
+    return params
+
+
+def create_crosscorrelation_cylindrical_params(
+        params_holder: CrosscorrelationCylindricalParamsHolder,
+) -> CrosscorrelationCylindricalParams:
+    """
+    This method takes a :py:class:`~noiz.models.processing_params.CrosscorrelationCylindricalParamsHolder` instance and based on
+    it creates an instance of database model :py:class:`~noiz.models.processing_params.CrosscorrelationCylindricalParams`.
+    :param params_holder: Object containing all required elements to create a CrosscorrelationCylindricalParams instance
+    :type params_holder: CrosscorrelationCylindricalParamsHolder
+    :return: Working CrosscorrelationCylindricalParams model that needs to be inserted into db
+    :rtype: CrosscorrelationCylindricalParams
+    """
+
+    params = CrosscorrelationCylindricalParams(
+        crosscorrelation_cartesian_params_id=params_holder.crosscorrelation_cartesian_params_id,
     )
     return params
 
@@ -401,16 +428,16 @@ def create_stacking_params(
         params_holder: StackingSchemaHolder,
 ) -> StackingSchema:
     """
-    This method takes a :py:class:`~noiz.models.processing_params.CrosscorrelationParamsHolder` instance and based on
-    it creates an instance of database model :py:class:`~noiz.models.processing_params.CrosscorrelationParams`.
+    This method takes a :py:class:`~noiz.models.processing_params.CrosscorrelationCartesianParamsHolder` instance and based on
+    it creates an instance of database model :py:class:`~noiz.models.processing_params.CrosscorrelationCartesianParams`.
 
-    :param params_holder: Object containing all required elements to create a CrosscorrelationParams instance
-    :type params_holder: CrosscorrelationParamsHolder
+    :param params_holder: Object containing all required elements to create a CrosscorrelationCartesianParams instance
+    :type params_holder: CrosscorrelationCartesianParamsHolder
     :param processed_params: ProcessedDatachunkParams to be associated with this set of params. \
     It has to include eager loaded DatachunkParams
     :type processed_params: ProcessedDatachunkParams
-    :return: Working CrosscorrelationParams model that needs to be inserted into db
-    :rtype: CrosscorrelationParams
+    :return: Working CrosscorrelationCartesianParams model that needs to be inserted into db
+    :rtype: CrosscorrelationCartesianParams
     """
 
     params = StackingSchema(

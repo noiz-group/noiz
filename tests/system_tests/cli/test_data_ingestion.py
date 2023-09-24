@@ -19,15 +19,15 @@ import shutil
 from noiz.api.component import fetch_components
 from noiz.api.component_pair import fetch_componentpairs_cartesian
 from noiz.api.processing_config import fetch_datachunkparams_by_id, fetch_processed_datachunk_params_by_id, \
-    fetch_crosscorrelation_params_by_id, fetch_stacking_schema_by_id
+    fetch_crosscorrelation_cartesian_params_by_id, fetch_stacking_schema_by_id
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.app import create_app
 from noiz.cli import cli
 from noiz.database import db
 from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models import StackingSchema, QCOneResults, QCTwoResults, DatachunkParams, \
-    ProcessedDatachunkParams, CrosscorrelationParams, Datachunk, DatachunkStats, ProcessedDatachunk, \
-    SohGps, SohInstrument, Timespan, CCFStack, Crosscorrelation
+    ProcessedDatachunkParams, CrosscorrelationCartesianParams, Datachunk, DatachunkStats, ProcessedDatachunk, \
+    SohGps, SohInstrument, Timespan, CCFStack, CrosscorrelationCartesian
 from noiz.models.component import ComponentFile
 from noiz.models.beamforming import BeamformingResult, BeamformingFile, BeamformingPeakAverageAbspower
 from noiz.models.ppsd import PPSDResult
@@ -397,22 +397,22 @@ class TestDataIngestionRoutines:
         assert isinstance(fetched_config, ProcessedDatachunkParams)
         assert len(all_configs) == 1
 
-    def test_insert_crosscorrelation_params(self, workdir_with_content, noiz_app):
+    def test_insert_crosscorrelation_cartesian_params(self, workdir_with_content, noiz_app):
 
-        config_path = workdir_with_content.joinpath('crosscorrelation_params.toml')
+        config_path = workdir_with_content.joinpath('crosscorrelation_cartesian_params.toml')
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["configs", "add_crosscorrelation_params", "--add_to_db", "-f", str(config_path)])
+        result = runner.invoke(cli, ["configs", "add_crosscorrelation_cartesian_params", "--add_to_db", "-f", str(config_path)])
 
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
 
         with noiz_app.app_context():
-            fetched_config = fetch_crosscorrelation_params_by_id(id=1)
-            all_configs = CrosscorrelationParams.query.all()
+            fetched_config = fetch_crosscorrelation_cartesian_params_by_id(id=1)
+            all_configs = CrosscorrelationCartesianParams.query.all()
 
-        assert isinstance(fetched_config, CrosscorrelationParams)
+        assert isinstance(fetched_config, CrosscorrelationCartesianParams)
         assert len(all_configs) == 1
         assert fetched_config.sampling_rate == 24
         assert fetched_config.correlation_max_lag == 20
@@ -985,10 +985,10 @@ class TestDataIngestionRoutines:
             processed_datachunk_count = ProcessedDatachunk.query.count()
         assert 570 == processed_datachunk_count
 
-    def test_run_crosscorrelations_ZZ(self, noiz_app, run_sequential):
+    def test_run_crosscorrelations_cartesian_ZZ(self, noiz_app, run_sequential):
         runner = CliRunner()
         args = [
-            "processing", "run_crosscorrelations",
+            "processing", "run_crosscorrelations_cartesian",
             "-sd", "2019-09-30",
             "-ed", "2019-10-03",
             "-c", "ZZ",
@@ -1002,13 +1002,13 @@ class TestDataIngestionRoutines:
             raise result.exception
         assert result.exit_code == 0
         with noiz_app.app_context():
-            crosscorrelation_count = Crosscorrelation.query.count()
-        assert 0 == crosscorrelation_count
+            crosscorrelation_cartesian_count = CrosscorrelationCartesian.query.count()
+        assert 0 == crosscorrelation_cartesian_count
 
-    def test_run_crosscorrelations_ZE(self, noiz_app, run_sequential):
+    def test_run_crosscorrelations_cartesian_ZE(self, noiz_app, run_sequential):
         runner = CliRunner()
         args = [
-            "processing", "run_crosscorrelations",
+            "processing", "run_crosscorrelations_cartesian",
             "-sd", "2019-09-30",
             "-ed", "2019-10-03",
             "-c", "ZE",
@@ -1021,8 +1021,8 @@ class TestDataIngestionRoutines:
             raise result.exception
         assert result.exit_code == 0
         with noiz_app.app_context():
-            crosscorrelation_count = Crosscorrelation.query.count()
-        assert 124 == crosscorrelation_count
+            crosscorrelation_cartesian_count = CrosscorrelationCartesian.query.count()
+        assert 124 == crosscorrelation_cartesian_count
 
     @pytest.mark.xfail
     def test_exporting_raw_ccfs_to_npz(self):
@@ -1038,7 +1038,7 @@ class TestDataIngestionRoutines:
         assert result.exit_code == 0
 
         with noiz_app.app_context():
-            ccf_count = Crosscorrelation.query.count()
+            ccf_count = CrosscorrelationCartesian.query.count()
             qctwo_count = QCTwoResults.query.count()
 
         assert qctwo_count == ccf_count

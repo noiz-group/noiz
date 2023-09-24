@@ -7,7 +7,7 @@ from loguru import logger
 from typing import Optional, Any, Callable, Union, Tuple
 
 from noiz.models.type_aliases import QCOneRunnerInputs
-from noiz.models import Crosscorrelation, Datachunk, QCOneConfig, QCOneResults, Timespan, QCTwoResults, QCTwoConfig, \
+from noiz.models import CrosscorrelationCartesian, Datachunk, QCOneConfig, QCOneResults, Timespan, QCTwoResults, QCTwoConfig, \
     DatachunkStats, AveragedSohGps
 
 
@@ -65,29 +65,29 @@ def calculate_qcone_results(
 
 
 def calculate_qctwo_results(
-        crosscorrelation: Crosscorrelation,
+        crosscorrelation_cartesian: CrosscorrelationCartesian,
         qctwo_config: QCTwoConfig,
 ) -> QCTwoResults:
     """
 
-    :param crosscorrelation: Crosscorrelation to be compared
-    :type crosscorrelation: Crosscorrelation
+    :param crosscorrelation_cartesian: CrosscorrelationCartesian to be compared
+    :type crosscorrelation_cartesian: CrosscorrelationCartesian
     :param qctwo_config: QCTwoConfig to have reference values to compare against
     :type qctwo_config: QCTwoConfig
     :return: Object containing values of all performed comparisons
     :rtype: QCTwoResults
     """
 
-    if not isinstance(crosscorrelation.timespan, Timespan):
+    if not isinstance(crosscorrelation_cartesian.timespan, Timespan):
         raise ValueError('You should load timespan together with the Datachunk.')
 
     logger.debug("Creating an empty QCTwoResults")
-    qctwo_res = QCTwoResults(crosscorrelation_id=crosscorrelation.id, qctwo_config_id=qctwo_config.id)
+    qctwo_res = QCTwoResults(crosscorrelation_cartesian_id=crosscorrelation_cartesian.id, qctwo_config_id=qctwo_config.id)
     logger.debug("Checking datachunk for main time bounds")
-    qctwo_res = _determine_qc_time(results=qctwo_res, timespan=crosscorrelation.timespan, config=qctwo_config)
+    qctwo_res = _determine_qc_time(results=qctwo_res, timespan=crosscorrelation_cartesian.timespan, config=qctwo_config)
     logger.debug("Checking if datachunk within rejected time")
-    qctwo_res = _determine_qctwo_accepted_times(results=qctwo_res, crosscorrelation=crosscorrelation,
-                                                timespan=crosscorrelation.timespan, config=qctwo_config)
+    qctwo_res = _determine_qctwo_accepted_times(results=qctwo_res, crosscorrelation_cartesian=crosscorrelation_cartesian,
+                                                timespan=crosscorrelation_cartesian.timespan, config=qctwo_config)
 
     return qctwo_res
 
@@ -137,7 +137,7 @@ def _determine_qcone_accepted_times(
 
 def _determine_qctwo_accepted_times(
         results: QCTwoResults,
-        crosscorrelation: Crosscorrelation,
+        crosscorrelation_cartesian: CrosscorrelationCartesian,
         timespan: Timespan,
         config: QCTwoConfig,
 ) -> QCTwoResults:
@@ -147,9 +147,9 @@ def _determine_qctwo_accepted_times(
 
     reject_checks = [True, ]
 
-    if crosscorrelation.componentpair_id in config.componentpair_ids_rejected_times:
+    if crosscorrelation_cartesian.componentpair_id in config.componentpair_ids_rejected_times:
         for rej in config.time_periods_rejected:
-            if not rej.componentpair_id == crosscorrelation.componentpair_id:
+            if not rej.componentpair_id == crosscorrelation_cartesian.componentpair_id:
                 continue
 
             reject_checks.append(

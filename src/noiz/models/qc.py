@@ -277,7 +277,7 @@ class QCTwoRejectedTime(db.Model):
         back_populates="time_periods_rejected",
         foreign_keys=[qctwo_config_id]
     )
-    component_pair = db.relationship("ComponentPairCartesian", foreign_keys=[componentpair_id])
+    component_pair_cartesian = db.relationship("ComponentPairCartesian", foreign_keys=[componentpair_id])
 
 
 class QCTwoConfig(db.Model):
@@ -285,10 +285,10 @@ class QCTwoConfig(db.Model):
 
     id = db.Column("id", db.Integer, primary_key=True)
 
-    crosscorrelation_params_id = db.Column(
-        "crosscorrelation_params_id",
+    crosscorrelation_cartesian_params_id = db.Column(
+        "crosscorrelation_cartesian_params_id",
         db.Integer,
-        db.ForeignKey("crosscorrelation_params.id"))
+        db.ForeignKey("crosscorrelation_cartesian_params.id"))
     null_policy = db.Column("null_policy", db.UnicodeText, default=NullTreatmentPolicy.PASS.value, nullable=False)
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
@@ -300,8 +300,8 @@ class QCTwoConfig(db.Model):
         lazy="joined"
     )
 
-    crosscorrelation_params = db.relationship(
-        "CrosscorrelationParams",
+    crosscorrelation_cartesian_params = db.relationship(
+        "CrosscorrelationCartesianParams",
         uselist=True,
         lazy="joined"
     )
@@ -326,21 +326,21 @@ class QCTwoResults(db.Model):
     __tablename__ = "qctwo_results"
     __table_args__ = (
         db.UniqueConstraint(
-            "crosscorrelation_id", "qctwo_config_id", name="unique_qctwo_results_per_config_per_ccf"
+            "crosscorrelation_cartesian_id", "qctwo_config_id", name="unique_qctwo_results_per_config_per_ccf"
         ),
     )
 
     id = db.Column("id", db.BigInteger, primary_key=True)
 
     qctwo_config_id = db.Column("qctwo_config_id", db.Integer, db.ForeignKey("qctwo_config.id"))
-    crosscorrelation_id = db.Column("crosscorrelation_id", db.Integer, db.ForeignKey("crosscorrelationnew.id"))
+    crosscorrelation_cartesian_id = db.Column("crosscorrelation_cartesian_id", db.Integer, db.ForeignKey("crosscorrelation_cartesiannew.id"))
 
     starttime = db.Column("starttime", db.Boolean, nullable=False)
     endtime = db.Column("endtime", db.Boolean, nullable=False)
     accepted_time = db.Column("accepted_time", db.Boolean, nullable=False)
 
     qctwo_config = db.relationship("QCTwoConfig", foreign_keys=[qctwo_config_id])
-    crosscorrelation = db.relationship("Crosscorrelation", foreign_keys=[crosscorrelation_id])
+    crosscorrelation_cartesian = db.relationship("CrosscorrelationCartesian", foreign_keys=[crosscorrelation_cartesian_id])
 
     def is_passing(self) -> bool:
         """
@@ -379,7 +379,7 @@ class QCTwoConfigHolder:
     This simple dataclass is just helping to validate :class:`~noiz.models.QCOneConfig` values loaded from the TOML file
     """
 
-    crosscorrelation_params_id: int
+    crosscorrelation_cartesian_params_id: int
     null_treatment_policy: NullTreatmentPolicy = NullTreatmentPolicy.PASS
     starttime: Union[datetime.datetime, datetime.date] = datetime.date(2010, 1, 1)
     endtime: Union[datetime.datetime, datetime.date] = datetime.date(2030, 1, 1)

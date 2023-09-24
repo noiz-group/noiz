@@ -613,7 +613,7 @@ def run_datachunk_processing(
         stations: Optional[Union[Collection[str], str]] = None,
         components: Optional[Union[Collection[str], str]] = None,
         component_ids: Optional[Union[Collection[int], int]] = None,
-        batch_size: int = 2000,
+        batch_size: int = 2500,
         parallel: bool = True,
         skip_existing: bool = True,
 ):

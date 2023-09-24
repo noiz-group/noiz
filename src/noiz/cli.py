@@ -137,25 +137,50 @@ def add_processed_datachunk_params(
         click.echo(parsing_results)
 
 
-@configs_group.command("add_crosscorrelation_params")
+@configs_group.command("add_crosscorrelation_cartesian_params")
 @with_appcontext
 @click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
 @click.option('--add_to_db', is_flag=True, expose_value=True,
-              prompt='Are you sure you want to add CrosscorrelationParams to DB? `N` will just preview it. ')
+              prompt='Are you sure you want to add CrosscorrelationCartesianParams to DB? `N` will just preview it. ')
 @click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
 @click.option('--quiet', is_flag=True, callback=_setup_quiet)
-def add_crosscorrelation_params(
+def add_crosscorrelation_cartesian_params(
         filepath: str,
         add_to_db: bool,
         **kwargs
 ):
-    """Read a TOML file with CrosscorrelationParams config and add to db."""
+    """Read a TOML file with CrosscorrelationCartesianParams config and add to db."""
 
-    from noiz.api.processing_config import create_and_add_crosscorrelation_params_from_toml as parse_and_add
+    from noiz.api.processing_config import create_and_add_crosscorrelation_cartesian_params_from_toml as parse_and_add
 
     if add_to_db:
         params = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
-        click.echo(f"The CrosscorrelationParams were added to db with id {params.id}")
+        click.echo(f"The CrosscorrelationCartesianParams were added to db with id {params.id}")
+    else:
+        parsing_results, _ = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
+        click.echo("\n")
+        click.echo(parsing_results)
+
+
+@configs_group.command("add_crosscorrelation_cylindrical_params")
+@with_appcontext
+@click.option("-f", "--filepath", nargs=1, type=click.Path(exists=True), required=True)
+@click.option('--add_to_db', is_flag=True, expose_value=True,
+              prompt='Are you sure you want to add CrosscorrelationCylindricalParams to DB? `N` will just preview it. ')
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
+def add_crosscorrelation_cylindrical_params(
+        filepath: str,
+        add_to_db: bool,
+        **kwargs
+):
+    """Read a TOML file with CrosscorrelationCylindricalParams config and add to db."""
+
+    from noiz.api.processing_config import create_and_add_crosscorrelation_cylindrical_params_from_toml as parse_and_add
+
+    if add_to_db:
+        params = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
+        click.echo(f"The CrosscorrelationCylindricalParams were added to db with id {params.id}")
     else:
         parsing_results, _ = parse_and_add(filepath=Path(filepath), add_to_db=add_to_db)
         click.echo("\n")
@@ -849,13 +874,13 @@ def process_datachunks(
     )
 
 
-@processing_group.command("run_crosscorrelations")
+@processing_group.command("run_crosscorrelations_cartesian")
 @with_appcontext
 @click.option("-s", "--station_code", multiple=True, type=str, callback=_validate_zero_length_as_none)
 @click.option("-c", "--component_code_pair", multiple=True, type=str, callback=_validate_zero_length_as_none)
 @click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
 @click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
-@click.option("-p", "--crosscorrelation_params_id", nargs=1, type=int,
+@click.option("-p", "--crosscorrelation_cartesian_params_id", nargs=1, type=int,
               default=1, show_default=True)
 @click.option('-ia', '--include_autocorrelation', is_flag=True)
 @click.option('-ii', '--include_intracorrelation', is_flag=True)
@@ -864,12 +889,12 @@ def process_datachunks(
 @click.option('--parallel/--no_parallel', default=True)
 @click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
 @click.option('--quiet', is_flag=True, callback=_setup_quiet)
-def run_crosscorrelations(
+def run_crosscorrelations_cartesian(
         station_code,
         component_code_pair,
         startdate,
         enddate,
-        crosscorrelation_params_id,
+        crosscorrelation_cartesian_params_id,
         include_autocorrelation,
         include_intracorrelation,
         raise_errors,
@@ -877,17 +902,59 @@ def run_crosscorrelations(
         parallel,
         **kwargs
 ):
-    """Start processing of crosscorrelations. Limited amount of pair selection arguments, use API directly if needed."""
+    """Start processing of crosscorrelations_cartesian. Limited amount of pair selection arguments, use API directly if needed."""
 
-    from noiz.api.crosscorrelations import perform_crosscorrelations
-    perform_crosscorrelations(
-        crosscorrelation_params_id=crosscorrelation_params_id,
+    from noiz.api.crosscorrelations import perform_crosscorrelations_cartesian
+    perform_crosscorrelations_cartesian(
+        crosscorrelation_cartesian_params_id=crosscorrelation_cartesian_params_id,
         starttime=startdate,
         endtime=enddate,
         station_codes_a=station_code,
         accepted_component_code_pairs=component_code_pair,
         include_autocorrelation=include_autocorrelation,
         include_intracorrelation=include_intracorrelation,
+        raise_errors=raise_errors,
+        batch_size=batch_size,
+        parallel=parallel,
+    )
+
+
+@processing_group.command("run_crosscorrelations_cylindrical")
+@with_appcontext
+@click.option("-s1", "--station_code1", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-s2", "--station_code2", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-c", "--component_code_pair", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-sd", "--startdate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-ed", "--enddate", nargs=1, type=str, required=True, callback=_parse_as_date)
+@click.option("-p", "--crosscorrelation_cylindrical_params_id", nargs=1, type=int,
+              default=1, show_default=True)
+@click.option('--raise_errors/--no_raise_errors', default=False)
+@click.option("-b", "--batch_size", nargs=1, type=int, default=1000, show_default=True)
+@click.option('--parallel/--no_parallel', default=True)
+@click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
+@click.option('--quiet', is_flag=True, callback=_setup_quiet)
+def run_crosscorrelations_cylindrical(
+        station_code1,
+        station_code2,
+        component_code_pair,
+        startdate,
+        enddate,
+        crosscorrelation_cylindrical_params_id,
+        raise_errors,
+        batch_size,
+        parallel,
+        **kwargs
+):
+    """Start processing of crosscorrelations_cylindrical. Limited amount of pair selection arguments, use API directly if needed."""
+
+    from noiz.api.crosscorrelations import perform_crosscorrelations_cylindrical
+    perform_crosscorrelations_cylindrical(
+        crosscorrelation_cylindrical_params_id=crosscorrelation_cylindrical_params_id,
+        starttime=startdate,
+        endtime=enddate,
+        station_codes_a=station_code1,
+        station_codes_b=station_code2,
+        accepted_component_code_pairs_cylindrical=component_code_pair,
         raise_errors=raise_errors,
         batch_size=batch_size,
         parallel=parallel,
@@ -940,10 +1007,10 @@ def run_stacking(
         parallel,
         **kwargs
 ):
-    """Start stacking of crosscorrelations. Limited amount of pair selection arguments, use API directly if needed."""
+    """Start stacking of crosscorrelations_cartesian. Limited amount of pair selection arguments, use API directly if needed."""
 
-    from noiz.api.stacking import stack_crosscorrelation
-    stack_crosscorrelation(
+    from noiz.api.stacking import stack_crosscorrelation_cartesian
+    stack_crosscorrelation_cartesian(
         stacking_schema_id=stacking_schema_id,
         starttime=startdate,
         endtime=enddate,
@@ -1493,7 +1560,7 @@ def export_raw_gps_soh(
 
 @export_group.command("raw_ccfs")
 @with_appcontext
-@click.option("-p", "--crosscorrelation_params_id", nargs=1, type=int,
+@click.option("-p", "--crosscorrelation_cartesian_params_id", nargs=1, type=int,
               default=1, show_default=True)
 @click.option("-sd", "--startdate", nargs=1, type=str,
               default=DEFAULT_STARTDATE, show_default=True, callback=_parse_as_date)
@@ -1518,7 +1585,7 @@ def export_raw_gps_soh(
 @click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
 @click.option('--quiet', is_flag=True, callback=_setup_quiet)
 def export_raw_ccfs(
-        crosscorrelation_params_id,
+        crosscorrelation_cartesian_params_id,
         startdate,
         enddate,
         dirpath,
@@ -1537,7 +1604,7 @@ def export_raw_ccfs(
         **kwargs
 ):
     """
-    Export raw crosscorrelation data to npz file.
+    Export raw crosscorrelation_cartesian data to npz file.
     """
 
     if dirpath is None:
@@ -1547,10 +1614,10 @@ def export_raw_ccfs(
     elif not isinstance(dirpath, Path):
         dirpath = Path(dirpath)
 
-    from noiz.api.crosscorrelations import fetch_crosscorrelations_and_save
+    from noiz.api.crosscorrelations_cartesian import fetch_crosscorrelations_cartesian_and_save
 
-    fetch_crosscorrelations_and_save(
-        crosscorrelation_params_id=crosscorrelation_params_id,
+    fetch_crosscorrelations_cartesian_and_save(
+        crosscorrelation_cartesian_params_id=crosscorrelation_cartesian_params_id,
         starttime=startdate,
         endtime=enddate,
         dirpath=dirpath,

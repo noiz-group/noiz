@@ -6,6 +6,7 @@ import pytest
 
 from noiz.models.component import Component
 from noiz.models.component_pair import ComponentPairCartesian
+import datetime
 
 from noiz.processing.component_pair import (
     is_autocorrelation,
@@ -21,18 +22,18 @@ class TestIsAutocorrelation:
         [
             (
                 Component(
-                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
                 ),
                 Component(
-                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
                 ),
             ),
             (
                 Component(
-                    network="XYZ", station="GB", component="N", lat=32.5, lon=8.2
+                    network="XYZ", station="GB", component="N", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
                 ),
                 Component(
-                    network="XYZ", station="GB", component="N", lat=32.5, lon=8.2
+                    network="XYZ", station="GB", component="N", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
                 ),
             ),
         ],
@@ -45,42 +46,42 @@ class TestIsAutocorrelation:
         [
             (
                 Component(
-                    network="TD", station="TD03", component="E", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="E", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
                 ),
                 Component(
-                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2
-                ),
-            ),
-            (
-                Component(
-                    network="TD", station="TD03", component="E", lat=32.5, lon=8.2
-                ),
-                Component(
-                    network="TD", station="TD03", component="N", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
                 ),
             ),
             (
                 Component(
-                    network="TD", station="TD13", component="Z", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="E", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
                 ),
                 Component(
-                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2
-                ),
-            ),
-            (
-                Component(
-                    network="XX", station="TD03", component="N", lat=32.5, lon=8.2
-                ),
-                Component(
-                    network="TD", station="TD03", component="N", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="N", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
                 ),
             ),
             (
                 Component(
-                    network="TD", station="TD03", component="E", lat=32.5, lon=8.2
+                    network="TD", station="TD13", component="Z", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
                 ),
                 Component(
-                    network="XZ", station="TD13", component="N", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
+                ),
+            ),
+            (
+                Component(
+                    network="XX", station="TD03", component="N", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
+                ),
+                Component(
+                    network="TD", station="TD03", component="N", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
+                ),
+            ),
+            (
+                Component(
+                    network="TD", station="TD03", component="E", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
+                ),
+                Component(
+                    network="XZ", station="TD13", component="N", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
                 ),
             ),
         ],
@@ -95,26 +96,26 @@ class TestIsIntrastationCorrelation:
         [
             (
                 Component(
-                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
                 ),
                 Component(
-                    network="TD", station="TD03", component="N", lat=32.5, lon=8.2
-                ),
-            ),
-            (
-                Component(
-                    network="XYZ", station="GB", component="N", lat=32.5, lon=8.2
-                ),
-                Component(
-                    network="XYZ", station="GB", component="E", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="N", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
                 ),
             ),
             (
                 Component(
-                    network="XYZ", station="GB", component="E", lat=32.5, lon=8.2
+                    network="XYZ", station="GB", component="N", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
                 ),
                 Component(
-                    network="XYZ", station="GB", component="Z", lat=32.5, lon=8.2
+                    network="XYZ", station="GB", component="E", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
+                ),
+            ),
+            (
+                Component(
+                    network="XYZ", station="GB", component="E", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
+                ),
+                Component(
+                    network="XYZ", station="GB", component="Z", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
                 ),
             ),
         ],
@@ -127,42 +128,42 @@ class TestIsIntrastationCorrelation:
         [
             (
                 Component(
-                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
                 ),
                 Component(
-                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2
-                ),
-            ),
-            (
-                Component(
-                    network="TD", station="TD17", component="E", lat=32.5, lon=8.2
-                ),
-                Component(
-                    network="TD", station="TD03", component="N", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
                 ),
             ),
             (
                 Component(
-                    network="XX", station="TD03", component="N", lat=32.5, lon=8.2
+                    network="TD", station="TD17", component="E", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
                 ),
                 Component(
-                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2
-                ),
-            ),
-            (
-                Component(
-                    network="XX", station="TD03", component="N", lat=32.5, lon=8.2
-                ),
-                Component(
-                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="N", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
                 ),
             ),
             (
                 Component(
-                    network="TD", station="TD03", component="E", lat=32.5, lon=8.2
+                    network="XX", station="TD03", component="N", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
                 ),
                 Component(
-                    network="XZ", station="TD13", component="N", lat=32.5, lon=8.2
+                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
+                ),
+            ),
+            (
+                Component(
+                    network="XX", station="TD03", component="N", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
+                ),
+                Component(
+                    network="TD", station="TD03", component="Z", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
+                ),
+            ),
+            (
+                Component(
+                    network="TD", station="TD03", component="E", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
+                ),
+                Component(
+                    network="XZ", station="TD13", component="N", lat=32.5, lon=8.2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1),
                 ),
             ),
         ],
@@ -179,23 +180,24 @@ def test_calculate_distance_backazimuth():
 @pytest.mark.parametrize(
     "cmp_a, cmp_b, expected_res",
     (
-        (Component(lat=1, lon=1), Component(lat=2, lon=2), False),
-        (Component(lat=1, lon=1), Component(lat=-10, lon=-2), True),
+        (Component(lat=1, lon=1, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1)), Component(lat=2, lon=2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1)), False),
+        (Component(lat=1, lon=1, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1)), Component(lat=-10, lon=-2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1)), True),
         (
-            Component(x=452484.15, y=5411718.72, zone=31),
-            Component(lat=-10, lon=-2),
+            Component(x=452484.15, y=5411718.72, zone=31, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1)),
+            Component(lat=-10, lon=-2, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1)),
             True,
         ),
         (
-            Component(x=452484.15, y=5411718.72, zone=31),
-            Component(x=407950.22, y=5380786.7, zone=32),
+            Component(x=452484.15, y=5411718.72, zone=31, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1)),
+            Component(x=407950.22, y=5380786.7, zone=32, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1)),
             False,
         ),
         (
-            Component(x=407950.22, y=5380786.7, zone=32),
-            Component(x=452484.15, y=5411718.72, zone=31),
+            Component(x=407950.22, y=5380786.7, zone=32, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1)),
+            Component(x=452484.15, y=5411718.72, zone=31, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1)),
             True,
         ),
+
     ),
 )
 def test_is_east_to_west(cmp_a, cmp_b, expected_res):

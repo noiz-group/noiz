@@ -17,10 +17,10 @@ from typing import Collection, Union, List, Optional, Tuple, Generator
 from noiz.api.component_pair import fetch_componentpairs_cartesian
 from noiz.api.qc import fetch_qctwo_config_single, count_qctwo_results
 from noiz.database import db
-from noiz.models import Crosscorrelation, StackingTimespan, Timespan, CCFStack, \
+from noiz.models import CrosscorrelationCartesian, StackingTimespan, Timespan, CCFStack, \
     QCTwoResults, ComponentPairCartesian, StackingSchema
 from noiz.api.processing_config import fetch_stacking_schema_by_id
-from noiz.processing.stacking import _generate_stacking_timespans, do_linear_stack_of_crosscorrelations
+from noiz.processing.stacking import _generate_stacking_timespans, do_linear_stack_of_crosscorrelations_cartesian
 
 
 def fetch_stacking_timespans(
@@ -141,7 +141,7 @@ def _insert_upsert_stacking_timespans_into_db(
             con.execute(insert_command)
 
 
-def stack_crosscorrelation(
+def stack_crosscorrelation_cartesian(
         stacking_schema_id: int,
         starttime: Optional[Union[datetime.date, datetime.datetime]] = None,
         endtime: Optional[Union[datetime.date, datetime.datetime]] = None,
@@ -244,12 +244,12 @@ def _prepare_inputs_for_stacking_ccfs(
 
     for stacking_timespan, componentpair_cartesian in itertools.product(stacking_timespans, componentpairs_cartesian):
         fetched_qc_ccfs = (
-            db.session.query(QCTwoResults, Crosscorrelation)
+            db.session.query(QCTwoResults, CrosscorrelationCartesian)
             .filter(QCTwoResults.qctwo_config_id == qctwo_config.id)
-            .join(Crosscorrelation, QCTwoResults.crosscorrelation_id == Crosscorrelation.id)
-            .join(Timespan, Crosscorrelation.timespan_id == Timespan.id)
+            .join(CrosscorrelationCartesian, QCTwoResults.crosscorrelation_cartesian_id == CrosscorrelationCartesian.id)
+            .join(Timespan, CrosscorrelationCartesian.timespan_id == Timespan.id)
             .filter(
-                Crosscorrelation.componentpair_id == componentpair_cartesian.id,
+                CrosscorrelationCartesian.componentpair_id == componentpair_cartesian.id,
                 Timespan.starttime >= stacking_timespan.starttime,
                 Timespan.endtime <= stacking_timespan.endtime,
             )
@@ -282,33 +282,33 @@ def _validate_and_stack_ccfs_wrapper(
 
 
 def _validate_and_stack_ccfs(
-        qctwo_ccfs_container: List[Tuple[QCTwoResults, Crosscorrelation]],
+        qctwo_ccfs_container: List[Tuple[QCTwoResults, CrosscorrelationCartesian]],
         componentpair_cartesian: ComponentPairCartesian,
         stacking_schema: StackingSchema,
         stacking_timespan: StackingTimespan,
 ) -> Optional[CCFStack]:
     """
-    Takes container of tuples with QCTwoResults and Crosscorrelation (the same crosscorrelation_id),
-    verifies if Crosscorrelation is passing the QCTwo and if yes, it stacks it.
+    Takes container of tuples with QCTwoResults and CrosscorrelationCartesian (the same crosscorrelation_cartesian_id),
+    verifies if CrosscorrelationCartesian is passing the QCTwo and if yes, it stacks it.
 
-    Before stacking it verifies if there is enough Crosscorrelations to be stacked, it can be adjusted by setting
+    Before stacking it verifies if there is enough CrosscorrelationCartesians to be stacked, it can be adjusted by setting
     a value of :paramref:`noiz.models.stacking.StackingSchema.minimum_ccf_count`.
 
     It returns an instance of :py:class:`~noiz.models.stacking.CCFStack` that is ready to be inserted to the database.
 
-    :param qctwo_ccfs_container: Crosscorrelations to be stacked together with associated QCTwoResult instances
-    :type qctwo_ccfs_container: List[Tuple[QCTwoResults, Crosscorrelation]]
+    :param qctwo_ccfs_container: CrosscorrelationCartesians to be stacked together with associated QCTwoResult instances
+    :type qctwo_ccfs_container: List[Tuple[QCTwoResults, CrosscorrelationCartesian]]
     :param componentpair_cartesian: ComponentPairCartesian for which the stack is done
     :type componentpair_cartesian: ComponentPairCartesian
     :param stacking_schema: StackingSchema defining that stack
     :type stacking_schema: StackingSchema
     :param stacking_timespan: StackingTimespan that is defining that stack
     :type stacking_timespan: StackingTimespan
-    :return: Returns None if Crosscorrelations cannot be stacked or CCFStack if they can
+    :return: Returns None if CrosscorrelationCartesians cannot be stacked or CCFStack if they can
     :rtype: Optional[CCFStack]
     """
 
-    valid_ccfs = _validate_crosscorrelations_with_qctwo(qctwo_ccfs_container)
+    valid_ccfs = _validate_crosscorrelations_cartesian_with_qctwo(qctwo_ccfs_container)
 
     no_ccfs = len(valid_ccfs)
     logger.debug(f"There are {no_ccfs} valid ccfs for that stack")
@@ -321,7 +321,7 @@ def _validate_and_stack_ccfs(
         return None
 
     logger.debug(f"Calculating linear stack for {componentpair_cartesian} {stacking_schema} {stacking_timespan}")
-    mean_ccf = do_linear_stack_of_crosscorrelations(ccfs=valid_ccfs)
+    mean_ccf = do_linear_stack_of_crosscorrelations_cartesian(ccfs=valid_ccfs)
 
     stack = CCFStack(
         stacking_timespan_id=stacking_timespan.id,
@@ -334,18 +334,18 @@ def _validate_and_stack_ccfs(
     return stack
 
 
-def _validate_crosscorrelations_with_qctwo(
-        qctwo_ccfs_container: Collection[Tuple[QCTwoResults, Crosscorrelation]]
-) -> Tuple[Crosscorrelation, ...]:
+def _validate_crosscorrelations_cartesian_with_qctwo(
+        qctwo_ccfs_container: Collection[Tuple[QCTwoResults, CrosscorrelationCartesian]]
+) -> Tuple[CrosscorrelationCartesian, ...]:
     """
-    Checks if which Crosscorrelations are passing QCTwo.
-    It accepts as input a Collection of Tuples with QCTwoResults and Crosscorrelation.
-    It outputs a tuple containing only those Crosscorrelation objects that are passing QCTwo.
+    Checks if which CrosscorrelationCartesians are passing QCTwo.
+    It accepts as input a Collection of Tuples with QCTwoResults and CrosscorrelationCartesian.
+    It outputs a tuple containing only those CrosscorrelationCartesian objects that are passing QCTwo.
 
-    :param qctwo_ccfs_container: Container of tuples with QCTwoResults and Crosscorrelations to be verified
-    :type qctwo_ccfs_container: Collection[Tuple[QCTwoResults, Crosscorrelation]]
-    :return: Valid Crosscorrelation objects
-    :rtype: Tuple[Crosscorrelation, ...]
+    :param qctwo_ccfs_container: Container of tuples with QCTwoResults and CrosscorrelationCartesians to be verified
+    :type qctwo_ccfs_container: Collection[Tuple[QCTwoResults, CrosscorrelationCartesian]]
+    :return: Valid CrosscorrelationCartesian objects
+    :rtype: Tuple[CrosscorrelationCartesian, ...]
     """
 
     valid_ccfs = []
