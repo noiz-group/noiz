@@ -6,12 +6,22 @@ from loguru import logger
 from obspy.core.util import AttribDict
 from obspy import read_inventory
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, TYPE_CHECKING
 from numpy import deprecate_with_doc
+from sqlalchemy import func
+
 import utm
+import datetime
 
 from noiz.database import db
 from noiz.exceptions import MissingDataFileException
+from noiz.validation_helpers import validate_timestamp_as_pydatetime
+
+if TYPE_CHECKING:
+    # Use this to make hybrid_property's have the same typing as a normal property until stubs are improved.
+    typed_hybrid_property = property
+else:
+    from sqlalchemy.ext.hybrid import hybrid_property as typed_hybrid_property
 
 
 class Device(db.Model):
@@ -73,6 +83,14 @@ class Component(db.Model):
         lazy="joined",
     )
 
+    start_date: datetime.datetime = db.Column(
+        "start_date", db.TIMESTAMP(timezone=True), nullable=False
+    )
+
+    end_date: datetime.datetime = db.Column(
+        "end_date", db.TIMESTAMP(timezone=True), nullable=False
+    )
+
     def __init__(self, **kwargs):
         super(Component, self).__init__(**kwargs)
         lat = kwargs.get("lat")
@@ -81,6 +99,12 @@ class Component(db.Model):
         y = kwargs.get("y")
         zone = kwargs.get("zone")
         northern = kwargs.get("northern")
+        try:
+            self.start_date: datetime.datetime = validate_timestamp_as_pydatetime(kwargs["start_date"])
+            self.end_date: datetime.datetime = validate_timestamp_as_pydatetime(kwargs["end_date"])
+        except KeyError as e:
+            raise KeyError(f"Both `start_date` and `end_date` needs to be provided to initialize Component. "
+                           f"{e} was not provided. Please add it.")
 
         if not all((lat, lon)):
             if not all((x, y, zone)):
@@ -151,6 +175,70 @@ class Component(db.Model):
             logger.warning("Northern is not set, using default True.")
             northern = True
         return zone, northern
+
+    @typed_hybrid_property
+    def start_date_year(self) -> int:
+        return self.start_date.year
+
+    @start_date_year.expression  # type: ignore
+    def start_date_year(cls) -> int:  # type: ignore
+        return func.date_part("year", cls.start_date)  # type: ignore
+
+    @typed_hybrid_property
+    def start_date_doy(self) -> int:
+        return self.start_date.timetuple().tm_yday
+
+    @start_date_doy.expression
+    def start_date_doy(cls) -> int:
+        return func.date_part("doy", cls.start_date)  # type: ignore
+
+    @typed_hybrid_property
+    def start_date_isoweekday(self) -> int:
+        return self.end_date.isoweekday()
+
+    @start_date_isoweekday.expression
+    def start_date_isoweekday(cls) -> int:
+        return func.date_part("isodow", cls.start_date)  # type: ignore
+
+    @typed_hybrid_property
+    def start_date_hour(self) -> int:
+        return self.start_date.hour
+
+    @start_date_hour.expression
+    def start_date_hour(cls) -> int:
+        return func.date_part("hour", cls.start_date)  # type: ignore
+
+    @typed_hybrid_property
+    def end_date_year(self) -> int:
+        return self.end_date.year
+
+    @end_date_year.expression
+    def end_date_year(cls) -> int:
+        return func.date_part("year", cls.end_date)  # type: ignore
+
+    @typed_hybrid_property
+    def end_date_doy(self) -> int:
+        return self.end_date.timetuple().tm_yday
+
+    @end_date_doy.expression
+    def end_date_doy(cls) -> int:
+        return func.date_part("doy", cls.end_date)  # type: ignore
+
+    @typed_hybrid_property
+    def end_date_isoweekday(self) -> int:
+        return self.end_date.isoweekday()
+
+    @end_date_isoweekday.expression
+    def end_date_isoweekday(cls) -> int:
+        return func.date_part("isodow", cls.end_date)  # type: ignore
+
+    @typed_hybrid_property
+    def end_date_hour(self) -> int:
+        return self.end_date.hour
+
+    @end_date_hour.expression
+    def end_date_hour(cls) -> int:
+        return func.date_part("hour", cls.end_date)  # type: ignore
 
 
 class ComponentFile(db.Model):

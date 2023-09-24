@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: CECILL-B
 # Copyright © 2015-2019 EOST UNISTRA, Storengy SAS, Damian Kula
 # Copyright © 2019-2023 Contributors to the Noiz project.
+from typing import Tuple
 
 from noiz.database import db
+from noiz.models import Component
 
 
 class ComponentPairCartesian(db.Model):
@@ -111,3 +113,18 @@ class ComponentPairCylindrical(db.Model):
     component_bN = db.relationship("Component", foreign_keys=[component_bN_id], lazy="joined", )
     component_aZ = db.relationship("Component", foreign_keys=[component_aZ_id], lazy="joined", )
     component_bZ = db.relationship("Component", foreign_keys=[component_bZ_id], lazy="joined", )
+
+    def get_all_components(self) -> Tuple[Component, ...]:
+        """
+        Returns a tuple with all components that belong into this ComponentPairCylindrical
+
+        :rtype: Tuple[Component, ...]
+        """
+        return (
+            self.component_aE,
+            self.component_bE,
+            self.component_aN,
+            self.component_bN,
+            self.component_aZ,
+            self.component_bZ,
+        )

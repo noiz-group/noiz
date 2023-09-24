@@ -138,6 +138,38 @@ def parse_inventory_for_single_component_db_entries(
 
                 cmp_file = ComponentFile(filepath=str(single_cmp_inv_path))
 
+                if station.start_date:
+                    startdate = station.start_date
+                else:
+                    ns = 0
+                    for channel in station:
+                        if channel.start_date:
+                            if ns == 0:
+                                startdate = channel.start_date
+                                ns += 1
+                            else:
+                                delta = startdate - channel.start_date
+                                if delta >= 0:
+                                    startdate = channel.start_date
+                        else:
+                            startdate = network.startDate
+
+                if station.end_date:
+                    enddate = station.end_date
+                else:
+                    ns = 0
+                    for channel in station:
+                        if channel.end_date:
+                            if ns == 0:
+                                enddate = channel.end_date
+                                ns += 1
+                            else:
+                                delta = enddate - channel.end_date
+                                if delta < 0:
+                                    enddate = channel.end_date
+                        else:
+                            enddate = startdate + 10*365*24*60*60
+
                 db_component = Component(
                     network=network.code,
                     station=station.code,
@@ -148,6 +180,8 @@ def parse_inventory_for_single_component_db_entries(
                     inventory_filepath=str(single_cmp_inv_path),
                     component_file=cmp_file,
                     device=device,
+                    start_date=startdate,
+                    end_date=enddate,
                 )
 
                 logger.info(f"Created Component object {db_component}")

@@ -10,7 +10,8 @@ from noiz.models.component import Component, Device
 from noiz.models.component_pair import ComponentPairCartesian, ComponentPairCylindrical
 from noiz.models.mixins import FileModelMixin
 from noiz.models.processing_params import DatachunkParams, DatachunkParamsHolder, ProcessedDatachunkParams, \
-    ProcessedDatachunkParamsHolder, CrosscorrelationParams, CrosscorrelationParamsHolder, \
+    ProcessedDatachunkParamsHolder, CrosscorrelationCartesianParams, CrosscorrelationCartesianParamsHolder, \
+    CrosscorrelationCylindricalParams, CrosscorrelationCylindricalParamsHolder, \
     PPSDParams, PPSDParamsHolder, BeamformingParams, BeamformingParamsHolder, EventDetectionParams, \
     EventDetectionParamsHolder, EventConfirmationParams, EventConfirmationParamsHolder
 from noiz.models.timeseries import Tsindex
@@ -20,7 +21,7 @@ from noiz.models.ppsd import PPSDResult, PPSDFile
 from noiz.models.qc import QCOneConfig, QCOneConfigHolder, QCOneRejectedTime, QCOneConfigRejectedTimeHolder,\
     QCOneResults, QCTwoConfig, QCTwoConfigHolder, QCTwoRejectedTime, QCTwoConfigRejectedTimeHolder, QCTwoResults
 from noiz.models.beamforming import BeamformingResult, BeamformingFile
-from noiz.models.crosscorrelation import CrosscorrelationOld, Crosscorrelation, CrosscorrelationFile
+from noiz.models.crosscorrelation import CrosscorrelationCartesianOld, CrosscorrelationCartesian, CrosscorrelationCartesianFile, CrosscorrelationCylindrical, CrosscorrelationCylindricalFile
 from noiz.models.stacking import CCFStack, StackingSchema, StackingSchemaHolder, StackingTimespan
 from noiz.models.event_detection import EventDetectionResult, EventDetectionFile, EventConfirmationResult, EventConfirmationFile, \
     EventConfirmationRun

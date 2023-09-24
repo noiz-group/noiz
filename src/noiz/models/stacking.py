@@ -55,8 +55,8 @@ class StackingSchema(db.Model):
     __tablename__ = "stacking_schema"
 
     id = db.Column("id", db.Integer, primary_key=True)
-    crosscorrelation_params_id = db.Column(
-        "crosscorrelation_params_id", db.Integer, db.ForeignKey("crosscorrelation_params.id"), nullable=False)
+    crosscorrelation_cartesian_params_id = db.Column(
+        "crosscorrelation_cartesian_params_id", db.Integer, db.ForeignKey("crosscorrelation_cartesian_params.id"), nullable=False)
     qctwo_config_id = db.Column("qctwo_config_id", db.Integer, db.ForeignKey("qctwo_config.id"), nullable=False)
     minimum_ccf_count = db.Column("minimum_ccf_count", db.Integer, nullable=False)
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
@@ -64,8 +64,8 @@ class StackingSchema(db.Model):
     stacking_length = db.Column("stacking_length", db.Interval, nullable=False)
     stacking_overlap = db.Column("stacking_overlap", db.Interval, nullable=False)
 
-    crosscorrelation_params = db.relationship("CrosscorrelationParams", foreign_keys=[crosscorrelation_params_id],
-                                              uselist=False, lazy="joined")
+    crosscorrelation_cartesian_params = db.relationship("CrosscorrelationCartesianParams", foreign_keys=[crosscorrelation_cartesian_params_id],
+                                                        uselist=False, lazy="joined")
     qctwo_config = db.relationship("QCTwoConfig", foreign_keys=[qctwo_config_id], uselist=False, lazy="joined")
 
     def __init__(self, **kwargs):
@@ -79,7 +79,7 @@ class StackingSchema(db.Model):
             if key not in kwargs.keys():
                 raise ValueError(f"Required value of {key} missing. You have to provide it.")
 
-        self.crosscorrelation_params_id = kwargs.get("crosscorrelation_params_id")
+        self.crosscorrelation_cartesian_params_id = kwargs.get("crosscorrelation_cartesian_params_id")
         self.qctwo_config_id = kwargs.get("qctwo_config_id")
         self.minimum_ccf_count = kwargs.get("minimum_ccf_count")
         self.starttime = kwargs.get("starttime")
@@ -112,7 +112,7 @@ ccf_ccfstack_association_table = db.Table(
     "stacking_association",
     db.metadata,
     db.Column(
-        "crosscorrelation_id", db.BigInteger, db.ForeignKey("crosscorrelationnew.id")
+        "crosscorrelation_cartesian_id", db.BigInteger, db.ForeignKey("crosscorrelation_cartesiannew.id")
     ),
     db.Column("ccfstack_id", db.BigInteger, db.ForeignKey("ccfstack.id")),
 )
@@ -149,7 +149,7 @@ class CCFStack(db.Model):
     no_ccfs = db.Column("no_ccfs", db.Integer, nullable=False)
 
     ccfs = db.relationship(
-        "Crosscorrelation", secondary=ccf_ccfstack_association_table, back_populates="stacks"
+        "CrosscorrelationCartesian", secondary=ccf_ccfstack_association_table, back_populates="stacks"
     )
 
     stacking_timespan = db.relationship(

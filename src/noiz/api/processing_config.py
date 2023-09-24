@@ -12,13 +12,14 @@ from noiz.exceptions import EmptyResultException
 from noiz.models import QCOneConfig, QCOneConfigRejectedTimeHolder, QCOneRejectedTime, QCOneConfigHolder, \
     QCTwoConfigRejectedTimeHolder, QCTwoRejectedTime, QCTwoConfigHolder, QCTwoConfig, StackingSchemaHolder, \
     StackingSchema, DatachunkParams, DatachunkParamsHolder, ProcessedDatachunkParams, \
-    ProcessedDatachunkParamsHolder, CrosscorrelationParams, CrosscorrelationParamsHolder, EventDetectionParams, \
-    EventDetectionParamsHolder, EventConfirmationParams, EventConfirmationParamsHolder
+    ProcessedDatachunkParamsHolder, CrosscorrelationCartesianParams, CrosscorrelationCartesianParamsHolder, \
+    CrosscorrelationCylindricalParams, CrosscorrelationCylindricalParamsHolder, \
+    EventDetectionParams, EventDetectionParamsHolder, EventConfirmationParams, EventConfirmationParamsHolder
 from noiz.models.processing_params import BeamformingParams, BeamformingParamsHolder, PPSDParams, PPSDParamsHolder
 
 from noiz.processing.configs import parse_single_config_toml, DefinedConfigs, \
-    create_datachunkparams, create_processed_datachunk_params, create_crosscorrelation_params, create_stacking_params, \
-    create_beamforming_params, create_ppsd_params, create_event_detection_params, create_event_confirmation_params, \
+    create_datachunkparams, create_processed_datachunk_params, create_crosscorrelation_cartesian_params, create_crosscorrelation_cylindrical_params, \
+    create_stacking_params, create_beamforming_params, create_ppsd_params, create_event_detection_params, create_event_confirmation_params, \
     generate_multiple_beamforming_configs_based_on_single_holder
 
 from noiz.api.component import fetch_components
@@ -57,19 +58,35 @@ def fetch_processed_datachunk_params_by_id(id: int) -> ProcessedDatachunkParams:
     return fetched_params
 
 
-def fetch_crosscorrelation_params_by_id(id: int) -> CrosscorrelationParams:
+def fetch_crosscorrelation_cartesian_params_by_id(id: int) -> CrosscorrelationCartesianParams:
     """
-    Fetches a CrosscorrelationParams objects by its ID.
+    Fetches a CrosscorrelationCartesianParams objects by its ID.
 
     :param id: ID of processing params to be fetched
     :type id: int
-    :return: fetched CrosscorrelationParams object
-    :rtype: CrosscorrelationParams
+    :return: fetched CrosscorrelationCartesianParams object
+    :rtype: CrosscorrelationCartesianParams
     :raises ValueError
     """
-    fetched_params = CrosscorrelationParams.query.filter_by(id=id).first()
+    fetched_params = CrosscorrelationCartesianParams.query.filter_by(id=id).first()
     if fetched_params is None:
-        raise EmptyResultException(f"CrosscorrelationParams object of id {id} does not exist.")
+        raise EmptyResultException(f"CrosscorrelationCartesianParams object of id {id} does not exist.")
+    return fetched_params
+
+
+def fetch_crosscorrelation_cylindrical_params_by_id(id: int) -> CrosscorrelationCylindricalParams:
+    """
+    Fetches a CrosscorrelationCylindricalParams objects by its ID.
+
+    :param id: ID of processing params to be fetched
+    :type id: int
+    :return: fetched CrosscorrelationCylindricalParams object
+    :rtype: CrosscorrelationCylindricalParams
+    :raises ValueError
+    """
+    fetched_params = CrosscorrelationCylindricalParams.query.filter_by(id=id).first()
+    if fetched_params is None:
+        raise EmptyResultException(f"CrosscorrelationCylindricalParams object of id {id} does not exist.")
     return fetched_params
 
 
@@ -94,7 +111,7 @@ AllParamsObjects = Union[
     BeamformingParams,
     PPSDParams,
     ProcessedDatachunkParams,
-    CrosscorrelationParams,
+    CrosscorrelationCartesianParams,
     StackingSchema,
     QCOneConfig,
     QCTwoConfig,
@@ -108,7 +125,7 @@ def _insert_params_into_db(
     This is method simply adding an instance of
     :py:class:`~noiz.models.DatachunkParams`,
     :py:class:`~noiz.models.ProcessedDatachunkParams`,
-    :py:class:`~noiz.models.CrosscorrelationParams`,
+    :py:class:`~noiz.models.CrosscorrelationCartesianParams`,
     :py:class:`~noiz.models.StackingSchema`
     to DB and committing changes.
 
@@ -271,15 +288,15 @@ def create_and_add_ppsd_params_from_toml(
         return (params_holder, params)
 
 
-def create_and_add_crosscorrelation_params_from_toml(
+def create_and_add_crosscorrelation_cartesian_params_from_toml(
         filepath: Path,
         add_to_db: bool = False
-) -> Union[CrosscorrelationParams, Tuple[CrosscorrelationParamsHolder, CrosscorrelationParams]]:
+) -> Union[CrosscorrelationCartesianParams, Tuple[CrosscorrelationCartesianParamsHolder, CrosscorrelationCartesianParams]]:
     """
     filldocs
     """
 
-    params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.CROSSCORRELATIONPARAMS)
+    params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.CROSSCORRELATIONCARTESIANPARAMS)
 
     try:
         processed_datachunk_params = fetch_processed_datachunk_params_by_id(
@@ -289,8 +306,38 @@ def create_and_add_crosscorrelation_params_from_toml(
         raise EmptyResultException(f"There are no processed_datachunk_params in the database with requested id: "
                                    f"{params_holder.processed_datachunk_params_id}")
 
-    params = create_crosscorrelation_params(params_holder=params_holder, processed_params=processed_datachunk_params)
+    params = create_crosscorrelation_cartesian_params(params_holder=params_holder, processed_params=processed_datachunk_params)
 
+    if add_to_db:
+        return _insert_params_into_db(params=params)
+    else:
+        return (params_holder, params)
+
+
+def create_and_add_crosscorrelation_cylindrical_params_from_toml(
+        filepath: Path,
+        add_to_db: bool = False
+) -> Union[CrosscorrelationCylindricalParams, Tuple[CrosscorrelationCylindricalParamsHolder, CrosscorrelationCylindricalParams]]:
+    """_summary_
+
+    :param filepath: path of configuration file for cylindrical crosscorrelation
+    :type filepath: Path
+    :param add_to_db: if parameters have to be added or not to the database, defaults to False
+    :type add_to_db: bool, optional
+    :return:
+    :rtype: Union[CrosscorrelationCylindricalParams, Tuple[CrosscorrelationCylindricalParamsHolder, CrosscorrelationCylindricalParams]]
+    """
+
+    params_holder = parse_single_config_toml(filepath=filepath, config_type=DefinedConfigs.CROSSCORRELATIONCYLINDRICALPARAMS)
+    try:
+        crosscorrelation_cartesian_params = fetch_crosscorrelation_cartesian_params_by_id(
+            id=params_holder.crosscorrelation_cartesian_params_id
+        )
+    except EmptyResultException:
+        raise EmptyResultException(f"There are no crosscorrelation_cartesian_params in the database with requested id: "
+                                   f"{crosscorrelation_cartesian_params}")
+
+    params = create_crosscorrelation_cylindrical_params(params_holder=params_holder)
     if add_to_db:
         return _insert_params_into_db(params=params)
     else:
@@ -310,7 +357,7 @@ def create_and_add_stacking_schema_from_toml(
 
     from noiz.api.qc import fetch_qctwo_config_single
 
-    params.crosscorrelation_params_id = fetch_qctwo_config_single(id=params.qctwo_config_id).crosscorrelation_params_id
+    params.crosscorrelation_cartesian_params_id = fetch_qctwo_config_single(id=params.qctwo_config_id).crosscorrelation_cartesian_params_id
 
     if add_to_db:
         return _insert_params_into_db(params=params)
@@ -547,7 +594,7 @@ def create_qctwo_rejected_time(
                                        f"Also, pair for reversed parameters do not exist. {holder}")
 
     if len(fetched_components_pairs) > 1:
-        raise ValueError(f"There was more than one component_pair fetched for that query. "
+        raise ValueError(f"There was more than one component_pair_cartesian fetched for that query. "
                          f"Something is wrong with the fetcher. {fetched_components_pairs}")
 
     res = [
@@ -582,7 +629,7 @@ def create_qctwo_config(
 
     qctwo = QCTwoConfig(
         null_policy=qctwo_holder.null_treatment_policy.value,
-        crosscorrelation_params_id=qctwo_holder.crosscorrelation_params_id,
+        crosscorrelation_cartesian_params_id=qctwo_holder.crosscorrelation_cartesian_params_id,
         starttime=qctwo_holder.starttime,
         endtime=qctwo_holder.endtime,
     )

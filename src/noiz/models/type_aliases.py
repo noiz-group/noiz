@@ -3,21 +3,24 @@
 # Copyright © 2019-2023 Contributors to the Noiz project.
 
 from sqlalchemy.sql import Insert
-from typing import Union, TypedDict, Collection, Callable, Optional, List, Tuple, Dict
+from typing import Union, TypedDict, Collection, Callable, Optional, List, Tuple, Dict, FrozenSet
 
-from noiz.models import CrosscorrelationOld, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults, \
+from noiz.models import CrosscorrelationCartesianOld, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults, \
     Datachunk, DatachunkFile, QCOneConfig, AveragedSohGps, ComponentPairCartesian, StackingSchema, StackingTimespan, Component, \
-    Timespan, Tsindex, DatachunkParams, ProcessedDatachunkParams, CrosscorrelationParams, ProcessedDatachunkFile, \
-    BeamformingFile, BeamformingResult, PPSDParams, Crosscorrelation, CrosscorrelationFile, PPSDFile, PPSDResult, \
+    Timespan, Tsindex, DatachunkParams, ProcessedDatachunkParams, CrosscorrelationCartesianParams, ProcessedDatachunkFile, \
+    BeamformingFile, BeamformingResult, PPSDParams, CrosscorrelationCartesian, CrosscorrelationCartesianFile, PPSDFile, PPSDResult, \
     BeamformingParams, EventDetectionParams, EventDetectionResult, EventDetectionFile, EventConfirmationParams, EventConfirmationResult, \
-    EventConfirmationFile, EventConfirmationRun
+    EventConfirmationFile, EventConfirmationRun, ComponentPairCylindrical, \
+    CrosscorrelationCylindrical, CrosscorrelationCylindricalFile, \
+    CrosscorrelationCylindricalParams, CrosscorrelationCylindricalParamsHolder
 from noiz.models.beamforming import BeamformingPeakAverageAbspower, BeamformingPeakAverageRelpower, \
     BeamformingPeakAllAbspower, BeamformingPeakAllRelpower
 
 BulkAddableObjects = Union[
     Datachunk,
-    CrosscorrelationOld,
-    Crosscorrelation,
+    CrosscorrelationCartesianOld,
+    CrosscorrelationCartesian,
+    CrosscorrelationCylindrical,
     BeamformingResult,
     PPSDResult,
     CCFStack,
@@ -26,7 +29,8 @@ BulkAddableObjects = Union[
     QCOneResults,
     QCTwoResults,
     DatachunkFile,
-    CrosscorrelationFile,
+    CrosscorrelationCartesianFile,
+    CrosscorrelationCylindricalFile,
     ProcessedDatachunkFile,
     EventDetectionResult,
     EventConfirmationResult,
@@ -35,7 +39,8 @@ BulkAddableObjects = Union[
 
 BulkAddableFileObjects = Union[
     DatachunkFile,
-    CrosscorrelationFile,
+    CrosscorrelationCartesianFile,
+    CrosscorrelationCylindricalFile,
     ProcessedDatachunkFile,
     BeamformingFile,
     PPSDFile,
@@ -92,15 +97,22 @@ class PPSDRunnerInputs(TypedDict):
     component: Component
 
 
-class CrosscorrelationRunnerInputs(TypedDict):
+class CrosscorrelationCartesianRunnerInputs(TypedDict):
     timespan: Timespan
-    crosscorrelation_params: CrosscorrelationParams
+    crosscorrelation_cartesian_params: CrosscorrelationCartesianParams
     grouped_processed_chunks: Dict[int, ProcessedDatachunk]
-    component_pairs: Tuple[ComponentPairCartesian, ...]
+    component_pairs_cartesian: Tuple[ComponentPairCartesian, ...]
+
+
+class CrosscorrelationCylindricalRunnerInputs(TypedDict):
+    timespan: Timespan
+    crosscorrelation_cylindrical_params: CrosscorrelationCylindricalParams
+    grouped_processed_xcorrcartisian: Dict[FrozenSet[int], CrosscorrelationCartesian]
+    component_pairs_cylindrical: Tuple[ComponentPairCylindrical, ...]
 
 
 class StackingInputs(TypedDict):
-    qctwo_ccfs_container: List[Tuple[QCTwoResults, Crosscorrelation]]
+    qctwo_ccfs_container: List[Tuple[QCTwoResults, CrosscorrelationCartesian]]
     componentpair_cartesian: ComponentPairCartesian
     stacking_schema: StackingSchema
     stacking_timespan: StackingTimespan
@@ -129,7 +141,8 @@ InputsForMassCalculations = Union[
     PPSDRunnerInputs,
     QCOneRunnerInputs,
     ProcessDatachunksInputs,
-    CrosscorrelationRunnerInputs,
+    CrosscorrelationCartesianRunnerInputs,
+    CrosscorrelationCylindricalRunnerInputs,
     StackingInputs,
     EventDetectionRunnerInputs,
     EventConfirmationRunnerInputs,

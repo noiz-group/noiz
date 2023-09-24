@@ -325,8 +325,8 @@ class ProcessedDatachunkParams(db.Model):
         lazy="joined",
     )
 
-    crosscorrelation_params = db.relationship(
-        "CrosscorrelationParams", uselist=True,
+    crosscorrelation_cartesian_params = db.relationship(
+        "CrosscorrelationCartesianParams", uselist=True,
     )
 
     def __init__(self, **kwargs):
@@ -420,17 +420,17 @@ class ProcessedDatachunkParams(db.Model):
 
 
 @dataclass
-class CrosscorrelationParamsHolder:
+class CrosscorrelationCartesianParamsHolder:
     """
-        This simple dataclass is just helping to validate :py:class:`~noiz.models.CrosscorrelationParams`
+        This simple dataclass is just helping to validate :py:class:`~noiz.models.CrosscorrelationCartesianParams`
         values loaded from the TOML file
     """
     processed_datachunk_params_id: int
     correlation_max_lag: int
 
 
-class CrosscorrelationParams(db.Model):
-    __tablename__ = "crosscorrelation_params"
+class CrosscorrelationCartesianParams(db.Model):
+    __tablename__ = "crosscorrelation_cartesian_params"
 
     id = db.Column("id", db.Integer, primary_key=True)
     processed_datachunk_params_id = db.Column(
@@ -442,8 +442,12 @@ class CrosscorrelationParams(db.Model):
     processed_datachunk_params = db.relationship(
         "ProcessedDatachunkParams",
         foreign_keys=[processed_datachunk_params_id],
-        back_populates="crosscorrelation_params",
+        back_populates="crosscorrelation_cartesian_params",
         lazy="joined",
+    )
+
+    crosscorrelation_cylindrical_params = db.relationship(
+        "CrosscorrelationCylindricalParams", uselist=True,
     )
 
     def __init__(self, **kwargs):
@@ -455,10 +459,10 @@ class CrosscorrelationParams(db.Model):
     def as_dict(self):
         """filldocs"""
         return dict(
-            crosscorrelation_params_id=self.id,
-            crosscorrelation_params_processed_datachunk_params_id=self.processed_datachunk_params_id,
-            crosscorrelation_params_sampling_rate=self.sampling_rate,
-            crosscorrelation_params_correlation_max_lag=self.correlation_max_lag,
+            crosscorrelation_cartesian_params_id=self.id,
+            crosscorrelation_cartesian_params_processed_datachunk_params_id=self.processed_datachunk_params_id,
+            crosscorrelation_cartesian_params_sampling_rate=self.sampling_rate,
+            crosscorrelation_cartesian_params_correlation_max_lag=self.correlation_max_lag,
         )
 
     @property
@@ -491,6 +495,40 @@ class CrosscorrelationParams(db.Model):
         stop = self.correlation_max_lag + step
 
         return np.arange(start=start, stop=stop, step=step)
+
+
+@dataclass
+class CrosscorrelationCylindricalParamsHolder:
+    """
+        This simple dataclass is just helping to validate :py:class:`~noiz.models.CrosscorrelationCylindricalParams`
+        values loaded from the TOML file
+    """
+    crosscorrelation_cartesian_params_id: int
+
+
+class CrosscorrelationCylindricalParams(db.Model):
+    __tablename__ = "crosscorrelation_cylindrical_params"
+
+    id = db.Column("id", db.Integer, primary_key=True)
+    crosscorrelation_cartesian_params_id = db.Column(
+        "crosscorrelation_cartesian_params_id", db.Integer, db.ForeignKey("crosscorrelation_cartesian_params.id"), nullable=False
+    )
+    crosscorrelation_cartesian_params = db.relationship(
+        "CrosscorrelationCartesianParams",
+        foreign_keys=[crosscorrelation_cartesian_params_id],
+        back_populates="crosscorrelation_cylindrical_params",
+        lazy="joined",
+    )
+
+    def __init__(self, **kwargs):
+        self.crosscorrelation_cartesian_params_id = kwargs.get("crosscorrelation_cartesian_params_id")
+
+    def as_dict(self):
+        """filldocs"""
+        return dict(
+            crosscorrelation_cylindrical_params_id=self.id,
+            crosscorrelation_cylindrical_params_crosscorrelation_cartesian_params_id=self.crosscorrelation_cartesian_params_id,
+        )
 
 
 @dataclass

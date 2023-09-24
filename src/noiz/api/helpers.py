@@ -10,7 +10,7 @@ from sqlalchemy.orm import Query
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm.exc import UnmappedInstanceError
 from sqlalchemy.sql import Insert
-from typing import Iterable, Union, List, Tuple, Any, Collection, Callable, get_args
+from typing import Iterable, Union, List, Tuple, Any, Collection, Callable, get_args, Dict, TypeVar
 
 from noiz.database import db
 from noiz.exceptions import CorruptedDataException, InconsistentDataException, ObspyError
@@ -33,6 +33,23 @@ def extract_object_ids(
         instances = list(instances)
     ids = [x.id for x in instances]
     return ids
+
+
+def extract_object_ids_keep_objects(
+        instances: Iterable[Any],
+) -> Dict[int, Any]:
+    """
+    Extracts parameter .id from all provided instances of objects.
+    It can either be a single object or iterable of them.
+
+    :param instances: instances of objects to be checked
+    :type instances:
+    :return: ids of objects
+    :rtype: List[int]
+    """
+    if not isinstance(instances, Iterable):
+        instances = list(instances)
+    return {x.id: x for x in instances}
 
 
 def bulk_add_objects(objects_to_add: Collection[BulkAddableObjects]) -> None:

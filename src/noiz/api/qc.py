@@ -11,7 +11,7 @@ from typing import List, Collection, Union, Optional, Generator
 
 
 from noiz.api.component import fetch_components
-from noiz.api.crosscorrelations import fetch_crosscorrelation
+from noiz.api.crosscorrelations import fetch_crosscorrelation_cartesian
 from noiz.api.datachunk import _determine_filters_and_opts_for_datachunk
 from noiz.api.helpers import extract_object_ids, bulk_add_or_upsert_objects, \
     _run_calculate_and_upsert_on_dask, _run_calculate_and_upsert_sequentially
@@ -20,7 +20,7 @@ from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import Datachunk, DatachunkStats, QCOneConfig, QCOneResults, QCTwoConfig, \
-    QCTwoResults, AveragedSohGps, Component, Timespan, Crosscorrelation, DatachunkParams
+    QCTwoResults, AveragedSohGps, Component, Timespan, CrosscorrelationCartesian, DatachunkParams
 from noiz.models.type_aliases import QCOneRunnerInputs
 from noiz.processing.qc import calculate_qctwo_results, calculate_qcone_results_wrapper
 from noiz.validation_helpers import validate_to_tuple
@@ -177,15 +177,15 @@ def fetch_qctwo_config_single(id: int) -> QCTwoConfig:
 def fetch_qctwo_results(
         qctwo_config: Optional[QCTwoConfig] = None,
         qctwo_config_id: Optional[int] = None,
-        crosscorrelations: Optional[Collection[Crosscorrelation]] = None,
-        crosscorrelation_ids: Optional[Collection[int]] = None,
+        crosscorrelations_cartesian: Optional[Collection[CrosscorrelationCartesian]] = None,
+        crosscorrelation_cartesian_ids: Optional[Collection[int]] = None,
 ) -> List[QCTwoResults]:
     """filldocs"""
     query = _query_qctwo_results(
         qctwo_config=qctwo_config,
         qctwo_config_id=qctwo_config_id,
-        crosscorrelations=crosscorrelations,
-        crosscorrelation_ids=crosscorrelation_ids,
+        crosscorrelations_cartesian=crosscorrelations_cartesian,
+        crosscorrelation_cartesian_ids=crosscorrelation_cartesian_ids,
     )
     return query.all()
 
@@ -193,15 +193,15 @@ def fetch_qctwo_results(
 def count_qctwo_results(
         qctwo_config: Optional[QCTwoConfig] = None,
         qctwo_config_id: Optional[int] = None,
-        crosscorrelations: Optional[Collection[Crosscorrelation]] = None,
-        crosscorrelation_ids: Optional[Collection[int]] = None,
+        crosscorrelations_cartesian: Optional[Collection[CrosscorrelationCartesian]] = None,
+        crosscorrelation_cartesian_ids: Optional[Collection[int]] = None,
 ) -> int:
     """filldocs"""
     query = _query_qctwo_results(
         qctwo_config=qctwo_config,
         qctwo_config_id=qctwo_config_id,
-        crosscorrelations=crosscorrelations,
-        crosscorrelation_ids=crosscorrelation_ids,
+        crosscorrelations_cartesian=crosscorrelations_cartesian,
+        crosscorrelation_cartesian_ids=crosscorrelation_cartesian_ids,
     )
     return query.count()
 
@@ -209,13 +209,13 @@ def count_qctwo_results(
 def _query_qctwo_results(
         qctwo_config: Optional[QCOneConfig] = None,
         qctwo_config_id: Optional[int] = None,
-        crosscorrelations: Optional[Collection[Crosscorrelation]] = None,
-        crosscorrelation_ids: Optional[Collection[int]] = None,
+        crosscorrelations_cartesian: Optional[Collection[CrosscorrelationCartesian]] = None,
+        crosscorrelation_cartesian_ids: Optional[Collection[int]] = None,
 ) -> Query:
     """filldocs"""
 
-    if crosscorrelations is not None and crosscorrelation_ids is not None:
-        raise ValueError("Both crosscorrelations and crosscorrelation_ids parameters were provided. "
+    if crosscorrelations_cartesian is not None and crosscorrelation_cartesian_ids is not None:
+        raise ValueError("Both crosscorrelations_cartesian and crosscorrelation_cartesian_ids parameters were provided. "
                          "You have to provide maximum one of them.")
     if qctwo_config is not None and qctwo_config_id is not None:
         raise ValueError("Both qcone_config and qcone_config_id parameters were provided. "
@@ -227,11 +227,11 @@ def _query_qctwo_results(
     if qctwo_config_id is not None:
         qcone_config_ids = validate_to_tuple(val=qctwo_config_id, accepted_type=int)
         filters.append(QCTwoResults.qctwo_config_id.in_(qcone_config_ids))
-    if crosscorrelations is not None:
-        extracted_datachunk_ids = extract_object_ids(crosscorrelations)
-        filters.append(QCTwoResults.crosscorrelation_id.in_(extracted_datachunk_ids))
-    if crosscorrelation_ids is not None:
-        filters.append(QCTwoResults.crosscorrelation_id.in_(crosscorrelation_ids))
+    if crosscorrelations_cartesian is not None:
+        extracted_datachunk_ids = extract_object_ids(crosscorrelations_cartesian)
+        filters.append(QCTwoResults.crosscorrelation_cartesian_id.in_(extracted_datachunk_ids))
+    if crosscorrelation_cartesian_ids is not None:
+        filters.append(QCTwoResults.crosscorrelation_cartesian_id.in_(crosscorrelation_cartesian_ids))
     if len(filters) == 0:
         filters.append(True)
 
@@ -603,8 +603,8 @@ def process_qctwo(
         logger.error(e)
         raise e
 
-    ccfs = fetch_crosscorrelation(
-        crosscorrelation_params_id=qctwo_config.crosscorrelation_params_id,
+    ccfs = fetch_crosscorrelation_cartesian(
+        crosscorrelation_cartesian_params_id=qctwo_config.crosscorrelation_cartesian_params_id,
         load_timespan=True,
     )
     qctwo_results = []
@@ -612,7 +612,7 @@ def process_qctwo(
     for ccf in ccfs:
         qctwo_res = calculate_qctwo_results(
             qctwo_config=qctwo_config,
-            crosscorrelation=ccf,
+            crosscorrelation_cartesian=ccf,
         )
         qctwo_results.append(qctwo_res)
     logger.info("Calculations of QCTwoResults done.")
@@ -644,7 +644,7 @@ def _prepare_upsert_command_qctwo(results: QCTwoResults) -> Insert:
             endtime=results.endtime,
             accepted_time=results.accepted_time,
             qctwo_config_id=results.qctwo_config_id,
-            crosscorrelation_id=results.crosscorrelation_id,
+            crosscorrelation_cartesian_id=results.crosscorrelation_cartesian_id,
         )
         .on_conflict_do_update(
             constraint="unique_qctwo_results_per_config_per_ccf",

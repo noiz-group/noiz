@@ -7,7 +7,12 @@ from loguru import logger
 from pathlib import Path
 from typing import List, Iterable, Optional, Collection, Union
 
-from noiz.validation_helpers import validate_to_tuple
+import datetime
+import pandas as pd
+import numpy as np
+from obspy import UTCDateTime
+
+from noiz.validation_helpers import validate_to_tuple, validate_timestamp_as_pydatetime
 from noiz.database import db
 from noiz.models.component import Component
 from noiz.processing.component import parse_inventory_for_single_component_db_entries
@@ -35,6 +40,8 @@ def fetch_components(
     stations: Optional[Union[Collection[str], str]] = None,
     components: Optional[Union[Collection[str], str]] = None,
     component_ids: Optional[Union[Collection[int], int]] = None,
+    starttime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
+    endtime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
 ) -> List[Component]:
     """
     Fetches components based on provided network codes, station codes and component codes.
@@ -63,7 +70,10 @@ def fetch_components(
         filters.append(Component.component.in_(validate_to_tuple(components, accepted_type=str)))
     if component_ids is not None:
         filters.append(Component.id.in_(validate_to_tuple(component_ids, accepted_type=int)))
-
+    if starttime is not None:
+        filters.append(validate_timestamp_as_pydatetime(starttime) <= Component.end_date)
+    if endtime is not None:
+        filters.append(Component.start_date <= validate_timestamp_as_pydatetime(endtime))
     if len(filters) == 0:
         filters.append(True)
 
