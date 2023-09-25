@@ -22,6 +22,7 @@ It is under heavy development and the API might change without notice.
    :maxdepth: 2
    :caption: Contents:
 
+   content/tutorials/tutorial
    content/usage
    content/miscellaneous
    content/cli

@@ -1,0 +1,27 @@
+version: "3.7"
+
+services:
+  postgres:
+    image: registry.gitlab.com/noiz-group/noiz:postgres
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: noiztest
+      POSTGRES_PASSWORD: noiztest
+      POSTGRES_DB: noiztest
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=1000"
+      - "-c"
+      - "shared_buffers=3GB"
+    ports:
+      - "5432:5432"
+        #volumes:
+        #- ./noiz-postgres-data:/var/lib/postgresql/data/pgdata # set that directory to some fast drive
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8060:8080"
