@@ -13,6 +13,7 @@ master
 Breaking changes
 ------------------
 - Renamed ComponentPair to ComponentPairCartesian. !191
+- Removed CrosscorrelationOld model and renamed table under Crosscorrelation model to crosscorrelation. !220
 
 New functionality
 ------------------

@@ -333,7 +333,11 @@ class QCTwoResults(db.Model):
     id = db.Column("id", db.BigInteger, primary_key=True)
 
     qctwo_config_id = db.Column("qctwo_config_id", db.Integer, db.ForeignKey("qctwo_config.id"))
-    crosscorrelation_cartesian_id = db.Column("crosscorrelation_cartesian_id", db.Integer, db.ForeignKey("crosscorrelation_cartesiannew.id"))
+    crosscorrelation_cartesian_id = db.Column(
+        "crosscorrelation_cartesian_id",
+        db.Integer,
+        db.ForeignKey("crosscorrelation_cartesian.id")
+    )
 
     starttime = db.Column("starttime", db.Boolean, nullable=False)
     endtime = db.Column("endtime", db.Boolean, nullable=False)

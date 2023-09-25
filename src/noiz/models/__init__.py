@@ -21,7 +21,7 @@ from noiz.models.ppsd import PPSDResult, PPSDFile
 from noiz.models.qc import QCOneConfig, QCOneConfigHolder, QCOneRejectedTime, QCOneConfigRejectedTimeHolder,\
     QCOneResults, QCTwoConfig, QCTwoConfigHolder, QCTwoRejectedTime, QCTwoConfigRejectedTimeHolder, QCTwoResults
 from noiz.models.beamforming import BeamformingResult, BeamformingFile
-from noiz.models.crosscorrelation import CrosscorrelationCartesianOld, CrosscorrelationCartesian, CrosscorrelationCartesianFile, CrosscorrelationCylindrical, CrosscorrelationCylindricalFile
+from noiz.models.crosscorrelation import CrosscorrelationCartesian, CrosscorrelationCartesianFile, CrosscorrelationCylindrical, CrosscorrelationCylindricalFile
 from noiz.models.stacking import CCFStack, StackingSchema, StackingSchemaHolder, StackingTimespan
 from noiz.models.event_detection import EventDetectionResult, EventDetectionFile, EventConfirmationResult, EventConfirmationFile, \
     EventConfirmationRun
