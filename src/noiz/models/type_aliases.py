@@ -5,7 +5,7 @@
 from sqlalchemy.sql import Insert
 from typing import Union, TypedDict, Collection, Callable, Optional, List, Tuple, Dict, FrozenSet
 
-from noiz.models import CrosscorrelationCartesianOld, CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults, \
+from noiz.models import CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults, \
     Datachunk, DatachunkFile, QCOneConfig, AveragedSohGps, ComponentPairCartesian, StackingSchema, StackingTimespan, Component, \
     Timespan, Tsindex, DatachunkParams, ProcessedDatachunkParams, CrosscorrelationCartesianParams, ProcessedDatachunkFile, \
     BeamformingFile, BeamformingResult, PPSDParams, CrosscorrelationCartesian, CrosscorrelationCartesianFile, PPSDFile, PPSDResult, \
@@ -18,7 +18,6 @@ from noiz.models.beamforming import BeamformingPeakAverageAbspower, BeamformingP
 
 BulkAddableObjects = Union[
     Datachunk,
-    CrosscorrelationCartesianOld,
     CrosscorrelationCartesian,
     CrosscorrelationCylindrical,
     BeamformingResult,

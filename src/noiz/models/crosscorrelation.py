@@ -2,65 +2,22 @@
 # Copyright © 2015-2019 EOST UNISTRA, Storengy SAS, Damian Kula
 # Copyright © 2019-2023 Contributors to the Noiz project.
 
-from noiz.exceptions import MissingDataFileException
 from pathlib import Path
-
 from typing import Optional
 
-from sqlalchemy.dialects.postgresql import ARRAY
 from noiz.database import db
-
+from noiz.exceptions import MissingDataFileException
 from noiz.models.stacking import ccf_ccfstack_association_table
-
-
-class CrosscorrelationCartesianOld(db.Model):
-    __tablename__ = "crosscorrelation_cartesian"
-    __table_args__ = (
-        db.UniqueConstraint(
-            "timespan_id",
-            "componentpair_id",
-            "crosscorrelation_cartesian_params_id",
-            name="unique_ccf_per_timespan_per_componentpair_per_config",
-        ),
-    )
-
-    id = db.Column("id", db.BigInteger, primary_key=True)
-    componentpair_id = db.Column(
-        "componentpair_id",
-        db.Integer,
-        db.ForeignKey("componentpair_cartesian.id"),
-        nullable=False,
-    )
-    timespan_id = db.Column(
-        "timespan_id", db.BigInteger, db.ForeignKey("timespan.id"), nullable=False
-    )
-    crosscorrelation_cartesian_params_id = db.Column(
-        "crosscorrelation_cartesian_params_id",
-        db.Integer,
-        db.ForeignKey("crosscorrelation_cartesian_params.id"),
-        nullable=False,
-    )
-    ccf = db.Column("ccf", ARRAY(db.Float))
-
-    componentpair_cartesian = db.relationship("ComponentPairCartesian", foreign_keys=[componentpair_id])
-    timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
-    crosscorrelation_cartesian_params = db.relationship(
-        "CrosscorrelationCartesianParams", foreign_keys=[crosscorrelation_cartesian_params_id]
-    )
-    # stacks = db.relationship(
-    #     "CCFStack", secondary=ccf_ccfstack_association_table, back_populates="ccfs"
-    # )
 
 
 class CrosscorrelationCartesianFile(db.Model):
     __tablename__ = "crosscorrelation_cartesian_file"
-
     id = db.Column("id", db.BigInteger, primary_key=True)
     filepath = db.Column("filepath", db.UnicodeText, nullable=False)
 
 
 class CrosscorrelationCartesian(db.Model):
-    __tablename__ = "crosscorrelation_cartesiannew"
+    __tablename__ = "crosscorrelation_cartesian"
     __table_args__ = (
         db.UniqueConstraint(
             "timespan_id",
@@ -168,28 +125,28 @@ class CrosscorrelationCylindrical(db.Model):
     crosscorrelation_cartesian_1_id = db.Column(
         "crosscorrelation_cartesian_1_id",
         db.Integer,
-        db.ForeignKey("crosscorrelation_cartesiannew.id"),
+        db.ForeignKey("crosscorrelation_cartesian.id"),
         nullable=True,
     )
     crosscorrelation_cartesian_1_code_pair = db.Column("crosscorrelation_cartesian_1_code_pair", db.UnicodeText, nullable=True)
     crosscorrelation_cartesian_2_id = db.Column(
         "crosscorrelation_cartesian_2_id",
         db.Integer,
-        db.ForeignKey("crosscorrelation_cartesiannew.id"),
+        db.ForeignKey("crosscorrelation_cartesian.id"),
         nullable=True,
     )
     crosscorrelation_cartesian_2_code_pair = db.Column("crosscorrelation_cartesian_2_code_pair", db.UnicodeText, nullable=True)
     crosscorrelation_cartesian_3_id = db.Column(
         "crosscorrelation_cartesian_3_id",
         db.Integer,
-        db.ForeignKey("crosscorrelation_cartesiannew.id"),
+        db.ForeignKey("crosscorrelation_cartesian.id"),
         nullable=True,
     )
     crosscorrelation_cartesian_3_code_pair = db.Column("crosscorrelation_cartesian_3_code_pair", db.UnicodeText, nullable=True)
     crosscorrelation_cartesian_4_id = db.Column(
         "crosscorrelation_cartesian_4_id",
         db.Integer,
-        db.ForeignKey("crosscorrelation_cartesiannew.id"),
+        db.ForeignKey("crosscorrelation_cartesian.id"),
         nullable=True,
     )
     crosscorrelation_cartesian_4_code_pair = db.Column("crosscorrelation_cartesian_4_code_pair", db.UnicodeText, nullable=True)
