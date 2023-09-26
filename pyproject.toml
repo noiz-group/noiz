@@ -12,7 +12,11 @@ dynamic = ["version"]
 readme = "README.rst"
 license = {file = "LICENSE.rst"}
 authors = [
+#    List ordered by time of joining the project
     { name = "Damian Kula", email = "heavelock@gmail.com" },
+    { name = "Alexandre Kazantsev", email = "alexandre.kazantsev@storengy.com" },
+    { name = "Arthur Dartois", email = "arthur.dartois@storengy.com" },
+    { name = "Laure Duboeuf", email = "laure.duboeuf@external.storengy.com" },
 ]
 dependencies = [
     "more-itertools >=8.11",
