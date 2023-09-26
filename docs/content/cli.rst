@@ -11,7 +11,7 @@ DB
 ==========
 
 Subgroup `db` consists of a few commands that will
-g
+
 
 init
 -------------------------
