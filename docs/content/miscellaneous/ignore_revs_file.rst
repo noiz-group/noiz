@@ -2,12 +2,8 @@
 .. Copyright © 2015-2019 EOST UNISTRA, Storengy SAS, Damian Kula
 .. Copyright © 2019-2023 Contributors to the Noiz project.
 
-Miscellaneous
-**************
-
-
 Ignore revs file
-==================
+*****************
 
 Couple of times in history of noiz there were performed changes on the whole codebase.
 One of examples of such actions were adding SPDX headers or introducing code formatting.

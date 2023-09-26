@@ -22,13 +22,14 @@ It is under heavy development and the API might change without notice.
    :maxdepth: 2
    :caption: Contents:
 
-   content/tutorials/tutorial
+   content/guides/index.rst
+   content/tutorials/index.rst
    content/usage
-   content/miscellaneous
-   content/cli
-   content/docker
-   content/datachunk
+   content/miscellaneous/index.rst
 
+..   content/docker
+..   content/cli
+..   content/datachunk
 
 .. autosummary::
    :toctree: noiz
