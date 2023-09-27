@@ -1,0 +1,3 @@
+[CrosscorrelationCartesianParams]
+processed_datachunk_params_id = 1
+correlation_max_lag = 20

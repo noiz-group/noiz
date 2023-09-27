@@ -1,0 +1,7 @@
+[StackingSchema]
+qctwo_config_id = 1
+minimum_ccf_count = 5
+starttime = "2019-09-20"
+endtime = "2019-10-15"
+stacking_length = "6 hours"
+stacking_overlap = "3 hours"
