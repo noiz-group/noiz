@@ -1,0 +1,26 @@
+[QCTwo]
+crosscorrelation_cartesian_params_id = 1
+null_treatment_policy = "pass"
+starttime = 2019-10-01
+endtime = 2019-11-01
+
+[[QCTwo.rejected_times]]
+network_a = "TD"
+station_a = "TD05"
+component_a = "Z"
+network_b = "TD"
+station_b = "TD11"
+component_b = "Z"
+starttime = 2019-10-15
+endtime = 2019-10-23
+
+[[QCTwo.rejected_times]]
+network_a = "TD"
+station_a = "TD23"
+component_a = "N"
+network_b = "TD"
+station_b = "TD05"
+component_b = "E"
+starttime = 2019-10-15
+endtime = 2019-10-17
+

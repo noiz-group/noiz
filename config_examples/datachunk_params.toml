@@ -1,0 +1,15 @@
+[DatachunkParams]
+sampling_rate = 24
+prefiltering_low = 0.01
+prefiltering_high = 11.0
+prefiltering_order = 4
+preprocessing_taper_type = "cosine"
+preprocessing_taper_side = "both"
+preprocessing_taper_max_length = 5
+preprocessing_taper_max_percentage = 0.1
+remove_response = true
+datachunk_sample_tolerance = 0.02
+zero_padding_method = "tapered_padded"
+padding_taper_type = "cosine"
+padding_taper_max_length = 5
+padding_taper_max_percentage = 10

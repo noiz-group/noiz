@@ -1,0 +1,9 @@
+[PPSDParams]
+datachunk_params_id = 1
+segment_length = 600
+segment_step = 500
+freq_min = 0.1
+freq_max = 5
+resample = "False"
+rejected_windows_quantile = 0.1
+save_all_windows = "False"

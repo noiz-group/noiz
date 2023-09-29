@@ -1,0 +1,16 @@
+[ProcessedDatachunkParams]
+datachunk_params_id = 1
+qcone_config_id = 1
+filtering_low = 0.1
+filtering_high = 3
+filtering_order = 4
+waterlevel_ratio_to_max = 0.001
+convolution_sliding_window_min_samples = 10
+convolution_sliding_window_max_ratio_to_fmin = 0.5
+convolution_sliding_window_ratio_to_bandwidth = 0.15
+quefrency_filter_lowpass_pct = 0.5
+quefrency_filter_taper_min_samples = 10
+quefrency_filter_taper_length_ratio_to_length_cepstrum = 0.01
+spectral_whitening = "True"
+one_bit = "True"
+quefrency = "True"

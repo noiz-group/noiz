@@ -1,0 +1,25 @@
+[QCOne]
+datachunk_params_id = 1
+null_treatment_policy = "pass"
+strict_gps = "False"
+starttime = 2019-10-01
+endtime = 2019-11-01
+avg_gps_time_error_min = -0.104
+avg_gps_time_error_max = 0.104
+avg_gps_time_uncertainty_min = 0.01
+avg_gps_time_uncertainty_max = 60
+
+[[QCOne.rejected_times]]
+network = "TD"
+station = "TD11"
+component = "Z"
+starttime = 2019-10-15
+endtime = 2019-10-17
+
+[[QCOne.rejected_times]]
+network = "TD"
+station = "TD05"
+component = "Z"
+starttime = 2019-10-21
+endtime = 2019-10-23
+
