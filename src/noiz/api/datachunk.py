@@ -493,6 +493,7 @@ def run_datachunk_preparation(
             inputs=calculation_inputs,
             calculation_task=create_datachunks_for_component_wrapper,  # type: ignore
             upserter_callable=_prepare_upsert_command_datachunk,
+            with_file=True,
         )
     else:
         _run_calculate_and_upsert_sequentially(
