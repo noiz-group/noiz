@@ -25,6 +25,7 @@ Bugfix
 - Added restarts of dask clients due to a memory leak during processing large amounts of data. !188
 - Fixed generating timespans over midnight. !182
 - Fixes for race condition in creation of directory for results. !211
+- Adds `with_file=True` parameter to parallel datachunk creation call. !224
 
 Maintenance
 ------------------
