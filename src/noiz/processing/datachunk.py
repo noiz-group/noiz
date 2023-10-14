@@ -11,7 +11,7 @@ from typing import Union, Tuple, Dict, Collection, Optional
 import numpy.typing as npt
 
 from noiz.models.type_aliases import CalculateDatachunkStatsInputs, RunDatachunkPreparationInputs
-from noiz.exceptions import MissingDataFileException, ResponseRemovalError
+from noiz.exceptions import MissingDataFileException, ResponseRemovalError, CorruptedMiniseedFileException
 from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models.component import Component
 from noiz.models.datachunk import Datachunk, DatachunkFile, DatachunkStats
@@ -64,7 +64,28 @@ def resample_with_padding(
     tr.data = np.concatenate((tr.data, np.zeros(deficit)))
 
     logger.debug("Resampling")
-    tr.resample(sampling_rate)
+    factor = tr.stats.sampling_rate/sampling_rate
+    while factor > 16:
+        if factor.is_integer():
+            logger.debug("Decimation with factor 2 (within while loop resample_with_padding)")
+            tr.decimate(factor=2, no_filter=False)
+        else:
+            logger.debug("Resampling (within while loop resample_with_padding)")
+            tr.resample(sampling_rate, no_filter=False)
+        factor /= 2
+
+    if tr.stats.sampling_rate != sampling_rate:
+        factor = tr.stats.sampling_rate/sampling_rate
+        if factor.is_integer():
+            logger.debug(f"Decimation with factor {factor} resample_with_padding")
+            tr.decimate(factor=int(factor), no_filter=False)
+        else:
+            logger.debug("Resampling resample_with_padding")
+            tr.resample(sampling_rate, no_filter=False)
+    if tr.stats.sampling_rate != sampling_rate:
+        logger.error("The sampling rate is not the same than in the parameter")
+        raise ValueError("Sampling rate is not the same than required in the parameter!")
+    logger.info(f"New sampling: {tr.stats.sampling_rate}")
 
     logger.debug(
         f"Slicing data to fit them between starttime {starttime} and endtime {endtime}"
@@ -733,15 +754,21 @@ def create_datachunks_for_component(
     """
 
     logger.info("Reading timeseries and inventory")
+    import warnings
+    warnings.filterwarnings("error", message='(?s).* Data integrity check for Steim1 failed')
     try:
         st: obspy.Stream = time_series.read_file()
     except MissingDataFileException as e:
         logger.error(f"Data file is missing. Skipping. {e}")
         return []
+    except CorruptedMiniseedFileException as e:
+        logger.error(f"Data integrity check for Steim1 failed. Skipping file. {e}")
+        return []
     except Exception as e:
-        logger.error(f"There was some general exception from "
+        logger.error("There was some general exception from "
                      f"obspy.Stream.read function. Here it is: {e} ")
         return []
+    warnings.resetwarnings()
 
     inventory: obspy.Inventory = component.read_inventory()
 
@@ -784,6 +811,9 @@ def create_datachunks_for_component(
                          f"Occured for timespan.id: {timespan.id}, component: {component} "
                          f"and tsindex.id {time_series.id}."
                          f": {e}")
+            continue
+        except Exception as e:
+            logger.error(f"{e}")
             continue
 
         filepath = assembly_filepath(

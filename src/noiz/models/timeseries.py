@@ -3,13 +3,13 @@
 # Copyright © 2019-2023 Contributors to the Noiz project.
 
 from sqlalchemy.dialects.postgresql import HSTORE, ARRAY, NUMRANGE
-from sqlalchemy import extract, func
+from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_property
-from pathlib import Path
 import obspy
 
 from noiz.exceptions import MissingDataFileException
 from noiz.database import db
+from noiz.processing.miniseed_helpers import _read_single_miniseed
 
 
 class Tsindex(db.Model):
@@ -48,10 +48,11 @@ class Tsindex(db.Model):
         :return: Returns seismic stream read from file
         :rtype: obspy.Stream
         """
-        if Path(self.filename).exists:
-            return obspy.read(self.filename, self.format)
-        else:
+        try:
+            st = _read_single_miniseed(filename=self.filename, format=self.format)
+        except MissingDataFileException:
             raise MissingDataFileException(f"Data file for chunk {self} is missing")
+        return st
 
     @hybrid_property  # type: ignore
     def component(self):

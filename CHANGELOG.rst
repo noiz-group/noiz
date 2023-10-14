@@ -15,6 +15,11 @@ Breaking changes
 - Renamed ComponentPair to ComponentPairCartesian. !191
 - Removed CrosscorrelationOld model and renamed table under Crosscorrelation model to crosscorrelation. !220
 
+Significant changes to processing
+----------------------------------
+- Omit files with STEIM1 integrity issues from processing. !225
+- Change downsampling procedure during creation of Datachunks. Mostly affecting high downsampling factors. !225
+
 New functionality
 ------------------
 - Added ComponentPairCylyndrical. !191
