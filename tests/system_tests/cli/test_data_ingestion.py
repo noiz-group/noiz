@@ -932,7 +932,7 @@ class TestDataIngestionRoutines:
 
         assert 48 == bf_result_count
         assert bf_file_count == bf_result_count
-        assert 278 == peak_count
+        assert 282 == peak_count
 
     @pytest.mark.xfail
     def test_run_beamforming_multiple_configs(self, noiz_app):

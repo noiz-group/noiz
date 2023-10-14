@@ -10,6 +10,10 @@ class MissingDataFileException(NoizBaseException):
     pass
 
 
+class CorruptedMiniseedFileException(NoizBaseException):
+    pass
+
+
 class NoDataException(NoizBaseException):
     pass
 
