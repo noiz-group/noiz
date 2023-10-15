@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: CECILL-B
 # Copyright © 2015-2019 EOST UNISTRA, Storengy SAS, Damian Kula
 # Copyright © 2019-2023 Contributors to the Noiz project.
-
+from numpy import deprecate_with_doc
 from sqlalchemy.dialects.postgresql import HSTORE, ARRAY, NUMRANGE
 from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -36,9 +36,10 @@ class Tsindex(db.Model):
     updated = db.Column("updated", db.TIMESTAMP(timezone=True), nullable=False)
     scanned = db.Column("scanned", db.TIMESTAMP(timezone=True), nullable=False)
 
+    @deprecate_with_doc(msg="This function is deprecated. use load_data instead.")
     def read_file(self) -> obspy.Stream:
         """
-        To be removed in order to keep consistency with other methods.
+        Deprecated. Use load_data
         """
         return self.load_data()
 

@@ -47,10 +47,12 @@ Maintenance
 Documentation
 ------------------
 - Added documentation on how to use scalene for profiling system tests. !197
+- Added documentation group "Development" and policy on deprecations in Noiz. !228
 
 Deprecations
 ------------
 - noiz.models.component.Component.read_inventory function is deprecated. !207
+- Unified deprecations of multiple functions. !228
 
 0.5.20210405 and before
 =========================
