@@ -8,6 +8,8 @@ from loguru import logger
 import pandas as pd
 import warnings
 from pathlib import Path
+
+from numpy import deprecate_with_doc
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload
 from typing import Optional, Collection, Generator, Union
@@ -594,6 +596,7 @@ def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
     return
 
 
+@deprecate_with_doc(msg="This function is deprecated. use official API methods.")
 def parse_soh_insert_into_db(
     station, station_type, saint_illiers_fulldir, single_day, execution_date
 ):
@@ -601,8 +604,6 @@ def parse_soh_insert_into_db(
     DEPRECATED. Do not use.
     It's a wrapped just to preserve compatibility with current code.
     """
-
-    warnings.warn("Deprecated. Use other methods")
 
     soh_path = (
         Path(saint_illiers_fulldir)

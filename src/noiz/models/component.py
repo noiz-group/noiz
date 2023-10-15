@@ -144,7 +144,9 @@ class Component(db.Model):
 
     @deprecate_with_doc(msg="This function is deprecated. use load_data instead.")
     def read_inventory(self):
-        # FIXME add deprecation warning
+        """
+        Deprecated. Use load_data
+        """
         return self.load_data()
 
     def load_data(self):
