@@ -28,3 +28,27 @@ def calculate_window_step_or_overlap(
 ) -> datetime.timedelta:
     return validate_timedelta_as_pytimedelta(stacking_length) - \
            validate_timedelta_as_pytimedelta(stacking_step_or_overlap)
+
+
+def check_if_two_timeperiods_have_any_overlap(
+        first_starttime: datetime.datetime,
+        first_endtime: datetime.datetime,
+        second_starttime: datetime.datetime,
+        second_endtime: datetime.datetime,
+) -> bool:
+    """
+    Checks if two time periods have any overlap.
+    Overlaps are inclusive for edges.
+
+    :param first_starttime: start of first time period to check
+    :type first_starttime: datetime.datetime
+    :param first_endtime: end of first time period to check
+    :type first_endtime: datetime.datetime
+    :param second_starttime: start of a second time period to check
+    :type second_starttime: datetime.datetime
+    :param second_endtime: end of a second time period to check
+    :type second_endtime: datetime.datetime
+    :return:
+    """
+    # This check is adaptation of https://stackoverflow.com/a/13513973/4308541
+    return (first_starttime <= second_endtime) and (second_starttime <= first_endtime)

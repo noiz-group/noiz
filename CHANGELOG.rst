@@ -31,6 +31,7 @@ Bugfix
 - Fixed generating timespans over midnight. !182
 - Fixes for race condition in creation of directory for results. !211
 - Adds `with_file=True` parameter to parallel datachunk creation call. !224
+- Fix logic for rejection of datachunks in QCOne and CCFs in QCTwo based on preconfigured rejection periods !227
 
 Maintenance
 ------------------
