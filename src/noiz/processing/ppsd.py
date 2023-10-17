@@ -76,6 +76,9 @@ def calculate_ppsd(
                 (tr_segment.stats.npts != ppsd_params.expected_signal_sample_count):
             continue
 
+        if ppsd_params.taper_type is not None:
+            tr_segment.taper(type=ppsd_params.taper_type, max_percentage=ppsd_params.taper_max_percentage)
+
         fft_vec = abs(fft(tr_segment.data)[ppsd_params._where_accepted_freqs])
 
         if ppsd_params.resample:

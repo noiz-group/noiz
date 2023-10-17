@@ -7,8 +7,10 @@ from loguru import logger
 from typing import Optional, Any, Callable, Union, Tuple
 
 from noiz.models.type_aliases import QCOneRunnerInputs
-from noiz.models import CrosscorrelationCartesian, Datachunk, QCOneConfig, QCOneResults, Timespan, QCTwoResults, QCTwoConfig, \
-    DatachunkStats, AveragedSohGps
+from noiz.models import (
+    CrosscorrelationCartesian, Datachunk, QCOneConfig, QCOneResults, Timespan, QCTwoResults,
+    QCTwoConfig, DatachunkStats, AveragedSohGps
+)
 from noiz.processing.time_utils import check_if_two_timeperiods_have_any_overlap
 
 
@@ -311,8 +313,9 @@ def compare_vals_null_safe(a: Any, b: Any, op: Callable[[Any, Any], bool], null_
     :return: Returns result of a call or a value of :paramref:`noiz.api.qc.compare_vals_null_safe.null_value`
     :rtype: bool
     """
-
     if a is None or b is None:
+        return null_value
+    elif (not a == a) or (not b == b):  # taking into account nan
         return null_value
     else:
         return op(a, b)

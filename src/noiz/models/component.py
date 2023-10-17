@@ -6,9 +6,9 @@ from loguru import logger
 from obspy.core.util import AttribDict
 from obspy import read_inventory
 from pathlib import Path
+from sqlalchemy import func
 from typing import Optional, Tuple, TYPE_CHECKING
 from numpy import deprecate_with_doc
-from sqlalchemy import func
 
 import utm
 import datetime

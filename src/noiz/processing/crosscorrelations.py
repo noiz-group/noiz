@@ -7,8 +7,6 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
-from loguru import logger
-
 import obspy
 from typing import Tuple, Dict, DefaultDict, Collection, List, FrozenSet
 
@@ -39,7 +37,7 @@ def get_time_vector_ccf(max_lag: float, sampling_rate: float) -> npt.ArrayLike:
 
 
 def group_chunks_by_timespanid_componentid(
-    processed_datachunks: List[Tuple[Timespan, ProcessedDatachunk]]
+        processed_datachunks: List[Tuple[Timespan, ProcessedDatachunk]]
 ) -> DefaultDict[Timespan, Dict[int, ProcessedDatachunk]]:
     """
     Groups provided :py:class:`~noiz.models.datachunk.ProcessedDatachunk` by timespan_id and then by component_id.
@@ -58,7 +56,7 @@ def group_chunks_by_timespanid_componentid(
 
 
 def load_data_for_chunks(
-    chunks: Dict[int, ProcessedDatachunk]
+        chunks: Dict[int, ProcessedDatachunk]
 ) -> Dict[int, obspy.Trace]:
     """
     Takes a dict of ProcessedDatachunks grouped by
@@ -99,10 +97,13 @@ def validate_component_code_pairs(component_pairs_cartesian: Collection[str]) ->
     return tuple(set(component_pairs_cartesian))
 
 
-def extract_component_ids_from_component_pairs_cartesian(fetched_component_pairs: Collection[ComponentPairCartesian]) -> Tuple[int, ...]:
+def extract_component_ids_from_component_pairs_cartesian(
+        fetched_component_pairs: Collection[ComponentPairCartesian]
+) -> Tuple[int, ...]:
     """
-    Takes a collection of :py:class:`noiz.models.component_pair.ComponentPairCartesian` and extracts ids of all components that
-    are included in them. Resulting tuple does not contain repetitions of values.
+    Takes a collection of :py:class:`noiz.models.component_pair.ComponentPairCartesian` and
+    extracts ids of all components that are included in them.
+    Resulting tuple does not contain repetitions of values.
 
     :param fetched_component_pairs: componentpairs_cartesian to be processed
     :type fetched_component_pairs: Collection[ComponentPairCartesian]
@@ -120,7 +121,6 @@ def assembly_ccf_cartesian_dataframe(
         crosscorrelations_cartesian: Collection[CrosscorrelationCartesian],
         crosscorrelation_cartesian_params: CrosscorrelationCartesianParams,
 ) -> pd.DataFrame:
-
     time_vector = crosscorrelation_cartesian_params.correlation_time_vector
     midtimes = []
     ccf_data = []
@@ -134,13 +134,13 @@ def assembly_ccf_cartesian_dataframe(
 
 
 def group_xcrorrcartesian_by_timespanid_componentids(
-    processed_xcorrcartesian: List[Tuple[Timespan, CrosscorrelationCartesian]],
+        processed_xcorrcartesian: List[Tuple[Timespan, CrosscorrelationCartesian]],
 ) -> DefaultDict[Timespan, Dict[FrozenSet[int], CrosscorrelationCartesian]]:
     """
     Groups provided :py:class:`~noiz.models.crosscorrelation_cartesian` by timespan_id and then by
     a set of component ids for the correlations.
 
-    :param processed_xcorrcartesian: Collection of crosscorrelation_cartesian where first element of a tuple is timespan_id
+    :param processed_xcorrcartesian: Collection of Tuples with Timespan and CrosscorrelationCartesian
     :type processed_xcorrcartesian: List[Tuple[int, CrosscorrelationCartesian]]
     :return: Grouped Crosscorrelation_cartesian
     :rtype: DefaultDict[Timespan, Dict[FrozenSet[int], CrosscorrelationCartesian]]
@@ -158,8 +158,8 @@ def group_xcrorrcartesian_by_timespanid_componentids(
 
 
 def _fetch_R_T_xcoor(
-    gr_xcors_cart: Dict[FrozenSet[int], CrosscorrelationCartesian],
-    comp_pairs_cyl: ComponentPairCylindrical,
+        gr_xcors_cart: Dict[FrozenSet[int], CrosscorrelationCartesian],
+        comp_pairs_cyl: ComponentPairCylindrical,
 ) -> Tuple[CrosscorrelationCartesian, CrosscorrelationCartesian, CrosscorrelationCartesian, CrosscorrelationCartesian]:
     """
     Fetch the cartesian cross-correlations that will be used for computing the cylindrical cross-correlations variant
@@ -205,23 +205,39 @@ def _computation_cylindrical_correlation_R_T(code, xcorr_aN_bN, xcorr_aE_bE, xco
     """
 
     if code == "RR":
-        xcorr_cylindrical = np.sin(back_az)**2 * xcorr_aE_bE.ccf + np.cos(back_az)*np.sin(back_az)*(xcorr_aE_bN.ccf + xcorr_aN_bE.ccf) + np.cos(back_az)**2 * xcorr_aN_bN.ccf
+        xcorr_cylindrical = (
+                np.sin(back_az) ** 2 * xcorr_aE_bE.ccf
+                + np.cos(back_az) * np.sin(back_az) * (xcorr_aE_bN.ccf + xcorr_aN_bE.ccf)
+                + np.cos(back_az) ** 2 * xcorr_aN_bN.ccf
+        )
 
     elif code == "TT":
-        xcorr_cylindrical = np.cos(back_az)**2 * xcorr_aE_bE.ccf - np.cos(back_az)*np.sin(back_az)*(xcorr_aE_bN.ccf - xcorr_aN_bE.ccf) + np.sin(back_az)**2 * xcorr_aN_bN.ccf
+        xcorr_cylindrical = (
+                np.cos(back_az) ** 2 * xcorr_aE_bE.ccf
+                - np.cos(back_az) * np.sin(back_az) * (xcorr_aE_bN.ccf - xcorr_aN_bE.ccf)
+                + np.sin(back_az) ** 2 * xcorr_aN_bN.ccf
+        )
 
     elif code == "RT":
-        xcorr_cylindrical = np.cos(back_az)**2 * xcorr_aN_bE.ccf + np.cos(back_az)*np.sin(back_az)*(xcorr_aE_bE.ccf - xcorr_aN_bN.ccf) - np.sin(back_az)**2 * xcorr_aE_bN.ccf
+        xcorr_cylindrical = (
+                np.cos(back_az) ** 2 * xcorr_aN_bE.ccf
+                + np.cos(back_az) * np.sin(back_az) * (xcorr_aE_bE.ccf - xcorr_aN_bN.ccf)
+                - np.sin(back_az) ** 2 * xcorr_aE_bN.ccf
+        )
 
     elif code == "TR":
-        xcorr_cylindrical = np.cos(back_az)**2 * xcorr_aE_bN.ccf + np.cos(back_az)*np.sin(back_az)*(xcorr_aE_bE.ccf - xcorr_aN_bN.ccf) - np.sin(back_az)**2 * xcorr_aN_bE.ccf
+        xcorr_cylindrical = (
+                np.cos(back_az) ** 2 * xcorr_aE_bN.ccf
+                + np.cos(back_az) * np.sin(back_az) * (xcorr_aE_bE.ccf - xcorr_aN_bN.ccf)
+                - np.sin(back_az) ** 2 * xcorr_aN_bE.ccf
+        )
 
     return xcorr_cylindrical
 
 
 def _fetch_RT_Z_xcoor(
-    gr_xcors_cart: Dict[FrozenSet[int], CrosscorrelationCartesian],
-    comp_pairs_cyl: ComponentPairCylindrical,
+        gr_xcors_cart: Dict[FrozenSet[int], CrosscorrelationCartesian],
+        comp_pairs_cyl: ComponentPairCylindrical,
 ) -> Tuple[CrosscorrelationCartesian, CrosscorrelationCartesian]:
     """
     Fetch the cartesian crosscorrelation used for computing the cylindrical crosscorrelation for RZ, TZ componentpairs
@@ -257,17 +273,23 @@ def _computation_cylindrical_correlation_RT_Z(code, xcorr_aE_bZ, xcorr_aN_bZ, ba
     """
 
     if code == "RZ":
-        xcorr_cylindrical = np.sin(back_az) * xcorr_aE_bZ.ccf + np.cos(back_az) * xcorr_aN_bZ.ccf
+        xcorr_cylindrical = (
+                np.sin(back_az) * xcorr_aE_bZ.ccf
+                + np.cos(back_az) * xcorr_aN_bZ.ccf
+        )
 
     elif code == "TZ":
-        xcorr_cylindrical = np.cos(back_az) * xcorr_aE_bZ.ccf - np.sin(back_az) * xcorr_aN_bZ.ccf
+        xcorr_cylindrical = (
+                np.cos(back_az) * xcorr_aE_bZ.ccf
+                - np.sin(back_az) * xcorr_aN_bZ.ccf
+        )
 
     return xcorr_cylindrical
 
 
 def _fetch_Z_TR_xcoor(
-    gr_xcors_cart: Dict[FrozenSet[int], CrosscorrelationCartesian],
-    comp_pairs_cyl: ComponentPairCylindrical,
+        gr_xcors_cart: Dict[FrozenSet[int], CrosscorrelationCartesian],
+        comp_pairs_cyl: ComponentPairCylindrical,
 ) -> Tuple[CrosscorrelationCartesian, CrosscorrelationCartesian]:
     """
     Fetch the cartesian crosscorrelation used for computing the cylindrical crosscorrelation for ZR, ZT componentpairs
@@ -285,7 +307,7 @@ def _fetch_Z_TR_xcoor(
     return xcorr_aZ_bE, xcorr_aZ_bN
 
 
-def _computation_cylindrical_correlation_Z_TR(code, xcorr_aZ_bE, xcorr_aZ_bN, back_az):
+def _computation_cylindrical_correlation_Z_TR(code, xcorr_aZ_bE, xcorr_aZ_bN, back_az,):
     """
     Computation of the cylindrical crosscorrelations for either componnentpair ZR or ZT
 
@@ -302,9 +324,15 @@ def _computation_cylindrical_correlation_Z_TR(code, xcorr_aZ_bE, xcorr_aZ_bN, ba
     """
 
     if code == "ZR":
-        xcorr_cylindrical = np.sin(back_az) * xcorr_aZ_bE.ccf + np.cos(back_az) * xcorr_aZ_bN.ccf
+        xcorr_cylindrical = (
+                np.sin(back_az) * xcorr_aZ_bE.ccf
+                + np.cos(back_az) * xcorr_aZ_bN.ccf
+        )
 
     elif code == "ZT":
-        xcorr_cylindrical = np.cos(back_az) * xcorr_aZ_bE.ccf - np.sin(back_az) * xcorr_aZ_bN.ccf
+        xcorr_cylindrical = (
+                np.cos(back_az) * xcorr_aZ_bE.ccf
+                - np.sin(back_az) * xcorr_aZ_bN.ccf
+        )
 
     return xcorr_cylindrical

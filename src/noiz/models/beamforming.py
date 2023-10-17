@@ -11,6 +11,8 @@ from noiz.globals import ExtendedEnum
 from noiz.models import Timespan, BeamformingParams, FileModelMixin
 from noiz.models.mixins import BeamformingPeakExtractMixin
 
+import numpy as np
+
 
 class BeamformingResultType(ExtendedEnum):
     AVGABSPOWER = "avg_abspower"
@@ -147,7 +149,7 @@ class BeamformingResult(db.Model):
     def load_data(self):
         filepath = Path(self.file.filepath)
         if filepath.exists:
-            raise NotImplementedError("Not yet implemented, use np.load()")
+            return np.load(str(filepath))
         else:
             raise MissingDataFileException(f"Inventory file for component {self} is missing")
 

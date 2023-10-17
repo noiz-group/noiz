@@ -184,9 +184,9 @@ def ingest_soh_files(
 
     :param station: Station to associate SOH with
     :type station: str
-    :param station_type: Type of station. Available types are defined in noiz.processing.soh.SohInstrumentNames
+    :param station_type: Type of station. Available types are defined in noiz.processing.soh.parsing_params.SohInstrumentNames
     :type station_type: str
-    :param soh_type: Type of soh. Available types are defined in noiz.processing.soh.SohType
+    :param soh_type: Type of soh. Available types are defined in noiz.processing.soh.parsing_params.SohType
     :type soh_type: str
     :param main_filepath: Filepath to be globbed.
     :type main_filepath: Optional[Path] = None
@@ -212,7 +212,6 @@ def ingest_soh_files(
         )
 
     df = read_multiple_soh(filepaths=filepaths, parsing_params=parsing_parameters)  # type: ignore
-
     if soh_type in ("instrument", "miniseed_instrument"):
         __upsert_into_db_soh_instrument(df=df, station=station, network=network)
     elif soh_type in ("gpstime", "gnsstime", "miniseed_gpstime"):
@@ -255,10 +254,9 @@ def __upsert_into_db_soh_instrument(
     comp: Component = fetched_components[0]
 
     command_count = len(df)
-
     insert_commands = []
     for i, (timestamp, row) in enumerate(df.iterrows()):
-        if i % int(command_count / 10) == 0:
+        if i % (1 + int(command_count / 10)) == 0:
             logger.info(f"Prepared already {i}/{command_count} commands")
         insert_command = (
             insert(SohInstrument)
@@ -282,7 +280,7 @@ def __upsert_into_db_soh_instrument(
         insert_commands.append(insert_command)
 
     for i, insert_command in enumerate(insert_commands):
-        if i % int(command_count / 10) == 0:
+        if i % (1 + int(command_count / 10)) == 0:
             logger.info(f"Inserted already {i}/{command_count} rows")
         db.session.execute(insert_command)
 
@@ -299,7 +297,7 @@ def __upsert_into_db_soh_instrument(
 
     insert_commands = []
     for i, (inserted_soh, component_id) in enumerate(itertools.product(soh_env_inserted, fetched_components_ids)):
-        if i % int(command_count / 10) == 0:
+        if i % (1 + int(command_count / 10)) == 0:
             logger.info(f"Prepared already {i}/{command_count} commands")
 
         insert_command = (
@@ -313,7 +311,7 @@ def __upsert_into_db_soh_instrument(
         insert_commands.append(insert_command)
 
     for i, insert_command in enumerate(insert_commands):
-        if i % int(command_count / 10) == 0:
+        if i % (1 + int(command_count / 10)) == 0:
             logger.info(f"Inserted already {i}/{command_count} rows")
         db.session.execute(insert_command)
 
@@ -343,9 +341,7 @@ def __upsert_into_db_soh_gps(
         :return: None
         :rtype: NoneType
         """
-
     fetched_components = fetch_components(networks=network, stations=station)
-
     z_component_id = None
     fetched_components_ids = []
     for cmp in fetched_components:
@@ -354,11 +350,11 @@ def __upsert_into_db_soh_gps(
             z_component_id = cmp.id
     comp: Component = fetched_components[0]
     command_count = len(df)
-
     insert_commands = []
     for i, (timestamp, row) in enumerate(df.iterrows()):
-        if i % int(command_count / 10) == 0:
+        if i % (1 + int(command_count / 10)) == 0:
             logger.info(f"Prepared already {i}/{command_count} commands")
+            print(df)
         insert_command = (
             insert(SohGps)
             .values(
@@ -379,7 +375,7 @@ def __upsert_into_db_soh_gps(
         insert_commands.append(insert_command)
 
     for i, insert_command in enumerate(insert_commands):
-        if i % int(command_count / 10) == 0:
+        if i % (1 + int(command_count / 10)) == 0:
             logger.info(f"Inserted already {i}/{command_count} rows")
         db.session.execute(insert_command)
 
@@ -396,7 +392,7 @@ def __upsert_into_db_soh_gps(
 
     insert_commands = []
     for i, (inserted_soh, component_id) in enumerate(itertools.product(fetched_soh, fetched_components_ids)):
-        if i % int(command_count / 10) == 0:
+        if i % (1 + int(command_count / 10)) == 0:
             logger.info(f"Prepared already {i}/{command_count} commands")
 
         insert_command = (
@@ -410,7 +406,7 @@ def __upsert_into_db_soh_gps(
         insert_commands.append(insert_command)
 
     for i, insert_command in enumerate(insert_commands):
-        if i % int(command_count / 10) == 0:
+        if i % (1 + int(command_count / 10)) == 0:
             logger.info(f"Inserted already {i}/{command_count} rows")
         db.session.execute(insert_command)
 
@@ -514,7 +510,7 @@ def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
 
     insert_commands = []
     for i, (timestamp, row) in enumerate(avg_results.iterrows()):
-        if i % int(command_count / 10) == 0:
+        if i % (1 + int(command_count / 10)) == 0:
             logger.info(f"Prepared already {i}/{command_count} commands")
         insert_command = (
             insert(AveragedSohGps)
@@ -536,7 +532,7 @@ def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
         insert_commands.append(insert_command)
 
     for i, insert_command in enumerate(insert_commands):
-        if i % int(command_count / 10) == 0:
+        if i % (1 + int(command_count / 10)) == 0:
             logger.info(f"Inserted already {i}/{command_count} rows")
         db.session.execute(insert_command)
 
@@ -571,7 +567,7 @@ def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
             AveragedSohGps.timespan_id.in_(used_timespan_ids)).all()
 
         for i, (inserted_soh, component_id) in enumerate(itertools.product(fetched_soh, all_components)):
-            if i % int(command_count / 10) == 0:
+            if i % (1 + int(command_count / 10)) == 0:
                 logger.info(f"Prepared already {i}/{command_count} commands")
 
             insert_command = (
@@ -585,7 +581,7 @@ def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
             insert_commands.append(insert_command)
 
     for i, insert_command in enumerate(insert_commands):
-        if i % int(command_count / 10) == 0:
+        if i % (1 + int(command_count / 10)) == 0:
             logger.info(f"Inserted already {i}/{command_count} rows")
         db.session.execute(insert_command)
 

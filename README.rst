@@ -32,3 +32,9 @@ The first sketch of the Noiz was created in frame of collaboration between EOST,
 Further developments were done in frame of collaboration between EOST and Storengy SAS.
 In 2023 project was released to Open Source under CeCILL-B license.
 Developments since git commit tagged with ``0.5`` are thanks to community efforts.
+
+Open-source dependencies
+------------------------
+Noiz uses Obspy (https://github.com/obspy/obspy and https://github.com/obspy) both as a dependency as well as a source of derived methods.
+The latter derived methods are all located in the subpackage src/noiz/processing/obspy_derived
+Noiz devoloppers thank all the Obpsy contributors

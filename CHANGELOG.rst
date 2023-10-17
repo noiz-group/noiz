@@ -14,6 +14,7 @@ Breaking changes
 ------------------
 - Renamed ComponentPair to ComponentPairCartesian. !191
 - Removed CrosscorrelationOld model and renamed table under Crosscorrelation model to crosscorrelation. !220
+- Completely reworked Beamforming computations. !219
 
 Significant changes to processing
 ----------------------------------
@@ -22,8 +23,9 @@ Significant changes to processing
 
 New functionality
 ------------------
-- Added ComponentPairCylyndrical. !191
+- Added ComponentPairCylindrical. !191
 - Added event detection mechanism. !183
+- Full introduction of Cylindrical CCFs
 
 Bugfix
 ------------------

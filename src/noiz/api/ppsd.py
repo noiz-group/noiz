@@ -3,6 +3,7 @@
 # Copyright © 2019-2023 Contributors to the Noiz project.
 
 import datetime
+
 from loguru import logger
 from sqlalchemy.orm import Query, subqueryload
 from sqlalchemy.dialects.postgresql import Insert, insert
