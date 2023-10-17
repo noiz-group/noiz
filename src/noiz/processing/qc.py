@@ -9,6 +9,7 @@ from typing import Optional, Any, Callable, Union, Tuple
 from noiz.models.type_aliases import QCOneRunnerInputs
 from noiz.models import CrosscorrelationCartesian, Datachunk, QCOneConfig, QCOneResults, Timespan, QCTwoResults, QCTwoConfig, \
     DatachunkStats, AveragedSohGps
+from noiz.processing.time_utils import check_if_two_timeperiods_have_any_overlap
 
 
 def calculate_qcone_results_wrapper(inputs: QCOneRunnerInputs) -> Tuple[QCOneResults, ...]:
@@ -53,8 +54,11 @@ def calculate_qcone_results(
     logger.debug("Checking datachunk for main time bounds")
     qcone_res = _determine_qc_time(results=qcone_res, timespan=datachunk.timespan, config=qcone_config)
     logger.debug("Checking if datachunk within rejected time")
-    qcone_res = _determine_qcone_accepted_times(results=qcone_res, datachunk=datachunk,
-                                                timespan=datachunk.timespan, config=qcone_config)
+    qcone_res.accepted_time = _determine_if_datachunk_is_in_qcone_accepted_time(
+        datachunk=datachunk,
+        timespan=datachunk.timespan,
+        config=qcone_config
+    )
     logger.debug("Checking datachunk gps params")
     qcone_res = _determine_qcone_gps(result=qcone_res, config=qcone_config, avg_soh_gps=avg_soh_gps)
     logger.debug("Checking datachunk stats")
@@ -108,31 +112,56 @@ def _determine_qc_time(
     return results
 
 
-def _determine_qcone_accepted_times(
-        results: QCOneResults,
+def _determine_if_datachunk_is_in_qcone_accepted_time(
         datachunk: Datachunk,
         timespan: Timespan,
         config: QCOneConfig,
-) -> QCOneResults:
+) -> bool:
     """
-    filldocs
+    This method checks if given :class:`noiz.models.datachunk.Datachunk` is contained within a time period defined
+    for rejection within :class:`noiz.models.qc.QCOneConfig`.
+    This check is performed based on the time of when given datachunk took place as well as the component_id
+    of a datachunk defined as :py:attr:`noiz.models.datachunk.Datachunk.component_id`.
+
+
+
+    :param datachunk: Datachunk to determine if it should be rejected
+    :type datachunk: Datachunk
+    :param timespan: timespan that datachunk is associated with
+    :type timespan: Timespan
+    :param config: QCOneConfig to check for rejected times
+    :type config: QCOneConfig
+    :return: If given datachunk should be accepted based on time (if it doesn't belong to any of rejected time periods)
+    :rtype: bool
     """
+
+    if datachunk.timespan_id != timespan.id:
+        raise ValueError(f"Passed timespan should be the same as the one associated with datachunk. It is not!"
+                         f"datachunk.timespan_id: {datachunk.timespan_id}"
+                         f"timespan.id {timespan.id}")
+
+    if datachunk.component_id not in config.component_ids_rejected_times:
+        return True
 
     reject_checks = [True, ]
 
-    if datachunk.component_id in config.component_ids_rejected_times:
-        for rej in config.time_periods_rejected:
-            if not rej.component_id == datachunk.component_id:
-                continue
+    for rej in config.time_periods_rejected:
+        if not rej.component_id == datachunk.component_id:
+            continue
 
-            reject_checks.append(
-                    (rej.starttime <= timespan.endtime) and (timespan.starttime <= rej.endtime)
+        if not rej.starttime < rej.endtime:
+            raise ValueError("Rejected starttime is after rejected endtime. It shouldn't happen. "
+                             "Please check your QCOneConfig and report a bugfix to developers.")
+
+        reject_checks.append(
+            not check_if_two_timeperiods_have_any_overlap(
+                rej.starttime,
+                rej.endtime,
+                timespan.starttime,
+                timespan.endtime,
             )
-            # This check is adaptation of https://stackoverflow.com/a/13513973/4308541
-
-    results.accepted_time = all(reject_checks)
-
-    return results
+        )
+    return all(reject_checks)
 
 
 def _determine_qctwo_accepted_times(
@@ -152,10 +181,18 @@ def _determine_qctwo_accepted_times(
             if not rej.componentpair_id == crosscorrelation_cartesian.componentpair_id:
                 continue
 
+            if not rej.starttime < rej.endtime:
+                raise ValueError("Rejected starttime is after rejected endtime. It shouldn't happen. "
+                                 "Please check your QCOneConfig and report a bugfix to developers.")
+
             reject_checks.append(
-                    (rej.starttime <= timespan.endtime) and (timespan.starttime <= rej.endtime)
+                not check_if_two_timeperiods_have_any_overlap(
+                    rej.starttime,
+                    rej.endtime,
+                    timespan.starttime,
+                    timespan.endtime,
+                )
             )
-            # This check is adaptation of https://stackoverflow.com/a/13513973/4308541
 
     results.accepted_time = all(reject_checks)
 

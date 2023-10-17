@@ -932,7 +932,7 @@ class TestDataIngestionRoutines:
 
         assert 48 == bf_result_count
         assert bf_file_count == bf_result_count
-        assert 282 == peak_count
+        assert 286 == peak_count
 
     @pytest.mark.xfail
     def test_run_beamforming_multiple_configs(self, noiz_app):
@@ -983,7 +983,7 @@ class TestDataIngestionRoutines:
         assert result.exit_code == 0
         with noiz_app.app_context():
             processed_datachunk_count = ProcessedDatachunk.query.count()
-        assert 570 == processed_datachunk_count
+        assert 762 == processed_datachunk_count
 
     def test_run_crosscorrelations_cartesian_ZZ(self, noiz_app, run_sequential):
         runner = CliRunner()
@@ -1003,7 +1003,7 @@ class TestDataIngestionRoutines:
         assert result.exit_code == 0
         with noiz_app.app_context():
             crosscorrelation_cartesian_count = CrosscorrelationCartesian.query.count()
-        assert 0 == crosscorrelation_cartesian_count
+        assert 220 == crosscorrelation_cartesian_count
 
     def test_run_crosscorrelations_cartesian_ZE(self, noiz_app, run_sequential):
         runner = CliRunner()
@@ -1022,7 +1022,7 @@ class TestDataIngestionRoutines:
         assert result.exit_code == 0
         with noiz_app.app_context():
             crosscorrelation_cartesian_count = CrosscorrelationCartesian.query.count()
-        assert 124 == crosscorrelation_cartesian_count
+        assert 440 == crosscorrelation_cartesian_count
 
     @pytest.mark.xfail
     def test_exporting_raw_ccfs_to_npz(self):
@@ -1060,4 +1060,4 @@ class TestDataIngestionRoutines:
         assert result.exit_code == 0
         with noiz_app.app_context():
             stack_count = CCFStack.query.count()
-        assert 30 == stack_count
+        assert 92 == stack_count
