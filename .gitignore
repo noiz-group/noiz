@@ -2,6 +2,9 @@
 # Copyright © 2015-2019 EOST UNISTRA, Storengy SAS, Damian Kula
 # Copyright © 2019-2023 Contributors to the Noiz project.
 
+# path to jupyter notebooks (for compliance with tuto)
+src/notebook_data_viz
+
 .idea
 
 # Created by .ignore support plugin (hsz.mobi)

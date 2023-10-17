@@ -36,7 +36,6 @@ def read_multiple_soh(
             )
         except UnparsableDateTimeException as e:
             raise UnparsableDateTimeException(f"{filepath} has raised exception {e}")
-
         if single_df is None:
             continue
 
@@ -50,9 +49,7 @@ def read_multiple_soh(
     except ValueError as e:
         raise SohParsingException(f"There was an exception raised by pd.concat. The exception was: {e}")
     df = df.sort_index()
-
     df = parsing_params.postprocessor(df=df)
-
     return df
 
 

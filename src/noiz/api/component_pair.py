@@ -180,14 +180,11 @@ def fetch_componentpairs_cartesian(
         components=component_codes_a,
     )
 
-    if network_codes_b is None and station_codes_b is None and component_codes_b is None:
-        components_b = components_a.copy()
-    else:
-        components_b = fetch_components(
-            networks=network_codes_b,
-            stations=station_codes_b,
-            components=component_codes_b,
-        )
+    components_b = fetch_components(
+        networks=network_codes_b,
+        stations=station_codes_b,
+        components=component_codes_b,
+    )
     filters.append(cmp_a.id.in_(extract_object_ids(components_a)))
     filters.append(cmp_b.id.in_(extract_object_ids(components_b)))
 

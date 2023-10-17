@@ -490,6 +490,11 @@ class TestDataIngestionRoutines:
                     "extract_peaks_all_beamformers_abspower",
                     "extract_peaks_average_beamformer_relpower",
                     "extract_peaks_all_beamformers_relpower",
+                    "random_angle_at_each_iteration",
+                    "perform_deconvolution_all",
+                    "perform_deconvolution_average",
+                    "save_all_arf",
+                    "save_average_arf",
             ):
                 check.equal(str(fetched_config.__getattribute__(key)), value)
                 continue
@@ -930,9 +935,9 @@ class TestDataIngestionRoutines:
             bf_file_count = BeamformingFile.query.count()
             peak_count = BeamformingPeakAverageAbspower.query.count()
 
-        assert 48 == bf_result_count
+        assert 30 == bf_result_count
         assert bf_file_count == bf_result_count
-        assert 286 == peak_count
+        assert 112 == peak_count
 
     @pytest.mark.xfail
     def test_run_beamforming_multiple_configs(self, noiz_app):
@@ -997,7 +1002,6 @@ class TestDataIngestionRoutines:
             args.append(run_sequential)
 
         result = runner.invoke(cli, args=args)
-
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0

@@ -553,6 +553,21 @@ class BeamformingParamsHolder:
     save_all_beamformers_abspower: bool = False
     save_average_beamformer_relpower: bool = False
     save_all_beamformers_relpower: bool = False
+    perform_deconvolution_all: bool = False
+    perform_deconvolution_average: bool = True
+    save_all_arf: bool = False
+    save_average_arf: bool = True
+    arf_enlarge_ratio: float = 2
+    vmin: float = 0.5
+    n_iter_max: int = 50
+    angle_step_min: float = 10
+    angle_width_start: float = 180
+    angle_step_mode: str = "manual"
+    theta_overlap_kernel: float = 0.5
+    slowness_width_ratio_to_ds: float = 1
+    slowness_step_ratio_to_ds: float = 1
+    random_angle_at_each_iteration: bool = False
+    stop_crit_rel: float = 0.99
     extract_peaks_average_beamformer_abspower: bool = True
     extract_peaks_all_beamformers_abspower: bool = False
     extract_peaks_average_beamformer_relpower: bool = False
@@ -590,6 +605,26 @@ class BeamformingParams(db.Model):
     save_average_beamformer_relpower = NotNullColumn("save_average_beamformer_relpower", db.Boolean)
     save_all_beamformers_relpower = NotNullColumn("save_all_beamformers_relpower", db.Boolean)
 
+    #   deconv options
+    perform_deconvolution_all = NotNullColumn("perform_deconvolution_all", db.Boolean)
+    perform_deconvolution_average = NotNullColumn("perform_deconvolution_average", db.Boolean)
+    save_all_arf = NotNullColumn("save_all_arf", db.Boolean)
+    save_average_arf = NotNullColumn("save_average_arf", db.Boolean)
+    arf_enlarge_ratio = NotNullColumn("arf_enlarge_ratio", db.Float)
+
+    #   deconv parameters
+    vmin = NotNullColumn("vmin", db.Float)
+    n_iter_max = NotNullColumn("n_iter_max", db.Integer)
+    angle_step_min = NotNullColumn("angle_step_min", db.Float)
+    angle_width_start = NotNullColumn("angle_width_start", db.Float)
+    angle_step_mode = NotNullColumn("angle_step_mode", db.String)
+    theta_overlap_kernel = NotNullColumn("theta_overlap_kernel", db.Float)
+    slowness_width_ratio_to_ds = NotNullColumn("slowness_width_ratio_to_ds", db.Float)
+    slowness_step_ratio_to_ds = NotNullColumn("slowness_step_ratio_to_ds", db.Float)
+    random_angle_at_each_iteration = NotNullColumn("random_angle_at_each_iteration", db.Boolean)
+    stop_crit_rel = NotNullColumn("stop_crit_rel", db.Float)
+
+    #   maxima picking parameters
     extract_peaks_average_beamformer_abspower = NotNullColumn("extract_peaks_average_beamformer_abspower", db.Boolean)
     extract_peaks_all_beamformers_abspower = NotNullColumn("extract_peaks_all_beamformers_abspower", db.Boolean)
     extract_peaks_average_beamformer_relpower = NotNullColumn("extract_peaks_average_beamformer_relpower", db.Boolean)
@@ -632,6 +667,21 @@ class BeamformingParams(db.Model):
             save_all_beamformers_abspower: bool,
             save_average_beamformer_relpower: bool,
             save_all_beamformers_relpower: bool,
+            perform_deconvolution_all: bool,
+            perform_deconvolution_average: bool,
+            save_all_arf: bool,
+            save_average_arf: bool,
+            arf_enlarge_ratio: float,
+            vmin: float,
+            n_iter_max: int,
+            angle_step_min: float,
+            angle_width_start: float,
+            angle_step_mode: str,
+            theta_overlap_kernel: float,
+            slowness_width_ratio_to_ds: float,
+            slowness_step_ratio_to_ds: float,
+            random_angle_at_each_iteration: bool,
+            stop_crit_rel: float,
             extract_peaks_average_beamformer_abspower: bool,
             extract_peaks_all_beamformers_abspower: bool,
             extract_peaks_average_beamformer_relpower: bool,
@@ -660,6 +710,10 @@ class BeamformingParams(db.Model):
         self.slowness_x_max = slowness_x_max
         self.slowness_y_min = slowness_y_min
         self.slowness_y_max = slowness_y_max
+
+        if (self.slowness_x_min != self.slowness_y_min) or (self.slowness_x_max != self.slowness_y_max):
+            ValueError("sx and sy slowness axes must be identical in the current implementation [of deconvolution]")
+
         self.slowness_step = slowness_step
 
         if window_length is not None:
@@ -676,6 +730,22 @@ class BeamformingParams(db.Model):
         self.save_all_beamformers_abspower = save_all_beamformers_abspower
         self.save_average_beamformer_relpower = save_average_beamformer_relpower
         self.save_all_beamformers_relpower = save_all_beamformers_relpower
+
+        self.perform_deconvolution_all = perform_deconvolution_all
+        self.perform_deconvolution_average = perform_deconvolution_average
+        self.save_all_arf = save_all_arf
+        self.save_average_arf = save_average_arf
+        self.arf_enlarge_ratio = arf_enlarge_ratio
+        self.vmin = vmin
+        self.n_iter_max = n_iter_max
+        self.angle_step_min = angle_step_min
+        self.angle_width_start = angle_width_start
+        self.angle_step_mode = angle_step_mode
+        self.theta_overlap_kernel = theta_overlap_kernel
+        self.slowness_width_ratio_to_ds = slowness_width_ratio_to_ds
+        self.slowness_step_ratio_to_ds = slowness_step_ratio_to_ds
+        self.random_angle_at_each_iteration = random_angle_at_each_iteration
+        self.stop_crit_rel = stop_crit_rel
 
         self.extract_peaks_average_beamformer_abspower = extract_peaks_average_beamformer_abspower
         self.extract_peaks_all_beamformers_abspower = extract_peaks_all_beamformers_abspower
@@ -793,10 +863,13 @@ class PPSDParamsHolder:
     segment_step: float  # seconds
     freq_min: float
     freq_max: float
+    taper_type: Optional[str] = None
+    taper_max_percentage: Optional[float] = None
     resample: bool = False
     resampled_frequency_start: Optional[float] = None
     resampled_frequency_stop: Optional[float] = None
     resampled_frequency_step: Optional[float] = None
+
     rejected_windows_quantile: float = 0.1
     save_all_windows: bool = False
     save_compressed: bool = True
@@ -816,11 +889,14 @@ class PPSDParams(db.Model):
     segment_step = db.Column("segment_overlap", db.Float, nullable=False)
     freq_min = db.Column("freq_min", db.Float, nullable=False)
     freq_max = db.Column("freq_max", db.Float, nullable=False)
+    taper_type = db.Column("taper_type", db.UnicodeText, nullable=True)
+    taper_max_percentage = db.Column("taper_max_percentage", db.Float, nullable=True)
     resample = db.Column("resample", db.Boolean, nullable=False)
     resampled_frequency_start = db.Column("resampled_frequency_start", db.Float, nullable=True)
     resampled_frequency_stop = db.Column("resampled_frequency_stop", db.Float, nullable=True)
     resampled_frequency_step = db.Column("resampled_frequency_step", db.Float, nullable=True)
     rejected_windows_quantile = db.Column("rejected_windows_quantile", db.Float, nullable=False)
+
     save_all_windows = db.Column("save_all_windows", db.Boolean, nullable=False)
     save_compressed = db.Column("save_compressed", db.Boolean, nullable=False)
 
@@ -844,9 +920,12 @@ class PPSDParams(db.Model):
             resampled_frequency_start: Optional[float],
             resampled_frequency_stop: Optional[float],
             resampled_frequency_step: Optional[float],
+            taper_type: Optional[str],
+            taper_max_percentage: Optional[float],
             rejected_windows_quantile: float,
             save_all_windows: bool,
             save_compressed: bool,
+
     ):
         if resample and any([
             resampled_frequency_start is None,
@@ -863,11 +942,17 @@ class PPSDParams(db.Model):
             raise ValueError("Frequency vector to which you want to resample cannot end after the accepted "
                              "frequencies. It has to be: resampled_frequency_stop <= freq_max")
 
+        if taper_max_percentage is not None and taper_type is None:
+            raise ValueError("Taper type should be given")
+
         self.datachunk_params_id = datachunk_params_id
         self.segment_length = segment_length
         self.segment_step = segment_step
         self.freq_min = freq_min
         self.freq_max = freq_max
+
+        self.taper_type = taper_type
+        self.taper_max_percentage = taper_max_percentage
 
         self.resample = resample
         self.resampled_frequency_start = resampled_frequency_start
