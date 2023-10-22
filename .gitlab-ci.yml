@@ -61,44 +61,44 @@ test-noiz:
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - export DOCKER_BUILDKIT=1
-    - 'which ssh-agent || ( apk update && apk add --no-cache openssh-client )'
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
   after_script:
     - docker push $CI_REGISTRY_IMAGE
 
 test_build:
   extends: .image_building_parent
   script:
-    - docker build -f docker/noiz-image/Dockerfile --ssh default --cache-from $LATEST_IMAGE_TAG -t $LATEST_IMAGE_TAG .
-  only:
-    refs:
-      - branches
-    changes:
-      - Dockerfile
-  except:
-    - master
+    - docker build -f docker/noiz-image/Dockerfile --cache-from $LATEST_IMAGE_TAG -t $LATEST_IMAGE_TAG .
+  rules:
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+      changes:
+        - docker/noiz-image/Dockerfile
 
 stable_build:
   extends: .image_building_parent
   script:
-    - docker build -f docker/noiz-image/Dockerfile --ssh default -t $LATEST_IMAGE_TAG -t $STABLE_IMAGE_TAG .
-  only:
-    - master
+    - docker build -f docker/noiz-image/Dockerfile -t $LATEST_IMAGE_TAG -t $STABLE_IMAGE_TAG .
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - docker/noiz-image/Dockerfile
 
 build_unittesting:
   extends: .image_building_parent
   script:
     - docker build -f docker/unittest-image/Dockerfile -t $UNITTESTING_IMAGE_TAG .
-  only:
-    - master
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - docker/unittest-image/Dockerfile
 
 build_postgres:
   extends: .image_building_parent
   script:
     - docker build -f docker/postgres-image/Dockerfile -t $POSTGRES_IMAGE_TAG .
-  only:
-    - master
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - docker/postgres-image/Dockerfile
 
 .system_test_parent:
   stage: system-testing
