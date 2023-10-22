@@ -22,7 +22,6 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "License :: CeCILL-B Free Software License Agreement (CECILL-B)",
     "Topic :: Scientific/Engineering",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
 ]
@@ -75,7 +74,6 @@ dependencies = [
 
 [[tool.hatch.envs.test.matrix]]
 python = [
-    "3.8",
     "3.9",
     "3.10",
 #    "3.11", pinned numpy 1.21.4 is incompatible
