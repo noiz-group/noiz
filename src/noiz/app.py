@@ -29,7 +29,7 @@ def create_app(
     with app.app_context():
         set_global_verbosity(verbosity=verbosity, quiet=quiet)
         setup_logging()
-    logger.info("App initialization successful")
+    logger.debug("App initialization successful")
 
     if mode == "app":
         return app

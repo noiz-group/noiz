@@ -28,6 +28,9 @@ def prepare_componentpairs_cartesian(components: List[Component]) -> List[Compon
     no = len(potential_pairs)
     logger.info(f"There are {no} potential pairs to be checked.")
     for i, (cmp_a, cmp_b) in enumerate(potential_pairs):
+        if i % int(no/10) == 0:
+            logger.info(f"Processed already {i}/{no} pairs")
+
         cmpa_start_date = datetime(cmp_a.start_date.year, cmp_a.start_date.month, cmp_a.start_date.day, cmp_a.start_date.hour)
         cmpb_start_date = datetime(cmp_b.start_date.year, cmp_b.start_date.month, cmp_b.start_date.day, cmp_b.start_date.hour)
         cmpa_end_date = datetime(cmp_a.end_date.year, cmp_a.end_date.month, cmp_a.end_date.day, cmp_a.end_date.hour)
@@ -233,17 +236,17 @@ def calculate_distance_azimuths(
     """
 
     if iris:
-        logger.info("Calculating distance and azimuths with iris")
+        logger.debug("Calculating distance and azimuths with iris client from Obspy")
         from obspy.clients.iris import Client
 
         distaz = Client().distaz(cmp_a.lat, cmp_a.lon, cmp_b.lat, cmp_b.lon)
-        logger.info("Calculation successful!")
+        logger.debug("Calculation successful!")
     else:
-        logger.info("Calculating distance and azimuths with local method")
+        logger.debug("Calculating distance and azimuths with local method")
         distaz = _calculate_distance_backazimuth(
             cmp_a.lat, cmp_a.lon, cmp_b.lat, cmp_b.lon
         )
-        logger.info("Calculation successful!")
+        logger.debug("Calculation successful!")
     return distaz
 
 
