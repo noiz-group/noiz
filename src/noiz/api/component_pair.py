@@ -64,7 +64,9 @@ def upsert_componentpairs_cartesian(component_pairs_cartesian: List[ComponentPai
             )
         )
         db.session.execute(insert_command)
-        logger.info(f"Inserted {i}/{no - 1} component_pairs_cartesian")
+        if i % int(no/10) == 0:
+            logger.info(f"Inserted {i}/{no - 1} component_pairs_cartesian")
+
     logger.info("Commiting changes")
     db.session.commit()
     logger.info("Commit successfull")
