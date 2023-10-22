@@ -47,6 +47,7 @@ Maintenance
 - Fixes for building images in out pipeline. !206
 - Simplified and fixed docs building in CI. !214
 - Switch to absolute https address of submodule with data for system tests. !226
+- Switches to Open source version of mseedindex. Simplifies Dockerfile for noiz. !234
 - Simplify and update CI config. !235
 - Adds bunch of things to gitignore, adds a dockerignore. !231
 - Reduce verbosity of logs around creation of component pairs. Reduce level of init message. !233

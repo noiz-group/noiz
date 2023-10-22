@@ -35,14 +35,9 @@ RUN apt-get update -yqq && \
         /usr/share/doc \
         /usr/share/doc-base
 
-RUN mkdir -m 700 /root/.ssh; \
-  touch /root/.ssh/known_hosts; \
-  chmod 600 /root/.ssh/known_hosts; \
-  ssh-keyscan gitlab.com github.com bitbucket.com > /root/.ssh/known_hosts
-
-RUN --mount=type=ssh git clone git@gitlab.com:noiz-group/mseedindex.git /mseedindex && \
+RUN git clone https://github.com/EarthScope/mseedindex.git /mseedindex && \
   cd /mseedindex && \
-  git checkout 2c7620f7727033c67140e430078a8130dab36ba5 && \
+  git checkout e8853ccc4c685af399d1c8e5b8136cb2a15b09b1 && \
   make clean && \
   CFLAGS='-I/usr/include/postgresql/' make
 ENV MSEEDINDEX_EXECUTABLE="/mseedindex/mseedindex"
