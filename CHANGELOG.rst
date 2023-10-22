@@ -50,8 +50,6 @@ Maintenance
 - Simplify and update CI config. !235
 - Adds bunch of things to gitignore, adds a dockerignore. !231
 - Reduce verbosity of logs around creation of component pairs. Reduce level of init message. !233
-- Switch to multi-python image for unit-testing. !217
-
 
 Documentation
 ------------------
