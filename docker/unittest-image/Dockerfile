@@ -9,7 +9,7 @@ ARG PYTHON_MAIN_VERSION=3.9
 ## Other python versions to install
 # Must be available either in the deadsnakes PPA or in
 # the official Ubuntu repositories
-ARG PYTHON_OTHER_VERSIONS="3.10 3.11"
+ARG PYTHON_OTHER_VERSIONS="3.10 3.11 3.12"
 ## GPG key for the deadsnakes PPA
 # See https://launchpad.net/~deadsnakes/+archive/ubuntu/ppa
 ARG DEADSNAKES_GPG_KEY=F23C5A6CF475977595C89F51BA6932366A755776
