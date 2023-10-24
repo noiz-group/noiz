@@ -46,19 +46,10 @@ dependencies = [
     "utm >=0.7.0",
     "dask[complete] ==2021.11.2",
     "pendulum ~=2.1",
+    "werkzeug == 2.3.3", # flask doesn't pin properly this dependency
 ]
-
-[project.scripts]
-noiz = "noiz.cli:cli"
-
-[project.urls]
-Homepage = "https://noiz-group.gitlab.io/"
-Documentation = "https://noiz-group.gitlab.io/noiz/"
-Repository = "https://gitlab.com/noiz-group/noiz.git"
-Changelog = "https://gitlab.com/noiz-group/noiz/-/blob/master/CHANGELOG.rst"
-
-[tool.hatch.envs.test]
-dependencies = [
+[project.optional-dependencies]
+test = [
     "pytest ==6.2.5",
     "pytest-check ==1.0.4",
     "pytest-cov ==3.0.0",
@@ -71,20 +62,7 @@ dependencies = [
     "types-python-dateutil ==2.8.2",
     "types-toml ==0.10.1",
 ]
-
-[[tool.hatch.envs.test.matrix]]
-python = [
-    "3.9",
-    "3.10",
-#    "3.11", pinned numpy 1.21.4 is incompatible
-]
-
-[tool.hatch.envs.test.scripts]
-cov = 'SQLALCHEMY_WARN_20=1 pytest --cov=noiz'
-#system_tests = 'SQLALCHEMY_WARN_20=1 pytest --cov=noiz --runcli'
-
-[tool.hatch.envs.docs]
-dependencies = [
+docs = [
     "sphinx ==4.3.0",
     "sphinx-autobuild ==2021.3.14",
     "sphinx-autoapi ==1.8.4",
@@ -94,6 +72,38 @@ dependencies = [
     "furo ==2021.11.23",
     "doc8 ==0.10.1",
 ]
+
+[project.scripts]
+noiz = "noiz.cli:cli"
+
+[project.urls]
+Homepage = "https://noiz-group.gitlab.io/"
+Documentation = "https://noiz-group.gitlab.io/noiz/"
+Repository = "https://gitlab.com/noiz-group/noiz.git"
+Changelog = "https://gitlab.com/noiz-group/noiz/-/blob/master/CHANGELOG.rst"
+
+[tool.hatch.envs.test]
+features = [
+    "test",
+]
+
+[[tool.hatch.envs.test.matrix]]
+python = [
+    "3.9",
+    "3.10",
+#    "3.11", pinned numpy 1.21.4 is incompatible
+#    "3.12", pinned numpy 1.21.4 is incompatible
+]
+
+[tool.hatch.envs.test.scripts]
+cov = 'SQLALCHEMY_WARN_20=1 pytest --cov=noiz'
+#system_tests = 'SQLALCHEMY_WARN_20=1 pytest --cov=noiz --runcli'
+
+[tool.hatch.envs.docs]
+features = [
+    "docs",
+]
+
 [tool.hatch.envs.lint]
 detached = true
 dependencies = [
@@ -104,6 +114,7 @@ dependencies = [
     "types-toml ==0.10.1",
     "pydantic ~=1.8",
 ]
+
 [tool.hatch.envs.lint.scripts]
 run_flake8 = [
     "flake8 .",
