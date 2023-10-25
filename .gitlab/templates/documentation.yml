@@ -3,7 +3,6 @@
 # Copyright © 2019-2023 Contributors to the Noiz project.
 
 .build-docs-parent:
-  image: registry.gitlab.com/noiz-group/noiz:docsbuilding
   stage: documentation
   before_script:
     - python -m pip install --upgrade pip setuptools wheel
@@ -35,7 +34,6 @@ build-docs-master:
 
 pages:
   stage: documentation-deployment
-  image: alpine
   script:
   - mv docs/_build/html/ public/
   artifacts:

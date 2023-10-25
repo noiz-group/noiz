@@ -44,14 +44,20 @@ Maintenance
 - Moved doc8 config to pyproject.toml. !210
 - Added a __main__.py file with entrypoint to the cli. !209
 - Removed some random import that was introduced by mistake. !209
-- Fixes for building images in out pipeline. !206
-- Simplified and fixed docs building in CI. !214
 - Switch to absolute https address of submodule with data for system tests. !226
 - Switches to Open source version of mseedindex. Simplifies Dockerfile for noiz. !234
-- Simplify and update CI config. !235
 - Adds bunch of things to gitignore, adds a dockerignore. !231
 - Reduce verbosity of logs around creation of component pairs. Reduce level of init message. !233
 - Brings back optional dependency groups. !230
+- Adds `--unsafe` to check-yaml pre-commit hook to allow the `!reference` construct through. !238
+
+CI
+------------------
+- Fixes for building images in out pipeline. !206
+- Simplified and fixed docs building in CI. !214
+- Simplify and update CI config. !235
+- Enable unit testing on multiple python versions. !237
+- Switch documentation and linting jobs to be running built on a generic image. !239
 
 Documentation
 ------------------
