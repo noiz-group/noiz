@@ -4,10 +4,12 @@
 
 repos:
     -   repo: https://github.com/pre-commit/pre-commit-hooks.git
-        rev: v4.4.0  # Use the ref you want to point at
+        rev: v4.4.0
         hooks:
             - id: trailing-whitespace
             - id: check-yaml
+              args:
+                  - --unsafe
             - id: check-toml
             - id: end-of-file-fixer
             - id: trailing-whitespace
