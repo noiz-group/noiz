@@ -2,14 +2,17 @@
 # Copyright © 2015-2019 EOST UNISTRA, Storengy SAS, Damian Kula
 # Copyright © 2019-2023 Contributors to the Noiz project.
 
-type-check:
-  image: $UNITTESTING_IMAGE_TAG
+.linting-parent:
   stage: linting
+  before_script:
+    - python -m pip install -U pip hatch
+
+type-check:
+  extends: .linting-parent
   script:
     - hatch run lint:run_mypy
 
 flake8:
-  image: $UNITTESTING_IMAGE_TAG
-  stage: linting
+  extends: .linting-parent
   script:
     - hatch run lint:run_flake8
