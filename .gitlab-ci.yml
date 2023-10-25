@@ -38,20 +38,21 @@ variables:
   DIND_SERVICE: docker:19.03.12-dind
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
-.test_parent:
-  image: $UNITTESTING_IMAGE_TAG
+test-noiz:
+  parallel:
+    matrix:
+      - TESTING_IMAGE:
+          - python:3.9-buster
+          - python:3.10-buster
+#          - python:3.11-buster # to be activated when constraint are released
+#          - python:3.12-buster # to be activated when constraint are released
+
+  image: $TESTING_IMAGE
   stage: testing
   before_script:
-    - python -m pip install --upgrade pip setuptools wheel
-    - python -m pip install -r requirements.txt
-    - python -m pip install .
+    - python -m pip install --upgrade pip hatch
   script:
-    - pytest --cov=noiz
-
-test-noiz:
-  extends: .test_parent
-  script:
-    - pytest --cov=noiz
+    - hatch run test:cov
 
 .image_building_parent:
   stage: image-building
@@ -115,7 +116,9 @@ build_postgres:
     PROCESSED_DATA_DIR: /processed-data-dir
     GIT_SUBMODULE_STRATEGY: recursive
   before_script:
-    - !reference [ .test_parent, before_script ]
+    - python -m pip install --upgrade pip hatch
+    - python -m pip install -r requirements.txt
+    - python -m pip install .
     - mkdir -p $PROCESSED_DATA_DIR
 #    - noiz db init
     - noiz db migrate
