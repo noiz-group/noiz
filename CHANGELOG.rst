@@ -50,6 +50,7 @@ Maintenance
 - Reduce verbosity of logs around creation of component pairs. Reduce level of init message. !233
 - Brings back optional dependency groups. !230
 - Adds `--unsafe` to check-yaml pre-commit hook to allow the `!reference` construct through. !238
+- Add docs-building command to hatch. !240
 
 CI
 ------------------
@@ -58,11 +59,13 @@ CI
 - Simplify and update CI config. !235
 - Enable unit testing on multiple python versions. !237
 - Switch documentation and linting jobs to be running built on a generic image. !239
+- Switch documentation building command to hatch. !240
 
 Documentation
 ------------------
 - Added documentation on how to use scalene for profiling system tests. !197
 - Added documentation group "Development" and policy on deprecations in Noiz. !228
+- Upgrade dependencies of docs to newest versions. !240
 
 Deprecations
 ------------

@@ -9,7 +9,7 @@ There are few major concepts in Noiz, that are going to be used in this text.
 We are introducing them at the beginning will help you understand further parts of the tutorial.
 
 Timespan
----------
+--------
 
 Timespan is overarching piece of time along which all subsequent operations will be performed.
 Timespans are defined globally, for the whole project.
@@ -19,7 +19,7 @@ However, it is possible to generate timespans in overlapping manner.
 
 
 Datachunk
-----------
+---------
 
 Datachunk is fundamental slice of data.
 It's a piece of raw data that was sliced out of an original file according to a start and end points of the Timespan.
@@ -29,7 +29,7 @@ Thanks to that, it is extremely easy to select all available data for any timesp
 This allows to significantly optimize cross station calculations such like cross-correlations.
 
 Processed Datachunk
---------------------
+-------------------
 
 Processed datachunk is a datachunk that went through some processing such as tapering, spectral whitening or others.
 It can be configured what operations as well as what parameters of each of them are performed.
