@@ -63,14 +63,11 @@ test = [
     "types-toml ==0.10.1",
 ]
 docs = [
-    "sphinx ==4.3.0",
-    "sphinx-autobuild ==2021.3.14",
-    "sphinx-autoapi ==1.8.4",
-    "sphinx-paramlinks ==0.5.2",
-    "sphinx-autodoc-typehints ==1.12.0",
-    "autodoc ==0.5.0",
-    "furo ==2021.11.23",
-    "doc8 ==0.10.1",
+    "sphinx ~=7.0.0",
+    "sphinx-autoapi ~=3.0.0",
+    "sphinx-paramlinks ~=0.6.0",
+    "sphinx-autodoc-typehints ~=1.24.0",
+    "furo ~=2023.9.10",
 ]
 
 [project.scripts]
@@ -104,6 +101,11 @@ features = [
     "docs",
 ]
 
+[tool.hatch.envs.docs.scripts]
+build_html = [
+    "sphinx-build -M html docs/ docs/_build ",
+]
+
 [tool.hatch.envs.lint]
 detached = true
 dependencies = [
@@ -113,6 +115,7 @@ dependencies = [
     "types-python-dateutil ==2.8.2",
     "types-toml ==0.10.1",
     "pydantic ~=1.8",
+    "doc8 ==0.10.1",
 ]
 
 [tool.hatch.envs.lint.scripts]
@@ -121,6 +124,9 @@ run_flake8 = [
 ]
 run_mypy = [
     "mypy --install-types --non-interactive src/noiz",
+]
+run_doc8 = [
+    "doc8 docs/content"
 ]
 
 [tool.hatch.version]
