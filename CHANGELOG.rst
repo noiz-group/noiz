@@ -66,6 +66,7 @@ Documentation
 - Added documentation on how to use scalene for profiling system tests. !197
 - Added documentation group "Development" and policy on deprecations in Noiz. !228
 - Upgrade dependencies of docs to newest versions. !240
+- Upgrade requirements lock based on change in dependencies for docs. !243
 
 Deprecations
 ------------
