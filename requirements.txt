@@ -6,20 +6,18 @@
 #
 alabaster==0.7.13
     # via sphinx
-alembic==1.12.0
+alembic==1.12.1
     # via flask-migrate
+anyascii==0.3.2
+    # via sphinx-autoapi
 astroid==3.0.1
     # via sphinx-autoapi
 attrs==23.1.0
     # via pytest
-autodoc==0.5.0
-    # via noiz (pyproject.toml)
 babel==2.13.1
     # via sphinx
 beautifulsoup4==4.12.2
-    # via
-    #   furo
-    #   webtest
+    # via furo
 bokeh==3.3.0
     # via dask
 certifi==2023.7.22
@@ -35,8 +33,6 @@ cloudpickle==3.0.0
     # via
     #   dask
     #   distributed
-colorama==0.4.6
-    # via sphinx-autobuild
 contourpy==1.1.1
     # via bokeh
 coverage[toml]==7.3.2
@@ -51,18 +47,13 @@ dask[complete]==2021.11.2
     #   distributed
     #   noiz (pyproject.toml)
 decorator==5.1.1
-    # via
-    #   autodoc
-    #   obspy
+    # via obspy
 distributed==2021.11.2
     # via dask
-doc8==0.10.1
-    # via noiz (pyproject.toml)
-docutils==0.17.1
+docutils==0.20.1
     # via
-    #   doc8
-    #   restructuredtext-lint
     #   sphinx
+    #   sphinx-paramlinks
 environs==9.5.0
     # via noiz (pyproject.toml)
 flake8==4.0.1
@@ -82,15 +73,17 @@ fonttools==4.43.1
     # via matplotlib
 fsspec==2023.10.0
     # via dask
-furo==2021.11.23
+furo==2023.9.10
     # via noiz (pyproject.toml)
 future==0.18.3
     # via obspy
-greenlet==3.0.0
+greenlet==3.0.1
     # via sqlalchemy
 idna==3.4
     # via requests
 imagesize==1.4.1
+    # via sphinx
+importlib-metadata==6.8.0
     # via sphinx
 iniconfig==2.0.0
     # via pytest
@@ -106,8 +99,6 @@ jinja2==3.1.2
     #   sphinx-autoapi
 kiwisolver==1.4.5
     # via matplotlib
-livereload==2.6.3
-    # via sphinx-autobuild
 locket==1.0.0
     # via partd
 loguru==0.7.2
@@ -169,8 +160,6 @@ pandas==1.3.4
     #   noiz (pyproject.toml)
 partd==1.4.1
     # via dask
-pbr==5.11.1
-    # via stevedore
 pendulum==2.1.2
     # via noiz (pyproject.toml)
 pillow==10.1.0
@@ -193,7 +182,6 @@ pyflakes==2.4.0
     # via flake8
 pygments==2.16.1
     # via
-    #   doc8
     #   furo
     #   sphinx
 pyparsing==3.1.1
@@ -234,8 +222,6 @@ requests==2.31.0
     # via
     #   obspy
     #   sphinx
-restructuredtext-lint==1.4.0
-    # via doc8
 scipy==1.7.2
     # via
     #   noiz (pyproject.toml)
@@ -243,43 +229,47 @@ scipy==1.7.2
 setuptools-scm==8.0.4
     # via matplotlib
 six==1.16.0
-    # via
-    #   livereload
-    #   python-dateutil
+    # via python-dateutil
 snowballstemmer==2.2.0
     # via sphinx
 sortedcontainers==2.4.0
     # via distributed
 soupsieve==2.5
     # via beautifulsoup4
-sphinx==4.3.0
+sphinx==7.0.1
     # via
     #   furo
     #   noiz (pyproject.toml)
     #   sphinx-autoapi
-    #   sphinx-autobuild
     #   sphinx-autodoc-typehints
-sphinx-autoapi==1.8.4
+    #   sphinx-basic-ng
+    #   sphinx-paramlinks
+    #   sphinxcontrib-applehelp
+    #   sphinxcontrib-devhelp
+    #   sphinxcontrib-htmlhelp
+    #   sphinxcontrib-qthelp
+    #   sphinxcontrib-serializinghtml
+sphinx-autoapi==3.0.0
     # via noiz (pyproject.toml)
-sphinx-autobuild==2021.3.14
+sphinx-autodoc-typehints==1.24.0
     # via noiz (pyproject.toml)
-sphinx-autodoc-typehints==1.12.0
+sphinx-basic-ng==1.0.0b2
+    # via furo
+sphinx-paramlinks==0.6.0
     # via noiz (pyproject.toml)
-sphinx-paramlinks==0.5.2
-    # via noiz (pyproject.toml)
-sphinxcontrib-applehelp==1.0.4
+sphinxcontrib-applehelp==1.0.7
     # via sphinx
-sphinxcontrib-devhelp==1.0.2
+sphinxcontrib-devhelp==1.0.5
     # via sphinx
-sphinxcontrib-htmlhelp==2.0.1
+sphinxcontrib-htmlhelp==2.0.4
     # via sphinx
 sphinxcontrib-jsmath==1.0.1
     # via sphinx
-sphinxcontrib-qthelp==1.0.3
+sphinxcontrib-qthelp==1.0.6
     # via sphinx
-sphinxcontrib-serializinghtml==1.1.5
+sphinxcontrib-serializinghtml==1.1.9
     # via sphinx
-sqlalchemy==1.4.49
+sqlalchemy==1.4.50
     # via
     #   alembic
     #   flask-sqlalchemy
@@ -287,8 +277,6 @@ sqlalchemy==1.4.49
     #   obspy
 sqlalchemy-stubs==0.4
     # via noiz (pyproject.toml)
-stevedore==5.1.0
-    # via doc8
 tblib==3.0.0
     # via distributed
 toml==0.10.2
@@ -309,7 +297,6 @@ tornado==6.3.3
     # via
     #   bokeh
     #   distributed
-    #   livereload
 tqdm==4.66.1
     # via noiz (pyproject.toml)
 types-python-dateutil==2.8.2
@@ -324,26 +311,20 @@ typing-extensions==4.8.0
     #   pydantic
     #   setuptools-scm
     #   sqlalchemy-stubs
-unidecode==1.3.7
-    # via sphinx-autoapi
 urllib3==2.0.7
     # via requests
 utm==0.7.0
     # via noiz (pyproject.toml)
-waitress==2.1.2
-    # via webtest
-webob==1.8.7
-    # via webtest
-webtest==3.0.0
-    # via autodoc
 werkzeug==2.3.3
     # via
     #   flask
     #   noiz (pyproject.toml)
-xyzservices==2023.10.0
+xyzservices==2023.10.1
     # via bokeh
 zict==3.0.0
     # via distributed
+zipp==3.17.0
+    # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
