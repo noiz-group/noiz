@@ -51,6 +51,7 @@ Maintenance
 - Brings back optional dependency groups. !230
 - Adds `--unsafe` to check-yaml pre-commit hook to allow the `!reference` construct through. !238
 - Add docs-building command to hatch. !240
+- Adds unit tests to generation of timespans. !245
 
 CI
 ------------------

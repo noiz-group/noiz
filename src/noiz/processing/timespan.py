@@ -5,7 +5,7 @@
 import datetime
 import numpy as np
 import pandas as pd
-from typing import Union, Optional, Tuple, Iterable, Generator, Any
+from typing import Union, Optional, Tuple, Generator, Any, List
 
 from noiz.models.timespan import Timespan
 
@@ -17,10 +17,11 @@ def generate_starttimes_endtimes(
     window_overlap: Optional[Union[float, int, pd.Timedelta, np.timedelta64]] = None,
     generate_midtimes: bool = False,
 ) -> Union[
-    Tuple[pd.DatetimeIndex, pd.DatetimeIndex],
-    Tuple[pd.DatetimeIndex, pd.DatetimeIndex, pd.DatetimeIndex],
+    Tuple[List[pd.Timestamp], List[pd.Timestamp]],
+    Tuple[List[pd.Timestamp], List[pd.Timestamp], List[pd.Timestamp]],
 ]:
     """
+    FIXME: Add actual description
 
     :param startdate: Starting day of the dates range. Will be rounded to midnight.
     :type startdate: Union[datetime.datetime, np.datetime64]
@@ -33,31 +34,20 @@ def generate_starttimes_endtimes(
     :param generate_midtimes: Generating midtimes flag. If True, there will be generated third timeindex
     representing midtime of each window.
     :type generate_midtimes: bool
-    :return: Returns two iterables, first with starttimes second with endtimes.
-    :rtype: Tuple[pd.DatetimeIndex, pd.DatetimeIndex]
+    :return: Returns two or three iterables, first with start-times, optional second with mid-times, last with end times
+    :rtype: Union[
+            Tuple[List[pd.Timestamp], List[pd.Timestamp]],
+            Tuple[List[pd.Timestamp], List[pd.Timestamp], List[pd.Timestamp]],
+        ]
     """
 
-    if isinstance(window_length, (float, int)):
-        window_length = pd.Timedelta(window_length, "s")
-    if isinstance(window_overlap, (float, int)):
-        window_overlap = pd.Timedelta(window_overlap, "s")
+    window_length = cast_to_timedelta(window_length)
+    window_overlap = cast_to_timedelta(window_overlap) if window_overlap is not None else None
 
-    if window_overlap is None:
-        starttime_freq = window_length
-    elif isinstance(window_overlap, (pd.Timedelta, np.timedelta64)):
-        starttime_freq = window_length - window_overlap
-        if window_overlap >= window_length:
-            raise ValueError(
-                f"The overlap time `{window_overlap}` cannot be equal or longer than window length `{window_length}`"
-            )
-    else:
-        raise ValueError(
-            "The overlap is expected to be eitherint or float of seconds \
-                         or pd.Timedelta or np.timedelta64"
-        )
+    freq = _calculate_frequency_for_generating_timespans(window_length, window_overlap)
 
     starttimes = pd.date_range(
-        start=startdate, end=enddate, freq=starttime_freq, normalize=True, closed='left'
+        start=startdate, end=enddate, freq=freq, normalize=True, closed='left'
     )
     endtimes = starttimes + window_length
     if not generate_midtimes:
@@ -65,6 +55,61 @@ def generate_starttimes_endtimes(
     else:
         midtimes = starttimes + window_length / 2
         return starttimes.to_list(), midtimes.to_list(), endtimes.to_list()
+
+
+def _calculate_frequency_for_generating_timespans(
+        window_length: pd.Timedelta,
+        window_overlap: Optional[pd.Timedelta] = None
+) -> pd.Timedelta:
+    """
+    Calculates frequency for generation of range of :class:`noiz.models.timespan.Timespan`
+    It is later on passed into a :func:`pandas.date_range` function.
+    It takes into account the window length and window overlap.
+
+    :param window_length: Length of the timespan window
+    :type window_length: pd.Timedelta
+    :param window_overlap: Optional timespan window overlap
+    :type window_overlap: Optional[pd.Timedelta]
+    :return: Frequency for generation of windows
+    :rtype: pd.Timedelta
+    :raises: ValueError in case window overlap is longer or equal to the window length
+    """
+    if window_overlap is None:
+        return window_length
+
+    if window_overlap >= window_length:
+        raise ValueError(
+            f"The overlap time `{window_overlap}` cannot be equal or longer than window length `{window_length}`"
+        )
+    return pd.Timedelta(window_length - window_overlap)
+
+
+def cast_to_timedelta(
+        window: Union[float, int, pd.Timedelta, np.timedelta64],
+        resolution: str = "s",
+) -> Union[pd.Timedelta, np.timedelta64]:
+    """
+    Casts a float or int value to pd.Timedelta with a provided resolution.
+    In case a pd.Timedelta or np.timedelta64 is provided, returns the same value.
+    For any other type of value, a TypeError is raised.
+
+    Resolution has to be provided as a string that is accepted as an Offset string in pandas.
+
+    :param window: A time window to be cast
+    :type window: Union[float, int, pd.Timedelta, np.timedelta64]
+    :param resolution: Time resolution of the expected timedelta
+    :type resolution: str
+    :return: Expected timedelta object
+    :rtype: Union[pd.Timedelta, np.timedelta64]
+    :raises: TypeError
+    """
+    if isinstance(window, (float, int)):
+        return pd.Timedelta(window, resolution)
+    if isinstance(window, (pd.Timedelta, np.timedelta64)):
+        return window
+    raise TypeError(f"This function accepts only "
+                    f"Union[float, int, pd.Timedelta, np.timedelta64]"
+                    f"You provided value of type {type(window)}")
 
 
 def generate_timespans(
