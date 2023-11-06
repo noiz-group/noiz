@@ -474,7 +474,7 @@ def __calculate_averages_of_gps_soh(
         query = (
             db.session
             .query(SohGps, (Component.id).label('component_id'))
-            .join((SohGps.components, Component))
+            .join(Component, SohGps.components)
             .filter(
                 SohGps.datetime >= timespan.starttime,
                 SohGps.datetime <= timespan.endtime,

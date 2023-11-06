@@ -220,8 +220,8 @@ def __plot_gps_data_soh(
 
     for ax, cmp in zip(axes, z_components):
         subdf = df.loc[df.loc[:, 'z_component_id'] == cmp.id, :].sort_index()
-        ax.plot(subdf.index, subdf.loc[:, ['time_uncertainty']], label='Uncertainty [ms]')
-        ax.plot(subdf.index, subdf.loc[:, ['time_error']], label='Error [ms]')
+        ax.plot(subdf.index.values, subdf.loc[:, 'time_uncertainty'].values, label='Uncertainty [ms]')
+        ax.plot(subdf.index.values, subdf.loc[:, 'time_error'].values, label='Error [ms]')
         ax.set_ylabel(str(cmp), rotation=0, labelpad=30)
         ax.yaxis.set_label_position("right")
 
