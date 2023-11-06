@@ -52,6 +52,9 @@ Maintenance
 - Adds `--unsafe` to check-yaml pre-commit hook to allow the `!reference` construct through. !238
 - Add docs-building command to hatch. !240
 - Adds unit tests to generation of timespans. !245
+- Fixes compatibility with Pandas 2.0. !244
+- Introduces compatibility with SQLAlchemy 2.0. !244
+- Upgrades dependency of pandas, numpy, scipy and obspy. !244
 
 CI
 ------------------

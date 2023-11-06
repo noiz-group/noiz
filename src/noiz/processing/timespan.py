@@ -31,7 +31,7 @@ def generate_starttimes_endtimes(
     :type window_length: Union[float, int, pd.Timedelta, np.timedelta64]
     :param window_overlap: Length of overlap. Should be number of seconds or timedelta. Defaults to None.
     :type window_overlap: Optional[Union[float, int, pd.Timedelta, np.timedelta64]
-    :param generate_midtimes: Generating midtimes flag. If True, there will be generated third timeindex
+    :param generate_midtimes: Generating mid-times flag. If True, there will be generated third timeindex
     representing midtime of each window.
     :type generate_midtimes: bool
     :return: Returns two or three iterables, first with start-times, optional second with mid-times, last with end times
@@ -47,7 +47,7 @@ def generate_starttimes_endtimes(
     freq = _calculate_frequency_for_generating_timespans(window_length, window_overlap)
 
     starttimes = pd.date_range(
-        start=startdate, end=enddate, freq=freq, normalize=True, closed='left'
+        start=startdate, end=enddate, freq=freq, normalize=True, inclusive='left'
     )
     endtimes = starttimes + window_length
     if not generate_midtimes:

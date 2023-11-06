@@ -456,10 +456,8 @@ def _read_single_soh_miniseed_centaur(
             )
 
     df = pd.concat(data_read, axis=1)
-    df.index = pd.DatetimeIndex(df.index)
+    df.index = pd.DatetimeIndex(df.index, tz="UTC")
     df = df.astype(parsing_params.header_dtypes)
-    df.index = df.index.tz_localize("UTC")
-
     return df
 
 

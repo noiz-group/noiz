@@ -7,6 +7,8 @@ from typing import List
 
 import pandas as pd
 
+from noiz.exceptions import CorruptedDataException
+
 
 @dataclass
 class TempAverageGpsSoh:
@@ -35,17 +37,34 @@ def __calculate_mean_gps_soh(df: pd.DataFrame, timespan_id: int) -> List[TempAve
     if len(df) == 0:
         raise ValueError('Provided DataFrame was empty')
 
-    averaged = df.drop(['component_id', 'id'], axis=1).groupby('z_component_id').mean()
+    averaged = (
+        df
+        .drop(['component_id', 'id', "network", "station", "id_1"], axis=1)
+        .groupby('z_component_id')
+        .mean()
+    )
 
     res = []
     for z_component_id, row in averaged.iterrows():
-        all_components = df.loc[df.loc[:, "z_component_id"] == z_component_id, "component_id"].drop_duplicates()
+        all_components = df.loc[
+            df.loc[:, "z_component_id"] == z_component_id, ["component_id", "device_id"]
+        ].drop_duplicates()
+
+        devices = set(all_components.loc[:, "device_id"].values)
+
+        if len(devices) != 1:
+            raise CorruptedDataException(
+                f"There should not be more tha one device associated with SOH for a single timespan. "
+                f"If you have such case, please contact developers."
+                f"Device ids that were found: {devices}. "
+                f"Components and devices DataFrame: {all_components};"
+            )
 
         res.append(
             TempAverageGpsSoh(
                 z_component_id=z_component_id,
-                all_components=all_components.values,
-                device_id=row['device_id'],
+                all_components=all_components.loc[:, "component_id"].values,
+                device_id=devices.pop(),
                 timespan_id=timespan_id,
                 time_error=row['time_error'],
                 time_uncertainty=row['time_uncertainty']
