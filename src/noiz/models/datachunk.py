@@ -86,7 +86,7 @@ class Datachunk(db.Model):
             if datachunk_file.id != self.datachunk_file_id:
                 raise ValueError("You provided wrong datachunk file! Expected id: {self.datachunk_file_id}")
 
-        if filepath.exists:
+        if filepath.exists():
             # FIXME when obspy will be released, str(Path) wont be necesary
             return obspy.read(str(filepath), "MSEED")
         else:
@@ -163,7 +163,7 @@ class ProcessedDatachunk(db.Model):
 
     def load_data(self):
         filepath = Path(self.file.filepath)
-        if filepath.exists:
+        if filepath.exists():
             # FIXME when obspy will be released, str(Path) wont be necesary
             return obspy.read(str(filepath), "MSEED")
         else:

@@ -148,7 +148,7 @@ class BeamformingResult(db.Model):
 
     def load_data(self):
         filepath = Path(self.file.filepath)
-        if filepath.exists:
+        if filepath.exists():
             return np.load(str(filepath))
         else:
             raise MissingDataFileException(f"Inventory file for component {self} is missing")

@@ -9,18 +9,18 @@ clean_after_tests:
 
 prepare_dotenv:
     #! /usr/bin/env bash
-    echo POSTGRES_HOST=localhost >> {{env_file_system_test}}
-    echo POSTGRES_PORT="5432" >> {{env_file_system_test}}
-    echo POSTGRES_USER=noiztest >> {{env_file_system_test}}
-    echo POSTGRES_PASSWORD=noiztest >> {{env_file_system_test}}
-    echo POSTGRES_DB=noiztest_{{timestamp}} >> {{env_file_system_test}}
-    echo MSEEDINDEX_EXECUTABLE=../mseedindex/mseedindex >> {{env_file_system_test}}
+    echo NOIZ_POSTGRES_HOST=localhost >> {{env_file_system_test}}
+    echo NOIZ_POSTGRES_PORT="5432" >> {{env_file_system_test}}
+    echo NOIZ_POSTGRES_USER=noiztest >> {{env_file_system_test}}
+    echo NOIZ_POSTGRES_PASSWORD=noiztest >> {{env_file_system_test}}
+    echo NOIZ_POSTGRES_DB=noiztest_{{timestamp}} >> {{env_file_system_test}}
+    echo NOIZ_MSEEDINDEX_EXECUTABLE=../mseedindex/mseedindex >> {{env_file_system_test}}
     echo SQLALCHEMY_WARN_20=1 >> {{env_file_system_test}}
 
-    export PROCESSED_DATA_DIR="system_test_processed_data_dir_{{timestamp}}/"
-    echo PROCESSED_DATA_DIR=$PROCESSED_DATA_DIR >> {{env_file_system_test}}
+    export NOIZ_PROCESSED_DATA_DIR="system_test_processed_data_dir_{{timestamp}}/"
+    echo NOIZ_PROCESSED_DATA_DIR=$NOIZ_PROCESSED_DATA_DIR >> {{env_file_system_test}}
 
-    mkdir $PROCESSED_DATA_DIR
+    mkdir $NOIZ_PROCESSED_DATA_DIR
 
 run_system_tests: prepare_dotenv
     #! /usr/bin/env bash

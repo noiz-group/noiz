@@ -2,26 +2,49 @@
 # Copyright © 2015-2019 EOST UNISTRA, Storengy SAS, Damian Kula
 # Copyright © 2019-2023 Contributors to the Noiz project.
 
-import os
 import sys
 from flask import Flask, g
 from loguru import logger
-from pathlib import Path
 
+from noiz.settings import NoizSettings
 from noiz.database import db, migrate
 from noiz.routes import simple_page
 
-DEFAULT_LOGGING_LEVEL = logger.level("INFO").no
-
 
 def create_app(
-        config_object: str = "noiz.settings",
         mode: str = "app",
-        verbosity: int = 0,
-        quiet: bool = False
+        verbosity: int = 20,
+        quiet: bool = False,
 ):
+    """
+    Initializes Noiz application.
+
+    You can control by it a logging level that is used across noiz.
+    Since Noiz is using Loguru for logging, please refer to their documentation for details about levels:
+    https://loguru.readthedocs.io/en/stable/api/logger.html#levels
+
+    Used levels from most verbose to least verbose:
+    Trace    => 5
+    DEBUG    => 10
+    INFO     => 20
+    SUCCESS  => 25
+    WARNING  => 30
+    ERROR    => 40
+    CRITICAL => 50
+
+    Please use desired value in the verbosity in :paramref:`create_app.verbosity`
+
+    :param mode:
+    :type mode: str
+    :param verbosity: Log verbosity of Noiz. Levels provided above.
+    :type verbosity: int
+    :param quiet: Overrides verbosity level and sets it to ERROR (40)
+    :type quiet: bool
+    :return:
+    """
     app = Flask(__name__)
-    app.config.from_object(config_object)
+    settings = NoizSettings()
+    app.config.from_mapping(settings)
 
     register_extensions(app)
     register_blueprints(app)
@@ -37,41 +60,32 @@ def create_app(
         raise NotImplementedError(f"Mode {mode} is not implemented")
 
 
-def set_global_verbosity(verbosity: int = 0, quiet: bool = False):
-    loglevel = os.environ.get("LOGLEVEL", DEFAULT_LOGGING_LEVEL)
-    if isinstance(loglevel, int):
-        baselevel = loglevel
-    elif isinstance(loglevel, str):
-        baselevel = logger.level(loglevel).no
-    else:
-        raise ValueError("LOGLEVEL should be either positive int or string parsable by loguru")
+def set_global_verbosity(
+        verbosity: int = 0,
+        quiet: bool = False,
+) -> None:
+    """
+    Sets global verbosity level for logs.
 
-    logger_level = baselevel - (verbosity * 10)
-    if logger_level < 0:
-        logger_level = 0
+    :param verbosity: Log verbosity. Should be positive int.
+    :type verbosity: int
+    :param quiet: Overrides log verbosity level and sets it to ERROR (40)
+    :type quiet: bool
+    """
+
+    if verbosity < 0:
+        verbosity = 0
 
     if quiet:
-        logger_level = logger.level("ERROR").no
+        verbosity = logger.level("ERROR").no
 
-    g.logger_level = logger_level
+    g.logger_level = verbosity
     return
 
 
 def setup_logging():
     logger.remove()
     logger.add(sys.stderr, level=g.logger_level, enqueue=True)
-
-    # class InterceptHandler(logging.Handler):
-    #     def emit(self, record):
-    #         # Retrieve context where the logging call occurred, this happens to be in the 6th frame upward
-    #         logger_opt = logger.opt(depth=6, exception=record.exc_info)
-    #         logger_opt.log(record.levelno, record.getMessage())
-    #
-    # handler = InterceptHandler()
-    # handler.setLevel(0)
-    # for hndlr in app.logger.handlers:
-    #     app.logger.removeHandler(hndlr)
-    # app.logger.addHandler(handler)
 
 
 def register_extensions(app: Flask):

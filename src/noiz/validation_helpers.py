@@ -254,16 +254,16 @@ def validate_uniformity_of_tuple(
 
 
 def validate_exactly_one_argument_provided(
-        first: Optional[Any],
-        second: Optional[Any],
+        first: Any,
+        second: Any,
 ) -> bool:
     """
     Method that checks if exactly one of provided arguments is not None.
 
     :param first: First value to check
-    :type first: Optional[Any]
+    :type first: Any
     :param second: Second value to check
-    :type second: Optional[Any]
+    :type second: Any
     :return: True if only one value is not None
     :rtype: bool
     :raises: ValueError
@@ -276,16 +276,16 @@ def validate_exactly_one_argument_provided(
 
 
 def validate_maximum_one_argument_provided(
-        first: Optional[Any],
-        second: Optional[Any],
+        first: Any,
+        second: Any,
 ) -> bool:
     """
     Method that checks if maximum one of provided arguments is not None.
 
     :param first: First value to check
-    :type first: Optional[Any]
+    :type first: Any
     :param second: Second value to check
-    :type second: Optional[Any]
+    :type second: Any
     :return: True if one or none of provided arguments is None
     :rtype: bool
     :raises: ValueError

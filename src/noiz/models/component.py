@@ -151,7 +151,7 @@ class Component(db.Model):
 
     def load_data(self):
         filepath = Path(self.component_file.filepath)
-        if filepath.exists:
+        if filepath.exists():
             # FIXME when obspy will be released, str(Path) wont be necesary
             return read_inventory(str(filepath), format="stationxml")
         else:

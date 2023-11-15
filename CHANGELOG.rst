@@ -36,6 +36,12 @@ Bugfix
 - Adds `with_file=True` parameter to parallel datachunk creation call. !224
 - Fix logic for rejection of datachunks in QCOne and CCFs in QCTwo based on preconfigured rejection periods !227
 
+Dependency changes
+------------------
+- Upgrades dependency of pandas, numpy, scipy and obspy. !244
+- Upgrades mypy to ==1.7.0. !248
+- Pydantic upgraded to >2.0.
+
 Maintenance
 ------------------
 - Released dependency locks on multiple dependencies. !200
@@ -54,7 +60,7 @@ Maintenance
 - Adds unit tests to generation of timespans. !245
 - Fixes compatibility with Pandas 2.0. !244
 - Introduces compatibility with SQLAlchemy 2.0. !244
-- Upgrades dependency of pandas, numpy, scipy and obspy. !244
+- Overhaul of noiz.settings, uses pydantic_settings now. !248
 
 CI
 ------------------
@@ -76,6 +82,7 @@ Deprecations
 ------------
 - noiz.models.component.Component.read_inventory function is deprecated. !207
 - Unified deprecations of multiple functions. !228
+- All environment variables for configs will need to be prepended with `NOIZ_`. !248
 
 0.5.20210405 and before
 =========================
