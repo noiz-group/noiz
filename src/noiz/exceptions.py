@@ -6,6 +6,10 @@ class NoizBaseException(Exception):
     pass
 
 
+class ConfigError(NoizBaseException):
+    pass
+
+
 class MissingDataFileException(NoizBaseException):
     pass
 

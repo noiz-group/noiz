@@ -46,9 +46,9 @@ class StackingSchemaHolder:
     minimum_ccf_count: int
     starttime: Union[datetime.datetime, datetime.date]
     endtime: Union[datetime.datetime, datetime.date]
-    stacking_length: Union[pd.Timedelta, datetime.timedelta, str]
-    stacking_step: Optional[Union[pd.Timedelta, datetime.timedelta, str]] = None
-    stacking_overlap: Optional[Union[pd.Timedelta, datetime.timedelta, str]] = None
+    stacking_length: Union[datetime.timedelta, str]
+    stacking_step: Optional[Union[datetime.timedelta, str]] = None
+    stacking_overlap: Optional[Union[datetime.timedelta, str]] = None
 
 
 class StackingSchema(db.Model):

@@ -109,17 +109,22 @@ build_postgres:
       alias: postgres
   variables:
     POSTGRES_HOST: postgres
+    NOIZ_POSTGRES_HOST: $POSTGRES_HOST
     POSTGRES_PORT: "5432"
+    NOIZ_POSTGRES_PORT: $POSTGRES_PORT
     POSTGRES_USER: noiztest
+    NOIZ_POSTGRES_USER: $POSTGRES_USER
     POSTGRES_PASSWORD: noiztest
+    NOIZ_POSTGRES_PASSWORD: $POSTGRES_PASSWORD
     POSTGRES_DB: noiztest
-    PROCESSED_DATA_DIR: /processed-data-dir
+    NOIZ_POSTGRES_DB: $POSTGRES_DB
+    NOIZ_PROCESSED_DATA_DIR: /processed-data-dir
     GIT_SUBMODULE_STRATEGY: recursive
   before_script:
     - python -m pip install --upgrade pip hatch
     - python -m pip install -r requirements.txt
     - python -m pip install .
-    - mkdir -p $PROCESSED_DATA_DIR
+    - mkdir -p $NOIZ_PROCESSED_DATA_DIR
 #    - noiz db init
     - noiz db migrate
     - noiz db upgrade

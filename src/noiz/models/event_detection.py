@@ -158,7 +158,7 @@ class EventDetectionResult(db.Model):
         """
         filepath = Path(self.file.filepath)
 
-        if filepath.exists:
+        if filepath.exists():
             # FIXME when obspy will be released, str(Path) wont be necessary
             return obspy.read(str(filepath), "MSEED")
         else:
@@ -246,7 +246,7 @@ class EventConfirmationResult(db.Model):
         """
         filepath = Path(self.file.filepath)
 
-        if filepath.exists:
+        if filepath.exists():
             # FIXME when obspy will be released, str(Path) wont be necessary
             return obspy.read(str(filepath), "MSEED")
         else:
