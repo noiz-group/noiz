@@ -9,6 +9,8 @@ import pandas as pd
 from sqlalchemy import func
 from typing import TYPE_CHECKING, Union
 
+from sqlalchemy.orm import Mapped
+
 if TYPE_CHECKING:
     # Use this to make hybrid_property's have the same typing as a normal property until stubs are improved.
     typed_hybrid_property = property
@@ -21,22 +23,22 @@ from noiz.validation_helpers import validate_timestamp_as_pydatetime
 
 class TimespanMixin(db.Model):
     __abstract__ = True
-    id: int = db.Column("id", db.BigInteger, primary_key=True)
-    starttime: datetime.datetime = db.Column(
+    id: Mapped[int] = db.Column("id", db.BigInteger, primary_key=True)
+    starttime: Mapped[datetime.datetime] = db.Column(
         "starttime", db.TIMESTAMP(timezone=True), nullable=False
     )
-    midtime: datetime.datetime = db.Column(
+    midtime: Mapped[datetime.datetime] = db.Column(
         "midtime", db.TIMESTAMP(timezone=True), nullable=False
     )
-    endtime: datetime.datetime = db.Column(
+    endtime: Mapped[datetime.datetime] = db.Column(
         "endtime", db.TIMESTAMP(timezone=True), nullable=False
     )
 
     def __init__(self, **kwargs):
         super(TimespanMixin, self).__init__(**kwargs)
-        self.starttime: datetime.datetime = validate_timestamp_as_pydatetime(kwargs.get("starttime"))
-        self.midtime: datetime.datetime = validate_timestamp_as_pydatetime(kwargs.get("midtime"))
-        self.endtime: datetime.datetime = validate_timestamp_as_pydatetime(kwargs.get("endtime"))
+        self.starttime = validate_timestamp_as_pydatetime(kwargs.get("starttime"))
+        self.midtime = validate_timestamp_as_pydatetime(kwargs.get("midtime"))
+        self.endtime = validate_timestamp_as_pydatetime(kwargs.get("endtime"))
 
     def __repr__(self):
         return f"Timespan id: {self.id} from {self.starttime} -- {self.endtime}"

@@ -58,14 +58,14 @@ docutils==0.20.1
     #   sphinx-paramlinks
 flake8==4.0.1
     # via noiz (pyproject.toml)
-flask==2.0.2
+flask==2.2.5
     # via
     #   flask-migrate
     #   flask-sqlalchemy
     #   noiz (pyproject.toml)
-flask-migrate==3.1.0
+flask-migrate==4.0.5
     # via noiz (pyproject.toml)
-flask-sqlalchemy==2.5.1
+flask-sqlalchemy==3.1.1
     # via
     #   flask-migrate
     #   noiz (pyproject.toml)
@@ -82,7 +82,9 @@ idna==3.4
 imagesize==1.4.1
     # via sphinx
 importlib-metadata==6.8.0
-    # via sphinx
+    # via
+    #   flask
+    #   sphinx
 iniconfig==2.0.0
     # via pytest
 itsdangerous==2.1.2
@@ -122,11 +124,9 @@ more-itertools==10.1.0
     # via noiz (pyproject.toml)
 msgpack==1.0.7
     # via distributed
-mypy==0.910
-    # via
-    #   noiz (pyproject.toml)
-    #   sqlalchemy-stubs
-mypy-extensions==0.4.4
+mypy==1.6.1
+    # via noiz (pyproject.toml)
+mypy-extensions==1.0.0
     # via mypy
 numpy==1.26.1
     # via
@@ -270,24 +270,22 @@ sphinxcontrib-qthelp==1.0.6
     # via sphinx
 sphinxcontrib-serializinghtml==1.1.9
     # via sphinx
-sqlalchemy==1.4.50
+sqlalchemy==2.0.23
     # via
     #   alembic
     #   flask-sqlalchemy
     #   noiz (pyproject.toml)
     #   obspy
-sqlalchemy-stubs==0.4
-    # via noiz (pyproject.toml)
 tblib==3.0.0
     # via distributed
 toml==0.10.2
     # via
-    #   mypy
     #   noiz (pyproject.toml)
     #   pytest
 tomli==2.0.1
     # via
     #   coverage
+    #   mypy
     #   setuptools-scm
 toolz==0.12.0
     # via
@@ -312,7 +310,7 @@ typing-extensions==4.8.0
     #   pydantic
     #   pydantic-core
     #   setuptools-scm
-    #   sqlalchemy-stubs
+    #   sqlalchemy
 tzdata==2023.3
     # via pandas
 urllib3==2.0.7

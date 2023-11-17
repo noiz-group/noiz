@@ -26,18 +26,19 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
 ]
 dependencies = [
-    "more-itertools >=8.11",
-    "sqlalchemy >=1.4.0, <2.0",
+    "sqlalchemy ==2.0.23",
+    "flask ==2.2.5",
+    "flask-sqlalchemy ==3.1.1",
+    "flask-migrate ==4.0.5",
+    "werkzeug ==2.3.3", # flask doesn't pin properly this dependency
+    "psycopg2-binary ==2.9.2",
     "click >=8.0.3",
-    "flask ==2.0.2",
-    "flask-sqlalchemy ==2.5.1",
-    "flask-migrate ==3.1.0",
+    "more-itertools >=8.11",
     "loguru >=0.5.3",
     "matplotlib ==3.5.0",
     "numpy ~=1.26.1",
     "obspy ~=1.4.0",
     "pandas ~=2.1.2",
-    "psycopg2-binary ==2.9.2",
     "pydantic ~=2.4",
     "pydantic-settings ~=2.0.3",
     "scipy ~=1.11.3",
@@ -46,7 +47,6 @@ dependencies = [
     "utm >=0.7.0",
     "dask[complete] ==2021.11.2",
     "pendulum ~=2.1",
-    "werkzeug == 2.3.3", # flask doesn't pin properly this dependency
 ]
 [project.optional-dependencies]
 test = [
@@ -57,7 +57,6 @@ test = [
     "pytest-mock ==3.6.1",
     "mock==4.0.3",
     "mypy ==1.7.0",
-    "sqlalchemy-stubs ==0.4",
     "flake8 ==4.0.1",
     "types-python-dateutil ==2.8.2",
     "types-toml ==0.10.1",
@@ -111,11 +110,11 @@ detached = true
 dependencies = [
     "flake8 ==4.0.1",
     "mypy ==1.7.0",
-    "sqlalchemy-stubs ==0.4",
     "types-python-dateutil ==2.8.2",
     "types-toml ==0.10.1",
     "pydantic ~=2.4",
     "doc8 ==0.10.1",
+    "sqlalchemy ==2.0.23",
 ]
 
 [tool.hatch.envs.lint.scripts]

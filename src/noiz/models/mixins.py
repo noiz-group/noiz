@@ -6,6 +6,8 @@ import os
 from typing import Optional, Union
 from pathlib import Path
 
+from sqlalchemy.orm import Mapped
+
 from noiz.database import db
 from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models import Component, Timespan, ComponentPairCartesian
@@ -17,8 +19,8 @@ from noiz.models.processing_params import ParamsLike
 
 class FileModelMixin(db.Model):
     __abstract__ = True
-    id: int = db.Column("id", db.BigInteger, primary_key=True)
-    _filepath: Path = db.Column("filepath", PathInDB, nullable=False)
+    id: Mapped[int] = db.Column("id", db.BigInteger, primary_key=True)
+    _filepath: Mapped[Path] = db.Column("filepath", PathInDB, nullable=False)
 
     _file_model_type: str
     _filename_extension: Optional[str]
@@ -143,7 +145,7 @@ class FileModelMixin(db.Model):
 
 class BeamformingPeakExtractMixin(db.Model):
     __abstract__ = True
-    id: int = db.Column("id", db.BigInteger, primary_key=True)
+    id: Mapped[int] = db.Column("id", db.BigInteger, primary_key=True)
 
     slowness = db.Column("slowness", db.Float, nullable=False)
     slowness_x = db.Column("slowness_x", db.Float, nullable=False)
