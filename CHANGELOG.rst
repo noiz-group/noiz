@@ -17,6 +17,13 @@ Breaking changes
 - Completely reworked Beamforming computations. !219
 - Remove support for python 3.8. !232
 
+Dependency changes
+------------------
+- Upgrades dependency of pandas, numpy, scipy and obspy. !244
+- Upgrades mypy to ==1.7.0. !248
+- Pydantic upgraded to >2.0. !248
+- SQLAlchemy updated to >2.0.23. !247
+
 Significant changes to processing
 ----------------------------------
 - Omit files with STEIM1 integrity issues from processing. !225
@@ -35,12 +42,6 @@ Bugfix
 - Fixes for race condition in creation of directory for results. !211
 - Adds `with_file=True` parameter to parallel datachunk creation call. !224
 - Fix logic for rejection of datachunks in QCOne and CCFs in QCTwo based on preconfigured rejection periods !227
-
-Dependency changes
-------------------
-- Upgrades dependency of pandas, numpy, scipy and obspy. !244
-- Upgrades mypy to ==1.7.0. !248
-- Pydantic upgraded to >2.0.
 
 Maintenance
 ------------------

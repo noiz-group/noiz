@@ -7,6 +7,7 @@ from typing import List, Union, Optional, Tuple, Collection
 
 import datetime
 from pydantic.dataclasses import dataclass
+from sqlalchemy.orm import Mapped
 
 from noiz.database import db
 from noiz.globals import ExtendedEnum
@@ -64,7 +65,7 @@ class QCOneConfig(db.Model):
     signal_kurtosis_min = db.Column("signal_kurtosis_min", db.Float, nullable=True)
     signal_kurtosis_max = db.Column("signal_kurtosis_max", db.Float, nullable=True)
 
-    time_periods_rejected: List[QCOneRejectedTime] = db.relationship(
+    time_periods_rejected: Mapped[List[QCOneRejectedTime]] = db.relationship(
         "QCOneRejectedTime",
         uselist=True,
         back_populates="qcone_config",
@@ -293,7 +294,7 @@ class QCTwoConfig(db.Model):
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
 
-    time_periods_rejected: List[QCTwoRejectedTime] = db.relationship(
+    time_periods_rejected: Mapped[List[QCTwoRejectedTime]] = db.relationship(
         "QCTwoRejectedTime",
         uselist=True,
         back_populates="qctwo_config",

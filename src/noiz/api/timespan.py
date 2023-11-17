@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Query
-from sqlalchemy.sql.elements import BinaryExpression
-from typing import Iterable, List, Union, Optional, Generator, Any, Collection
+from sqlalchemy.sql.elements import ColumnElement
+from typing import Iterable, List, Union, Optional, Generator, Collection
 
 from noiz.database import db
 from noiz.models.timespan import Timespan
@@ -25,7 +25,7 @@ def create_and_insert_timespans_to_db(
     generate_over_midnight: bool = False,
     bulk_insert: bool = True,
     add_to_db: bool = False
-) -> Optional[Generator[Timespan, Any, Any]]:
+) -> Optional[Generator[Timespan, None, None]]:
     """
     Creates instances of :class:`noiz.models.timespan.Timespan` according to passed specifications.
     For generation of the series of those instances uses :func:`~noiz.processing.timespan.generate_timespans`
@@ -51,7 +51,7 @@ def create_and_insert_timespans_to_db(
     :param add_to_db: If timespans should be inserted into db or just returned
     :type add_to_db: bool
     :return: Optionally returns generated timespans for verification
-    :rtype: Optional[Generator[Timespan, Any, Any]]
+    :rtype: Optional[Generator[Timespan, None, None]]
     """
     timespans = generate_timespans(
         startdate=startdate,
@@ -251,10 +251,13 @@ def _query_timespans(
     else:
         basequery = db.session.query(Timespan)
 
+    if filters is not None:
+        basequery = basequery.filter(*filters)
+
     if order_by_id:
-        return basequery.filter(*filters).order_by(Timespan.id)
-    else:
-        return basequery.filter(*filters)
+        basequery = basequery.order_by(Timespan.id)
+
+    return basequery
 
 
 def _determine_filters_and_opts_for_timespan(
@@ -266,7 +269,7 @@ def _determine_filters_and_opts_for_timespan(
         rejected_midtime_iso_dayofweek: Optional[Collection[int]] = None,
         accepted_midtime_hours: Optional[Collection[int]] = None,
         rejected_midtime_hours: Optional[Collection[int]] = None,
-) -> Union[List[BinaryExpression], List[bool]]:
+) -> Optional[List[ColumnElement]]:
     filters = []
     if starttime is not None:
         py_starttime = validate_timestamp_as_pydatetime(starttime)
@@ -275,19 +278,19 @@ def _determine_filters_and_opts_for_timespan(
         py_endtime = validate_timestamp_as_pydatetime(endtime)
         filters.append(Timespan.starttime <= py_endtime)
     if accepted_timespan_ids is not None:
-        filters.append(Timespan.id.in_(validate_to_tuple(accepted_timespan_ids, int)))  # type: ignore
+        filters.append(Timespan.id.in_(validate_to_tuple(accepted_timespan_ids, int)))
     if rejected_timespan_ids is not None:
-        filters.append(~Timespan.id.in_(validate_to_tuple(rejected_timespan_ids, int)))  # type: ignore
+        filters.append(~Timespan.id.in_(validate_to_tuple(rejected_timespan_ids, int)))
     if accepted_midtime_iso_dayofweek is not None:
         filters.append(Timespan.midtime_isoweekday.in_(  # type: ignore
-            validate_to_tuple(accepted_midtime_iso_dayofweek, int)))  # type: ignore
+            validate_to_tuple(accepted_midtime_iso_dayofweek, int)))
     if rejected_midtime_iso_dayofweek is not None:
         filters.append(~Timespan.midtime_isoweekday.in_(  # type: ignore
-            validate_to_tuple(rejected_midtime_iso_dayofweek, int)))  # type: ignore
+            validate_to_tuple(rejected_midtime_iso_dayofweek, int)))
     if accepted_midtime_hours is not None:
         filters.append(Timespan.midtime_hour.in_(validate_to_tuple(accepted_midtime_hours, int)))  # type: ignore
     if rejected_midtime_hours is not None:
         filters.append(~Timespan.midtime_hour.in_(validate_to_tuple(rejected_midtime_hours, int)))  # type: ignore
     if len(filters) == 0:
-        filters.append(True)
+        return None
     return filters

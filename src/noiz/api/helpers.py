@@ -412,11 +412,12 @@ def _parse_query_as_dataframe(query: Query) -> pd.DataFrame:
     Takes a standard sqlalchemy :py:class:`~sqlalchemy.orm.query.Query`, executes it and parses results as
     a :py:class:`pandas.DataFrame`.
 
-    :param query: QUery to be processed
+    :param query: Query to be processed
     :type query: Query
     :return: Results of the query as a DataFrame
     :rtype: pd.DataFrame
     """
-    c = query.statement.compile(query.session.bind, compile_kwargs={"render_postcompile": True})
-    df = pd.read_sql(c.string, query.session.bind, params=c.params)
+    connectable = query.session.get_bind()
+    c = query.statement.compile(connectable, compile_kwargs={"render_postcompile": True})
+    df = pd.read_sql(c.string, connectable, params=c.params)
     return df

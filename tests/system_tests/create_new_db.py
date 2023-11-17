@@ -2,7 +2,7 @@ import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import os
 
-dbname = os.getenv("POSTGRES_DB")
+dbname = os.getenv("NOIZ_POSTGRES_DB")
 
 con = psycopg2.connect(host='localhost', user='noiztest', password='noiztest')
 con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
