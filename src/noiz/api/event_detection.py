@@ -884,6 +884,7 @@ def _create_and_upsert_event_confirmation_run(
             components=fetched_components,
             load_timespan=False,
             load_component=False,
+            load_device=True
         ).all()
 
     if couple_params_stations is not None:

@@ -3,12 +3,14 @@
 # Copyright © 2019-2023 Contributors to the Noiz project.
 
 from pathlib import Path
+from typing import Optional
+
 from sqlalchemy.ext.associationproxy import association_proxy
 
 from noiz.database import db
 from noiz.exceptions import MissingDataFileException
 from noiz.globals import ExtendedEnum
-from noiz.models import Timespan, BeamformingParams, FileModelMixin
+from noiz.models import Timespan, Datachunk, BeamformingParams, FileModelMixin
 from noiz.models.mixins import BeamformingPeakExtractMixin
 
 import numpy as np
@@ -31,61 +33,6 @@ class BeamformingFile(FileModelMixin):
         """filldocs"""
         self._filepath = self._find_empty_filepath(params=params, ts=ts, cmp=None)
         return self.filepath
-
-
-association_table_beamforming_results_datachunks = db.Table(
-    "beamforming_association_datachunks",
-    db.metadata,
-    db.Column(
-        "datachunk_id", db.BigInteger, db.ForeignKey("datachunk.id")
-    ),
-    db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
-    db.UniqueConstraint("beamforming_result_id", "datachunk_id"),
-)
-
-
-association_table_beamforming_result_avg_abspower = db.Table(
-    "beamforming_result_association_avg_abspower",
-    db.metadata,
-    db.Column(
-        "beamforming_peak_average_abspower_id", db.BigInteger, db.ForeignKey("beamforming_peak_average_abspower.id")
-    ),
-    db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
-    db.UniqueConstraint("beamforming_result_id", "beamforming_peak_average_abspower_id"),
-)
-
-
-association_table_beamforming_result_avg_relpower = db.Table(
-    "beamforming_result_association_avg_relpower",
-    db.metadata,
-    db.Column(
-        "beamforming_peak_average_relpower_id", db.BigInteger, db.ForeignKey("beamforming_peak_average_relpower.id")
-    ),
-    db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
-    db.UniqueConstraint("beamforming_result_id", "beamforming_peak_average_relpower_id"),
-)
-
-
-association_table_beamforming_result_all_abspower = db.Table(
-    "beamforming_result_association_all_abspower",
-    db.metadata,
-    db.Column(
-        "beamforming_peak_all_abspower_id", db.BigInteger, db.ForeignKey("beamforming_peak_all_abspower.id")
-    ),
-    db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
-    db.UniqueConstraint("beamforming_result_id", "beamforming_peak_all_abspower_id"),
-)
-
-
-association_table_beamforming_result_all_relpower = db.Table(
-    "beamforming_result_association_all_relpower",
-    db.metadata,
-    db.Column(
-        "beamforming_peak_all_relpower_id", db.BigInteger, db.ForeignKey("beamforming_peak_all_relpower.id")
-    ),
-    db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
-    db.UniqueConstraint("beamforming_result_id", "beamforming_peak_all_relpower_id"),
-)
 
 
 class BeamformingResult(db.Model):
@@ -134,17 +81,60 @@ class BeamformingResult(db.Model):
         lazy="joined",
     )
 
-    average_abspower_peaks = db.relationship("BeamformingPeakAverageAbspower", lazy="joined",
-                                             secondary=lambda: association_table_beamforming_result_avg_abspower)
-    average_relpower_peaks = db.relationship("BeamformingPeakAverageRelpower", lazy="joined",
-                                             secondary=lambda: association_table_beamforming_result_avg_relpower)
-    all_abspower_peaks = db.relationship("BeamformingPeakAllAbspower", lazy="joined",
-                                         secondary=lambda: association_table_beamforming_result_all_abspower)
-    all_relpower_peaks = db.relationship("BeamformingPeakAllRelpower", lazy="joined",
-                                         secondary=lambda: association_table_beamforming_result_all_relpower)
+    beamforming_result_datachunks_associations = db.relationship(
+        "BeamformingResultDatchunksAssociation",
+        back_populates="beamforming_result",
+        cascade="all, delete-orphan",
+    )
+    datachunks = association_proxy(
+        "beamforming_result_datachunks_associations",
+        "datachunk",
+    )
 
-    datachunks = db.relationship("Datachunk", secondary=lambda: association_table_beamforming_results_datachunks)
-    datachunk_ids = association_proxy('datachunks', 'id')
+    datachunk_ids = association_proxy(
+        "beamforming_result_datachunks_associations",
+        "datachunk_id",
+    )
+
+    beamforming_result_avg_abspower_associations = db.relationship(
+        "BeamformingResulAvgAbspowerAssociation",
+        back_populates="beamforming_result",
+        cascade="all, delete-orphan",
+    )
+    average_abspower_peaks = association_proxy(
+        "beamforming_result_avg_abspower_associations",
+        "avg_abspower",
+    )
+
+    beamforming_result_avg_relpower_associations = db.relationship(
+        "BeamformingResulAvgRelpowerAssociation",
+        back_populates="beamforming_result",
+        cascade="all, delete-orphan",
+    )
+    average_relpower_peaks = association_proxy(
+        "beamforming_result_avg_relpower_associations",
+        "avg_relpower",
+    )
+
+    beamforming_result_all_abspower_associations = db.relationship(
+        "BeamformingResulAllAbspowerAssociation",
+        back_populates="beamforming_result",
+        cascade="all, delete-orphan",
+    )
+    all_abspower_peaks = association_proxy(
+        "beamforming_result_all_abspower_associations",
+        "all_abspower",
+    )
+
+    beamforming_result_all_relpower_associations = db.relationship(
+        "BeamformingResulAllRelpowerAssociation",
+        back_populates="beamforming_result",
+        cascade="all, delete-orphan",
+    )
+    all_relpower_peaks = association_proxy(
+        "beamforming_result_all_relpower_associations",
+        "all_relpower",
+    )
 
     def load_data(self):
         filepath = Path(self.file.filepath)
@@ -154,17 +144,235 @@ class BeamformingResult(db.Model):
             raise MissingDataFileException(f"Inventory file for component {self} is missing")
 
 
+class BeamformingResultDatchunksAssociation(db.Model):
+    __tablename__ = "beamforming_association_datachunks"
+    datachunk_id = db.Column(
+        "datachunk_id",
+        db.BigInteger,
+        db.ForeignKey("datachunk.id"),
+        primary_key=True,
+    )
+    beamforming_result_id = db.Column(
+        "beamforming_result_id",
+        db.BigInteger,
+        db.ForeignKey("beamforming_result.id"),
+        primary_key=True,
+    )
+
+    beamforming_result = db.relationship(
+        BeamformingResult,
+        back_populates="beamforming_result_datachunks_associations"
+    )
+    datachunk = db.relationship("Datachunk")
+
+    def __init__(
+            self,
+            datachunk: Optional[Datachunk] = None,
+            datachunk_id: Optional[int] = None,
+            beamfroming_result: Optional[BeamformingResult] = None,
+            beamfroming_result_id: Optional[int] = None,
+    ):
+        self.datachunk = datachunk
+        self.datachunk_id = datachunk_id
+        self.beamforming_result = beamfroming_result
+        self.beamforming_result_id = beamfroming_result_id
+
+
+class BeamformingResulAvgAbspowerAssociation(db.Model):
+    __tablename__ = "beamforming_result_association_avg_abspower"
+    beamforming_peak_average_abspower_id = db.Column(
+        "beamforming_peak_average_abspower_id",
+        db.BigInteger,
+        db.ForeignKey("beamforming_peak_average_abspower.id"),
+        primary_key=True,
+    )
+    beamforming_result_id = db.Column(
+        "beamforming_result_id",
+        db.BigInteger,
+        db.ForeignKey("beamforming_result.id"),
+        primary_key=True,
+    )
+
+    beamforming_result = db.relationship(
+        BeamformingResult,
+        back_populates="beamforming_result_avg_abspower_associations",
+    )
+    avg_abspower = db.relationship(
+        "BeamformingPeakAverageAbspower",
+        back_populates="beamforming_result_avg_abspower_associations",
+    )
+
+    def __init__(
+            self,
+            avg_abspower: Optional["BeamformingPeakAverageAbspower"] = None,
+            avg_abspower_id: Optional[int] = None,
+            beamfroming_result: Optional[BeamformingResult] = None,
+            beamfroming_result_id: Optional[int] = None,
+    ):
+        self.avg_abspower = avg_abspower
+        self.avg_abspower_id = avg_abspower_id
+        self.beamforming_result = beamfroming_result
+        self.beamforming_result_id = beamfroming_result_id
+
+
+class BeamformingResulAvgRelpowerAssociation(db.Model):
+    __tablename__ = "beamforming_result_association_avg_relpower"
+    beamforming_peak_average_abspower_id = db.Column(
+        "beamforming_peak_average_relpower_id",
+        db.BigInteger,
+        db.ForeignKey("beamforming_peak_average_relpower.id"),
+        primary_key=True,
+    )
+    beamforming_result_id = db.Column(
+        "beamforming_result_id",
+        db.BigInteger,
+        db.ForeignKey("beamforming_result.id"),
+        primary_key=True,
+    )
+
+    beamforming_result = db.relationship(
+        BeamformingResult,
+        back_populates="beamforming_result_avg_relpower_associations",
+    )
+    avg_relpower = db.relationship(
+        "BeamformingPeakAverageRelpower",
+        back_populates="beamforming_result_avg_relpower_associations",
+    )
+
+    def __init__(
+            self,
+            avg_relpower: Optional["BeamformingPeakAverageRelpower"] = None,
+            avg_relpower_id: Optional[int] = None,
+            beamfroming_result: Optional[BeamformingResult] = None,
+            beamfroming_result_id: Optional[int] = None,
+    ):
+        self.avg_relpower = avg_relpower
+        self.avg_relpower_id = avg_relpower_id
+        self.beamforming_result = beamfroming_result
+        self.beamforming_result_id = beamfroming_result_id
+
+
+class BeamformingResulAllAbspowerAssociation(db.Model):
+    __tablename__ = "beamforming_result_association_all_abspower"
+    beamforming_peak_all_abspower_id = db.Column(
+        "beamforming_peak_all_abspower_id",
+        db.BigInteger,
+        db.ForeignKey("beamforming_peak_all_abspower.id"),
+        primary_key=True,
+    )
+    beamforming_result_id = db.Column(
+        "beamforming_result_id",
+        db.BigInteger,
+        db.ForeignKey("beamforming_result.id"),
+        primary_key=True,
+    )
+
+    beamforming_result = db.relationship(
+        BeamformingResult,
+        back_populates="beamforming_result_all_abspower_associations",
+    )
+    all_abspower = db.relationship(
+        "BeamformingPeakAllAbspower",
+        back_populates="beamforming_result_all_abspower_associations",
+    )
+
+    def __init__(
+            self,
+            all_abspower: Optional["BeamformingPeakAllAbspower"] = None,
+            all_abspower_id: Optional[int] = None,
+            beamfroming_result: Optional[BeamformingResult] = None,
+            beamfroming_result_id: Optional[int] = None,
+    ):
+        self.all_abspower = all_abspower
+        self.all_abspower_id = all_abspower_id
+        self.beamforming_result = beamfroming_result
+        self.beamforming_result_id = beamfroming_result_id
+
+
+class BeamformingResulAllRelpowerAssociation(db.Model):
+    __tablename__ = "beamforming_result_association_all_relpower"
+    beamforming_peak_average_abspower_id = db.Column(
+        "beamforming_peak_all_relpower_id",
+        db.BigInteger,
+        db.ForeignKey("beamforming_peak_all_relpower.id"),
+        primary_key=True,
+    )
+    beamforming_result_id = db.Column(
+        "beamforming_result_id",
+        db.BigInteger,
+        db.ForeignKey("beamforming_result.id"),
+        primary_key=True,
+    )
+
+    beamforming_result = db.relationship(
+        BeamformingResult,
+        back_populates="beamforming_result_all_relpower_associations",
+    )
+    all_relpower = db.relationship(
+        "BeamformingPeakAllRelpower",
+        back_populates="beamforming_result_all_relpower_associations",
+    )
+
+    def __init__(
+            self,
+            all_relpower: Optional["BeamformingPeakAllRelpower"] = None,
+            all_relpower_id: Optional[int] = None,
+            beamfroming_result: Optional[BeamformingResult] = None,
+            beamfroming_result_id: Optional[int] = None,
+    ):
+        self.all_relpower = all_relpower
+        self.all_relpower_id = all_relpower_id
+        self.beamforming_result = beamfroming_result
+        self.beamforming_result_id = beamfroming_result_id
+
+
 class BeamformingPeakAverageAbspower(BeamformingPeakExtractMixin):
     __tablename__ = "beamforming_peak_average_abspower"
+
+    beamforming_result_avg_abspower_associations = db.relationship(
+        "BeamformingResulAvgAbspowerAssociation",
+        back_populates="avg_abspower",
+    )
+    beamforming_result = association_proxy(
+        "beamforming_result_avg_abspower_associations",
+        "beamforming_result",
+    )
 
 
 class BeamformingPeakAverageRelpower(BeamformingPeakExtractMixin):
     __tablename__ = "beamforming_peak_average_relpower"
 
+    beamforming_result_avg_relpower_associations = db.relationship(
+        "BeamformingResulAvgRelpowerAssociation",
+        back_populates="avg_relpower",
+    )
+    beamforming_result = association_proxy(
+        "beamforming_result_avg_relpower_associations",
+        "beamforming_result",
+    )
+
 
 class BeamformingPeakAllAbspower(BeamformingPeakExtractMixin):
     __tablename__ = "beamforming_peak_all_abspower"
 
+    beamforming_result_all_abspower_associations = db.relationship(
+        "BeamformingResulAllAbspowerAssociation",
+        back_populates="all_abspower",
+    )
+    beamforming_result = association_proxy(
+        "beamforming_result_all_abspower_associations",
+        "beamforming_result",
+    )
+
 
 class BeamformingPeakAllRelpower(BeamformingPeakExtractMixin):
     __tablename__ = "beamforming_peak_all_relpower"
+
+    beamforming_result_all_relpower_associations = db.relationship(
+        "BeamformingResulAllRelpowerAssociation",
+        back_populates="all_relpower",
+    )
+    beamforming_result = association_proxy(
+        "beamforming_result_all_relpower_associations",
+        "beamforming_result",
+    )

@@ -11,7 +11,7 @@ from scipy.interpolate import griddata
 from scipy.signal import convolve, correlate
 from scipy.ndimage import filters as filters
 from scipy import ndimage as ndimage
-from typing import Tuple, Collection, Optional, List, Any
+from typing import Tuple, Collection, Optional, List, Any, Dict
 
 import itertools
 import math
@@ -1670,6 +1670,7 @@ def calculate_beamforming_results_wrapper(inputs: BeamformingRunnerInputs) -> Tu
             beamforming_params_collection=inputs["beamforming_params"],
             timespan=inputs["timespan"],
             datachunks=inputs["datachunks"],
+            components_by_id=inputs["components_by_id"],
         ),
     )
 
@@ -1678,7 +1679,7 @@ def calculate_beamforming_results( # noqa: max-complexity: 22
         beamforming_params_collection: Collection[BeamformingParams],
         timespan: Timespan,
         datachunks: Tuple[Datachunk, ...],
-
+        components_by_id: Dict[int, Component]
 ) -> List[BeamformingResult]:
     """filldocs
     """
@@ -1688,13 +1689,20 @@ def calculate_beamforming_results( # noqa: max-complexity: 22
     st = Stream()
 
     for datachunk in datachunks:
-        if not isinstance(datachunk.component, Component):
-            raise SubobjectNotLoadedError('You should load Component together with the Datachunk.')
+        try:
+            component = components_by_id[datachunk.component_id]
+        except KeyError:
+            raise ValueError(f'There was no expected component provided to the inputs. '
+                             f'There is something seriously wrong here. '
+                             f'Components are used to query all datachunks that should be used in this calculation'
+                             f'Components provided: {list(components_by_id.keys())}, '
+                             f'component expected: {datachunk.component_id}')
+
         single_st = datachunk.load_data()
         single_st[0].stats.coordinates = AttribDict({
-            'latitude': datachunk.component.lat,
-            'elevation': datachunk.component.elevation / 1000,
-            'longitude': datachunk.component.lon})
+            'latitude': component.lat,
+            'elevation': component.elevation / 1000,
+            'longitude': component.lon})
         st.extend(single_st)
 
     logger.info(f"For Timespan {timespan} there are {len(st)} traces loaded.")
@@ -1895,7 +1903,7 @@ def calculate_beamforming_results( # noqa: max-complexity: 22
             res.file = beamforming_file
 
         res.used_component_count = len(st)
-        res.datachunks = list(datachunks)
+        res.datachunks.extend(list(datachunks))
 
         results.append(res)
 

@@ -14,7 +14,7 @@ from typing import Union, Collection, Optional, List, Tuple, Generator, Dict
 
 from noiz.api.component import fetch_components
 from noiz.api.helpers import extract_object_ids, _run_calculate_and_upsert_sequentially, \
-    _run_calculate_and_upsert_on_dask, _parse_query_as_dataframe
+    _run_calculate_and_upsert_on_dask, _parse_query_as_dataframe, extract_object_ids_keep_objects
 from noiz.api.qc import fetch_qcone_config_single
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.models.type_aliases import BeamformingRunnerInputs
@@ -22,11 +22,11 @@ from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import Timespan, Datachunk, QCOneResults, BeamformingParams
 from noiz.models.beamforming import BeamformingResult, BeamformingPeakAverageAbspower, \
-    association_table_beamforming_result_avg_abspower, BeamformingResultType, \
-    BeamformingPeakAllAbspower, association_table_beamforming_result_all_abspower, \
-    BeamformingPeakAllRelpower, association_table_beamforming_result_all_relpower, \
-    BeamformingPeakAverageRelpower, association_table_beamforming_result_avg_relpower, \
-    BeamformingFile
+    BeamformingResulAvgAbspowerAssociation, BeamformingResultType, \
+    BeamformingPeakAllAbspower, BeamformingResulAllAbspowerAssociation, \
+    BeamformingPeakAllRelpower, BeamformingResulAllRelpowerAssociation, \
+    BeamformingPeakAverageRelpower, BeamformingResulAvgRelpowerAssociation, \
+    BeamformingFile, BeamformingResultDatchunksAssociation
 from noiz.processing.beamforming import calculate_beamforming_results_wrapper, \
     validate_if_all_beamforming_params_use_same_component_codes, validate_if_all_beamforming_params_use_same_qcone
 from noiz.validation_helpers import validate_to_tuple, validate_maximum_one_argument_provided
@@ -175,7 +175,6 @@ def _prepare_inputs_for_beamforming_runner(
                       .filter(Timespan.id.in_(extract_object_ids(timespan_batch)))  # type: ignore
                       .filter(Datachunk.component_id.in_(extract_object_ids(fetched_components)))
                       .filter(QCOneResults.qcone_config_id == qcone_config.id)
-                      .options(subqueryload(Datachunk.component))
                       .order_by(Timespan.id)
                       .all()
         )
@@ -232,6 +231,7 @@ def _prepare_inputs_for_beamforming_runner(
                 beamforming_params=used_params,
                 timespan=ts,
                 datachunks=tuple(passing_chunks),
+                components_by_id=extract_object_ids_keep_objects(fetched_components)
             )
 
 
@@ -317,7 +317,7 @@ def _query_beamforming_peaks_avg_abspower(filters: Union[List[BinaryExpression],
                BeamformingPeakAverageAbspower.amplitude, BeamformingPeakAverageAbspower.backazimuth, BeamformingPeakAverageAbspower.azimuth)
         .select_from(BeamformingResult)
         .join(BeamformingParams, BeamformingParams.id == BeamformingResult.beamforming_params_id)
-        .join(association_table_beamforming_result_avg_abspower)
+        .join(BeamformingResulAvgAbspowerAssociation)
         .join(BeamformingPeakAverageAbspower)
         .filter(*filters)
     )
@@ -333,7 +333,7 @@ def _query_beamforming_peaks_all_abspower(filters: Union[List[BinaryExpression],
                BeamformingPeakAllAbspower.amplitude, BeamformingPeakAllAbspower.backazimuth, BeamformingPeakAllAbspower.azimuth)
         .select_from(BeamformingResult)
         .join(BeamformingParams, BeamformingParams.id == BeamformingResult.beamforming_params_id)
-        .join(association_table_beamforming_result_all_abspower)
+        .join(BeamformingResulAllAbspowerAssociation)
         .join(BeamformingPeakAllAbspower)
         .filter(*filters)
     )
@@ -349,7 +349,7 @@ def _query_beamforming_peaks_all_relpower(filters: Union[List[BinaryExpression],
                BeamformingPeakAllRelpower.amplitude, BeamformingPeakAllRelpower.backazimuth, BeamformingPeakAllRelpower.azimuth)
         .select_from(BeamformingResult)
         .join(BeamformingParams, BeamformingParams.id == BeamformingResult.beamforming_params_id)
-        .join(association_table_beamforming_result_all_relpower)
+        .join(BeamformingResulAllRelpowerAssociation)
         .join(BeamformingPeakAllRelpower)
         .filter(*filters)
     )
@@ -365,7 +365,7 @@ def _query_beamforming_peaks_avg_relpower(filters: Union[List[BinaryExpression],
                BeamformingPeakAverageRelpower.amplitude, BeamformingPeakAverageRelpower.backazimuth, BeamformingPeakAverageRelpower.azimuth)
         .select_from(BeamformingResult)
         .join(BeamformingParams, BeamformingParams.id == BeamformingResult.beamforming_params_id)
-        .join(association_table_beamforming_result_avg_relpower)
+        .join(BeamformingResulAvgRelpowerAssociation)
         .join(BeamformingPeakAverageRelpower)
         .filter(*filters)
     )
@@ -476,7 +476,10 @@ def _determine_filters_and_opts_for_beamforming_results(
     if load_timespan:
         opts.append(subqueryload(BeamformingResult.timespan))
     if load_datachunk:
-        opts.append(subqueryload(BeamformingResult.datachunks))
+        opts.append(
+            subqueryload(BeamformingResult.beamforming_result_datachunks_associations)
+            .subqueryload(BeamformingResultDatchunksAssociation.datachunk)
+        )
     if load_beamforming_params:
         opts.append(subqueryload(BeamformingResult.beamforming_params))
     return filters, opts
