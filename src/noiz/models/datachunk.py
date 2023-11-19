@@ -53,7 +53,7 @@ class Datachunk(db.Model):
     )
     device_id = db.Column("device_id", db.Integer, db.ForeignKey("device.id"), nullable=True)
 
-    device = db.relationship("Device", foreign_keys=[device_id], uselist=False, lazy="joined")
+    device = db.relationship("Device", foreign_keys=[device_id], uselist=False)
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id], back_populates="datachunks")
     component = db.relationship("Component", foreign_keys=[component_id])
     params = db.relationship("DatachunkParams", uselist=False, foreign_keys=[datachunk_params_id])

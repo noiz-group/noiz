@@ -16,6 +16,7 @@ Breaking changes
 - Removed CrosscorrelationOld model and renamed table under Crosscorrelation model to crosscorrelation. !220
 - Completely reworked Beamforming computations. !219
 - Remove support for python 3.8. !232
+- Do not eager load Device with Component. !242
 
 Dependency changes
 ------------------
@@ -34,6 +35,7 @@ New functionality
 - Added ComponentPairCylindrical. !191
 - Added event detection mechanism. !183
 - Full introduction of Cylindrical CCFs
+- Add lazy load option for Device in Component query function. !242
 
 Bugfix
 ------------------
@@ -42,6 +44,7 @@ Bugfix
 - Fixes for race condition in creation of directory for results. !211
 - Adds `with_file=True` parameter to parallel datachunk creation call. !224
 - Fix logic for rejection of datachunks in QCOne and CCFs in QCTwo based on preconfigured rejection periods !227
+- Do not use subloaded Component or Device objects in Beamforming processing. !242
 
 Maintenance
 ------------------

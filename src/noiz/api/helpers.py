@@ -14,6 +14,7 @@ from typing import Iterable, Union, List, Tuple, Any, Collection, Callable, get_
 
 from noiz.database import db
 from noiz.exceptions import CorruptedDataException, InconsistentDataException, ObspyError
+from noiz.models.beamforming import BeamformingResultDatchunksAssociation
 from noiz.models.type_aliases import BulkAddableObjects, InputsForMassCalculations, BulkAddableFileObjects
 
 
@@ -295,6 +296,7 @@ def _submit_task_to_client_and_add_results_to_db(
         results_nested: List[Tuple[BulkAddableObjects, ...]] = [x[1] for x in future_batch if x[0].status != "error"]
         results: List[BulkAddableObjects] = list(more_itertools.flatten(results_nested))
         logger.info(f"Running bulk_add_or_upsert for {len(results)} results")
+        datachunk_assocs = []
 
         if with_file:
             files_to_add = [x.file for x in results if x.file is not None]
@@ -314,6 +316,17 @@ def _submit_task_to_client_and_add_results_to_db(
                     objects_to_add=peaks_to_add,
                 )
 
+            for res in results:
+                for _ in range(len(res.datachunks)):
+                    chunk = res.datachunks.pop()
+
+                    datachunk_assocs.append(
+                        BeamformingResultDatchunksAssociation(
+                            beamfroming_result=res,
+                            datachunk=chunk,
+                        )
+                    )
+
         if is_event_confirmation:
             bulk_merge_or_upsert_objects(
                 objects_to_merge=results,
@@ -325,6 +338,11 @@ def _submit_task_to_client_and_add_results_to_db(
                 objects_to_add=results,
                 upserter_callable=upserter_callable,
                 bulk_insert=True
+            )
+
+        if len(datachunk_assocs) > 0:
+            bulk_add_and_check_objects(
+                objects_to_add=datachunk_assocs,
             )
 
     return

@@ -14,7 +14,7 @@ from noiz.models import CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResul
     CrosscorrelationCylindrical, CrosscorrelationCylindricalFile, \
     CrosscorrelationCylindricalParams, CrosscorrelationCylindricalParamsHolder
 from noiz.models.beamforming import BeamformingPeakAverageAbspower, BeamformingPeakAverageRelpower, \
-    BeamformingPeakAllAbspower, BeamformingPeakAllRelpower
+    BeamformingPeakAllAbspower, BeamformingPeakAllRelpower, BeamformingResultDatchunksAssociation
 
 BulkAddableObjects = Union[
     Datachunk,
@@ -49,6 +49,7 @@ BulkAddableFileObjects = Union[
     BeamformingPeakAllRelpower,
     EventDetectionFile,
     EventConfirmationFile,
+    BeamformingResultDatchunksAssociation,
 ]
 
 
@@ -87,6 +88,7 @@ class BeamformingRunnerInputs(TypedDict):
     beamforming_params: Collection[BeamformingParams]
     timespan: Timespan
     datachunks: Tuple[Datachunk, ...]
+    components_by_id: Dict[int, Component]
 
 
 class PPSDRunnerInputs(TypedDict):

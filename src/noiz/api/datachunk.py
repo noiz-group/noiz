@@ -301,6 +301,7 @@ def _query_datachunks(
         load_stats: bool = False,
         load_timespan: bool = False,
         load_processing_params: bool = False,
+        load_device: bool = False,
         order_by_id: bool = True,
 ) -> Query:
 
@@ -315,6 +316,7 @@ def _query_datachunks(
         load_stats=load_stats,
         load_processing_params=load_processing_params,
         load_timespan=load_timespan,
+        load_device=load_device,
     )
     if order_by_id:
         return Datachunk.query.filter(*filters).options(opts).order_by(Datachunk.id)
@@ -333,6 +335,7 @@ def _determine_filters_and_opts_for_datachunk(
         load_stats: bool = False,
         load_timespan: bool = False,
         load_processing_params: bool = False,
+        load_device: bool = False,
 ) -> Tuple[List, List]:
     try:
         validate_maximum_one_argument_provided(datachunk_params, datachunk_params_id)
@@ -365,6 +368,8 @@ def _determine_filters_and_opts_for_datachunk(
         opts.append(subqueryload(Datachunk.component))
     if load_processing_params:
         opts.append(subqueryload(Datachunk.params))
+    if load_device:
+        opts.append(subqueryload(Datachunk.device))
 
     return filters, opts
 
