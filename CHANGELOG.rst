@@ -24,6 +24,7 @@ Dependency changes
 - Upgrades mypy to ==1.7.0. !248
 - Pydantic upgraded to >2.0. !248
 - SQLAlchemy updated to >2.0.23. !247
+- Adds Ruff to dependencies. !250
 
 Significant changes to processing
 ----------------------------------
