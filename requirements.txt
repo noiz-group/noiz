@@ -124,7 +124,7 @@ more-itertools==10.1.0
     # via noiz (pyproject.toml)
 msgpack==1.0.7
     # via distributed
-mypy==1.6.1
+mypy==1.7.0
     # via noiz (pyproject.toml)
 mypy-extensions==1.0.0
     # via mypy
@@ -223,6 +223,8 @@ requests==2.31.0
     # via
     #   obspy
     #   sphinx
+ruff==0.1.6
+    # via noiz (pyproject.toml)
 scipy==1.11.3
     # via
     #   noiz (pyproject.toml)
