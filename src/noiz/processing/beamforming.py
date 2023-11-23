@@ -1901,6 +1901,7 @@ def calculate_beamforming_results( # noqa: max-complexity: 22
         beamforming_file = bk.save_beamforming_file(params=beamforming_params, ts=timespan)
         if beamforming_file is not None:
             res.file = beamforming_file
+            res.beamforming_file_id = beamforming_file.id
 
         res.used_component_count = len(st)
         res.datachunks.extend(list(datachunks))

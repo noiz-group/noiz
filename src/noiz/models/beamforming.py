@@ -4,8 +4,10 @@
 
 from pathlib import Path
 from typing import Optional
+from uuid import UUID, uuid4
 
 from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.orm import Mapped
 
 from noiz.database import db
 from noiz.exceptions import MissingDataFileException
@@ -25,6 +27,7 @@ class BeamformingResultType(ExtendedEnum):
 
 class BeamformingFile(FileModelMixin):
     __tablename__ = "beamforming_file"
+    id: Mapped[UUID] = db.Column("id", db.UUID, primary_key=True, default=uuid4)  # type: ignore
 
     _file_model_type: str = "beamforming"
     _filename_extension: str = "npz"
@@ -42,7 +45,7 @@ class BeamformingResult(db.Model):
             "timespan_id", "beamforming_params_id", name="unique_beam_per_config_per_timespan"
         ),
     )
-    id = db.Column("id", db.Integer, primary_key=True)
+    id: Mapped[UUID] = db.Column("id", db.UUID, primary_key=True, default=uuid4)
     beamforming_params_id = db.Column(
         "beamforming_params_id",
         db.Integer,
@@ -55,7 +58,7 @@ class BeamformingResult(db.Model):
 
     beamforming_file_id = db.Column(
         "beamforming_file_id",
-        db.BigInteger,
+        db.UUID,
         db.ForeignKey("beamforming_file.id"),
         nullable=True,
     )
@@ -154,7 +157,7 @@ class BeamformingResultDatchunksAssociation(db.Model):
     )
     beamforming_result_id = db.Column(
         "beamforming_result_id",
-        db.BigInteger,
+        db.UUID,
         db.ForeignKey("beamforming_result.id"),
         primary_key=True,
     )
@@ -170,7 +173,7 @@ class BeamformingResultDatchunksAssociation(db.Model):
             datachunk: Optional[Datachunk] = None,
             datachunk_id: Optional[int] = None,
             beamfroming_result: Optional[BeamformingResult] = None,
-            beamfroming_result_id: Optional[int] = None,
+            beamfroming_result_id: Optional[UUID] = None,
     ):
         self.datachunk = datachunk
         self.datachunk_id = datachunk_id
@@ -182,13 +185,13 @@ class BeamformingResulAvgAbspowerAssociation(db.Model):
     __tablename__ = "beamforming_result_association_avg_abspower"
     beamforming_peak_average_abspower_id = db.Column(
         "beamforming_peak_average_abspower_id",
-        db.BigInteger,
+        db.UUID,
         db.ForeignKey("beamforming_peak_average_abspower.id"),
         primary_key=True,
     )
     beamforming_result_id = db.Column(
         "beamforming_result_id",
-        db.BigInteger,
+        db.UUID,
         db.ForeignKey("beamforming_result.id"),
         primary_key=True,
     )
@@ -205,9 +208,9 @@ class BeamformingResulAvgAbspowerAssociation(db.Model):
     def __init__(
             self,
             avg_abspower: Optional["BeamformingPeakAverageAbspower"] = None,
-            avg_abspower_id: Optional[int] = None,
+            avg_abspower_id: Optional[UUID] = None,
             beamfroming_result: Optional[BeamformingResult] = None,
-            beamfroming_result_id: Optional[int] = None,
+            beamfroming_result_id: Optional[UUID] = None,
     ):
         self.avg_abspower = avg_abspower
         self.avg_abspower_id = avg_abspower_id
@@ -219,13 +222,13 @@ class BeamformingResulAvgRelpowerAssociation(db.Model):
     __tablename__ = "beamforming_result_association_avg_relpower"
     beamforming_peak_average_abspower_id = db.Column(
         "beamforming_peak_average_relpower_id",
-        db.BigInteger,
+        db.UUID,
         db.ForeignKey("beamforming_peak_average_relpower.id"),
         primary_key=True,
     )
     beamforming_result_id = db.Column(
         "beamforming_result_id",
-        db.BigInteger,
+        db.UUID,
         db.ForeignKey("beamforming_result.id"),
         primary_key=True,
     )
@@ -242,9 +245,9 @@ class BeamformingResulAvgRelpowerAssociation(db.Model):
     def __init__(
             self,
             avg_relpower: Optional["BeamformingPeakAverageRelpower"] = None,
-            avg_relpower_id: Optional[int] = None,
+            avg_relpower_id: Optional[UUID] = None,
             beamfroming_result: Optional[BeamformingResult] = None,
-            beamfroming_result_id: Optional[int] = None,
+            beamfroming_result_id: Optional[UUID] = None,
     ):
         self.avg_relpower = avg_relpower
         self.avg_relpower_id = avg_relpower_id
@@ -256,13 +259,13 @@ class BeamformingResulAllAbspowerAssociation(db.Model):
     __tablename__ = "beamforming_result_association_all_abspower"
     beamforming_peak_all_abspower_id = db.Column(
         "beamforming_peak_all_abspower_id",
-        db.BigInteger,
+        db.UUID,
         db.ForeignKey("beamforming_peak_all_abspower.id"),
         primary_key=True,
     )
     beamforming_result_id = db.Column(
         "beamforming_result_id",
-        db.BigInteger,
+        db.UUID,
         db.ForeignKey("beamforming_result.id"),
         primary_key=True,
     )
@@ -279,9 +282,9 @@ class BeamformingResulAllAbspowerAssociation(db.Model):
     def __init__(
             self,
             all_abspower: Optional["BeamformingPeakAllAbspower"] = None,
-            all_abspower_id: Optional[int] = None,
+            all_abspower_id: Optional[UUID] = None,
             beamfroming_result: Optional[BeamformingResult] = None,
-            beamfroming_result_id: Optional[int] = None,
+            beamfroming_result_id: Optional[UUID] = None,
     ):
         self.all_abspower = all_abspower
         self.all_abspower_id = all_abspower_id
@@ -293,13 +296,13 @@ class BeamformingResulAllRelpowerAssociation(db.Model):
     __tablename__ = "beamforming_result_association_all_relpower"
     beamforming_peak_average_abspower_id = db.Column(
         "beamforming_peak_all_relpower_id",
-        db.BigInteger,
+        db.UUID,
         db.ForeignKey("beamforming_peak_all_relpower.id"),
         primary_key=True,
     )
     beamforming_result_id = db.Column(
         "beamforming_result_id",
-        db.BigInteger,
+        db.UUID,
         db.ForeignKey("beamforming_result.id"),
         primary_key=True,
     )
@@ -316,9 +319,9 @@ class BeamformingResulAllRelpowerAssociation(db.Model):
     def __init__(
             self,
             all_relpower: Optional["BeamformingPeakAllRelpower"] = None,
-            all_relpower_id: Optional[int] = None,
+            all_relpower_id: Optional[UUID] = None,
             beamfroming_result: Optional[BeamformingResult] = None,
-            beamfroming_result_id: Optional[int] = None,
+            beamfroming_result_id: Optional[UUID] = None,
     ):
         self.all_relpower = all_relpower
         self.all_relpower_id = all_relpower_id

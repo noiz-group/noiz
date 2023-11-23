@@ -17,6 +17,7 @@ Breaking changes
 - Completely reworked Beamforming computations. !219
 - Remove support for python 3.8. !232
 - Do not eager load Device with Component. !242
+- Change ID type to UUID for BeamformingResults and related objects. !249
 
 Dependency changes
 ------------------

@@ -5,6 +5,7 @@
 import os
 from typing import Optional, Union
 from pathlib import Path
+from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Mapped
 
@@ -145,7 +146,7 @@ class FileModelMixin(db.Model):
 
 class BeamformingPeakExtractMixin(db.Model):
     __abstract__ = True
-    id: Mapped[int] = db.Column("id", db.BigInteger, primary_key=True)
+    id: Mapped[UUID] = db.Column("id", db.UUID, primary_key=True, default=uuid4)
 
     slowness = db.Column("slowness", db.Float, nullable=False)
     slowness_x = db.Column("slowness_x", db.Float, nullable=False)
