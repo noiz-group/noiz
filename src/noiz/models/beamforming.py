@@ -32,6 +32,10 @@ class BeamformingFile(FileModelMixin):
     _file_model_type: str = "beamforming"
     _filename_extension: str = "npz"
 
+    def __init__(self, **kwargs):
+        self.id = uuid4()
+        super(BeamformingFile, self).__init__(**kwargs)
+
     def find_empty_filepath(self, ts: Timespan, params: BeamformingParams) -> Path:
         """filldocs"""
         self._filepath = self._find_empty_filepath(params=params, ts=ts, cmp=None)
@@ -138,6 +142,10 @@ class BeamformingResult(db.Model):
         "beamforming_result_all_relpower_associations",
         "all_relpower",
     )
+
+    def __init__(self, **kwargs):
+        self.id = uuid4()
+        super(BeamformingResult, self).__init__(**kwargs)
 
     def load_data(self):
         filepath = Path(self.file.filepath)
