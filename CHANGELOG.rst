@@ -47,6 +47,7 @@ Bugfix
 - Adds `with_file=True` parameter to parallel datachunk creation call. !224
 - Fix logic for rejection of datachunks in QCOne and CCFs in QCTwo based on preconfigured rejection periods !227
 - Do not use subloaded Component or Device objects in Beamforming processing. !242
+- Adds an init value to all IDs that were changed to UUID in previous MR (!249). !253
 
 Maintenance
 ------------------

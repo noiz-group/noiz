@@ -156,4 +156,5 @@ class BeamformingPeakExtractMixin(db.Model):
     backazimuth = db.Column("backazimuth", db.Float, nullable=False)
 
     def __init__(self, **kwargs):
+        self.id = uuid4()
         super(BeamformingPeakExtractMixin, self).__init__(**kwargs)
