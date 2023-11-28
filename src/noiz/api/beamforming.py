@@ -641,7 +641,7 @@ def _query_beamforming_file_id_by_timespan_by_beamforming_param(
 
     query = (
             db.session
-            .query(BeamformingResult.beamforming_file_id, BeamformingResult.file)
+            .query(BeamformingResult.beamforming_file_id, BeamformingResult.file, BeamformingResult.timespan_id, BeamformingResult.used_component_count, BeamformingResult.beamforming_params_id)
             .select_from(BeamformingResult)
             .join(BeamformingParams, BeamformingParams.id == BeamformingResult.beamforming_params_id)
             .join(BeamformingFile, BeamformingFile.id == BeamformingResult.beamforming_file_id)
