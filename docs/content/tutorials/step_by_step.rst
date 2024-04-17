@@ -140,7 +140,7 @@ The parameters are listed in a tolm file: datachunk_params.toml
 Then, he runs the following command:
 ::
     
-    noiz configs add_datachunk_params -f /SDS/param_toml/datachunk_params_p1.toml
+    noiz configs add_datachunk_params -f /noiz/config_examples/datachunk_params.toml
 
 
 This step requires user interaction. He must answer the API question with Y (yes) or N (no).
@@ -238,7 +238,7 @@ To pass the qcone, the station must have only  "t" for True for all parameters.
 
 First, the following command has to be run to set the parameters:
 ::
-    noiz configs add_qcone_config -f /SDS/param_toml/QCOneConfig.toml
+    noiz configs add_qcone_config -f /noiz/config_examples/QCOneConfig.toml
 
 This step requires user interaction. He must answer the API question with Y (yes) or N (no).
 
@@ -271,7 +271,7 @@ The psd (power spectral density) can be computed using Noiz.
 The following command has to be run to set the parameters:
 ::
     
-    noiz configs add_ppsd_params -f /SDS/param_toml/ppsd_params.toml
+    noiz configs add_ppsd_params -f /noiz/config_examples/ppsd_params.toml
 
 This step requires user interaction. He must answer the API question with Y (yes) or N (no).
 
@@ -306,7 +306,7 @@ process_datachunks
 
 The following command has to be run to set the parameters:
 ::
-    noiz configs add_processed_datachunk_params -f /SDS/param_toml/processed_datachunk_params.toml
+    noiz configs add_processed_datachunk_params -f /noiz/config_examples/processed_datachunk_params.toml
 
 This step requires user interaction. He must answer the API question with Y (yes) or N (no).
 
@@ -338,7 +338,7 @@ Cross-correlations in cartesian components
 The following command has to be run to set the parameters:
 ::
 
-    noiz configs add_crosscorrelation_cartesian_params -f /SDS/param_toml/crosscorrelation_cartesian_params.toml
+    noiz configs add_crosscorrelation_cartesian_params -f /noiz/config_examples/crosscorrelation_cartesian_params.toml
 
 This step requires user interaction. He must answer the API question with Y (yes) or N (no).
 
@@ -375,7 +375,7 @@ The "configs" command creates several sets of parameters according to a frequenc
 The following command has to be run to set the parameters:
 ::
     
-    noiz configs generate_beamforming_params -f /SDS/param_toml/beamforming_params.toml -fn 0.05 -fx 2.05 -fp 0.05 -fw 0.1
+    noiz configs generate_beamforming_params -f /noiz/config_examples/beamforming_params.toml -fn 0.05 -fx 2.05 -fp 0.05 -fw 0.1
 
 where,
 
