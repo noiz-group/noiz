@@ -437,6 +437,7 @@ def preprocess_sliced_stream_for_datachunk( # noqa: max-complexity: 22
         max_percentage=processing_params.preprocessing_taper_max_percentage,
         side=processing_params.preprocessing_taper_side,
     )
+
     if verbose_output:
         steps_dict['tapered'] = trimmed_st.copy()
 
@@ -452,6 +453,7 @@ def preprocess_sliced_stream_for_datachunk( # noqa: max-complexity: 22
         freqmax=processing_params.prefiltering_high,
         corners=processing_params.prefiltering_order,
     )
+        
     if verbose_output:
         steps_dict['filtered'] = trimmed_st.copy()
 
@@ -490,6 +492,7 @@ def preprocess_sliced_stream_for_datachunk( # noqa: max-complexity: 22
         f"high: {processing_params.prefiltering_high}; "
         f"order: {processing_params.prefiltering_order};"
     )
+    
     trimmed_st.filter(
         type="bandpass",
         freqmin=processing_params.prefiltering_low,
@@ -497,6 +500,7 @@ def preprocess_sliced_stream_for_datachunk( # noqa: max-complexity: 22
         corners=processing_params.prefiltering_order,
         zerophase=True,
     )
+        
     if verbose_output:
         steps_dict['filtered_second_time'] = trimmed_st.copy()
 
@@ -778,7 +782,7 @@ def create_datachunks_for_component(
     for timespan in timespans:
 
         logger.info(f"Slicing timespan {timespan}")
-        trimmed_st: obspy.Stream = st.slice(
+        trimmed_st: obspy.Stream = st.copy().slice(
             starttime=timespan.starttime_obspy,
             endtime=timespan.remove_last_microsecond(),
             nearest_sample=False,
