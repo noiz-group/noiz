@@ -214,6 +214,8 @@ def deconv_rlc_stepwise_circles_v_polar( # noqa: max-complexity: 24
             i_iter += 1
             corr_term = compute_rlc_corr_term(arf, f, g_for_update, m, alpha, reg_coef=reg_coef,
                                               water_level=water_level_rms_pct)
+            
+            plt.close(fig)
             f = corr_term * f
             if lambda_herve > 0:
                 f_max = 1 * np.quantile(f[:], 1)
@@ -274,9 +276,10 @@ def deconv_rlc_stepwise_circles_v_polar( # noqa: max-complexity: 24
                     i_iter += 1
                     corr_term = compute_rlc_corr_term(arf, f, g_for_update, m, alpha, reg_coef=reg_coef,
                                                       water_level=water_level_rms_pct)
+                    
                     corr_term_polar = griddata(np.vstack((xv.flatten(), yv.flatten())).T, corr_term.flatten(),
                                                np.vstack((sx_grid_polar.flatten(), sy_grid_polar.flatten())).T,
-                                               fill_value=1)
+                                               fill_value=0)
                     corr_term_polar = np.reshape(corr_term_polar, sx_grid_polar.shape).T
                     padding_top = corr_term_polar[-npadding_periodic_conv:, :]
                     padding_bottom = corr_term_polar[:npadding_periodic_conv, :]
@@ -291,8 +294,9 @@ def deconv_rlc_stepwise_circles_v_polar( # noqa: max-complexity: 24
                     corr_term_copy = griddata(np.vstack((sx_grid_polar.flatten(), sy_grid_polar.flatten())).T,
                                               corr_term_polar_padded.T.flatten(),
                                               np.vstack((xv.flatten(), yv.flatten())).T,
-                                              fill_value=1)
+                                              fill_value=0)
                     corr_term_copy = np.reshape(corr_term_copy, xv.shape)
+                    
                     f = corr_term_copy * f
 
                     if lambda_herve > 0:
@@ -2023,6 +2027,9 @@ class BeamformerKeeper:
 
         """
         self.iteration_count += 1
+        
+        pow_map = pow_map.T
+        apow_map = apow_map.T
 
         self.midtime_samples.append(midsample)
         if self.save_relpow:
@@ -2367,7 +2374,7 @@ def select_local_maxima(
         maxima_threshold: float,
         best_point_count: int
 ) -> pd.DataFrame:
-    data = data.T
+    data = data
     data_max = filters.maximum_filter(data, neighborhood_size)
     maxima = (data == data_max)
     data_min = filters.minimum_filter(data, neighborhood_size)

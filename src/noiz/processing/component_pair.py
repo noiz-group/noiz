@@ -31,46 +31,46 @@ def prepare_componentpairs_cartesian(components: List[Component]) -> List[Compon
         if i % int(no/10) == 0:
             logger.info(f"Processed already {i}/{no} pairs")
 
-        cmpa_start_date = datetime(cmp_a.start_date.year, cmp_a.start_date.month, cmp_a.start_date.day, cmp_a.start_date.hour)
-        cmpb_start_date = datetime(cmp_b.start_date.year, cmp_b.start_date.month, cmp_b.start_date.day, cmp_b.start_date.hour)
-        cmpa_end_date = datetime(cmp_a.end_date.year, cmp_a.end_date.month, cmp_a.end_date.day, cmp_a.end_date.hour)
-        cmpb_end_date = datetime(cmp_b.end_date.year, cmp_b.end_date.month, cmp_b.end_date.day, cmp_b.end_date.hour)
+        # cmpa_start_date = datetime(cmp_a.start_date.year, cmp_a.start_date.month, cmp_a.start_date.day, cmp_a.start_date.hour)
+        # cmpb_start_date = datetime(cmp_b.start_date.year, cmp_b.start_date.month, cmp_b.start_date.day, cmp_b.start_date.hour)
+        # cmpa_end_date = datetime(cmp_a.end_date.year, cmp_a.end_date.month, cmp_a.end_date.day, cmp_a.end_date.hour)
+        # cmpb_end_date = datetime(cmp_b.end_date.year, cmp_b.end_date.month, cmp_b.end_date.day, cmp_b.end_date.hour)
 
-        working_time_a = np.arange(cmpa_start_date, cmpa_end_date, timedelta(minutes=1)).astype(datetime)
-        working_time_b = np.arange(cmpb_start_date, cmpb_end_date, timedelta(minutes=1)).astype(datetime)
-        a_set = set(working_time_a)
-        b_set = set(working_time_b)
-        if (a_set & b_set):
-            logger.debug(f"Starting with potential pair {i}/{no - 1}")
+        # working_time_a = np.arange(cmpa_start_date, cmpa_end_date, timedelta(minutes=1)).astype(datetime)
+        # working_time_b = np.arange(cmpb_start_date, cmpb_end_date, timedelta(minutes=1)).astype(datetime)
+        # a_set = set(working_time_a)
+        # b_set = set(working_time_b)
+        # if (a_set & b_set):
+        logger.debug(f"Starting with potential pair {i}/{no - 1}")
 
-            component_pair_cartesian = ComponentPairCartesian(
-                component_a_id=cmp_a.id,
-                component_b_id=cmp_b.id,
-                component_code_pair=f"{cmp_a.component}{cmp_b.component}"
-            )
+        component_pair_cartesian = ComponentPairCartesian(
+            component_a_id=cmp_a.id,
+            component_b_id=cmp_b.id,
+            component_code_pair=f"{cmp_a.component}{cmp_b.component}"
+        )
 
-            if is_autocorrelation(cmp_a, cmp_b):
-                logger.debug(f"Pair {component_pair_cartesian} is autocorrelation")
-                component_pair_cartesian.set_autocorrelation()
-                component_pairs_cartesian.append(component_pair_cartesian)
-                continue
-
-            if is_intrastation_correlation(cmp_a, cmp_b):
-                logger.debug(f"Pair {component_pair_cartesian} is intracorrelation")
-                component_pair_cartesian.set_intracorrelation()
-                component_pairs_cartesian.append(component_pair_cartesian)
-                continue
-
-            if not is_east_to_west(cmp_a, cmp_b):
-                logger.debug(f"Pair {component_pair_cartesian} is not east to west, skipping")
-                continue
-
-            logger.debug(
-                f"Pair {component_pair_cartesian} is east to west, calculating distance and backazimuths"
-            )
-            distaz = calculate_distance_azimuths(cmp_a, cmp_b)
-            component_pair_cartesian.set_params_from_distaz(distaz)
+        if is_autocorrelation(cmp_a, cmp_b):
+            logger.debug(f"Pair {component_pair_cartesian} is autocorrelation")
+            component_pair_cartesian.set_autocorrelation()
             component_pairs_cartesian.append(component_pair_cartesian)
+            continue
+
+        if is_intrastation_correlation(cmp_a, cmp_b):
+            logger.debug(f"Pair {component_pair_cartesian} is intracorrelation")
+            component_pair_cartesian.set_intracorrelation()
+            component_pairs_cartesian.append(component_pair_cartesian)
+            continue
+
+        if not is_east_to_west(cmp_a, cmp_b):
+            logger.debug(f"Pair {component_pair_cartesian} is not east to west, skipping")
+            continue
+
+        logger.debug(
+            f"Pair {component_pair_cartesian} is east to west, calculating distance and backazimuths"
+        )
+        distaz = calculate_distance_azimuths(cmp_a, cmp_b)
+        component_pair_cartesian.set_params_from_distaz(distaz)
+        component_pairs_cartesian.append(component_pair_cartesian)
     logger.info(f"There were {len(component_pairs_cartesian)} component pairs created.")
     return component_pairs_cartesian
 

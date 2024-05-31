@@ -284,8 +284,13 @@ def array_transff_freqslowness(coords, slim, sstep, fmin, fmax, fstep,
                     _sum += np.exp(
                         complex(0., (coords[l, 0] * sx + coords[l, 1] * sy) *
                                 2 * np.pi * f))
-                buff[k] = abs(_sum) ** 2
-            transff[i, j] = cumtrapz(buff, dx=fstep)[-1]
+                buff[k] = abs(_sum) ** 2 
+            ### STORENGY MODIF
+            if len(buff) > 1:
+                transff[i, j] = cumtrapz(buff, dx=fstep)[-1] # original line
+            else:
+                transff[i, j] = buff * fstep
+            ### END OF STORENGY MODIF
 
     transff /= transff.max()
     return transff
