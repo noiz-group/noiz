@@ -2038,6 +2038,7 @@ class BeamformerKeeper:
             self.abs_pows.append(apow_map.copy())
         # print(self.save_arf)
         if (self.save_arf) and (arf is not None):
+            arf = arf.T # major bugfix AKA 19/07/2024
             self.arf.append(arf.copy())
 
     def deconv_all_windows_from_existing_arf(self, beamforming_params):
@@ -2467,3 +2468,32 @@ def validate_if_all_beamforming_params_use_same_qcone(params: Collection[Beamfor
         )
     single_qcone_config_id = unique_qcone_config_ids[0]
     return single_qcone_config_id
+
+
+# if __name__ == '__main__':
+#     print('debug mode')
+#     npz_to_process = Path('/home/alex/programs/results_tuto_cwt/beamforming/9/2019/277/beamforming.2019.277.0430.0.npz')
+#     smin = -2
+#     smax = 2
+#     vmin = 0.5
+#     ds = 0.1
+    
+#     sx = np.arange(smin, smax + ds, ds)
+#     sy = sx.copy()
+    
+#     data = np.load(npz_to_process)
+#     arf = data['avg_arf'].T
+#     g = data['avg_abs_pow']
+    
+#     f_out, g_est, cost_hist, rms_hist, f_by_stages = \
+#     deconv_rlc_stepwise_circles_v_polar( # noqa: max-complexity: 24
+#         g, arf, sx, sy, vmin, n_iter=50,
+#         slowness_width_ratio_to_ds=1, slowness_step_ratio_to_ds=1,
+#         angle_step_min=10, angle_width_start=180,
+#         theta_overlap_kernel=0.5,
+#         stop_crit_rel=0.99, stop_crit_rms=0, verbose=True,
+#         standard_rlc=False, f_start=None, f_sum=None,
+#         s_stages=[0, 1. / 2, np.infty],
+#         water_level_rms_pct=0,
+#         lambda_herve=0,
+#         reg_coef=0)
