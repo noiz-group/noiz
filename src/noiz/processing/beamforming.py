@@ -73,6 +73,8 @@ def deconv_rlc_stepwise_circles_v_polar( # noqa: max-complexity: 24
     :return: rms_hist:      evolution of rms misfit over iterations, size = total number of iterations
     """
 
+    print(s_stages)
+
     # check inputs
 
     _check_beamformer_shape(g, sx, sy)
@@ -86,6 +88,9 @@ def deconv_rlc_stepwise_circles_v_polar( # noqa: max-complexity: 24
         arf = arf_initial + const_arf_offset_array
 
     _check_arf_to_be_square(arf)
+    
+    # normalize ARF to preserve amplitudes
+    # arf /= np.sum(arf.flatten())
 
     # mask for weight computation (same size as ARF)
     m = np.ones((n, n))
@@ -116,8 +121,8 @@ def deconv_rlc_stepwise_circles_v_polar( # noqa: max-complexity: 24
         sy_grid_polar = s_grid * np.sin(theta_grid)
 
         # discard non-physical values from deconvolved image (any pixel initialized at 0 will remain 0 while iterating)
-        smax_tolerated = 1 / vmin
         width_muting_taper = 0.25
+        smax_tolerated = (1 + width_muting_taper) / vmin
         muting_taper = 1 - slowness_muting_taper((1 - width_muting_taper) * smax_tolerated, s_norm,
                                                  water_level=0, taper_width=width_muting_taper)
         # f[s_norm > smax_tolerated] = 0
@@ -167,11 +172,17 @@ def deconv_rlc_stepwise_circles_v_polar( # noqa: max-complexity: 24
             full_kernels.append(multiply_kernels(angle_kernel, s_kernel))
             full_norms.append(norm_i)
 
-    g_initial = g.copy()
+    
     g_min = np.min(g[:])
     if np.sign(g_min * arf_min) == -1:
         raise ValueError('the minima of input ARF and beam do not have the same sign. This is very unlikely')
 
+    rms_g = np.sqrt(np.mean(g**2))
+    const_shift = - g_min + 1e-2 * rms_g
+    # g += const_shift
+    
+    g_initial = g.copy() + const_shift
+    
     if f_sum is not None:
         f = (f / np.sum(f[:])) * f_sum
         assert np.sum(f[:]) == f_sum
@@ -180,9 +191,11 @@ def deconv_rlc_stepwise_circles_v_polar( # noqa: max-complexity: 24
         if const_g_offset <= -g_min:
             raise ValueError('arf_shift * f0 insufficient for g positivity. check implementation.')
         const_g_offset_array = np.ones_like(g) * const_g_offset
-        g = g_initial + const_g_offset_array
+        # g = g_initial + const_g_offset_array
+        g_initial += const_g_offset_array
 
     f_init_val = min(0.99, 1e-3 * np.sqrt(np.mean(f[:] ** 2)))
+    
 
     # weight term
     alpha = compute_arf_action(arf, m)
@@ -192,8 +205,8 @@ def deconv_rlc_stepwise_circles_v_polar( # noqa: max-complexity: 24
     rms_hist = []
 
     # copy of input image for cost function evaluation at each iteration
-    g_for_cost_evol = g.copy()
-    g_for_update = g.copy()
+    g_for_cost_evol = g_initial.copy()
+    g_for_update = g_initial.copy()
 
     # initial cost function
     cost_new, rms_new, g_est = update_misfits(arf, f, g_for_cost_evol, nonpositive_arf=(arf_min < 0),
@@ -331,6 +344,8 @@ def deconv_rlc_stepwise_circles_v_polar( # noqa: max-complexity: 24
 
     cost_hist = np.array(cost_hist)
     rms_hist = np.array(rms_hist)
+    
+    g_est -= const_shift
 
     return f_out, g_est, cost_hist, rms_hist, f_by_stages
 
@@ -1661,7 +1676,7 @@ def deconvolve_beamformers(arf, beam, beamforming_params):
         reg_coef=0,
         )
 
-    return beam_deconv
+    return beam_deconv, g_est, rms_hist[-1]
 
 
 ###########################################################################################
@@ -1944,10 +1959,17 @@ class BeamformerKeeper:
         self.arf: List[int] = []
         self.abs_pows_deconv: List[int] = []
         self.rel_pows_deconv: List[int] = []
+        self.abs_pows_reconstructed: List[int] = []
+        self.rel_pows_reconstructed: List[int] = []
+        self.rms_error_deconv: List[int] = []
 
         self.average_arf: Any = None
         self.average_abspow_deconv: Any = None
         self.average_relpow_deconv: Any = None
+        self.average_abspow_reconstructed: Any = None
+        self.average_relpow_reconstructed: Any = None
+        self.average_abspow_rms_error_deconv: Any = None
+        self.average_relpow_rms_error_deconv: Any = None
         # self.average_abspow_deconv_2: Any = None
         ##
         #################
@@ -1989,17 +2011,28 @@ class BeamformerKeeper:
         if params.perform_deconvolution_all:
             ######## CK ####### modif AKA 19/07/2023
             if params.save_all_beamformers_abspower:
-                for i, arr in enumerate(self.abs_pows_deconv):
+                for i, (arr, arr_reconstructed, rms_error_deconv) in \
+                    enumerate(zip(self.abs_pows_deconv, self.abs_pows_reconstructed, self.rms_error_deconv)):
                     res_to_save[f"abs_pow_deconv_{i}"] = arr
+                    res_to_save[f"abs_pow_reconstructed_{i}"] = arr_reconstructed
+                    res_to_save[f"rms_error_deconv_{i}"] = rms_error_deconv
+                    
             if params.save_all_beamformers_relpower:
-                for i, arr in enumerate(self.rel_pows_deconv):
+                for i, (arr, arr_reconstructed, rms_error_deconv) in \
+                    enumerate(zip(self.rel_pows_deconv, self.rel_pows_reconstructed, self.rms_error_deconv)):
                     res_to_save[f"rel_pow_deconv_{i}"] = arr
+                    res_to_save[f"rel_pow_reconstructed_{i}"] = arr_reconstructed
+                    res_to_save[f"rms_error_deconv_{i}"] = rms_error_deconv
 
         if params.perform_deconvolution_average:
             if params.save_average_beamformer_abspower:
                 res_to_save["avg_abs_pow_deconv"] = self.average_abspow_deconv
+                res_to_save["avg_abs_pow_reconstructed"] = self.average_abspow_reconstructed
+                res_to_save["avg_abs_pow_rms_error_deconv"] = self.average_abspow_rms_error_deconv
             if params.save_average_beamformer_relpower:
                 res_to_save["avg_rel_pow_deconv"] = self.average_relpow_deconv
+                res_to_save["avg_rel_pow_reconstructed"] = self.average_relpow_reconstructed
+                res_to_save["avg_rel_pow_rms_error_deconv"] = self.average_relpow_rms_error_deconv
             ##
             # res_to_save["avg_abs_pow_deconv"] = self.average_abspow_deconv
             # #_2 res_to_save["avg_abs_pow_deconv_2"] = self.average_abspow_deconv_2
@@ -2038,17 +2071,22 @@ class BeamformerKeeper:
             self.abs_pows.append(apow_map.copy())
         # print(self.save_arf)
         if (self.save_arf) and (arf is not None):
-            arf = arf.T # major bugfix AKA 19/07/2024
+            # arf = arf.T # major bugfix AKA 19/07/2024
+            print('I am not transposing !!')
             self.arf.append(arf.copy())
 
     def deconv_all_windows_from_existing_arf(self, beamforming_params):
         for i, (abs_pow, rel_pow, arf) in enumerate(zip(self.abs_pows, self.rel_pows, self.arf)):
-            abs_pow_deconv = deconvolve_beamformers(arf, abs_pow, beamforming_params)
+            abs_pow_deconv, abs_pow_reconstructed, rms_error_deconv = deconvolve_beamformers(arf, abs_pow, beamforming_params)
             abs_pow_deconv_max = np.max(abs_pow_deconv.flatten())
             rel_pows_max = np.max(rel_pow.flatten())
             rel_pow_deconv = (rel_pows_max / abs_pow_deconv_max) * abs_pow_deconv
+            rel_pow_reconstructed = (rel_pows_max / abs_pow_deconv_max) * abs_pow_reconstructed
             self.abs_pows_deconv.append(abs_pow_deconv)
             self.rel_pows_deconv.append(rel_pow_deconv)
+            self.abs_pows_reconstructed.append(abs_pow_reconstructed)
+            self.rel_pows_reconstructed.append(rel_pow_reconstructed)
+            self.rms_error_deconv.append(rms_error_deconv)
 
     def calculate_average_arf_beamformer(self):
         """filldocs"""
@@ -2062,13 +2100,15 @@ class BeamformerKeeper:
 
     def deconvolve_average_abspower_with_arf(self, beamforming_params):
         """filldocs"""
-        self.average_abspow_deconv = deconvolve_beamformers(self.average_arf, self.average_abspow, beamforming_params)
+        self.average_abspow_deconv, self.average_abspow_reconstructed, self.average_abspow_rms_error_deconv  = deconvolve_beamformers(self.average_arf, self.average_abspow, beamforming_params)
+
+
 
     ####################################
 
     def deconvolve_average_relpower_with_arf(self, beamforming_params):
         """filldocs"""
-        self.average_relpow_deconv = deconvolve_beamformers(self.average_arf, self.average_relpow, beamforming_params)
+        self.average_relpow_deconv, self.average_relpow_reconstructed, self.average_relpow_rms_error_deconv  = deconvolve_beamformers(self.average_arf, self.average_relpow, beamforming_params)
 
     ####################################
 

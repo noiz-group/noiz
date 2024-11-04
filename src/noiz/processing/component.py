@@ -152,7 +152,7 @@ def parse_inventory_for_single_component_db_entries(
                                 if delta >= 0:
                                     startdate = channel.start_date
                         else:
-                            startdate = network.startDate
+                            startdate = network.start_date
 
                 if station.end_date:
                     enddate = station.end_date
