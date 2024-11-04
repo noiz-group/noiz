@@ -101,6 +101,21 @@ def get_geometry(stream, coordsys='lonlat', return_center=False,
                      np.array((center_lon, center_lat, center_h))].T
     else:
         return geometry
+    
+    
+def get_timeshift_mfp(geometry, xll, yll, sl_s, grdpts_x, grdpts_y):
+    # in this version sll_x, sll_y map to distance from source to array
+    # for source outside the array there is an ambiguity distande / slowness
+    # for source inside array the solution is normally unique
+    nstat = len(geometry)  # last index are center coordinates
+    time_shift_tbl = np.empty((nstat, grdpts_x, grdpts_y), dtype=np.float32)
+    for k in range(grdpts_x):
+       x = xll + k * sl_s
+       for l in range(grdpts_y):
+           y = yll + l * sl_s
+           time_shift_tbl[:,k,l] = np.sqrt((x - geometry[:, 0])**2 + (y - geometry[:, 1])**2)
+    
+    return time_shift_tbl
 
 
 def get_timeshift(geometry, sll_x, sll_y, sl_s, grdpts_x, grdpts_y):
@@ -230,7 +245,7 @@ def array_transff_freqslowness_wrapper(st, array_proc_kwargs):
         fmax=array_proc_kwargs["frqhigh"],
         fstep=deltaf,
         coordsys="xy")
-    return avg_arf
+    return avg_arf.T
 
 
 def array_transff_freqslowness(coords, slim, sstep, fmin, fmax, fstep,
