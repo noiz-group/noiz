@@ -210,6 +210,7 @@ def create_and_add_beamforming_params_from_toml(
         freq_step: Optional[float] = None,
         freq_window_width: Optional[float] = None,
         rounding_precision: int = 4,
+        slowness_limits_folder: Optional[Path] = None,
 ) -> Union[
     Union[BeamformingParams, Tuple[BeamformingParamsHolder, BeamformingParams]],
     Union[List[BeamformingParams], List[Tuple[BeamformingParamsHolder, BeamformingParams]]],
@@ -243,6 +244,7 @@ def create_and_add_beamforming_params_from_toml(
             freq_step=freq_step,
             freq_window_width=freq_window_width,
             rounding_precision=rounding_precision,
+            slowness_limits_folder=slowness_limits_folder,
         )
         logger.debug(f"Generated {len(param_holders)}.")
         logger.debug("Converting holders to BeamformingParams. ")

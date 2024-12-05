@@ -7,9 +7,12 @@ from loguru import logger
 from matplotlib import pyplot as plt
 from obspy.core import AttribDict, Stream
 from pathlib import Path
+from scipy.optimize import nnls
+from scipy.optimize import minimize
 from scipy.interpolate import griddata
-from scipy.signal import convolve, correlate
+from scipy.signal import fftconvolve, convolve, correlate
 from scipy.ndimage import filters as filters
+from itertools import combinations
 from scipy import ndimage as ndimage
 from typing import Tuple, Collection, Optional, List, Any
 
@@ -27,1656 +30,438 @@ from noiz.models.beamforming import BeamformingResult, BeamformingFile, Beamform
     BeamformingPeakAllAbspower, BeamformingPeakAverageRelpower, BeamformingPeakAverageAbspower
 
 
-def deconv_rlc_stepwise_circles_v_polar( # noqa: max-complexity: 24
-        g, arf, sx, sy, vmin, n_iter=50,
-        slowness_width_ratio_to_ds=1, slowness_step_ratio_to_ds=1,
-        angle_step_min=10, angle_width_start=180,
-        theta_overlap_kernel=0.5,
-        stop_crit_rel=0.99, stop_crit_rms=0, verbose=True,
-        standard_rlc=False, f_start=None, f_sum=None,
-        s_stages=[0, 1. / 2, np.infty],
-        water_level_rms_pct=0,
-        lambda_herve=0,
-        reg_coef=0,
-):
-    """
-    Modified RLC deconvolution adapted to seismic array processing.
-    Iterative correction of the initial image with constant correction
-    applied to arc portions of progressively decreasing azimuthal extent (by stages).
+def manual_convolve(array1, array2):
+    result_full = fftconvolve(array1, array2, mode='full')
+    result_same = result_full[
+        (array2.shape[0]//2): -(array2.shape[0]//2),
+        (array2.shape[1]//2): -(array2.shape[1]//2)
+    ]
+    return result_same
 
-    A. Kazantsev (Storengy, ENGIE) 2022
 
-    :param g:                               input image (beamformer), size n x n
-    :param arf:                             array response function, size n x n
-    :param sx:                              slowness axis x, size n x 1
-    :param sy:                              slowness axis y, size n x 1
-    :param vmin:                            minimal physical velocity in the waves (m/s)
-    :param n_iter:                          maximum number of iterations per stage
-    :param slowness_width_ratio_to_ds:      std of the gaussian kernel over slowness
-    :param slowness_step_ratio_to_ds:       step of the gaussian kernel centers over slowness axis
-    :param angle_step_mode:                 manages the step of the gaussian kernel centers over angles
-                                                if 'auto' : the step is (1-theta_overlap_kernel) * std of the kernel
-                                                if 'uniform' : the step is angle_step_min whatever the std of the kernel
-    :param angle_step_min:                  minimal bound of the step of the gaussian kernel centers over angles
-    :param angle_width_start:               starting value of std of the gaussian kernel over angles
-                                                the full range of std over deconvolution stages is
-                                                [angle_width_start, angle_width_start/2, ..., angle_step_min/2]
-    :param random_angle_at_each_iteration:  boolean, if True then the gaussian kernels over angles will be recomputed
-                                                at each iteration with a slight random angular shift
-                                                to avoid domain-limit artifacts. This is very time-consuming.
-    :param stop_crit_rel:                       criterion of I(n+1)/I(n) for stopping iterations at each stage,
-                                                with I the Csiszar cost function
+def onebit_thresholding(g, threshold=0.5):
+    g_demin = g - np.min(g)
+    g = 0*g_demin.copy()
+    g[g_demin > (threshold*np.max(g_demin.copy()))]=1
+    return g
 
-    :return: f:             deconvolved image, such that conv(f, arf) aprroximates g, size n x n
-    :return: g_est:         reconstructed g (result of conv(f, arf)), size n x n
-    :return: cost_hist:     evolution of Csiszar misfit over iterations, size = total number of iterations
-    :return: rms_hist:      evolution of rms misfit over iterations, size = total number of iterations
-    """
 
-    print(s_stages)
+def rms_onebit(g1, g2):
+    rms = np.sqrt(np.mean((onebit_thresholding(g1) - onebit_thresholding(g2))**2))
+    return rms
 
-    # check inputs
 
-    _check_beamformer_shape(g, sx, sy)
-    n = g.shape[0]
+def rms_l2(g1, g2):
+    rms = np.sqrt(np.mean((g1 - g2)**2)/np.mean((g1)**2))
+    return rms
 
-    arf_initial = arf.copy()
-    arf_min = np.min(arf[:])
-    if arf_min < 0:
-        const_arf_offset = - 1.01 * arf_min
-        const_arf_offset_array = np.ones_like(arf) * const_arf_offset
-        arf = arf_initial + const_arf_offset_array
 
-    _check_arf_to_be_square(arf)
+def gaussian_2d_kernel(s, theta, sigma_s, sigma_theta, sx, sy):
+    """Generate a 2D Gaussian kernel in slowness space in polar coordinates."""
     
-    # normalize ARF to preserve amplitudes
-    # arf /= np.sum(arf.flatten())
-
-    # mask for weight computation (same size as ARF)
-    m = np.ones((n, n))
-
-    # initialize output
-    if f_start is None:
-        f = np.ones((n, n))
+    sxgrid, sygrid = np.meshgrid(sx, sy)
+    
+    # Convert Cartesian coordinates (sx, sy) to polar coordinates (radius, angle)
+    S, Theta = np.sqrt(sxgrid**2 + sygrid**2), np.arctan2(sygrid, sxgrid) * 180 / np.pi  # Theta in degrees
+    
+    # Apply periodicity to handle wrap-around for azimuthal angle
+    delta_theta = np.minimum(np.abs(Theta - theta), 360 - np.abs(Theta - theta))
+    
+    # Compute Gaussian kernel in polar coordinates
+    gaussian_r = np.exp(-((S - s) ** 2) / (2 * sigma_s ** 2))
+    #gaussian_theta = np.abs(delta_theta) <=  sigma_theta
+    gaussian_theta = np.exp(-(delta_theta ** 2) / (2 * sigma_theta ** 2))
+    
+    if sigma_theta <= 180:
+        gaussian_out = gaussian_r * gaussian_theta
     else:
-        f = f_start
-
-    if not standard_rlc:
-        # slowness and azimuth grid
-        ds = np.median(np.diff(sx))
-        dtheta = (np.pi / 180) * (angle_step_min / 5)
-        smax = np.min([np.max(sx), np.max(sy)])
-        xv, yv = np.meshgrid(sx, sy)
-        s_norm = np.sqrt(xv ** 2 + yv ** 2)
-
-        # polar grids
-        theta_axis, s_axis, theta_grid, s_grid, sx_polar, sy_polar = generate_slowness_grid_polar(
-            0,
-            smax,
-            ds,
-            dtheta,
-        )
-
-        sx_grid_polar = s_grid * np.cos(theta_grid)
-        sy_grid_polar = s_grid * np.sin(theta_grid)
-
-        # discard non-physical values from deconvolved image (any pixel initialized at 0 will remain 0 while iterating)
-        width_muting_taper = 0.25
-        smax_tolerated = (1 + width_muting_taper) / vmin
-        muting_taper = 1 - slowness_muting_taper((1 - width_muting_taper) * smax_tolerated, s_norm,
-                                                 water_level=0, taper_width=width_muting_taper)
-        # f[s_norm > smax_tolerated] = 0
-        # m[s_norm > smax_tolerated] = 0
-        f *= muting_taper
-        m *= muting_taper
-
-        # define kernels for stepwise uniform update of result (circles, than azimuthal portions) :
-        # circles :
-        s_domain_step = slowness_step_ratio_to_ds * ds
-        s_domain_width = slowness_width_ratio_to_ds * ds
-        s_domain_centers = np.arange(0, smax + s_domain_step, s_domain_step)
-
-        # azimuthal portions :
-        angle_domain_step = angle_step_min * np.pi / 180
-        angle_domain_width_list = [360]
-        angle_width = angle_width_start * np.pi / 180
-        while angle_width >= angle_domain_step * (1 - theta_overlap_kernel):
-            angle_domain_width_list.append(angle_width)
-            angle_width /= 2
-
-        # NEW KERNELS
-
-        kernel_width_to_std_ratio = 3
-        s_domain_width = kernel_width_to_std_ratio * slowness_width_ratio_to_ds * ds
-        s_axis_kernel = s_axis[s_axis < s_domain_width]
-        s_axis_kernel = s_axis_kernel - np.max(s_axis_kernel) / 2
-        [s_grid_kernel_0, theta_grid_kernel_0] = np.meshgrid(s_axis_kernel, theta_axis)
-        angle_kernel_0 = np.ones(theta_grid_kernel_0.shape)
-        s_kernel_0 = slowness_kernel(0, s_domain_width, s_grid_kernel_0)[0]
-        full_kernels = []
-        full_norms = []
-        kernel_0 = multiply_kernels(angle_kernel_0, s_kernel_0)
-        norm_factor_0 = get_norm_factor_for_kernel(kernel_0, theta_grid)
-        full_kernels.append(kernel_0)
-        full_norms.append(norm_factor_0)
-        for angle_width in angle_domain_width_list[1:]:
-            kernel_angle_width = kernel_width_to_std_ratio * angle_width
-
-            theta_axis_kernel = theta_axis[theta_axis < kernel_angle_width]
-            theta_axis_kernel = theta_axis_kernel - np.max(theta_axis_kernel) / 2
-            [s_grid_kernel, theta_grid_kernel] = np.meshgrid(s_axis_kernel, theta_axis_kernel)
-            angle_kernel = angular_kernel(angle_center=0, angle_width=angle_width, s_angle=theta_grid_kernel)[0]
-            s_kernel = slowness_kernel(0, s_domain_width, s_grid_kernel)[0]
-            kernel_i = multiply_kernels(angle_kernel, s_kernel)
-            norm_i = get_norm_factor_for_kernel(kernel_i, theta_grid)
-            full_kernels.append(multiply_kernels(angle_kernel, s_kernel))
-            full_norms.append(norm_i)
-
+        gaussian_out = gaussian_r
     
-    g_min = np.min(g[:])
-    if np.sign(g_min * arf_min) == -1:
-        raise ValueError('the minima of input ARF and beam do not have the same sign. This is very unlikely')
+    return gaussian_out
 
-    rms_g = np.sqrt(np.mean(g**2))
-    const_shift = - g_min + 1e-2 * rms_g
-    # g += const_shift
-    
-    g_initial = g.copy() + const_shift
-    
-    if f_sum is not None:
-        f = (f / np.sum(f[:])) * f_sum
-        assert np.sum(f[:]) == f_sum
-    if arf_min < 0:
-        const_g_offset = const_arf_offset * np.sum(f[:])
-        if const_g_offset <= -g_min:
-            raise ValueError('arf_shift * f0 insufficient for g positivity. check implementation.')
-        const_g_offset_array = np.ones_like(g) * const_g_offset
-        # g = g_initial + const_g_offset_array
-        g_initial += const_g_offset_array
 
-    f_init_val = min(0.99, 1e-3 * np.sqrt(np.mean(f[:] ** 2)))
+def bool_valid_basis_element(theta, sigma_theta, theta_0, theta_max_dist):
+    delta_theta = np.minimum(np.abs(theta - theta_0), 360 - np.abs(theta - theta_0))
+    bool_valid = (sigma_theta <= theta_max_dist) and (delta_theta <= theta_max_dist) and ((sigma_theta <= 180) | (theta<=180))
+    return bool_valid
+
+
+def construct_complete_basis(sx, sy, s_step_sol, s_bounds, sigma_theta_in, theta_bounds=None):
+    """Construct a complete basis with varying azimuthal spreads (sigma_theta) up to 180° in steps of sigma_s."""
+    # Generate slowness values within the specified bounds
+    
+        
+    if theta_bounds is None:
+        theta_bounds = [0, 360]
+    
+    slowness_values = np.unique(np.hstack([np.arange(s_min, s_max, s_step_sol) for s_min, s_max in s_bounds]))
+    
+    theta_bounds = np.array(theta_bounds)
+    max_dist_theta = np.abs(np.diff(theta_bounds))/2 
+    theta_0 = 0.5*np.sum(theta_bounds)
+    theta_0 = 90 - theta_0 # user's input is in geographical convention : convert to trigo
+    theta_0 += 180 # user's input is BACK-azimuth
+    # max_dist_theta = theta_bounds[1]
+    # theta_bounds = theta_bounds % 360 # map to 0-360
     
 
-    # weight term
-    alpha = compute_arf_action(arf, m)
-
-    # initialize cost function history
-    cost_hist = []
-    rms_hist = []
-
-    # copy of input image for cost function evaluation at each iteration
-    g_for_cost_evol = g_initial.copy()
-    g_for_update = g_initial.copy()
-
-    # initial cost function
-    cost_new, rms_new, g_est = update_misfits(arf, f, g_for_cost_evol, nonpositive_arf=(arf_min < 0),
-                                              reg_coef=reg_coef)
-
-    rms_hist.append(rms_new)
-    cost_hist.append(cost_new)
-    cost_old = cost_new
-
-    i_iter = 0  # iteration counter
-    cost_new = 0
-
-    f_by_stages = []
-    if standard_rlc:
-        print('standard rlc')
-        while (np.abs(cost_new / cost_old) < stop_crit_rel) & (rms_new > stop_crit_rms) & (i_iter < n_iter):
-            cost_old = cost_hist[-1]
-            i_iter += 1
-            corr_term = compute_rlc_corr_term(arf, f, g_for_update, m, alpha, reg_coef=reg_coef,
-                                              water_level=water_level_rms_pct)
+    # Calculate sigma_theta values by doubling from sigma_theta_min up to 180°
+    sigma_theta_values = []
+    sigma_theta = sigma_theta_in
+    while sigma_theta <= 360:
+        #if sigma_theta <= 180: # avoid adding circular basis element if bounds on BAZ used
+        sigma_theta_values.append(sigma_theta)
+        sigma_theta *= 2
+    sigma_theta_values = np.array(sigma_theta_values)
+    
+    count_azim_kernels = 0
+    for sigma_theta in sigma_theta_values:
+        for theta in np.arange(0, 360, sigma_theta):
+            if bool_valid_basis_element(theta, sigma_theta, theta_0, max_dist_theta):
+            # if (sigma_theta <= 180) | (theta<=180):
+                count_azim_kernels += 1
             
-            plt.close(fig)
-            f = corr_term * f
-            if lambda_herve > 0:
-                f_max = 1 * np.quantile(f[:], 1)
-                i_downweight = (f > 0) & (f < f_max)
-                f[i_downweight] = (f[i_downweight] ** 2) / \
-                                  (f[i_downweight] + lambda_herve * (f_max - f[i_downweight]))
-            cost_new, rms_new, g_est = update_misfits(arf, f, g_for_cost_evol, nonpositive_arf=(arf_min < 0),
-                                                      reg_coef=reg_coef)
-
-            cost_hist.append(cost_new)
-            rms_hist.append(rms_new)
-
-        f_by_stages.append(f)
-    else:
-        no_stage_flag = s_stages is None
-        if s_stages is None:
-            s_stages = [min(s_domain_centers), max(s_domain_centers)]
-        i_stage = -1
-
-        while i_stage < len(s_stages) - 1:
-
-            cost_hist_this_stage = [cost_hist[-1]]
-            rms_hist_this_stage = [rms_hist[-1]]
-
-            s_start = min(s_domain_centers) - (0.1 * ds)
-
-            if i_stage == -1:
-                s_start_stage = s_start
-            else:
-                s_start_stage = s_stages[-i_stage - 2] - (0.1 * ds)
-
-            if i_stage >= 0:
-                f_previous_stage = f.copy()
-                g_est_previous_stage = g_est.copy()
-
-                s_kernel_mute = slowness_muting_taper(s_start_stage, s_norm, water_level=f_init_val)
-
-                f = f * s_kernel_mute
-                cost_new, rms_new, g_est = update_misfits(arf, f, g_for_cost_evol,
-                                                          nonpositive_arf=(arf_min < 0),
-                                                          reg_coef=reg_coef)
-                cost_hist_this_stage.append(cost_new)
-                rms_hist_this_stage.append(rms_new)
-
-            for j in range(len(angle_domain_width_list)):
-                angle_width = angle_domain_width_list[j]
-                i_iter = 0  # iteration counter
-                cost_new = 0
-                kernel_j = full_kernels[j]
-                norm_j = full_norms[j]
-                ntheta_kernel = kernel_j.shape[0]
-                npadding_periodic_conv = int(np.ceil(ntheta_kernel / 2))
-
-                if verbose:
-                    print('stage delta_theta = ' + str(angle_width))
-                while (np.abs(cost_new / cost_old) < stop_crit_rel) & (rms_new > stop_crit_rms) & (i_iter < n_iter):
-                    cost_old = cost_hist_this_stage[-1]
-                    i_iter += 1
-                    corr_term = compute_rlc_corr_term(arf, f, g_for_update, m, alpha, reg_coef=reg_coef,
-                                                      water_level=water_level_rms_pct)
-                    
-                    corr_term_polar = griddata(np.vstack((xv.flatten(), yv.flatten())).T, corr_term.flatten(),
-                                               np.vstack((sx_grid_polar.flatten(), sy_grid_polar.flatten())).T,
-                                               fill_value=0)
-                    corr_term_polar = np.reshape(corr_term_polar, sx_grid_polar.shape).T
-                    padding_top = corr_term_polar[-npadding_periodic_conv:, :]
-                    padding_bottom = corr_term_polar[:npadding_periodic_conv, :]
-                    corr_term_polar_padded = np.vstack((padding_top, corr_term_polar, padding_bottom))
-
-                    #   polar to do : convolve by polar kernel
-                    corr_term_polar_padded = convolve(corr_term_polar_padded, kernel_j, mode="same")
-                    corr_term_polar_padded = corr_term_polar_padded[npadding_periodic_conv:-npadding_periodic_conv, :]
-                    corr_term_polar_padded = corr_term_polar_padded / norm_j
-
-                    #   polar to do : go back to cartesian coordinates
-                    corr_term_copy = griddata(np.vstack((sx_grid_polar.flatten(), sy_grid_polar.flatten())).T,
-                                              corr_term_polar_padded.T.flatten(),
-                                              np.vstack((xv.flatten(), yv.flatten())).T,
-                                              fill_value=0)
-                    corr_term_copy = np.reshape(corr_term_copy, xv.shape)
-                    
-                    f = corr_term_copy * f
-
-                    if lambda_herve > 0:
-                        f_max = 1 * np.quantile(f[:], 1)
-                        i_downweight = (f > 0) & (f < f_max)
-                        f[i_downweight] = (f[i_downweight] ** 2) / \
-                                          (f[i_downweight] + lambda_herve * (f_max - f[i_downweight]))
-                    cost_new, rms_new, g_est = update_misfits(arf, f, g_for_cost_evol,
-                                                              nonpositive_arf=(arf_min < 0),
-                                                              reg_coef=reg_coef)
-
-                    cost_hist_this_stage.append(cost_new)
-                    rms_hist_this_stage.append(rms_new)
-
-            f_out = f.copy()
-
-            if i_stage == -1:
-                cost_hist = cost_hist_this_stage
-                rms_hist = rms_hist_this_stage
-            else:
-                if (rms_hist[-1] / rms_hist_this_stage[-1]) > stop_crit_rel:
-                    cost_hist = [*cost_hist, *cost_hist_this_stage]
-                    rms_hist = [*rms_hist, *rms_hist_this_stage]
-                else:
-                    f = f_previous_stage.copy()
-                    g_est = g_est_previous_stage.copy()
-            f_by_stages.append(f)
-            if no_stage_flag:
-                i_stage = np.infty
-            else:
-                i_stage += 1
-
-    cost_hist = np.array(cost_hist)
-    rms_hist = np.array(rms_hist)
+    # Determine the total number of basis elements
+    num_basis_elements = len(slowness_values) * count_azim_kernels
+    basis = np.empty((num_basis_elements, len(sy), len(sx)), dtype=np.float64)
+    slowness_to_basis_indices = {}
     
-    g_est -= const_shift
-
-    return f_out, g_est, cost_hist, rms_hist, f_by_stages
-
-
-def _check_arf_to_be_square(arf):
-    if arf.shape[0] != arf.shape[1]:
-        raise ValueError('The arf needs to be be a square')
-
-
-def _check_beamformer_shape(g, sx, sy):
-    if not g.shape[0] == len(sy):
-        raise ValueError(f"Shape of input beamformer needs to be equal to slowness axes. g.shape[0] != len(sy) "
-                         f"{g.shape[0]} != {len(sy)}")
-    if not g.shape[1] == len(sx):
-        raise ValueError(f"Shape of input beamformer needs to be equal to slowness axes. g.shape[1] != len(sx)"
-                         f"{g.shape[1]} != {len(sx)}")
-    if not len(sy) == len(sx):
-        raise ValueError(f"Input beamformer needs to be a square. len(sy) != len(sx) {len(sy)} != {len(sx)}")
-
-
-# def deconv_rlc_stepwise_circles(g,
-#                                 arf,
-#                                 sx,
-#                                 sy,
-#                                 vmin,
-#                                 n_iter=50,
-#                                 slowness_width_ratio_to_ds=1,
-#                                 slowness_step_ratio_to_ds=1,
-#                                 angle_step_min=10,
-#                                 angle_width_start=180,
-#                                 angle_step_mode='auto',
-#                                 theta_overlap_kernel=0.5,
-#                                 random_angle_at_each_iteration=False,
-#                                 stop_crit_rel=0.99,
-#                                 stop_crit_rms=0,
-#                                 verbose=True,
-#                                 standard_rlc=False,
-#                                 f_start=None,
-#                                 f_sum=None,
-#                                 s_stages=[0, 1. / 2, np.infty],
-#                                 water_level_rms_pct=0,
-#                                 lambda_herve=0,
-#                                 reg_coef=0,
-#                                 path_save_intermediate_figures=None):
-#     # s_stages = None):
-#     """
-#     Modified RLC deconvolution adapted to seismic array processing.
-#     Iterative correction of the initial image with constant correction
-#     applied to arc portions of progressively decreasing azimuthal extent (by stages).
-#
-#     A. Kazantsev (Storengy, ENGIE) 2022
-#
-#     :param g:                               input image (beamformer), size n x n
-#     :param arf:                             array response function, size n x n
-#     :param sx:                              slowness axis x, size n x 1
-#     :param sy:                              slowness axis y, size n x 1
-#     :param vmin:                            minimal physical velocity in the waves (m/s)
-#     :param n_iter:                          maximum number of iterations per stage
-#     :param slowness_width_ratio_to_ds:      std of the gaussian kernel over slowness
-#     :param slowness_step_ratio_to_ds:       step of the gaussian kernel centers over slowness axis
-#     :param angle_step_mode:                 manages the step of the gaussian kernel centers over angles
-#                                                 if 'auto' : the step is (1-theta_overlap_kernel) * std of the kernel
-#                                               if 'uniform' : the step is angle_step_min whatever the std of the kernel
-#     :param angle_step_min:                  minimal bound of the step of the gaussian kernel centers over angles
-#     :param angle_width_start:               starting value of std of the gaussian kernel over angles
-#                                                 the full range of std over deconvolution stages is
-#                                                 [angle_width_start, angle_width_start/2, ..., angle_step_min/2]
-#     :param random_angle_at_each_iteration:  boolean, if True then the gaussian kernels over angles will be recomputed
-#                                                 at each iteration with a slight random angular shift
-#                                                 to avoid domain-limit artifacts. This is very time-consuming.
-#     :param stop_crit_rel:                       criterion of I(n+1)/I(n) for stopping iterations at each stage,
-#                                                 with I the Csiszar cost function
-#
-#     :return: f:             deconvolved image, such that conv(f, arf) aprroximates g, size n x n
-#     :return: g_est:         reconstructed g (result of conv(f, arf)), size n x n
-#     :return: cost_hist:     evolution of Csiszar misfit over iterations, size = total number of iterations
-#     :return: rms_hist:      evolution of rms misfit over iterations, size = total number of iterations
-#     """
-#
-#     # check inputs
-#     # assert g.shape == arf.shape
-#     # logger.info("l.96 deconv_rlc_stepwise_circles")
-#     assert g.shape[0] == len(sy)
-#     assert g.shape[1] == len(sx)
-#
-#     # normalize images
-#     # norm_arf = np.sum(np.abs(arf[:]))
-#     # norm_g = np.max(np.abs(g[:]))
-#     # arf = arf / norm_arf
-#     # g = g / norm_g
-#
-#     arf_initial = arf.copy()
-#     arf_min = np.min(arf[:])
-#     # arf_min = np.infty
-#     if arf_min < 0:
-#         const_arf_offset = - 1.01 * arf_min
-#         const_arf_offset_array = np.ones_like(arf) * const_arf_offset
-#         arf = arf_initial + const_arf_offset_array
-#
-#     # size of beamformer
-#     # logger.info("l.115 deconv_rlc_stepwise_circles")
-#     size_g = g.shape  # image
-#     if size_g[0] != size_g[1]:
-#         raise Exception('the input image should be square')
-#     else:
-#         n = size_g[0]
-#
-#     # size of ARF
-#     # logger.info("l.123 deconv_rlc_stepwise_circles")
-#     size_arf = arf.shape
-#     if size_arf[0] != size_arf[1]:
-#         raise Exception('the arf should be square')
-#     else:
-#         n_arf = size_arf[0]
-#
-#     # mask for weight computation (same size as ARF)
-#     m = np.ones((n, n))
-#
-#     # initialize output
-#     if f_start is None:
-#         f = np.ones((n, n))  # * np.sqrt(np.mean(g**2))
-#     else:
-#         f = f_start
-#
-#     if not standard_rlc:
-#         # slowness and azimuth grid
-#         ds = np.median(np.diff(sx))
-#         smax = np.min([np.max(sx), np.max(sy)])
-#         xv, yv = np.meshgrid(sx, sy)
-#         s_norm = np.sqrt(xv ** 2 + yv ** 2)
-#         s_angle = np.arctan2(yv, xv)
-#
-#         # discard non-physical values from deconvolved image(any pixel initialized at 0 will remain 0 while iterating)
-#         smax_tolerated = 1 / vmin
-#         width_muting_taper = 0.25
-#         muting_taper = 1 - slowness_muting_taper((1 - width_muting_taper) * smax_tolerated, s_norm,
-#                                                  water_level=0, taper_width=width_muting_taper)
-#         # f[s_norm > smax_tolerated] = 0
-#         # m[s_norm > smax_tolerated] = 0
-#         f *= muting_taper
-#         m *= muting_taper
-#
-#         # define kernels for stepwise uniform update of result (circles, than azimuthal portions) :
-#         # circles :
-#         s_domain_step = slowness_step_ratio_to_ds * ds
-#         s_domain_width = slowness_width_ratio_to_ds * ds
-#         s_domain_centers = np.arange(0, smax + s_domain_step, s_domain_step)
-#
-#         circle_list = []
-#         for s in s_domain_centers[:-2]:
-#             circle_i = plt.Circle((0, 0), s + s_domain_step, color='w', fill=False, linewidth=0.4)
-#             circle_list.append(circle_i)
-#
-#         s_kernels = [slowness_kernel(s_domain_center_i, s_domain_width, s_norm)[0]
-#                      for s_domain_center_i in s_domain_centers]
-#         s_ranges = [np.abs(s_norm - s_domain_center_i) <= (s_domain_step / 2)
-#                     for s_domain_center_i in s_domain_centers]
-#
-#         # azimuthal portions :
-#         angle_domain_step = angle_step_min * np.pi / 180
-#         angle_domain_width_list = []
-#         angle_width = angle_width_start * np.pi / 180
-#         while angle_width >= angle_domain_step * (1 - theta_overlap_kernel):
-#             angle_domain_width_list.append(angle_width)
-#             angle_width /= 2
-#         if angle_step_mode == 'auto':
-#             angle_domain_centers_list = [np.arange(-np.pi, np.pi, angle_domain_width_i * (1 - theta_overlap_kernel))
-#                                          for angle_domain_width_i in angle_domain_width_list]
-#             random_angle_shift = (np.random.random(size=len(angle_domain_width_list)) - 0.5) * \
-#                 angle_domain_width_list * (1 - theta_overlap_kernel)
-#         else:
-#             angle_domain_centers_list = [np.arange(-np.pi, np.pi, angle_domain_step)
-#                                          for _ in angle_domain_width_list]
-#             random_angle_shift = (np.random.random(size=len(angle_domain_width_list)) - 0.5) * \
-#                 angle_domain_step
-#
-#         angle_kernels = [[angular_kernel(angle_center, angle_width, s_angle)[0]
-#                           for angle_center in (angle_domain_centers_j + random_angle)]
-#                          for (angle_width, random_angle, angle_domain_centers_j)
-#                          in zip(angle_domain_width_list, random_angle_shift, angle_domain_centers_list)]
-#         angle_ranges = [[np.abs(angular_distance_grid(angle_center, s_angle)) <=
-#                          (np.median(np.diff(angle_domain_centers_j)) / 2)
-#                          for angle_center in (angle_domain_centers_j + random_angle)]
-#                         for (angle_width, random_angle, angle_domain_centers_j)
-#                         in zip(angle_domain_width_list, random_angle_shift, angle_domain_centers_list)]
-#
-#         # combinations :
-#         full_kernels = [[[multiply_kernels(angle_kernels[j][k], s_kernels[i])
-#                           for k in range(len(angle_domain_centers_list[j]))]
-#                          for j in range(len(angle_domain_width_list))]
-#                         for i in range(len(s_domain_centers))]
-#         full_ranges = [[[(angle_ranges[j][k] & s_ranges[i])
-#                          for k in range(len(angle_domain_centers_list[j]))]
-#                         for j in range(len(angle_domain_width_list))]
-#                        for i in range(len(s_domain_centers))]
-#
-#     g_initial = g.copy()
-#     g_min = np.min(g[:])
-#     if np.sign(g_min * arf_min) == -1:
-#         raise Exception('the minima of input ARF and beam do not have the same sign. This is very unlikely')
-#     # arf_min = np.infty
-#
-#     water_level = water_level_rms_pct * np.sqrt(np.mean(g[:] ** 2))
-#
-#     if f_sum is not None:
-#         f = (f / np.sum(f[:])) * f_sum
-#         assert np.sum(f[:]) == f_sum
-#     if arf_min < 0:
-#         const_g_offset = const_arf_offset * np.sum(f[:])
-#         if const_g_offset <= -g_min:
-#             raise Exception('arf_shift * f0 insufficient for g positivity. check implementation.')
-#         const_g_offset_array = np.ones_like(g) * const_g_offset
-#         g = g_initial + const_g_offset_array
-#
-#     f_init_val = min(0.99, 1e-3 * np.sqrt(np.mean(f[:] ** 2)))
-#
-#     # weight term
-#     m_init = m.copy()
-#     alpha = compute_arf_action(arf, m)
-#     #     w = 1. / alpha
-#     #     w[alpha < 0.1] = 0
-#
-#     # initialize cost function history
-#     cost_hist = []
-#     rms_hist = []
-#
-#     # copy of input image for cost function evaluation at each iteration
-#     g_for_cost_evol = g.copy()
-#     # if arf_min < 0:
-#     #     g_for_update = g.copy() + compute_arf_action(const_arf_offset_array, f)
-#     # else:
-#     g_for_update = g.copy()
-#
-#     # initial cost function
-#     cost_new, rms_new, g_est = update_misfits(arf, f, g_for_cost_evol, nonpositive_arf=(arf_min < 0),
-#                                               reg_coef=reg_coef)
-#
-#     rms_hist.append(rms_new)
-#     cost_hist.append(cost_new)
-#     cost_old = cost_new
-#
-#     i_iter = 0  # iteration counter
-#     cost_new = 0
-#
-#     # value if iter for illustration plot
-#     if path_save_intermediate_figures is not None:
-#         ax_list_rms_plots_per_j = []
-#         fig_list_rms_plots_per_j = []
-#         i_iter_plot = 1
-#         angle_kernel_plot = np.pi/4
-#         s_kernel_plot = 1   # s/km
-#         i_s_plot = np.min(np.where(s_domain_centers > (s_kernel_plot - s_domain_width))[0])
-#
-#     if standard_rlc:
-#         print('standard rlc')
-#         while (np.abs(cost_new / cost_old) < stop_crit_rel) & (rms_new > stop_crit_rms) & (i_iter < n_iter):
-#             cost_old = cost_hist[-1]
-#             i_iter += 1
-#             # if arf_min < 0:
-#             #     g_for_update = g + compute_arf_action(const_arf_offset_array, f)
-#             corr_term = compute_rlc_corr_term(arf, f, g_for_update, m, alpha, reg_coef=reg_coef,
-#                                               water_level=water_level_rms_pct)
-#             f = corr_term * f
-#             if lambda_herve > 0:
-#                 f_max = 1 * np.quantile(f[:], 1)
-#                 i_downweight = (f > 0) & (f < f_max)
-#                 # i_downweight = (f > 0) & (f < 0.5 * f_max)
-#                 # i_downweight = (f > 0) & (f < 1)
-#                 # f[i_downweight] = (f[i_downweight] ** 2) / (f[i_downweight] + lambda_herve)
-#                 f[i_downweight] = (f[i_downweight] ** 2) / \
-#                                   (f[i_downweight] + lambda_herve * (f_max - f[i_downweight]))
-#                 # f[f > 2] = 2
-#             cost_new, rms_new, g_est = update_misfits(arf, f, g_for_cost_evol, nonpositive_arf=(arf_min < 0),
-#                                                       reg_coef=reg_coef)
-#
-#             cost_hist.append(cost_new)
-#             rms_hist.append(rms_new)
-#
-#             if verbose:
-#                 print('it. ' + str(i_iter) + ': ' + str(cost_new / cost_old) + ', rms = ' + str(rms_new))
-#
-#     else:
-#
-#         no_stage_flag = s_stages is None
-#         if s_stages is None:
-#             s_stages = [min(s_domain_centers), max(s_domain_centers)]
-#         i_stage = -1
-#
-#         while i_stage < len(s_stages) - 1:
-#
-#             cost_hist_this_stage = [cost_hist[-1]]
-#             rms_hist_this_stage = [rms_hist[-1]]
-#
-#             s_start = min(s_domain_centers) - (0.1 * ds)
-#             s_stop = max(s_domain_centers) + (0.1 * ds)
-#
-#             if i_stage == -1:
-#                 s_start_stage = s_start
-#                 s_stop_stage = s_stop
-#             else:
-#                 s_start_stage = s_stages[-i_stage - 2] - (0.1 * ds)
-#                 s_stop_stage = s_stages[-i_stage - 1] + (0.1 * ds)
-#
-#             if verbose:
-#                 print('slowness stage ' + str(i_stage) + ': s < ' + str(s_stop_stage))
-#
-#             # f[s_norm < s_start] = 0
-#             i_s = np.where((s_domain_centers > s_start) & (s_domain_centers < s_stop))[0]
-#             i_s_inner = np.where(s_domain_centers < s_stop_stage)[0]
-#             # i_s_outer = np.where((s_domain_centers >= s_stop_stage) & (s_domain_centers <= s_stop))[0]
-#
-#             if i_stage >= 0:
-#                 f_previous_stage = f.copy()
-#                 g_est_previous_stage = g_est.copy()
-#
-#                 # if ((np.abs(cost_new/cost_old) < stop_crit_rel) & (rms_new > stop_crit_rms) & (i_iter < n_iter)):
-#                 s_kernel_mute = slowness_muting_taper(s_start_stage, s_norm, water_level=f_init_val)
-#                 f = f * s_kernel_mute
-#                 cost_new, rms_new, g_est = update_misfits(arf, f, g_for_cost_evol,
-#                                                           nonpositive_arf=(arf_min < 0),
-#                                                           reg_coef=reg_coef)
-#                 cost_hist_this_stage.append(cost_new)
-#                 rms_hist_this_stage.append(rms_new)
-#
-#             # circle correction stage
-#             if verbose:
-#                 print('stage cicle stage')
-#             while (np.abs(cost_new / cost_old) < stop_crit_rel) & (rms_new > stop_crit_rms) & (i_iter < n_iter):
-#                 cost_old = cost_hist_this_stage[-1]
-#                 i_iter += 1
-#                 # if arf_min < 0:
-#                 #     g_for_update = g + compute_arf_action(const_arf_offset_array, f)
-#                 corr_term = compute_rlc_corr_term(arf, f, g_for_update, m, alpha, reg_coef=reg_coef,
-#                                                   water_level=water_level_rms_pct)
-#                 corr_term_copy = np.ones_like(corr_term)
-#                 for i in i_s:
-#                     corr_term_copy[s_ranges[i]] = np.sum(corr_term * s_kernels[i])
-#                     # f[s_ranges[i]] = np.sum(f * s_kernels[i])
-#                 f0 = f.copy()
-#                 f = corr_term_copy * f
-#                 if path_save_intermediate_figures is not None:
-#                     if i_iter_plot == i_iter:
-#                         corr_term_copy[f == 0] = np.nan
-#                         plot_intermediate_sequence_rlc(sx, sy, f0, f, corr_term, corr_term_copy, i_iter,
-#                                                        i_slowness_stage=i_stage,
-#                                                        smax=smax,
-#                                                        circle_list=circle_list, s_kernel_plot=s_kernel_plot,
-#                                                        angle_kernel_plot=angle_kernel_plot, i_s_plot=i_s_plot,
-#                                                        s_kernels=s_kernels, full_kernels=full_kernels,
-#                                                        angle_domain_centers_list=None, j=None, angle_step_j=None,
-#                                                        circle_stage=True,
-#                                                        path_save=path_save_intermediate_figures)
-#
-#                 if lambda_herve > 0:
-#                     f_max = 1 * np.quantile(f[:], 1)
-#                     i_downweight = (f > 0) & (f < f_max)
-#                     # i_downweight = (f > 0) & (f < 0.5 * f_max)
-#                     # i_downweight = (f > 0) & (f < 1)
-#                     # f[i_downweight] = (f[i_downweight] ** 2) / (f[i_downweight] + lambda_herve)
-#                     f[i_downweight] = (f[i_downweight] ** 2) / \
-#                                       (f[i_downweight] + lambda_herve * (f_max - f[i_downweight]))
-#                     # f[f > 2] = 2
-#                 cost_new, rms_new, g_est = update_misfits(arf, f, g_for_cost_evol,
-#                                                           nonpositive_arf=(arf_min < 0),
-#                                                           reg_coef=reg_coef)
-#
-#                 cost_hist_this_stage.append(cost_new)
-#                 rms_hist_this_stage.append(rms_new)
-#
-#                 if verbose:
-#                     print('it. ' + str(i_iter) + ': ' + str(cost_new / cost_old) + ', rms = ' + str(rms_new))
-#
-#             if path_save_intermediate_figures is not None:
-#                 fig_list_rms_plots_per_j, ax_list_rms_plots_per_j = plot_end_of_stage_rlc(
-#                   sx, sy, f, i_iter,
-#                   i_stage,
-#                   rms_hist_this_stage,
-#                   fig_list_rms_plots_per_j,
-#                   ax_list_rms_plots_per_j, j=None,
-#                   circle_stage=True,
-#                   path_save=path_save_intermediate_figures
-#                  )
-#
-#             # stepwise decreasing azimuthal range stage
-#             for j in range(len(angle_domain_width_list)):
-#                 # if arf_min < 0:
-#                 #     arf = arf_initial + const_g_offset / np.sum(f)
-#                 #     print('min(arf) new = ' + str(np.min(arf[:])))
-#                 #     alpha = compute_arf_action(arf, m)
-#                 #     w = 1. / alpha
-#                 angle_step_j = np.median(np.diff(angle_domain_centers_list[j]))
-#                 angle_width = angle_domain_width_list[j]
-#                 if verbose:
-#                     print('stage delta_theta = ' + str(angle_width))
-#                 i_iter = 0  # iteration counter
-#                 cost_new = 0
-#                 while (np.abs(cost_new / cost_old) < stop_crit_rel) & (rms_new > stop_crit_rms) & (i_iter < n_iter):
-#                     cost_old = cost_hist_this_stage[-1]
-#                     i_iter += 1
-#                     # if arf_min < 0:
-#                     #     g_for_update = g + compute_arf_action(const_arf_offset_array, f)
-#                     corr_term = compute_rlc_corr_term(arf, f, g_for_update, m, alpha, reg_coef=reg_coef,
-#                                                       water_level=water_level_rms_pct)
-#                     corr_term_copy = np.ones_like(corr_term)
-#                     if random_angle_at_each_iteration:
-#                         random_angle_shift = (np.random.random(size=1) - 0.5) * angle_width
-#                     for i in i_s:
-#                         if (i in i_s_inner):
-#                             for k in range(len(angle_domain_centers_list[j])):
-#                                 if random_angle_at_each_iteration:
-#                                     angle_kernel = \
-#                                         angular_kernel(angle_domain_centers_list[j][k] + random_angle_shift,
-#                                                        angle_width,
-#                                                        s_angle)[0]
-#                                     angle_range = np.abs(
-#                                         angular_distance_grid(angle_domain_centers_list[j][k] + random_angle_shift,
-#                                                               s_angle)) \
-#                                         <= np.median(np.diff(angle_domain_centers_list[j])) / 2
-#                                     full_range = angle_range & s_ranges[i]
-#                                     full_kernel = multiply_kernels(angle_kernel, s_kernels[i])
-#                                 else:
-#                                     full_kernel = full_kernels[i][j][k]
-#                                     full_range = full_ranges[i][j][k]
-#                                 corr_term_copy[full_range] = np.sum(corr_term * full_kernel)
-#                         else:
-#                             # angle_width_default = np.pi/4
-#                             # j_default = np.argmin(np.abs(angle_width_default - np.array(angle_domain_width_list)))
-#                             # full_kernel = full_kernels[i][j_default][k]
-#                             # full_range = full_ranges[i][j_default][k]
-#                             full_kernel = s_kernels[i]
-#                             full_range = s_ranges[i]
-#                             corr_term_copy[full_range] = np.sum(corr_term * full_kernel)
-#                             # f[angle_range] = np.sum(f * full_kernel)
-#                     f0 = f.copy()
-#                     f = corr_term_copy * f
-#
-#                     if path_save_intermediate_figures is not None:
-#                         if i_iter == i_iter_plot:
-#                             corr_term_copy[f == 0] = np.nan
-#                             plot_intermediate_sequence_rlc(sx, sy, f0, f, corr_term, corr_term_copy, i_iter,
-#                                                            i_slowness_stage=i_stage,
-#                                                            smax=smax,
-#                                                            circle_list=circle_list, s_kernel_plot=s_kernel_plot,
-#                                                            angle_kernel_plot=angle_kernel_plot, i_s_plot=i_s_plot,
-#                                                            s_kernels=s_kernels, full_kernels=full_kernels,
-#                                                            angle_domain_centers_list=angle_domain_centers_list, j=j,
-#                                                            angle_step_j=angle_step_j,
-#                                                            circle_stage=False,
-#                                                            path_save=path_save_intermediate_figures)
-#
-#                     if lambda_herve > 0:
-#                         f_max = 1 * np.quantile(f[:], 1)
-#                         i_downweight = (f > 0) & (f < f_max)
-#                         # i_downweight = (f > 0) & (f < 0.5 * f_max)
-#                         # i_downweight = (f > 0) & (f < 1)
-#                         # f[i_downweight] = (f[i_downweight] ** 2) / (f[i_downweight] + lambda_herve)
-#                         f[i_downweight] = f[i_downweight] = (
-#                                                         f[i_downweight] ** 2) / \
-#                                                         (f[i_downweight] + lambda_herve * (f_max - f[i_downweight]))
-#                         # f[f > 2] = 2
-#                     cost_new, rms_new, g_est = update_misfits(arf, f, g_for_cost_evol,
-#                                                               nonpositive_arf=(arf_min < 0),
-#                                                               reg_coef=reg_coef)
-#
-#                     cost_hist_this_stage.append(cost_new)
-#                     rms_hist_this_stage.append(rms_new)
-#                     if verbose:
-#                         print('it. ' + str(i_iter) + ': ' + str(cost_new / cost_old) + ', rms = ' + str(rms_new))
-#                 if path_save_intermediate_figures is not None:
-#                     fig_list_rms_plots_per_j, ax_list_rms_plots_per_j = plot_end_of_stage_rlc(sx, sy, f, i_iter,
-#                                                                                               i_stage,
-#                                                                                               rms_hist_this_stage,
-#                                                                                               fig_list_rms_plots_per_j,
-#                                                                                               ax_list_rms_plots_per_j,
-#                                                                                               j=j,
-#                                                                                               circle_stage=False,
-#                                                                                               path_save=path_save_intermediate_figures)
-#
-#             if path_save_intermediate_figures is not None:
-#                 plots_rms_rescale_and_save(fig_list_rms_plots_per_j, ax_list_rms_plots_per_j, i_stage,
-#                                            len(rms_hist_this_stage),
-#                                            path_save=path_save_intermediate_figures)
-#
-#             if i_stage == -1:
-#                 cost_hist = cost_hist_this_stage
-#                 rms_hist = rms_hist_this_stage
-#             else:
-#                 if (cost_hist[-1] / cost_hist_this_stage[-1]) > stop_crit_rel:
-#                     cost_hist = [*cost_hist, *cost_hist_this_stage]
-#                     rms_hist = [*rms_hist, *rms_hist_this_stage]
-#                 else:
-#                     f = f_previous_stage
-#                     g_est = g_est_previous_stage
-#             # print('i_stage ' + str(i_stage))
-#             #             print(rms_hist)
-#             if no_stage_flag:
-#                 i_stage = np.infty
-#             else:
-#                 i_stage += 1
-#
-#     cost_hist = np.array(cost_hist)
-#     rms_hist = np.array(rms_hist)
-#
-#     # return f * norm_g / norm_arf, g_est * norm_g, cost_hist, rms_hist
-#     return f, g_est, cost_hist, rms_hist
-
-
-def get_norm_factor_for_kernel(kernel_j, theta_grid):
-    ntheta_kernel = kernel_j.shape[0]
-    npadding_periodic_conv = int(np.ceil(ntheta_kernel / 2))
-    unit_matrix = np.ones(theta_grid.T.shape)
-    padding_top = unit_matrix[-npadding_periodic_conv:, :]
-    padding_bottom = unit_matrix[:npadding_periodic_conv, :]
-    unit_matrix_padded = np.vstack((padding_top, unit_matrix, padding_bottom))
-    norm_factor_padded = convolve(unit_matrix_padded, kernel_j, mode='same')
-    norm_factor_padded = norm_factor_padded[npadding_periodic_conv:-npadding_periodic_conv, :]
-    return norm_factor_padded
-
-
-# all necessary functions for deconvolution by RLC
-def find_single_sources_rms(g, arf, threshold_significant):
-    g_norm = g.copy() / max(g.flatten())
-    bool_significant = (g_norm > threshold_significant * max(g_norm.flatten()))
-    g_thresh = 0 * g_norm
-    g_thresh[bool_significant] = 1
-    rms_matrix_norm = 0 * g.copy()
-    rms_matrix_thresh = 0 * g.copy()
-    for i in range(g.shape[0]):
-        for j in range(g.shape[1]):
-            test_base = 0 * g.copy()
-            test_base[i, j] = 1
-            test_g = convolve(test_base, arf, mode='same')
-            bool_significant_test = (test_g > threshold_significant * max(test_g.flatten()))
-            test_g_thresh = 0 * test_g
-            test_g_thresh[bool_significant_test] = 1
-            test_g_norm = test_g / max(test_g.flatten())
-            square_diff_thresh = (test_g_thresh - g_thresh) ** 2
-            square_diff_norm = (test_g_norm - g_norm) ** 2
-            rms_matrix_thresh[i, j] = np.sqrt(np.sum(square_diff_thresh[bool_significant].flatten()) / np.sum(
-                (g_thresh[bool_significant] ** 2).flatten()))
-            rms_matrix_norm[i, j] = np.sqrt(np.sum(square_diff_norm.flatten()) / np.sum((g_norm ** 2).flatten()))
-            # rms_matrix_norm[i,j] = np.sqrt(np.sum(square_diff_norm[bool_significant].flatten()) / np.sum((g_norm[bool_significant]**2).flatten()))
-            # if rms_norm < threshold_rms:
-            #     i_sources.append(i)
-            #     j_sources.append(j)
-    return rms_matrix_thresh, rms_matrix_norm
-
-
-def generate_single_source_list(df_minima, ns):
-    f_list = []
-    f_initial = np.zeros((ns, ns))
-    for (j, df_source) in df_minima.iterrows():
-        f_test = f_initial.copy()
-        f_test[int(df_source['i_y']), int(df_source['i_x'])] = 1
-        f_list.append(f_test)
-
-    return f_list
-
-
-def optimize_relative_weights_v1(g, arf, f_list):
-    weight_list = np.logspace(-1, 1, 21)
-    weight_list = np.hstack((0., weight_list))
-    n_sources = len(f_list)
-
-    combinations = itertools.combinations(weight_list, r=n_sources - 1)
-    combination_list = [combi for combi in combinations]
-    rms_list = np.nan * np.zeros(len(combination_list))
-    factor_list = np.nan * np.zeros(len(combination_list))
-    for (i, weights_i) in enumerate(combination_list):
-        f_test = np.zeros(g.shape)
-        for (j, f_j) in enumerate(f_list):
-            if j == 0:
-                f_test += f_j
-            else:
-                f_test += weights_i[j - 1] * f_j
-        g_test = convolve(f_test, arf, mode='same')
-        factor = max(g.flatten()) / max(g_test.flatten())
-        g_test_scaled = factor * g_test.copy()
-        factor_list[i] = factor
-        rms_list[i] = np.sqrt(np.sum((g_test_scaled - g) ** 2) / np.sum(g ** 2))
-    i_best = np.argmin(rms_list)
-    weight_list_best = factor_list[i_best] * np.hstack((np.array([1]), np.array(combination_list[i_best])))
-
-    return weight_list_best
-
-
-def slowness_kernel(s_domain_center, s_domain_width, s_norm):
-    s_kernel = np.exp(-(s_norm - s_domain_center) ** 2 / s_domain_width ** 2)
-    s_kernel = s_kernel / np.sum(s_kernel[:])
-    d_s_angle_kernel = -2 * ((s_norm - s_domain_center) / s_domain_width) * (1 / s_domain_width) * s_kernel
-    d2_s_angle_kernel = (-2 + 4 * ((s_norm - s_domain_center) / s_domain_width) ** 2) * (
-            1 / s_domain_width ** 2) * s_kernel
-    return s_kernel, d_s_angle_kernel, d2_s_angle_kernel
-
-
-def angular_kernel(angle_center, angle_width, s_angle, taper_type='gauss', sin_taper_width=0.1):
-    angle_distance_grid = angular_distance_grid(angle_center, s_angle)
-    if taper_type == 'gauss':
-        # https://stackoverflow.com/questions/1878907/how-can-i-find-the-difference-between-two-angles
-        angle_kernel = np.exp(-(angle_distance_grid ** 2) / (angle_width ** 2))
-        d_theta_angle_kernel = -2 * (angle_distance_grid / angle_width) * (1 / angle_width) * angle_kernel
-        d2_theta_angle_kernel = (-2 + 4 * (angle_distance_grid / angle_width) ** 2) * (
-                1 / angle_width ** 2) * angle_kernel
-    elif taper_type == 'boxcar':
-        angle_kernel = np.zeros_like(s_angle)
-        angle_kernel[np.abs(angle_distance_grid) < angle_width / 2] = 1
-        d_theta_angle_kernel = np.nan * angle_kernel
-        d2_theta_angle_kernel = np.nan * angle_kernel
-    elif taper_type == 'sine':
-        angle_half_width = angle_width / 2
-        width_transition = sin_taper_width * angle_half_width
-        coef_in_sin = np.pi / 2 / width_transition
-        angle_kernel = np.zeros_like(s_angle)
-        range_ones = np.abs(angle_distance_grid) <= (angle_half_width - width_transition)
-        range_transition_1 = (angle_distance_grid >= -angle_half_width) & \
-                             (angle_distance_grid <= -angle_half_width + width_transition)
-        range_transition_2 = (angle_distance_grid <= angle_half_width) & \
-                             (angle_distance_grid >= angle_half_width - width_transition)
-        angle_kernel[range_ones] = 1
-        angle_kernel[range_transition_1] = \
-            np.sin(coef_in_sin * (angle_distance_grid[range_transition_1] + angle_half_width)) ** 2
-        angle_kernel[range_transition_2] = \
-            np.sin(coef_in_sin * (angle_half_width - angle_distance_grid[range_transition_2])) ** 2
-        d_theta_angle_kernel = np.nan * angle_kernel
-        d2_theta_angle_kernel = np.nan * angle_kernel
-
-    angle_kernel = angle_kernel / np.sum(angle_kernel[:])
-    d_theta_angle_kernel = d_theta_angle_kernel / np.sum(angle_kernel[:])
-    d2_theta_angle_kernel = d2_theta_angle_kernel / np.sum(angle_kernel[:])
-    return angle_kernel, d_theta_angle_kernel, d2_theta_angle_kernel
-
-
-def detect_boundaries(img):
-    # from https://towardsdatascience.com/edge-detection-in-python-a3c263a13e03
-    # define the vertical filter
-    vertical_filter = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]
-
-    # define the horizontal filter
-    horizontal_filter = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]
-
-    # read in the pinwheel image
-    # img = plt.imread('pinwheel.jpg')
-
-    # get the dimensions of the image
-    n, m = img.shape
-
-    # initialize the edges image
-    edges_img = img.copy()
-
-    # loop over all pixels in the image
-    for row in range(3, n - 2):
-        for col in range(3, m - 2):
-            # create little local 3x3 box
-            local_pixels = img[row - 1:row + 2, col - 1:col + 2]
-
-            # apply the vertical filter
-            vertical_transformed_pixels = vertical_filter * local_pixels
-            # remap the vertical score
-            vertical_score = vertical_transformed_pixels.sum() / 4
-
-            # apply the horizontal filter
-            horizontal_transformed_pixels = horizontal_filter * local_pixels
-            # remap the horizontal score
-            horizontal_score = horizontal_transformed_pixels.sum() / 4
-
-            # combine the horizontal and vertical scores into a total edge score
-            edge_score = (vertical_score ** 2 + horizontal_score ** 2) ** .5
-
-            # insert this edge score into the edges image
-            edges_img[row, col] = edge_score * 3
-
-    # remap the values in the 0-1 range in case they went out of bounds
-    edges_img = edges_img / edges_img.max()
-
-    return edges_img
-
-
-def angular_distance_grid(angle_center, s_angle):
-    angle_distance_grid = angle_center - s_angle
-    angle_distance_grid = (angle_distance_grid + np.pi) % (2 * np.pi) - np.pi
-    return angle_distance_grid
-
-
-def multiply_kernels(kernel_1, kernel_2):
-    kernel_prod = kernel_1 * kernel_2
-    kernel_prod = kernel_prod / np.sum(kernel_prod[:])
-    return kernel_prod
-
-
-def generate_regular_rectangular_array(step_x, step_y, len_x, len_y, rotation_deg, rotation_origin=[0, 0]):
-    "return x_st, y_st"
-    rotation_rad = - rotation_deg * np.pi / 180
-    x_axis = np.arange(0, len_x + step_x, step_x)
-    y_axis = np.arange(0, len_y + step_y, step_y)
-    x_mesh, y_mesh = np.meshgrid(x_axis, y_axis)
-    x_mesh_shift = x_mesh - rotation_origin[0]
-    y_mesh_shift = y_mesh - rotation_origin[1]
-
-    x_mesh_rot = np.cos(rotation_rad) * x_mesh_shift + np.sin(rotation_rad) * y_mesh_shift + rotation_origin[0]
-    y_mesh_rot = - np.sin(rotation_rad) * x_mesh_shift + np.cos(rotation_rad) * y_mesh_shift + rotation_origin[1]
-    x_st = x_mesh_rot.flatten(order='F')
-    y_st = y_mesh_rot.flatten(order='F')
-    return x_st, y_st
-
-
-def generate_regular_circular_array(step_x, step_y, radius):
-    "return x_st, y_st"
-    len_x = 2 * radius
-    len_y = 2 * radius
-    x_st, y_st = generate_regular_rectangular_array(step_x, step_y, len_x, len_y, rotation_deg=0,
-                                                    rotation_origin=[0, 0])
-    x_mean = np.mean(x_st)
-    y_mean = np.mean(y_st)
-    r_st = np.sqrt((x_st - x_mean) ** 2 + (y_st - y_mean) ** 2)
-    bool_cond_circular = (r_st <= radius)
-    x_st = x_st[bool_cond_circular]
-    y_st = y_st[bool_cond_circular]
-    return x_st, y_st
-
-
-def generate_syntetic_arf(x_st, y_st, smax_arf, ds, freq):
-    sx_arf, sy_arf, sx_grid_arf, sy_grid_arf, _, _ = generate_slowness_grid(smax_arf, ds)
-    ns_y, ns_x = sx_grid_arf.shape
-    arf = 0 * sx_grid_arf
-    arf = arf.astype('complex128')
-
-    if ns_y * ns_x > len(x_st):
-        for (x, y) in zip(x_st, y_st):
-            arf += np.exp(-1j * 2 * np.pi * freq * (x * sx_grid_arf + y * sy_grid_arf))
-    else:
-        for (i_y, s_y) in enumerate(sy_arf):
-            arf_y_term = y_st * s_y
-            for (i_x, s_x) in enumerate(sx_arf):
-                arf_x_term = x_st * s_x
-                arf[i_y, i_x] = np.sum(np.exp(-1j * 2 * np.pi * freq * (arf_x_term + arf_y_term)))
-
-    arf = np.abs(arf) ** 2
-    arf = arf / np.max(arf.flatten())
-
-    return arf, sx_arf, sy_arf, sx_grid_arf, sy_grid_arf
-
-
-def generate_slowness_grid(smax, ds):
-    sx = np.arange(-smax, smax + ds, ds)
-    sy = np.arange(-smax, smax + ds, ds)
-    sx_grid, sy_grid = np.meshgrid(sx, sy)
-    s_norm = np.sqrt(sx_grid ** 2 + sy_grid ** 2)
-    s_angle = np.arctan2(sy_grid, sx_grid)
-    return sx, sy, sx_grid, sy_grid, s_angle, s_norm
-
-
-def generate_slowness_grid_polar(smin, smax, ds, dtheta):
-    theta = np.arange(0, 2 * np.pi, dtheta)
-    s = np.arange(smin, smax + ds, ds)
-    theta_grid, s_grid = np.meshgrid(theta, s)
-    sx_polar = s_grid * np.cos(theta_grid)
-    sy_polar = s_grid * np.sin(theta_grid)
-    return theta, s, theta_grid, s_grid, sx_polar, sy_polar
-
-
-def generate_synthetic_distribution(amplitude_list, s_center_list, s_width_list, theta_center_list_deg,
-                                    theta_width_list_deg,
-                                    s_angle, s_norm):
-    "generate a wavefield scenario in sx, sy plane"
-    beam = 0 * s_angle
-    for i in range(len(amplitude_list)):
-        beam_i = amplitude_list[i] * generate_elemetary_wave(s_center_list[i], s_width_list[i],
-                                                             theta_center_list_deg[i], theta_width_list_deg[i],
-                                                             s_angle, s_norm)
-        beam += beam_i
-    return beam
-
-
-def generate_synthetic_beam(energy_true, arf):
-    "convolve energy by arf"
-    # beam_synth = np.abs(convolve(energy_true, arf, mode='same'))
-    beam_synth = convolve(energy_true, arf, mode='same')
-    return beam_synth
-
-
-def generate_elemetary_wave(s_center, s_width, theta_center_deg, theta_width_deg, s_angle, s_norm):
-    "return a wavefield scenario in sx, sy plane"
-    theta_center_rad = theta_center_deg * np.pi / 180
-    theta_width_rad = theta_width_deg * np.pi / 180
-    beam = 0 * s_norm
-    i_range = (np.abs(s_norm - s_center) <= s_width) & \
-              (np.abs(angular_distance_grid(theta_center_rad, s_angle)) <= theta_width_rad)
-    beam[i_range] = 1
-    return beam
-
-
-def costfun_reg(p, d_matrix, b_vector, reg_coef, reg_matrix, power=2):
-    if power == 1:
-        reg_term = np.sum(np.abs(np.matmul(reg_matrix, p)))
-    else:
-        reg_term = np.sum(np.matmul(reg_matrix, p) ** power)
-    cost = 0.5 * np.sum((np.matmul(d_matrix, p) - b_vector) ** 2) + (reg_coef * reg_term)
-    return cost
-
-
-def grad_costfun_reg(p, d_matrix, b_vector, reg_coef, reg_matrix, power=2):
-    if power < 1:
-        raise Exception('for now lp norm is unstable (division by small values in the denominator')
-    if power == 1:
-        reg_term = power * np.matmul(reg_matrix.T, np.sign(np.matmul(reg_matrix, p)))
-    else:
-        reg_term = power * np.matmul(reg_matrix.T, np.matmul(reg_matrix, p) ** (power - 1))
-    grad_cost = np.matmul(d_matrix.T, (np.matmul(d_matrix, p) - b_vector)) + (reg_coef * reg_term)
-    return grad_cost
-
-
-def csiszar_i_divergence(g_true, g_est, thresh=0.001, reg_coef=0, f=None):
-    i_mat = g_true * np.log(g_true / g_est) + (g_est - g_true)
-    i_mat[g_est < np.quantile(g_est[:], thresh)] = 0
-    i_mat[np.isnan(i_mat)] = 0
-    i_sum = np.sum(i_mat[:])
-    if reg_coef > 0:
-        i_sum += reg_coef * np.sum(f[:] ** 2)
-    return i_sum
-
-
-def compute_rlc_corr_term(arf, f, g, m, alpha, reg_coef=0, water_level=0, alpha_cut=0.1):
-    w = 1. / (alpha + reg_coef * f)
-    w[alpha < 0.1] = 0
-    conv_denum = compute_arf_action(arf, f)
-    # conv_denum = convolve(f, arf, mode='same')
-    # conv_denum = np.fft.ifftshift(np.real(np.fft.ifft2(np.fft.fft2(arf) * np.fft.fft2(f))))   # convolution of P with O in the denum (Gal et al. 2016 eq 9)
-    fract = g / (conv_denum + water_level)
-    conv_full = compute_arf_action(arf, m * fract, type='corr')
-    # conv_full = convolve(m * fract, arf, mode='same')
-    # conv_full = np.fft.ifftshift(np.real(np.fft.ifft2(np.fft.fft2(arf) * np.fft.fft2(fract))))   # convolution in the num (Gal et al. 2016 eq 9)
-    corr_term = w * conv_full
-    # corr_term[corr_term <= 0] = 1
-    return corr_term
-
-
-def compute_arf_action(arf_in, x_in, type='conv'):
-    if type == 'conv':
-        y_out = convolve(x_in, arf_in, mode='same')
-    elif type == 'corr':
-        y_out = correlate(x_in, arf_in, mode='same')
-    return y_out
-
-
-def slowness_muting_taper(s_max, s_norm, water_level, taper_width=0.5):
-    range_ones = (s_norm > (1 + taper_width) * s_max)
-    range_transition = (s_norm >= s_max) & (s_norm <= (1 + taper_width) * s_max)
-    transition_width = taper_width * s_max
-    coef_in_sine = np.pi / 2 / transition_width
-    s_kernel_mute = np.zeros_like(s_norm) + water_level
-    s_kernel_mute[range_transition] = (water_level * (
-            1 - np.sin(coef_in_sine * (s_norm[range_transition] - s_max)) ** 2) +
-                                       np.sin(coef_in_sine * (s_norm[range_transition] - s_max)) ** 2)
-    s_kernel_mute[range_ones] = 1
-    return s_kernel_mute
-
-
-def update_misfits(arf_initial, f, g_for_cost_evol, nonpositive_arf=False, reg_coef=0):
-    g_est = compute_arf_action(arf_initial, f)
-    if nonpositive_arf:
-        g_shift = min(0, min(np.min(g_for_cost_evol), np.min(g_est)))
-    else:
-        g_shift = 0
-    cost_new = csiszar_i_divergence(g_for_cost_evol - (1.01 * g_shift), g_est - (1.01 * g_shift),
-                                    f=f, reg_coef=reg_coef)
-    rms_new = np.sum((g_est[:] - g_for_cost_evol[:]) ** 2 / np.sum(g_for_cost_evol[:] ** 2))
-    return cost_new, rms_new, g_est
-
-
-# final plot function
-def plot_results(beam, beam_deconv, beam_synth, beam_est, sx_beam, sy_beam, sx_arf, sy_arf, arf, rms_hist):
-    fig, ax_list = plt.subplots(3, 2, figsize=(10, 10 * 3 / 2))
-
-    vmin_beam = min(np.min(beam[:]), np.min(beam_deconv[:]))
-    vmax_beam = max(np.max(beam[:]), np.max(beam_deconv[:]))
-    h = ax_list[0, 0].pcolormesh(sx_beam, sy_beam, beam,
-                                 vmin=vmin_beam,
-                                 vmax=vmax_beam)
-    ax_list[0, 0].set_title('Input power')
-    plt.colorbar(h, ax=ax_list[0, 0])
-    ax_list[0, 0].set_aspect(1.)
-
-    h = ax_list[0, 1].pcolormesh(sx_beam, sy_beam, beam_deconv,
-                                 vmin=vmin_beam,
-                                 vmax=vmax_beam)
-    ax_list[0, 1].set_title('Deconv. result')
-    plt.colorbar(h, ax=ax_list[0, 1])
-    ax_list[0, 1].set_aspect(1.)
-
-    vmin_beam_reconst = min(np.min(beam_synth[:]), np.min(beam_est[:]))
-    vmax_beam_reconst = max(np.max(beam_synth[:]), np.max(beam_est[:]))
-
-    h = ax_list[1, 0].pcolormesh(sx_beam, sy_beam, beam_synth,
-                                 vmin=vmin_beam_reconst,
-                                 vmax=vmax_beam_reconst)
-    ax_list[1, 0].set_title('Synthetic beam')
-    plt.colorbar(h, ax=ax_list[1, 0])
-    ax_list[1, 0].set_aspect(1.)
-
-    h = ax_list[1, 1].pcolormesh(sx_beam, sy_beam, beam_est,
-                                 vmin=vmin_beam_reconst,
-                                 vmax=vmax_beam_reconst)
-    ax_list[1, 1].set_title('Reconst. beam')
-    plt.colorbar(h, ax=ax_list[1, 1])
-    ax_list[1, 1].set_aspect(1.)
-
-    h = ax_list[2, 0].pcolormesh(sx_arf, sy_arf, arf)
-    ax_list[2, 0].set_title('real(Full ARF)')
-    plt.colorbar(h, ax=ax_list[2, 0])
-    ax_list[2, 0].set_aspect(1.)
-
-    h = ax_list[2, 1].semilogy(rms_hist)
-    ax_list[2, 1].set_title('RMS error evol.')
-    ax_list[2, 1].set_xlabel('stages')
-    ax_list[2, 1].set_ylim(1e-2, 1)
-    ax_list[2, 1].grid(True)
-
-
-def plot_beam_column(vmin_beam, vmax_beam, vmin_beam_reconst, vmax_beam_reconst,
-                     beam_deconv, beam_est, sx_beam, sy_beam, rms_hist,
-                     col_num, col_title,
-                     fig=None, ax_list=None, rms_plot_bounds=[1e-2, 1], str_letter=''):
-    if (fig is None) | (ax_list is None):
-        fig, ax_list = plt.subplots(3, 2, figsize=(10, 10 * 3 / 2))
-        col_num = 1
-
-    if len(str_letter) > 1:
-        postfix = str_letter[1:]
-    else:
-        postfix = ''
-
-    smax = np.round(np.max(sx_beam[:]))
-
-    h = ax_list[0, col_num].pcolormesh(sx_beam, sy_beam, beam_deconv,
-                                       vmin=vmin_beam,
-                                       vmax=vmax_beam)
-    if len(str_letter) > 0:
-        ax_list[0, col_num].set_title(chr(ord(str_letter[0]) + 0) + postfix + 'Deconv. ' + col_title)
-    else:
-        ax_list[0, col_num].set_title('Deconv. ' + col_title)
-    plt.colorbar(h, ax=ax_list[0, col_num])
-    ax_list[0, col_num].set_aspect(1.)
-    # ax_list[0, col_num].set_xlabel('sx (s/km)')
-    # ax_list[0, col_num].set_ylabel('sy (s/km)')
-    ax_list[0, col_num].set_xticks(np.arange(-smax, 1.001 * smax))
-    ax_list[0, col_num].set_yticks(np.arange(-smax, 1.001 * smax))
-
-    h = ax_list[1, col_num].pcolormesh(sx_beam, sy_beam, beam_est,
-                                       vmin=vmin_beam_reconst,
-                                       vmax=vmax_beam_reconst)
-    if len(str_letter) > 0:
-        ax_list[1, col_num].set_title(chr(ord(str_letter[0]) + 1) + postfix + 'Reconst. beam \n')
-    else:
-        ax_list[1, col_num].set_title('Reconst. beam \n')
-    plt.colorbar(h, ax=ax_list[1, col_num])
-    ax_list[1, col_num].set_aspect(1.)
-    ax_list[1, col_num].set_xlabel('sx (s/km)')
-    # ax_list[0, col_num].set_ylabel('sy (s/km)')
-    ax_list[1, col_num].set_xticks(np.arange(-smax, 1.001 * smax))
-    ax_list[1, col_num].set_yticks(np.arange(-smax, 1.001 * smax))
-
-    if len(rms_hist) > 1:
-        h = ax_list[2, col_num].semilogy(rms_hist)
-    else:
-        h = ax_list[2, col_num].semilogy(rms_hist, marker='o')
-    if len(str_letter) > 0:
-        ax_list[2, col_num].set_title(chr(ord(str_letter[0]) + 2) + postfix + 'RMS error evol.')
-    else:
-        ax_list[2, col_num].set_title('RMS error evol.')
-    ax_list[2, col_num].set_xlabel('stages or iterations')
-    ax_list[2, col_num].set_ylim(rms_plot_bounds)
-    ax_list[2, col_num].grid(True)
-
-    return fig, ax_list
-
-
-def plot_beam_column_4_lines(vmin_beam, vmax_beam, vmin_beam_reconst, vmax_beam_reconst,
-                             beam_deconv, beam_est, beam_input, sx_beam, sy_beam, rms_hist,
-                             col_num, col_title,
-                             fig=None, ax_list=None, rms_plot_bounds=[1e-2, 1], str_letter=''):
-    if (fig is None) | (ax_list is None):
-        fig, ax_list = plt.subplots(3, 2, figsize=(10, 10 * 3 / 2))
-        col_num = 1
-
-    if len(str_letter) > 1:
-        postfix = str_letter[1:]
-    else:
-        postfix = ''
-
-    smax = np.round(np.max(sx_beam[:]))
-
-    h = ax_list[0, col_num].pcolormesh(sx_beam, sy_beam, beam_deconv,
-                                       vmin=vmin_beam,
-                                       vmax=vmax_beam)
-    if len(str_letter) > 0:
-        ax_list[0, col_num].set_title(chr(ord(str_letter[0]) + 0) + postfix + 'Deconv. ' + col_title)
-    else:
-        ax_list[0, col_num].set_title('Deconv. ' + col_title)
-    plt.colorbar(h, ax=ax_list[0, col_num])
-    ax_list[0, col_num].set_aspect(1.)
-    if col_num == 0:
-        # ax_list[0, col_num].set_xlabel('sx (s/km)')
-        ax_list[0, col_num].set_ylabel('sy (s/km)')
-    ax_list[0, col_num].set_xticks(np.arange(-smax, 1.001 * smax))
-    ax_list[0, col_num].set_yticks(np.arange(-smax, 1.001 * smax))
-
-    h = ax_list[1, col_num].pcolormesh(sx_beam, sy_beam, beam_est,
-                                       vmin=vmin_beam_reconst,
-                                       vmax=vmax_beam_reconst)
-    if len(str_letter) > 0:
-        ax_list[1, col_num].set_title(chr(ord(str_letter[0]) + 1) + postfix + 'Reconst. beam \n')
-    else:
-        ax_list[1, col_num].set_title('Reconst. beam \n')
-    plt.colorbar(h, ax=ax_list[1, col_num])
-    ax_list[1, col_num].set_aspect(1.)
-    if col_num == 0:
-        # ax_list[1, col_num].set_xlabel('sx (s/km)')
-        ax_list[1, col_num].set_ylabel('sy (s/km)')
-    ax_list[1, col_num].set_xticks(np.arange(-smax, 1.001 * smax))
-    ax_list[1, col_num].set_yticks(np.arange(-smax, 1.001 * smax))
-
-    h = ax_list[2, col_num].pcolormesh(sx_beam, sy_beam, beam_input,
-                                       vmin=vmin_beam_reconst,
-                                       vmax=vmax_beam_reconst)
-    if len(str_letter) > 0:
-        ax_list[2, col_num].set_title(chr(ord(str_letter[0]) + 2) + postfix + 'Input. beam \n')
-    else:
-        ax_list[2, col_num].set_title('Input. beam \n')
-    plt.colorbar(h, ax=ax_list[2, col_num])
-    ax_list[2, col_num].set_aspect(1.)
-    ax_list[2, col_num].set_xlabel('sx (s/km)')
-    if col_num == 0:
-        ax_list[2, col_num].set_ylabel('sy (s/km)')
-    ax_list[2, col_num].set_xticks(np.arange(-smax, 1.001 * smax))
-    ax_list[2, col_num].set_yticks(np.arange(-smax, 1.001 * smax))
-
-    if len(rms_hist) > 1:
-        h = ax_list[3, col_num].semilogy(rms_hist)
-    else:
-        h = ax_list[3, col_num].semilogy(rms_hist, marker='o')
-    if len(str_letter) > 0:
-        ax_list[3, col_num].set_title(chr(ord(str_letter[0]) + 3) + postfix + 'RMS error evol.')
-    else:
-        ax_list[3, col_num].set_title('RMS error evol.')
-    ax_list[3, col_num].set_xlabel('iterations')
-    ax_list[3, col_num].set_ylim(rms_plot_bounds)
-    ax_list[3, col_num].grid(True)
-
-    return fig, ax_list
-
-
-# final plot function
-def plot_arf_column(vmin_beam, vmax_beam, vmin_beam_reconst, vmax_beam_reconst,
-                    beam, beam_synth, sx_beam, sy_beam, sx_arf, sy_arf, arf, col_num=0,
-                    str_beam='Synthetic beam', fig=None, ax_list=None, str_letter=''):
-    if (fig is None) | (ax_list is None):
-        fig, ax_list = plt.subplots(3, 2, figsize=(10, 10 * 3 / 2))
-        col_num = 0
-
-    smax_beam = np.round(np.max(sx_beam[:]))
-    smax_arf = np.round(np.max(sx_arf[:]))
-
-    h = ax_list[0, col_num].pcolormesh(sx_beam, sy_beam, beam,
-                                       vmin=vmin_beam,
-                                       vmax=vmax_beam)
-    if len(str_letter) > 1:
-        postfix = str_letter[1:]
-    else:
-        postfix = ''
-    if len(str_letter) > 0:
-        ax_list[0, col_num].set_title(chr(ord(str_letter[0]) + 0) + postfix + 'Input power')
-    else:
-        ax_list[0, col_num].set_title('Input power')
-    plt.colorbar(h, ax=ax_list[0, col_num])
-    ax_list[0, col_num].set_aspect(1.)
-    # ax_list[0, col_num].set_xlabel('sx (s/km)')
-    ax_list[0, col_num].set_ylabel('sy (s/km)')
-    ax_list[0, col_num].set_xticks(np.arange(-smax_beam, 1.001 * smax_beam))
-    ax_list[0, col_num].set_yticks(np.arange(-smax_beam, 1.001 * smax_beam))
-
-    h = ax_list[1, col_num].pcolormesh(sx_beam, sy_beam, beam_synth,
-                                       vmin=vmin_beam_reconst,
-                                       vmax=vmax_beam_reconst)
-    if len(str_letter) > 0:
-        ax_list[1, col_num].set_title(chr(ord(str_letter[0]) + 1) + postfix + str_beam)
-    else:
-        ax_list[1, col_num].set_title(str_beam)
-    plt.colorbar(h, ax=ax_list[1, col_num])
-    ax_list[1, col_num].set_aspect(1.)
-    # ax_list[1, col_num].set_xlabel('sx (s/km)')
-    ax_list[1, col_num].set_ylabel('sy (s/km)')
-    ax_list[1, col_num].set_xticks(np.arange(-smax_beam, 1.001 * smax_beam))
-    ax_list[1, col_num].set_yticks(np.arange(-smax_beam, 1.001 * smax_beam))
-
-    h = ax_list[2, col_num].pcolormesh(sx_arf, sy_arf, arf)
-    if len(str_letter) > 0:
-        ax_list[2, col_num].set_title(chr(ord(str_letter[0]) + 2) + postfix + 'Full ARF')
-    else:
-        ax_list[2, col_num].set_title('Full ARF')
-    plt.colorbar(h, ax=ax_list[2, col_num])
-    ax_list[2, col_num].set_aspect(1.)
-    ax_list[2, col_num].set_aspect(1.)
-    ax_list[2, col_num].set_xlabel('sx (s/km)')
-    ax_list[2, col_num].set_ylabel('sy (s/km)')
-    ax_list[2, col_num].set_xticks(np.arange(-smax_arf, 1.001 * smax_arf, 2.))
-    ax_list[2, col_num].set_yticks(np.arange(-smax_arf, 1.001 * smax_arf, 2.))
-
-    return fig, ax_list
-
-
-def plot_end_of_stage_rlc(sx, sy, f, i_iter, i_slowness_stage, rms_hist_this_stage, fig_list_rms_plots_per_j,
-                          ax_list_rms_plots_per_j,
-                          j=None, circle_stage=False, path_save=None):
-    if circle_stage:
-        str_stage = 'slowness stage ' + str(i_slowness_stage) + '\n END of azim. stage 0 (circles)'
-        str_stage_filename = 's_stage' + str(i_slowness_stage) + '_endof_stage0'
-    else:
-        str_stage = 'slowness stage ' + str(i_slowness_stage) + '\n END of azim. stage ' + str(j + 1)
-        str_stage_filename = 's_stage' + str(i_slowness_stage) + '_endof_stage' + str(j + 1)
-
-    fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-    h_plot = ax.pcolormesh(sx, sy, f)
-    ax.set_aspect(1.)
-    ax.set_xlabel('sx (s/km)')
-    ax.set_ylabel('sy (s/km)')
-    ax.set_xticks(np.arange(-2, 2.1))
-    ax.set_yticks(np.arange(-2, 2.1))
-    ax.grid('on')
-    plt.colorbar(h_plot, ax=ax)
-    ax.set_title('solution f \n iteration ' + str(i_iter) + '\n' + str_stage)
-    if path_save is not None:
-        str_file = 'sol_f_' + str_stage_filename + 'iter_' + str(i_iter) + '.png'
-        path_save_file = Path(path_save).joinpath(str_file)
-        plt.savefig(path_save_file)
-        plt.close(fig)
-
-    fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-    ax.semilogy(rms_hist_this_stage)
-    ax.set_xlabel('iterations')
-    ax.set_ylabel('relative RMS')
-    ax.grid(True)
-    ax.set_ylim([1e-3, 1])
-    ax.set_title('RMS error evol. \n iteration ' + str(i_iter) + '\n' + str_stage)
-    ax_list_rms_plots_per_j.append(ax)
-    fig_list_rms_plots_per_j.append(fig)
-    return fig_list_rms_plots_per_j, ax_list_rms_plots_per_j
-
-
-def plots_rms_rescale_and_save(fig_list_rms_plots_per_j, ax_list_rms_plots_per_j, i_slowness_stage, n_iter_tot,
-                               path_save=None):
-    for i, (ax, fig) in enumerate(zip(ax_list_rms_plots_per_j, fig_list_rms_plots_per_j)):
-        ax.set_xlim(0, n_iter_tot)
-        if path_save is not None:
-            str_file = 'rms_evol_s_stage' + str(i_slowness_stage) + \
-                       '_stage' + str(i) + '.png'
-            path_save_file = Path(path_save).joinpath(str_file)
-            fig.savefig(path_save_file)
-    for fig in fig_list_rms_plots_per_j:
-        plt.close(fig)
-
-
-def plot_intermediate_sequence_rlc(sx, sy, f0, f, corr_term, corr_term_copy, i_iter, i_slowness_stage,
-                                   angle_domain_centers_list, j, angle_step_j, smax,
-                                   circle_list, s_kernel_plot, angle_kernel_plot, i_s_plot,
-                                   s_kernels, full_kernels, circle_stage=False, path_save=None,
-                                   random_angle_at_each_iteration=False):
-    if circle_stage:
-        str_stage = 'slowness stage ' + str(i_slowness_stage) + '\n azim. stage 0 (circles)'
-        str_stage_filename = 's_stage' + str(i_slowness_stage) + '_stage0'
-    else:
-        str_stage = 'slowness stage ' + str(i_slowness_stage) + '\n azim. stage ' + str(j + 1)
-        str_stage_filename = 's_stage' + str(i_slowness_stage) + '_stage' + str(j + 1)
-
-    fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-    h_plot = ax.pcolormesh(sx, sy, f0)
-    ax.set_aspect(1.)
-    ax.set_xlabel('sx (s/km)')
-    ax.set_ylabel('sy (s/km)')
-    ax.set_xticks(np.arange(-smax, 1.001 * smax))
-    ax.set_yticks(np.arange(-smax, 1.001 * smax))
-    ax.grid('on')
-    plt.colorbar(h_plot, ax=ax)
-    ax.set_title('solution f \n iteration ' + str(i_iter - 1) + '\n' + str_stage)
-
-    if path_save is not None:
-        str_file = 'sol_f_' + str_stage_filename + 'iter' + str(i_iter - 1) + '.png'
-        path_save_file = Path(path_save).joinpath(str_file)
-        plt.savefig(path_save_file)
-        plt.close(fig)
-
-    fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-    h_plot = ax.pcolormesh(sx, sy, corr_term)
-    ax.set_aspect(1.)
-    ax.set_xlabel('sx (s/km)')
-    ax.set_ylabel('sy (s/km)')
-    ax.set_xticks(np.arange(-smax, 1.001 * smax))
-    ax.set_yticks(np.arange(-smax, 1.001 * smax))
-    if not circle_stage:
-        for angle_center in angle_domain_centers_list[j]:
-            x1 = - smax * np.cos(angle_center - angle_step_j / 2)
-            x2 = smax * np.cos(angle_center - angle_step_j / 2)
-            y1 = - smax * np.sin(angle_center - angle_step_j / 2)
-            y2 = smax * np.sin(angle_center - angle_step_j / 2)
-            ax.plot([x1, x2], [y1, y2], c='w', linewidth=0.1)
-    for circle_patch in circle_list:
-        ax.add_patch(circle_patch)
-    ax.scatter(s_kernel_plot * np.cos(angle_kernel_plot), s_kernel_plot * np.cos(angle_kernel_plot),
-               facecolors='none', edgecolors='r')
-    ax.set_xlim(-smax, smax)
-    ax.set_ylim(-smax, smax)
-    plt.colorbar(h_plot, ax=ax)
-    ax.set_title('correction term (raw) \n iteration ' + str(i_iter - 1) + '\n' + str_stage)
-    if path_save is not None:
-        str_file = 'corr_term_raw_' + str_stage_filename + 'iter' + str(i_iter - 1) + '.png'
-        path_save_file = Path(path_save).joinpath(str_file)
-        plt.savefig(path_save_file)
-        plt.close(fig)
-
-    fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-    h_plot = ax.pcolormesh(sx, sy, corr_term_copy)
-    ax.set_aspect(1.)
-    ax.set_xlabel('sx (s/km)')
-    ax.set_ylabel('sy (s/km)')
-    ax.set_xticks(np.arange(-smax, 1.001 * smax))
-    ax.set_yticks(np.arange(-smax, 1.001 * smax))
-    if not circle_stage:
-        for angle_center in angle_domain_centers_list[j]:
-            x1 = - smax * np.cos(angle_center - angle_step_j / 2)
-            x2 = smax * np.cos(angle_center - angle_step_j / 2)
-            y1 = - smax * np.sin(angle_center - angle_step_j / 2)
-            y2 = smax * np.sin(angle_center - angle_step_j / 2)
-            ax.plot([x1, x2], [y1, y2], c='w', linewidth=0.1)
-    for circle_patch in circle_list:
-        ax.add_patch(circle_patch)
-    ax.scatter(s_kernel_plot * np.cos(angle_kernel_plot), s_kernel_plot * np.cos(angle_kernel_plot),
-               facecolors='none', edgecolors='r')
-    ax.set_xlim(-smax, smax)
-    ax.set_ylim(-smax, smax)
-    plt.colorbar(h_plot, ax=ax)
-    ax.set_title('correction term (averaged) \n iteration ' + str(i_iter - 1) + '\n' + str_stage)
-    if path_save is not None:
-        str_file = 'corr_term_aver_' + str_stage_filename + 'iter' + str(i_iter - 1) + '.png'
-        path_save_file = Path(path_save).joinpath(str_file)
-        plt.savefig(path_save_file)
-        plt.close(fig)
-
-    fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-    h_plot = ax.pcolormesh(sx, sy, f)
-    ax.set_aspect(1.)
-    ax.set_xlabel('sx (s/km)')
-    ax.set_ylabel('sy (s/km)')
-    ax.set_xticks(np.arange(-smax, 1.001 * smax))
-    ax.set_yticks(np.arange(-smax, 1.001 * smax))
-    ax.grid('on')
-    plt.colorbar(h_plot, ax=ax)
-    ax.set_title('solution f \n iteration ' + str(i_iter) + '\n' + str_stage)
-    if path_save is not None:
-        str_file = 'sol_f_' + str_stage_filename + 'iter' + str(i_iter) + '.png'
-        path_save_file = Path(path_save).joinpath(str_file)
-        plt.savefig(path_save_file)
-        plt.close(fig)
-
-    if not random_angle_at_each_iteration:
-        if circle_stage:
-            kernel_to_plot = s_kernels[i_s_plot]
+    idx = 0
+    for s in slowness_values:
+        azimuth_indices = []
+        for sigma_theta in sigma_theta_values:
+            for theta in np.arange(0, 360, sigma_theta):  # Discretize azimuths with overlap based on sigma_theta
+                if bool_valid_basis_element(theta, sigma_theta, theta_0, max_dist_theta):
+                # if (sigma_theta <= 180) | (theta<=180):
+                    basis[idx, :, :] = gaussian_2d_kernel(s, theta, s_step_sol, sigma_theta, sx, sy)
+                    azimuth_indices.append(idx)
+                    idx += 1
+                        
+                    
+        slowness_to_basis_indices[s] = np.array(azimuth_indices)
+    
+    return basis, slowness_values, slowness_to_basis_indices
+
+
+def precompute_convolved_basis(basis, arf):
+    """Precompute the convolution of each basis element with the array response function (arf)."""
+    num_basis_elements = basis.shape[0]
+    convolved_basis = np.empty((num_basis_elements, basis.shape[1] * basis.shape[2]), dtype=np.float64)  # Flattened
+
+    for i in range(num_basis_elements):
+        convolved_element = manual_convolve(basis[i, :, :], arf)
+        convolved_basis[i, :] = convolved_element.flatten()
+    
+    return convolved_basis
+
+def select_top_n_sparse_slowness(g, convolved_basis, slowness_values, slowness_to_basis_indices, misfit_cutoff_factor):
+    """Select the top n_sparse slowness values based on minimum relative misfit with g."""
+    g_flat = g.flatten()
+    g_norm = np.linalg.norm(g_flat)
+    
+    # Initialize an array to hold the best misfit score for each slowness
+    slowness_misfits = np.full(len(slowness_values), np.inf)
+    
+    # Calculate relative misfit for each basis element and store the minimum per slowness
+    for i, s in enumerate(slowness_values):
+        basis_indices = slowness_to_basis_indices[s]
+        
+        for idx in basis_indices:
+            # Normalize the basis element to avoid amplitude bias
+            basis_element = convolved_basis[idx]
+            basis_norm = np.linalg.norm(basis_element)
+            if basis_norm == 0:
+                continue  # Skip elements with zero norm to avoid division by zero
+            
+            # Calculate relative misfit for this basis element
+            misfit = np.linalg.norm(g_flat / g_norm - basis_element / basis_norm)
+            
+            # Update the best (minimum) misfit for this slowness
+            slowness_misfits[i] = min(slowness_misfits[i], misfit)
+    
+    best_misfit = np.min(slowness_misfits)
+    
+    # Get the indices of the top n_sparse lowest misfits
+    i_sort_slowness_indices = np.argsort(slowness_misfits)
+    
+    # Retrieve the actual slowness values corresponding to the top indices
+    top_slowness_values = slowness_values[i_sort_slowness_indices]
+    top_slowness_misfits = slowness_misfits[i_sort_slowness_indices]
+    
+    top_slowness_indices = i_sort_slowness_indices[top_slowness_misfits<misfit_cutoff_factor*best_misfit]
+    top_slowness_values = top_slowness_values[top_slowness_misfits<misfit_cutoff_factor*best_misfit]
+    top_slowness_misfits = top_slowness_misfits[top_slowness_misfits<misfit_cutoff_factor*best_misfit]   
+    
+    return top_slowness_values, top_slowness_indices, top_slowness_misfits
+
+def loss_function(y, augmented_basis, augmented_g):
+    # Compute the coefficients as squares to ensure positivity
+    sparse_coeffs = y**2
+    # Calculate the residual
+    residual = augmented_basis.T @ sparse_coeffs - augmented_g
+    # Return the sum of squared residuals
+    return np.sum(residual**2)
+
+def select_sparse_slowness(g, convolved_basis, slowness_values, slowness_to_basis_indices, n_sparse, misfit_threshold, 
+                           alpha_reg=1e0, rel_rms_thresh_admissible_slowness=2, rel_rms_stop_crit_increase_sparsity=0.25,
+                           verbose=True, optimization_method='nnls'):
+    """Select an optimal sparse set of slowness values using NNLS, limited by RMS misfit threshold."""
+    min_g = np.min(g)
+    g_demin = g - min_g
+    g_flat = g_demin.flatten()
+    selected_indices = []
+    selected_slowness = []
+    
+    # Initialize number of slowness values to consider
+    current_sparse = 1
+    
+    top_slowness_values, top_slowness_indices, top_slowness_misfits = select_top_n_sparse_slowness(
+        g_demin, convolved_basis, slowness_values, slowness_to_basis_indices, 
+        misfit_cutoff_factor=rel_rms_thresh_admissible_slowness
+    )
+    
+    if verbose:
+        print('slowness candidates : ')
+        print(top_slowness_values)
+        print('associated best misfits : ')
+        print(top_slowness_misfits)
+    
+    # Loop until the misfit is below the threshold or we reach the upper bound n_sparse
+    selected_indices_out = None
+    sparse_coeffs_out = None
+    selected_slowness_print = None
+    
+    rms_previous_stage = 1e6
+    combination_out_stage = []
+    
+    df_out = pd.DataFrame(columns=["slowness", "rms_error", "sum_coeffs", "sparsity"])
+    
+    while (current_sparse <= n_sparse):
+        rms_current = 1e6
+        combinations_sparse = [combination_out_stage.copy() + [i] for i in top_slowness_indices if i not in combination_out_stage]
+        # Data collection for the DataFrame
+        rms_error_list = []
+        coeff_sum_list = []
+        slowness_list = []
+        if verbose:
+            print("sparsity = " + str(current_sparse))
+            print("combinations : " + str(len(combinations_sparse)))
+        
+        for combination_i in combinations_sparse:
+            selected_slowness = [slowness_values[j] for j in combination_i]
+            # Gather indices for the selected slowness values, including all their azimuthal segments
+            selected_indices = np.hstack([slowness_to_basis_indices[s] for s in selected_slowness])
+
+            # Re-run NNLS on the selected subset of the convolved basis
+            sparse_convolved_basis = convolved_basis[selected_indices]
+            
+            reg_coef = alpha_reg * np.max(sparse_convolved_basis)
+            augmented_basis = np.concatenate((sparse_convolved_basis, reg_coef * np.eye(sparse_convolved_basis.shape[0])), axis=1)
+            augmented_g = np.concatenate((g_flat, np.zeros(sparse_convolved_basis.shape[0])), axis=0)            
+
+            if optimization_method=='nnls':
+                # sparse_coeffs, _ = nnls(sparse_convolved_basis.T, g_flat)
+                sparse_coeffs, _ = nnls(augmented_basis.T, augmented_g)
+
+            elif optimization_method=='L-BFGS-B':
+                # Initial guess for y (unconstrained variables)
+                y_initial = np.zeros(augmented_basis.shape[0])
+
+                # Optimize using the L-BFGS-B method
+                result = minimize(
+                    loss_function,
+                    y_initial,
+                    args=(augmented_basis, augmented_g),
+                    method='L-BFGS-B'
+                )
+
+                # Recover the non-negative coefficients
+                sparse_coeffs = result.x**2
+
+            # Calculate RMS error for current selection
+            g_reconstructed = np.sum([sparse_coeffs[i] * convolved_basis[idx] for i, idx in enumerate(selected_indices)], axis=0)
+            g_reconstructed = np.reshape(g_reconstructed, g.shape)
+            g_reconstructed += min_g
+
+            # rms_error = np.sqrt(np.mean((g - g_reconstructed) ** 2)) / np.sqrt(np.mean(g ** 2))
+            rms_error = rms_l2(g, g_reconstructed)
+            #rms_error = rms_onebit(g, g_reconstructed)
+            
+            if rms_error < rms_current:
+                rms_current = rms_error
+                combination_out_stage = combination_i
+                selected_indices_out_stage = selected_indices
+                sparse_coeffs_out_stage = sparse_coeffs
+                selected_slowness_print_stage = selected_slowness
+            
+            # Record slowness-specific information for the DataFrame
+            for slowness in selected_slowness:
+                # Find all indices in `selected_indices` corresponding to this slowness
+                slowness_indices = slowness_to_basis_indices[slowness]
+                
+                # Sum the coefficients for this slowness
+                slowness_coeff_sum = np.sum([sparse_coeffs[np.where(selected_indices == idx)[0][0]] for idx in slowness_indices if idx in selected_indices])
+                
+                rms_error_list.append(rms_error)
+                coeff_sum_list.append(slowness_coeff_sum)
+                slowness_list.append(slowness)           
+        # Create the DataFrame with all entries, then group by slowness to select minimal rms_error
+        df_stage = pd.DataFrame({
+            "slowness": slowness_list,
+            "rms_error": rms_error_list,
+            "sum_coeffs": coeff_sum_list
+        })
+        df_stage["sparsity"] = current_sparse
+        # Group by slowness, selecting the row with the minimal rms_error
+        df_stage = df_stage.loc[df_stage.groupby("slowness")["rms_error"].idxmin()]
+        df_out = pd.concat([df_out, df_stage])
+        
+        print(selected_slowness_print_stage)
+        print("RMS new " + str(rms_current))
+        
+        if (rms_previous_stage - rms_current)/rms_previous_stage < rel_rms_stop_crit_increase_sparsity:
+            if verbose:
+                print("stopping sparsity increase as the cost does not decrease more than by factor " + str(rel_rms_stop_crit_increase_sparsity))       
+            break
         else:
-            k_kernel = np.min(np.where((angle_domain_centers_list[j] + angle_step_j / 2) >
-                                       angle_kernel_plot)[0])
-            kernel_to_plot = full_kernels[i_s_plot][j][k_kernel]
-        fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-        h_plot = ax.pcolormesh(sx, sy, kernel_to_plot)
-        ax.scatter(s_kernel_plot * np.cos(angle_kernel_plot), s_kernel_plot * np.cos(angle_kernel_plot),
-                   facecolors='none', edgecolors='r')
-        ax.set_aspect(1.)
-        ax.set_xlabel('sx (s/km)')
-        ax.set_ylabel('sy (s/km)')
-        ax.set_xticks(np.arange(-smax, 1.001 * smax))
-        ax.set_yticks(np.arange(-smax, 1.001 * smax))
-        ax.grid('on')
-        plt.colorbar(h_plot, ax=ax)
-        ax.set_title('kernel for s=' + str(s_kernel_plot) + ' s/km at ' +
-                     str(angle_kernel_plot / np.pi * 180) + '°' + '\n' + str_stage)
-        if path_save is not None:
-            str_file = 'kernel_s' + "{:.2f}".format(s_kernel_plot) + '_angle' + "{:.2f}".format(angle_kernel_plot) + \
-                       '_' + str_stage_filename + 'iter' + str(i_iter - 1) + '.png'
-            path_save_file = Path(path_save).joinpath(str_file)
-            plt.savefig(path_save_file)
-            plt.close(fig)
+            selected_indices_out = selected_indices_out_stage
+            sparse_coeffs_out = sparse_coeffs_out_stage
+            selected_slowness_print = selected_slowness_print_stage 
+            rms_previous_stage = rms_current
+            current_sparse += 1  # Otherwise, increase the number of slowness values
+            
+        # Check if the RMS error is under the stop threshold
+        if rms_current <= misfit_threshold:
+            if verbose:
+                print("stopping iterations as the cost below threshold " + str(misfit_threshold))       
+            break  # Stop if the misfit is below the threshold
+    
+    if verbose:
+        print(selected_slowness_print)
+        print("RMS = " + str(rms_previous_stage))    
+    
+    return selected_indices_out, sparse_coeffs_out, df_out
 
 
-########################################################################
+def get_next_file_number(directory):
+    max_num = 0
+    for file in directory.glob("convolved_basis_*.npz"):
+        # Extract the number from the filename
+        file_num = int(file.stem.split('_')[-1])
+        max_num = max(max_num, file_num)
+    return max_num + 1
+
+
+def deconv_by_sparse_decomposition(g, arf, sx, sy, s_step_sol, s_bounds, sigma_theta, n_sparse, misfit_threshold, theta_bounds=None,
+                                   alpha_reg=1e0, rel_rms_thresh_admissible_slowness=2, rel_rms_stop_crit_increase_sparsity=0.25,
+                                   verbose=False, path_basis=None, path_convolved_basis=None):
+    """Main function to solve the deconvolution problem with sparsity constraint on slowness values."""
+    # Construct full basis with all possible slowness and azimuthal segments
+    
+    if verbose:
+        print('constructing basis')
+    if path_basis is None:
+        basis, slowness_values, slowness_to_basis_indices = construct_complete_basis(sx, sy, s_step_sol, s_bounds, sigma_theta, theta_bounds)
+    else:
+        if path_basis.exists():
+            basis_holder = np.load(path_basis, allow_pickle=True)
+            basis = basis_holder["basis"]
+            slowness_values = basis_holder["slowness_values"]
+            slowness_to_basis_indices = basis_holder["slowness_to_basis_indices"].item()
+        else:
+            basis, slowness_values, slowness_to_basis_indices = construct_complete_basis(sx, sy, s_step_sol, s_bounds, sigma_theta, theta_bounds)
+            np.savez(path_basis, basis=basis, slowness_values=slowness_values, slowness_to_basis_indices=slowness_to_basis_indices)
+    
+    # Precompute the convolved basis
+    if verbose:
+        print('convolving basis')
+    if path_convolved_basis is None:
+        convolved_basis = precompute_convolved_basis(basis, arf)
+    else:
+        basis_files = list(path_convolved_basis.glob("**/convolved_basis*.npz"))
+        found_basis = False
+        for file in basis_files:
+            convolved_basis_holder = np.load(file, allow_pickle=True)
+            convolved_basis_i = convolved_basis_holder["convolved_basis"]
+            arf_i = convolved_basis_holder["arf"]
+            if np.sum((arf_i - arf)**2)/np.sum(arf**2) < 1e-6:
+                found_basis = True
+                convolved_basis = convolved_basis_i
+                break
+        if not found_basis:
+            convolved_basis = precompute_convolved_basis(basis, arf)
+            next_file_num = get_next_file_number(path_convolved_basis)
+            new_file_name = path_convolved_basis / f"convolved_basis_{next_file_num}.npz"
+            np.savez(new_file_name, arf=arf, convolved_basis=convolved_basis)
+        
+    # Select sparse basis (n_sparse distinct slowness values) and solve for coefficients
+    if verbose:
+        print('selecting optimal sparse basis')
+    selected_indices, sparse_coeffs, df_all_solutions = select_sparse_slowness(g, convolved_basis, slowness_values, slowness_to_basis_indices, 
+                                                             n_sparse, misfit_threshold, alpha_reg, rel_rms_thresh_admissible_slowness,
+                                                             rel_rms_stop_crit_increase_sparsity)
+    
+    # Reconstruct f from the selected sparse basis
+    if verbose:
+        print('preparing outputs')
+    f = np.sum([sparse_coeffs[i] * basis[idx] for i, idx in enumerate(selected_indices)], axis=0)
+    
+    # Reconstruct g using the optimized f
+    g_reconstructed = fftconvolve(f, arf, mode='same')
+    g_reconstructed += np.min(g)
+    
+    # Calculate RMS error
+    # rms_error = np.sqrt(np.mean((g - g_reconstructed) ** 2)) / np.sqrt(np.mean(g ** 2))
+    rms_error = rms_l2(g, g_reconstructed)
+    # rms_error = rms_onebit(g, g_reconstructed)
+    
+    return f, g_reconstructed, rms_error, df_all_solutions  
 
 
 def deconvolve_beamformers(arf, beam, beamforming_params):
-    vmin = beamforming_params.vmin  # km/s
-    n_iter_max = beamforming_params.n_iter_max  # iterations
-    angle_step_min = beamforming_params.angle_step_min  # degrees
-    angle_width_start = beamforming_params.angle_width_start  # degrees
-    theta_overlap_kernel = beamforming_params.theta_overlap_kernel
-    slowness_width_ratio_to_ds = beamforming_params.slowness_width_ratio_to_ds  # step of gaussian slowness kernels
-    slowness_step_ratio_to_ds = beamforming_params.slowness_step_ratio_to_ds  # width (std) of gaussian slowness kernels
-    # shifted at each iteration so that there are no region-boundary artifacts.
-    stop_crit_rel = beamforming_params.stop_crit_rel  # criterion of I(n+1)/I(n) for stopping iterations at each stage,with I the Csiszar cost function
+    sparsity_max = beamforming_params.sparsity_max  # km/s
+    sigma_angle_kernels = beamforming_params.sigma_angle_kernels  # iterations
+    sigma_slowness_kernels_ratio_to_ds = beamforming_params.sigma_slowness_kernels_ratio_to_ds  # degrees
+    rms_threshold_deconv = beamforming_params.rms_threshold_deconv  # degrees
     sx = beamforming_params.get_xaxis()
     sy = beamforming_params.get_yaxis()
+    
+    if beamforming_params.smin1 is not None:
+        s_bounds = [[beamforming_params.smin1, beamforming_params.smax1]]
+        if beamforming_params.smin2 is not None:
+            s_bounds.append([beamforming_params.smin2, beamforming_params.smax2])
+    else:
+        s_bounds = [[0, min(beamforming_params.slowness_x_max, beamforming_params.slowness_y_max)]]
+    
+    if beamforming_params.thetamin1 is not None:
+        theta_bounds = [[beamforming_params.thetamin1, beamforming_params.thetamax1]]
+        if beamforming_params.thetamin2 is not None:
+            theta_bounds.append([beamforming_params.thetamin2, beamforming_params.thetamax2])
+    else:
+        theta_bounds = [[0, 360]]
+    
+    s_bounds = np.array(s_bounds)
+    theta_bounds = np.array(theta_bounds)
+    
+    s_step_sol = sigma_slowness_kernels_ratio_to_ds * beamforming_params.slowness_step
+    
+    path_tmp_beamforming_deconv_root = Path("/processed-data-dir/tmp_beamforming_deconv")
+    path_tmp_beamforming_deconv_root.mkdir(exist_ok=True)
+    path_tmp_beamforming_deconv_param_id = path_tmp_beamforming_deconv_root.joinpath(str(beamforming_params.id))
+    path_tmp_beamforming_deconv_param_id.mkdir(exist_ok=True)
+    path_basis = path_tmp_beamforming_deconv_param_id.joinpath('basis.npz')
+    path_convolved_basis = path_tmp_beamforming_deconv_param_id
+    
+    beam_deconv, g_est, rms_error, df_all_solutions = deconv_by_sparse_decomposition(
+        beam, arf, sx, sy, s_step_sol, s_bounds, sigma_angle_kernels, sparsity_max, 
+        theta_bounds=theta_bounds,
+        misfit_threshold=rms_threshold_deconv, 
+        alpha_reg=beamforming_params.reg_coef_deconv, 
+        rel_rms_thresh_admissible_slowness = beamforming_params.rel_rms_thresh_admissible_slowness,
+        rel_rms_stop_crit_increase_sparsity = beamforming_params.rel_rms_stop_crit_increase_sparsity,
+        path_basis=path_basis, path_convolved_basis=path_convolved_basis)
 
-    beam_deconv, g_est, cost_hist, rms_hist, f_by_stages = deconv_rlc_stepwise_circles_v_polar(
-        beam,
-        arf,
-        sx,
-        sy,
-        vmin,
-        n_iter=n_iter_max,
-        slowness_width_ratio_to_ds=slowness_width_ratio_to_ds,
-        slowness_step_ratio_to_ds=slowness_step_ratio_to_ds,
-        angle_step_min=angle_step_min,
-        angle_width_start=angle_width_start,
-        theta_overlap_kernel=theta_overlap_kernel,
-        stop_crit_rel=stop_crit_rel,
-        stop_crit_rms=0,
-        verbose=False,
-        standard_rlc=False,
-        f_start=None,
-        f_sum=None,
-        s_stages=None,
-        water_level_rms_pct=0,
-        lambda_herve=0,
-        reg_coef=0,
-        )
-
-    return beam_deconv, g_est, rms_hist[-1]
+    return beam_deconv, g_est, rms_error, df_all_solutions
 
 
 ###########################################################################################
@@ -1776,6 +561,10 @@ def calculate_beamforming_results( # noqa: max-complexity: 22
             etime=first_endtime,
             method=beamforming_params.method,
             save_arf=beamforming_params.save_all_arf,
+            n_sigma_stat_reject=beamforming_params.n_sigma_stat_reject, 
+            prop_bad_freqs_stat_reject=beamforming_params.prop_bad_freqs_stat_reject,
+            nsta_min_keep_stat_reject=beamforming_params.minimum_trace_count,
+            perform_statistical_reject=beamforming_params.perform_statistical_reject,
             store=bk.save_beamformers,
         )
 
@@ -1962,6 +751,7 @@ class BeamformerKeeper:
         self.abs_pows_reconstructed: List[int] = []
         self.rel_pows_reconstructed: List[int] = []
         self.rms_error_deconv: List[int] = []
+        self.all_solutions_deconv: List[int] = []
 
         self.average_arf: Any = None
         self.average_abspow_deconv: Any = None
@@ -1970,6 +760,8 @@ class BeamformerKeeper:
         self.average_relpow_reconstructed: Any = None
         self.average_abspow_rms_error_deconv: Any = None
         self.average_relpow_rms_error_deconv: Any = None
+        self.average_abspow_all_sols_deconv: Any = None
+        self.average_relpow_all_sols_deconv: Any = None
         # self.average_abspow_deconv_2: Any = None
         ##
         #################
@@ -2011,28 +803,34 @@ class BeamformerKeeper:
         if params.perform_deconvolution_all:
             ######## CK ####### modif AKA 19/07/2023
             if params.save_all_beamformers_abspower:
-                for i, (arr, arr_reconstructed, rms_error_deconv) in \
-                    enumerate(zip(self.abs_pows_deconv, self.abs_pows_reconstructed, self.rms_error_deconv)):
+                for i, (arr, arr_reconstructed, rms_error_deconv, all_solutons_deconv) in \
+                    enumerate(zip(self.abs_pows_deconv, self.abs_pows_reconstructed, self.rms_error_deconv,
+                                  self.all_solutons_deconv)):
                     res_to_save[f"abs_pow_deconv_{i}"] = arr
                     res_to_save[f"abs_pow_reconstructed_{i}"] = arr_reconstructed
                     res_to_save[f"rms_error_deconv_{i}"] = rms_error_deconv
+                    res_to_save[f"all_solutons_deconv_{i}"] = all_solutons_deconv
                     
             if params.save_all_beamformers_relpower:
                 for i, (arr, arr_reconstructed, rms_error_deconv) in \
-                    enumerate(zip(self.rel_pows_deconv, self.rel_pows_reconstructed, self.rms_error_deconv)):
+                    enumerate(zip(self.rel_pows_deconv, self.rel_pows_reconstructed, self.rms_error_deconv,
+                                  self.all_solutons_deconv)):
                     res_to_save[f"rel_pow_deconv_{i}"] = arr
                     res_to_save[f"rel_pow_reconstructed_{i}"] = arr_reconstructed
                     res_to_save[f"rms_error_deconv_{i}"] = rms_error_deconv
+                    res_to_save[f"all_solutons_deconv_{i}"] = all_solutons_deconv
 
         if params.perform_deconvolution_average:
             if params.save_average_beamformer_abspower:
                 res_to_save["avg_abs_pow_deconv"] = self.average_abspow_deconv
                 res_to_save["avg_abs_pow_reconstructed"] = self.average_abspow_reconstructed
                 res_to_save["avg_abs_pow_rms_error_deconv"] = self.average_abspow_rms_error_deconv
+                res_to_save["average_abspow_all_sols_deconv"] = self.average_abspow_all_sols_deconv
             if params.save_average_beamformer_relpower:
                 res_to_save["avg_rel_pow_deconv"] = self.average_relpow_deconv
                 res_to_save["avg_rel_pow_reconstructed"] = self.average_relpow_reconstructed
                 res_to_save["avg_rel_pow_rms_error_deconv"] = self.average_relpow_rms_error_deconv
+                res_to_save["average_relpow_all_sols_deconv"] = self.average_relpow_all_sols_deconv
             ##
             # res_to_save["avg_abs_pow_deconv"] = self.average_abspow_deconv
             # #_2 res_to_save["avg_abs_pow_deconv_2"] = self.average_abspow_deconv_2
@@ -2077,7 +875,7 @@ class BeamformerKeeper:
 
     def deconv_all_windows_from_existing_arf(self, beamforming_params):
         for i, (abs_pow, rel_pow, arf) in enumerate(zip(self.abs_pows, self.rel_pows, self.arf)):
-            abs_pow_deconv, abs_pow_reconstructed, rms_error_deconv = deconvolve_beamformers(arf, abs_pow, beamforming_params)
+            abs_pow_deconv, abs_pow_reconstructed, rms_error_deconv, all_solutions_deconv = deconvolve_beamformers(arf, abs_pow, beamforming_params)
             abs_pow_deconv_max = np.max(abs_pow_deconv.flatten())
             rel_pows_max = np.max(rel_pow.flatten())
             rel_pow_deconv = (rel_pows_max / abs_pow_deconv_max) * abs_pow_deconv
@@ -2087,6 +885,7 @@ class BeamformerKeeper:
             self.abs_pows_reconstructed.append(abs_pow_reconstructed)
             self.rel_pows_reconstructed.append(rel_pow_reconstructed)
             self.rms_error_deconv.append(rms_error_deconv)
+            self.all_solutions_deconv.append(all_solutions_deconv)
 
     def calculate_average_arf_beamformer(self):
         """filldocs"""
@@ -2100,7 +899,7 @@ class BeamformerKeeper:
 
     def deconvolve_average_abspower_with_arf(self, beamforming_params):
         """filldocs"""
-        self.average_abspow_deconv, self.average_abspow_reconstructed, self.average_abspow_rms_error_deconv  = deconvolve_beamformers(self.average_arf, self.average_abspow, beamforming_params)
+        self.average_abspow_deconv, self.average_abspow_reconstructed, self.average_abspow_rms_error_deconv, self.average_abspow_all_sols_deconv  = deconvolve_beamformers(self.average_arf, self.average_abspow, beamforming_params)
 
 
 
@@ -2108,7 +907,7 @@ class BeamformerKeeper:
 
     def deconvolve_average_relpower_with_arf(self, beamforming_params):
         """filldocs"""
-        self.average_relpow_deconv, self.average_relpow_reconstructed, self.average_relpow_rms_error_deconv  = deconvolve_beamformers(self.average_arf, self.average_relpow, beamforming_params)
+        self.average_relpow_deconv, self.average_relpow_reconstructed, self.average_relpow_rms_error_deconv, self.average_relpow_all_sols_deconv  = deconvolve_beamformers(self.average_arf, self.average_relpow, beamforming_params)
 
     ####################################
 
@@ -2165,6 +964,10 @@ class BeamformerKeeper:
         df = _extract_most_significant_subbeams([maxima, ], beam_portion_threshold)
         df = _calculate_slowness(df=df)
         df = _calculate_azimuth_backazimuth(df=df)
+
+        if len(df)==0:
+            plt.pcolormesh(self.xaxis, self.yaxis, data_use)
+            plt.savefig('/processed-data-dir/tmp_beamforming/' + str(self.midtime) + '.png')
 
         return df
 
@@ -2396,6 +1199,8 @@ def _extract_most_significant_subbeams(
     df_all = pd.concat(all_maxima).set_index('midtime')
     total_beam = df_all.loc[:, 'amplitude'].groupby(level=0).sum()
     df_all.loc[:, 'beam_proportion'] = df_all.apply(lambda row: row.amplitude / total_beam.loc[row.name], axis=1)
+    while (df_all['beam_proportion'].max() <= beam_portion_threshold):
+        beam_portion_threshold /=2 
     df_res = df_all.loc[df_all.loc[:, 'beam_proportion'] > beam_portion_threshold, :]
     maximum_points = df_res.groupby(by=['x', 'y']).mean()
     maximum_points['occurence_counts'] = df_res.groupby(by=['x', 'y'])['amplitude'].count()
@@ -2452,7 +1257,12 @@ def _calculate_slowness(
         df: pd.DataFrame,
 ) -> pd.DataFrame:
     """filldocs"""
-    df.loc[:, 'slowness'] = df.apply(lambda row: np.sqrt(row.x ** 2 + row.y ** 2), axis=1)
+    try:
+        df.loc[:, 'slowness'] = df.apply(lambda row: np.sqrt(row.x ** 2 + row.y ** 2), axis=1)
+    except:
+        df['slowness'] = 0
+        print("DEBUG")
+        print(df)
     return df
 
 

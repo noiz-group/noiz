@@ -220,6 +220,7 @@ def add_beamforming_params(
 @click.option("-fp", "--freq_step", nargs=1, type=float, required=True)
 @click.option("-fw", "--freq_window_width", nargs=1, type=float, required=True)
 @click.option("-rp", "--rounding_precision", nargs=1, type=int, default=4)
+@click.option("-slf", "--slowness_limits_folder", nargs=1, type=str, default=None)
 @click.option('--add_to_db', is_flag=True, expose_value=True,
               prompt='Are you sure you want to add BeamformingParams to DB? `N` will just preview it. ')
 @click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
@@ -237,6 +238,11 @@ def generate_beamforming_params(
     """Generate multiple BeamformingParams for different frequencies based on a TOML file
      with a single BeamformingParams config and add them to db."""
 
+    if (kwargs["slowness_limits_folder"]) is not None:
+        slowness_limits_folder = Path(kwargs["slowness_limits_folder"])
+    else:
+        slowness_limits_folder = None
+    
     from noiz.api.processing_config import create_and_add_beamforming_params_from_toml
     results = create_and_add_beamforming_params_from_toml(
         filepath=Path(filepath),
@@ -247,6 +253,7 @@ def generate_beamforming_params(
         freq_step=freq_step,
         freq_window_width=freq_window_width,
         rounding_precision=rounding_precision,
+        slowness_limits_folder = slowness_limits_folder
     )
 
     click.echo(f"There were {len(results)} param sets generated.")
