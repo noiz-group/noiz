@@ -344,7 +344,11 @@ def array_processing(
         sll_x_arf=None,
         slm_x_arf=None,
         sll_y_arf=None,
-        slm_y_arf=None
+        slm_y_arf=None,
+        perform_statistical_reject=False,
+        n_sigma_stat_reject=2.5, 
+        prop_bad_freqs_stat_reject=0.5,
+        nsta_min_keep_stat_reject=3,
 ):
     """
     Method for Seismic-Array-Beamforming/FK-Analysis/Capon
@@ -464,7 +468,12 @@ def array_processing(
             break
 
         ### ADDED CKH/ AKA 18/05/22 ###`
-        i_good_stations, i_st_on = statistical_reject(np.abs(ft_full), f_axis)
+        if not perform_statistical_reject:
+            n_sigma_stat_reject = np.inf
+
+        i_good_stations, i_st_on = statistical_reject(np.abs(ft_full), f_axis, fcut1=frqlow, fcut2=frqhigh, 
+                                                    n_thresh_std=n_sigma_stat_reject, prop_bad_freqs=prop_bad_freqs_stat_reject,
+                                                    nsta_min_keep=nsta_min_keep_stat_reject)
         ft[:, :] = 0
         ft[i_st_on[i_good_stations], :] = ft_full[i_st_on[i_good_stations], nlow:nlow + nf]
         ###

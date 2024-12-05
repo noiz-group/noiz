@@ -8,7 +8,7 @@ import numpy.typing as npt
 from pydantic.dataclasses import dataclass
 from typing import Optional, Union, Tuple, TYPE_CHECKING
 
-from noiz.database import db, NotNullColumn
+from noiz.database import db, NotNullColumn, NullColumn
 from noiz.globals import ExtendedEnum
 from noiz.validation_helpers import validate_exactly_one_argument_provided
 
@@ -549,6 +549,11 @@ class BeamformingParamsHolder:
     window_length: Optional[Union[int, float]] = None
     window_step_fraction: Optional[float] = None
     window_step: Optional[float] = None
+    
+    perform_statistical_reject : Optional[bool] = False
+    n_sigma_stat_reject:Optional[float] = 2.5
+    prop_bad_freqs_stat_reject: Optional[float] = 0.5
+    
     save_average_beamformer_abspower: bool = True
     save_all_beamformers_abspower: bool = False
     save_average_beamformer_relpower: bool = False
@@ -558,16 +563,23 @@ class BeamformingParamsHolder:
     save_all_arf: bool = False
     save_average_arf: bool = True
     arf_enlarge_ratio: float = 2
-    vmin: float = 0.5
-    n_iter_max: int = 50
-    angle_step_min: float = 10
-    angle_width_start: float = 180
-    angle_step_mode: str = "manual"
-    theta_overlap_kernel: float = 0.5
-    slowness_width_ratio_to_ds: float = 1
-    slowness_step_ratio_to_ds: float = 1
-    random_angle_at_each_iteration: bool = False
-    stop_crit_rel: float = 0.99
+
+    smin1: Optional[float] = None
+    smax1: Optional[float] = None
+    smin2: Optional[float] = None
+    smax2: Optional[float] = None
+    thetamin1: Optional[float] = None
+    thetamin2: Optional[float] = None
+    thetamax1: Optional[float] = None
+    thetamax2: Optional[float] = None
+    sparsity_max: Optional[int] = 3
+    sigma_angle_kernels: Optional[float] = 10
+    sigma_slowness_kernels_ratio_to_ds: Optional[float] = 1
+    rms_threshold_deconv: Optional[float] = 0.01
+    reg_coef_deconv: Optional[float] = 1
+    rel_rms_thresh_admissible_slowness: Optional[float] = 2
+    rel_rms_stop_crit_increase_sparsity: Optional[float] = 0.25
+
     extract_peaks_average_beamformer_abspower: bool = True
     extract_peaks_all_beamformers_abspower: bool = False
     extract_peaks_average_beamformer_relpower: bool = False
@@ -599,6 +611,10 @@ class BeamformingParams(db.Model):
 
     window_length = NotNullColumn("window_length", db.Float)
     window_step = NotNullColumn("window_step", db.Float)
+    
+    perform_statistical_reject = NotNullColumn("perform_statistical_reject", db.Boolean)
+    n_sigma_stat_reject = NotNullColumn("n_sigma_stat_reject", db.Float)
+    prop_bad_freqs_stat_reject = NotNullColumn("prop_bad_freqs_stat_reject", db.Float)
 
     save_average_beamformer_abspower = NotNullColumn("save_average_beamformer_abspower", db.Boolean)
     save_all_beamformers_abspower = NotNullColumn("save_all_beamformers_abspower", db.Boolean)
@@ -613,16 +629,31 @@ class BeamformingParams(db.Model):
     arf_enlarge_ratio = NotNullColumn("arf_enlarge_ratio", db.Float)
 
     #   deconv parameters
-    vmin = NotNullColumn("vmin", db.Float)
-    n_iter_max = NotNullColumn("n_iter_max", db.Integer)
-    angle_step_min = NotNullColumn("angle_step_min", db.Float)
-    angle_width_start = NotNullColumn("angle_width_start", db.Float)
-    angle_step_mode = NotNullColumn("angle_step_mode", db.String)
-    theta_overlap_kernel = NotNullColumn("theta_overlap_kernel", db.Float)
-    slowness_width_ratio_to_ds = NotNullColumn("slowness_width_ratio_to_ds", db.Float)
-    slowness_step_ratio_to_ds = NotNullColumn("slowness_step_ratio_to_ds", db.Float)
-    random_angle_at_each_iteration = NotNullColumn("random_angle_at_each_iteration", db.Boolean)
-    stop_crit_rel = NotNullColumn("stop_crit_rel", db.Float)
+    smin1 = NullColumn("smin1", db.Float)
+    smax1 = NullColumn("smax1", db.Float)
+    smin2 = NullColumn("smin2", db.Float)
+    smax2 = NullColumn("smax2", db.Float)
+    thetamin1 = NullColumn("thetamin1", db.Float)
+    thetamax1 = NullColumn("thetamax1", db.Float)
+    thetamin2 = NullColumn("thetamin2", db.Float)
+    thetamax2 = NullColumn("thetamax2", db.Float)
+    sparsity_max = NotNullColumn("sparsity_max", db.Integer)
+    sigma_angle_kernels =  NotNullColumn("sigma_angle", db.Float)
+    sigma_slowness_kernels_ratio_to_ds =  NotNullColumn("sigma_slowness_kernels_ratio_to_ds", db.Integer)
+    rms_threshold_deconv = NotNullColumn("rms_target_deconv", db.Float)
+    reg_coef_deconv = NotNullColumn("reg_coef_deconv", db.Float)
+    rel_rms_thresh_admissible_slowness = NotNullColumn("rel_rms_thresh_admissible_slowness", db.Float)
+    rel_rms_stop_crit_increase_sparsity = NotNullColumn("rel_rms_stop_crit_increase_sparsity", db.Float)
+    
+    # n_iter_max = NotNullColumn("n_iter_max", db.Integer)
+    # angle_step_min = NotNullColumn("angle_step_min", db.Float)
+    # angle_width_start = NotNullColumn("angle_width_start", db.Float)
+    # angle_step_mode = NotNullColumn("angle_step_mode", db.String)
+    # theta_overlap_kernel = NotNullColumn("theta_overlap_kernel", db.Float)
+    # slowness_width_ratio_to_ds = NotNullColumn("slowness_width_ratio_to_ds", db.Float)
+    # slowness_step_ratio_to_ds = NotNullColumn("slowness_step_ratio_to_ds", db.Float)
+    # random_angle_at_each_iteration = NotNullColumn("random_angle_at_each_iteration", db.Boolean)
+    # stop_crit_rel = NotNullColumn("stop_crit_rel", db.Float)
 
     #   maxima picking parameters
     extract_peaks_average_beamformer_abspower = NotNullColumn("extract_peaks_average_beamformer_abspower", db.Boolean)
@@ -663,6 +694,9 @@ class BeamformingParams(db.Model):
             window_length: Optional[float],
             window_step_fraction: Optional[float],
             window_step: Optional[float],
+            perform_statistical_reject : Optional[bool],
+            n_sigma_stat_reject:Optional[float],
+            prop_bad_freqs_stat_reject: Optional[float],
             save_average_beamformer_abspower: bool,
             save_all_beamformers_abspower: bool,
             save_average_beamformer_relpower: bool,
@@ -672,16 +706,21 @@ class BeamformingParams(db.Model):
             save_all_arf: bool,
             save_average_arf: bool,
             arf_enlarge_ratio: float,
-            vmin: float,
-            n_iter_max: int,
-            angle_step_min: float,
-            angle_width_start: float,
-            angle_step_mode: str,
-            theta_overlap_kernel: float,
-            slowness_width_ratio_to_ds: float,
-            slowness_step_ratio_to_ds: float,
-            random_angle_at_each_iteration: bool,
-            stop_crit_rel: float,
+            smin1: Optional[float],
+            smax1: Optional[float],
+            smin2: Optional[float],
+            smax2: Optional[float],
+            thetamin1: Optional[float],
+            thetamax1: Optional[float],
+            thetamin2: Optional[float],
+            thetamax2: Optional[float],
+            sparsity_max: Optional[int],
+            sigma_angle_kernels: Optional[float],
+            sigma_slowness_kernels_ratio_to_ds: Optional[float],
+            rms_threshold_deconv: Optional[float],
+            reg_coef_deconv: Optional[float],
+            rel_rms_thresh_admissible_slowness: Optional[float],
+            rel_rms_stop_crit_increase_sparsity: Optional[float],
             extract_peaks_average_beamformer_abspower: bool,
             extract_peaks_all_beamformers_abspower: bool,
             extract_peaks_average_beamformer_relpower: bool,
@@ -730,22 +769,35 @@ class BeamformingParams(db.Model):
         self.save_all_beamformers_abspower = save_all_beamformers_abspower
         self.save_average_beamformer_relpower = save_average_beamformer_relpower
         self.save_all_beamformers_relpower = save_all_beamformers_relpower
+        
+        self.perform_statistical_reject = perform_statistical_reject
+        self.n_sigma_stat_reject = n_sigma_stat_reject
+        self.prop_bad_freqs_stat_reject = prop_bad_freqs_stat_reject
 
         self.perform_deconvolution_all = perform_deconvolution_all
         self.perform_deconvolution_average = perform_deconvolution_average
         self.save_all_arf = save_all_arf
         self.save_average_arf = save_average_arf
         self.arf_enlarge_ratio = arf_enlarge_ratio
-        self.vmin = vmin
-        self.n_iter_max = n_iter_max
-        self.angle_step_min = angle_step_min
-        self.angle_width_start = angle_width_start
-        self.angle_step_mode = angle_step_mode
-        self.theta_overlap_kernel = theta_overlap_kernel
-        self.slowness_width_ratio_to_ds = slowness_width_ratio_to_ds
-        self.slowness_step_ratio_to_ds = slowness_step_ratio_to_ds
-        self.random_angle_at_each_iteration = random_angle_at_each_iteration
-        self.stop_crit_rel = stop_crit_rel
+        
+        self.smin1 = smin1
+        self.smax1 = smax1
+        self.smin2 = smin2
+        self.smax2 = smax2
+        
+        self.thetamin1 = thetamin1
+        self.thetamax1 = thetamax1
+
+        self.thetamin2 = thetamin2
+        self.thetamax2 = thetamax2
+
+        self.sparsity_max = sparsity_max
+        self.sigma_angle_kernels = sigma_angle_kernels
+        self.sigma_slowness_kernels_ratio_to_ds = sigma_slowness_kernels_ratio_to_ds
+        self.rms_threshold_deconv = rms_threshold_deconv
+        self.reg_coef_deconv = reg_coef_deconv
+        self.rel_rms_thresh_admissible_slowness = rel_rms_thresh_admissible_slowness
+        self.rel_rms_stop_crit_increase_sparsity = rel_rms_stop_crit_increase_sparsity
 
         self.extract_peaks_average_beamformer_abspower = extract_peaks_average_beamformer_abspower
         self.extract_peaks_all_beamformers_abspower = extract_peaks_all_beamformers_abspower
