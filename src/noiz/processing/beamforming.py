@@ -81,6 +81,7 @@ def gaussian_2d_kernel(s, theta, sigma_s, sigma_theta, sx, sy):
 
 
 def bool_valid_basis_element(theta, sigma_theta, theta_0, theta_max_dist):
+
     delta_theta = np.minimum(np.abs(theta - theta_0), 360 - np.abs(theta - theta_0))
     bool_valid = (sigma_theta <= theta_max_dist) and (delta_theta <= theta_max_dist) and ((sigma_theta <= 180) | (theta<=180))
     return bool_valid
@@ -90,55 +91,64 @@ def construct_complete_basis(sx, sy, s_step_sol, s_bounds, sigma_theta_in, theta
     """Construct a complete basis with varying azimuthal spreads (sigma_theta) up to 180° in steps of sigma_s."""
     # Generate slowness values within the specified bounds
     
+    if len(s_bounds.shape) == 1:
+        nb_s_bounds = 1
+    else:
+        nb_s_bounds = s_bounds.shape[0]
         
     if theta_bounds is None:
-        theta_bounds = [0, 360]
-    
-    slowness_values = np.unique(np.hstack([np.arange(s_min, s_max, s_step_sol) for s_min, s_max in s_bounds]))
-    
-    theta_bounds = np.array(theta_bounds)
-    max_dist_theta = np.abs(np.diff(theta_bounds))/2 
-    theta_0 = 0.5*np.sum(theta_bounds)
-    theta_0 = 90 - theta_0 # user's input is in geographical convention : convert to trigo
-    theta_0 += 180 # user's input is BACK-azimuth
-    # max_dist_theta = theta_bounds[1]
-    # theta_bounds = theta_bounds % 360 # map to 0-360
-    
-
-    # Calculate sigma_theta values by doubling from sigma_theta_min up to 180°
-    sigma_theta_values = []
-    sigma_theta = sigma_theta_in
-    while sigma_theta <= 360:
-        #if sigma_theta <= 180: # avoid adding circular basis element if bounds on BAZ used
-        sigma_theta_values.append(sigma_theta)
-        sigma_theta *= 2
-    sigma_theta_values = np.array(sigma_theta_values)
-    
-    count_azim_kernels = 0
-    for sigma_theta in sigma_theta_values:
-        for theta in np.arange(0, 360, sigma_theta):
-            if bool_valid_basis_element(theta, sigma_theta, theta_0, max_dist_theta):
-            # if (sigma_theta <= 180) | (theta<=180):
-                count_azim_kernels += 1
-            
-    # Determine the total number of basis elements
-    num_basis_elements = len(slowness_values) * count_azim_kernels
-    basis = np.empty((num_basis_elements, len(sy), len(sx)), dtype=np.float64)
-    slowness_to_basis_indices = {}
+        theta_bounds = np.tile(np.array([0, 360], nb_s_bounds, 1))
     
     idx = 0
-    for s in slowness_values:
-        azimuth_indices = []
+    slowness_to_basis_indices = {}
+    slowness_values = np.unique(np.hstack([np.arange(s_min, s_max, s_step_sol) for s_min, s_max in s_bounds]))
+    for i, ((s_min, s_max), (theta_min, theta_max)) in enumerate(zip(s_bounds, theta_bounds)):
+        slowness_values_i = np.arange(s_min, s_max, s_step_sol)
+        
+        theta_bounds_i = np.array([theta_min, theta_max])
+        max_dist_theta = np.abs(np.diff(theta_bounds_i))/2 
+        theta_0 = 0.5*np.sum(theta_bounds_i)
+        theta_0 = 90 - theta_0 # user's input is in geographical convention : convert to trigo
+        theta_0 += 180 # user's input is BACK-azimuth
+        # max_dist_theta = theta_bounds[1]
+        # theta_bounds = theta_bounds % 360 # map to 0-360
+        
+
+        # Calculate sigma_theta values by doubling from sigma_theta_min up to 180°
+        sigma_theta_values = []
+        sigma_theta = sigma_theta_in
+        while sigma_theta <= 360:
+            #if sigma_theta <= 180: # avoid adding circular basis element if bounds on BAZ used
+            sigma_theta_values.append(sigma_theta)
+            sigma_theta *= 2
+        sigma_theta_values = np.array(sigma_theta_values)
+        
+        count_azim_kernels = 0
         for sigma_theta in sigma_theta_values:
-            for theta in np.arange(0, 360, sigma_theta):  # Discretize azimuths with overlap based on sigma_theta
+            for theta in np.arange(0, 360, sigma_theta):
                 if bool_valid_basis_element(theta, sigma_theta, theta_0, max_dist_theta):
                 # if (sigma_theta <= 180) | (theta<=180):
-                    basis[idx, :, :] = gaussian_2d_kernel(s, theta, s_step_sol, sigma_theta, sx, sy)
-                    azimuth_indices.append(idx)
-                    idx += 1
-                        
-                    
-        slowness_to_basis_indices[s] = np.array(azimuth_indices)
+                    count_azim_kernels += 1
+                
+        # Determine the total number of basis elements
+        num_basis_elements = len(slowness_values_i) * count_azim_kernels
+        basis_new = np.empty((num_basis_elements, len(sy), len(sx)), dtype=np.float64)
+        if i == 0:
+            basis = basis_new
+        else:
+            basis = np.concatenate((basis, basis_new), axis=0)
+        
+        for s in slowness_values_i:
+            azimuth_indices = []
+            for sigma_theta in sigma_theta_values:
+                for theta in np.arange(0, 360, sigma_theta):  # Discretize azimuths with overlap based on sigma_theta
+                    if bool_valid_basis_element(theta, sigma_theta, theta_0, max_dist_theta):
+                    # if (sigma_theta <= 180) | (theta<=180):
+                        basis[idx, :, :] = gaussian_2d_kernel(s, theta, s_step_sol, sigma_theta, sx, sy)
+                        azimuth_indices.append(idx)
+                        idx += 1
+                            
+            slowness_to_basis_indices[s] = np.array(azimuth_indices)
     
     return basis, slowness_values, slowness_to_basis_indices
 
