@@ -191,7 +191,7 @@ def _assembly_single_component_invenontory_path(
     if single_cmp_inv_path.exists():
         logger.info(f'Filepath {single_cmp_inv_path} exists. '
                     f'Trying to find next free one.')
-        single_cmp_inv_path = increment_filename_counter(filepath=single_cmp_inv_path, extension=True)
+        single_cmp_inv_path = increment_filename_counter(filepath=single_cmp_inv_path, extension=False)
         logger.info(f"Free filepath found. "
                     f"Inventory will be saved to {single_cmp_inv_path}")
     logger.info(
