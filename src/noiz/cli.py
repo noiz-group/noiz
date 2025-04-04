@@ -830,7 +830,13 @@ def run_ppsd(
 ):
     """Start calculating psds"""
 
-    from noiz.api.ppsd import run_psd_calculations
+    from noiz.api.ppsd import run_psd_calculations, check_length_and_timepans
+
+    check_length_and_timepans(
+        starttime=startdate,
+        endtime=enddate
+        )
+
     run_psd_calculations(
         stations=station,
         components=component,

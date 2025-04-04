@@ -547,7 +547,7 @@ def interpolate_slowness_limits_on_freq_axis(data, freq_axis_in):
         bounds_error=False,
         fill_value=np.nan
     )
-    
+
     thetamin_interp = interp1d(
         data["frequency"],
         data["thetamin"],
@@ -581,8 +581,8 @@ def merge_intervals(xmin1, xmax1, ymin1, ymax1):
     else:
         # If they do not intersect, return the original intervals
         return False, False
-    
-    
+
+
 def merge_angular_intervals(xmin1, xmax1, ymin1, ymax1):
     """
     Merges two angular intervals if they intersect, considering the circular nature of angles.
@@ -608,7 +608,7 @@ def merge_angular_intervals(xmin1, xmax1, ymin1, ymax1):
         else:
             print("thatamin = " + str(start))
             print("thatamax = " + str(end))
-            raise Exception('thetamin should be smaller than thetamax') 
+            raise Exception('thetamin should be smaller than thetamax')
 
     # Check if the intervals intersect
     if (is_within_interval(xmax1, ymin1, ymax1) or
@@ -674,14 +674,14 @@ def generate_multiple_beamforming_configs_based_on_single_holder(
     smin2_interpolated = np.nan * window_starts
     smax1_interpolated = np.nan * window_starts
     smax2_interpolated = np.nan * window_starts
-    
+
     thetamin1_interpolated = np.nan * window_starts
     thetamin2_interpolated = np.nan * window_starts
     thetamax1_interpolated = np.nan * window_starts
     thetamax2_interpolated = np.nan * window_starts
 
     if slowness_limits_folder is not None:
-        
+
         # Get a list of all CSV files in the directory and its subdirectories
         csv_files = list(slowness_limits_folder.glob("**/*.csv"))
 
@@ -691,17 +691,17 @@ def generate_multiple_beamforming_configs_based_on_single_holder(
             # interpolate on frequencies window_starts + freq_window_width/2
             smin1_interpolated, smax1_interpolated, thetamin1_interpolated, thetamax1_interpolated = interpolate_slowness_limits_on_freq_axis(
                 data1, window_starts + freq_window_width/2)
-            
+
         # Check if there is a second file and read it
         if len(csv_files) == 2:
             data2 = pd.read_csv(csv_files[1], header=None, names=["frequency", "smin", "smax", "thetamin", "thetamax"])
             # interpolate on frequencies window_starts + freq_window_width/2
             smin2_interpolated, smax2_interpolated, thetamin2_interpolated, thetamax2_interpolated = interpolate_slowness_limits_on_freq_axis(
                 data2, window_starts + freq_window_width/2)
-        
+
         if (len(csv_files) == 0) | (len(csv_files) > 2):
             raise Exception(slowness_limits_folder + 'should contain 1 or 2 csv files')
-   
+
     param_holders = []
     for (i_f, start) in enumerate(window_starts):
         min_freq = np.round(start, rounding_precision)
@@ -711,7 +711,7 @@ def generate_multiple_beamforming_configs_based_on_single_holder(
         new_param_holder = copy.deepcopy(params_holder)
         new_param_holder.min_freq = min_freq
         new_param_holder.max_freq = max_freq
-        
+
         # if 1 slowness limits folder assign smin1, smax1
         if not np.isnan(smin1_interpolated[i_f]):
             new_param_holder.smin1 = smin1_interpolated[i_f]
@@ -720,12 +720,12 @@ def generate_multiple_beamforming_configs_based_on_single_holder(
             new_param_holder.thetamax1 = thetamax1_interpolated[i_f]
         # if 2 slowness limits folder assign smin2, smax2
         if not np.isnan(smin2_interpolated[i_f]):
-            result, intersects = merge_intervals(smin1_interpolated[i_f], smax1_interpolated[i_f], 
+            result, intersects = merge_intervals(smin1_interpolated[i_f], smax1_interpolated[i_f],
                                                  smin2_interpolated[i_f], smax2_interpolated[i_f])
             result_theta, intersects_theta = merge_angular_intervals(
-                thetamin1_interpolated[i_f], thetamax1_interpolated[i_f], 
+                thetamin1_interpolated[i_f], thetamax1_interpolated[i_f],
                 thetamin2_interpolated[i_f], thetamax2_interpolated[i_f])
-            
+
             if intersects & intersects_theta:
                 new_param_holder.smin1 = result[0]
                 new_param_holder.smax1 = result[1]
@@ -733,10 +733,10 @@ def generate_multiple_beamforming_configs_based_on_single_holder(
                 new_param_holder.thetamax1 = result_theta[1]
             else:
                 new_param_holder.smin2 = smin2_interpolated[i_f]
-                new_param_holder.smax2 = smax2_interpolated[i_f]    
+                new_param_holder.smax2 = smax2_interpolated[i_f]
                 new_param_holder.thetamin2 = thetamin2_interpolated[i_f]
-                new_param_holder.thetamax2 = thetamax2_interpolated[i_f]             
-            
+                new_param_holder.thetamax2 = thetamax2_interpolated[i_f]
+
         param_holders.append(new_param_holder)
-        
+
     return param_holders

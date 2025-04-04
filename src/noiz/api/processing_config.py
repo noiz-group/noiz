@@ -24,7 +24,7 @@ from noiz.processing.configs import parse_single_config_toml, DefinedConfigs, \
 
 from noiz.api.component import fetch_components
 from noiz.api.component_pair import fetch_componentpairs_cartesian
-
+from noiz.api.timespan import fetch_timespans
 
 def fetch_datachunkparams_by_id(id: int) -> DatachunkParams:
     """

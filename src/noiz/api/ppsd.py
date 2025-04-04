@@ -3,6 +3,7 @@
 # Copyright © 2019-2023 Contributors to the Noiz project.
 
 import datetime
+import numpy as np
 
 from loguru import logger
 from sqlalchemy.orm import Query, subqueryload
@@ -13,7 +14,7 @@ from noiz.api.component import fetch_components
 from noiz.api.datachunk import _query_datachunks
 from noiz.api.helpers import _run_calculate_and_upsert_on_dask, _run_calculate_and_upsert_sequentially, \
     extract_object_ids
-from noiz.api.timespan import fetch_timespans_between_dates
+from noiz.api.timespan import fetch_timespans_between_dates, fetch_timespans
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import Datachunk, PPSDResult, PPSDParams
@@ -142,6 +143,17 @@ def _determine_filters_and_opts_for_datachunk(
     if load_ppsd_params:
         opts.append(subqueryload(PPSDResult.ppsd_params))
     return filters, opts
+
+
+def check_length_and_timepans(
+        starttime: Union[datetime.date, datetime.datetime],
+        endtime: Union[datetime.date, datetime.datetime],
+):
+    timespans = fetch_timespans()
+    lenght_timespans = np.mean([t.length for t in timespans[:50]]).total_seconds() * 2
+    print(lenght_timespans, (endtime - starttime).total_seconds())
+    if (endtime - starttime).total_seconds() < lenght_timespans:
+        raise EmptyResultException(f"There is less than 2 timespans in the requiered processing: please increase the duration between starttime and endtime: ")
 
 
 def run_psd_calculations(
