@@ -73,7 +73,7 @@ def upsert_componentpairs_cartesian(component_pairs_cartesian: List[ComponentPai
     return
 
 
-def create_all_componentpairs_cartesian() -> None:
+def create_all_componentpairs_cartesian(cp_optimization) -> None:
     """
     Fetches all components from the database, creates all component pairs possible and upserts them into db.
 
@@ -84,7 +84,7 @@ def create_all_componentpairs_cartesian() -> None:
     """
     components = fetch_components()
 
-    component_pairs_cartesian = prepare_componentpairs_cartesian(components)
+    component_pairs_cartesian = prepare_componentpairs_cartesian(components, cp_optimization)
 
     upsert_componentpairs_cartesian(component_pairs_cartesian)
     return
