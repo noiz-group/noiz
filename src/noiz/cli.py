@@ -242,7 +242,7 @@ def generate_beamforming_params(
         slowness_limits_folder = Path(kwargs["slowness_limits_folder"])
     else:
         slowness_limits_folder = None
-    
+
     from noiz.api.processing_config import create_and_add_beamforming_params_from_toml
     results = create_and_add_beamforming_params_from_toml(
         filepath=Path(filepath),
@@ -456,6 +456,7 @@ def add_seismic_data(
 @with_appcontext
 @click.argument("filepath", nargs=1, required=True, type=click.Path(exists=True))
 @click.option("-t", "--filetype", default="stationxml", show_default=True)
+@click.option("--cp_optimization/--no_cp_optimization", default=False)
 @click.option('--upsert/--no-upsert', default=False)
 @click.option('-v', '--verbose', count=True, callback=_setup_logging_verbosity)
 @click.option('--quiet', is_flag=True, callback=_setup_quiet)
@@ -463,6 +464,7 @@ def add_inventory(
         filepath,
         filetype,
         upsert,
+        cp_optimization,
         **kwargs
 ):
     """Read the stationxml file and add components to database.
@@ -476,7 +478,7 @@ def add_inventory(
 
     parse_inventory_insert_stations_and_components_into_db(inventory_path=filepath, filetype=filetype)
 
-    create_all_componentpairs_cartesian()
+    create_all_componentpairs_cartesian(cp_optimization)
     return
 
 
