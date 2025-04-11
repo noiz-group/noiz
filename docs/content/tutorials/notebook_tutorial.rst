@@ -411,6 +411,13 @@ The user must modify the block parameters:
 
 The following figures are examples of beamforming histogram results:
 
+.. image:: _images_notebooks/7_beamforming_backazimuth_freq_avg_peak_relpower.png
+.. image:: _images_notebooks/7_beamforming_slowness_freq_avg_peak_relpower.png
+.. image:: _images_notebooks/7_beamforming_slowsnessX_slownessY_avg_peak_relpower.png
+.. image:: _images_notebooks/7_beamforming_time_azimuth_avg_peak_relpower.png
+.. image:: _images_notebooks/7_beamforming_time_frequency_slowness_avg_peak_relpower.png
+.. image:: _images_notebooks/7_beamforming_time_slowness_avg_peak_relpower.png
+
 
 fetch_beamformers
 -----------------
@@ -454,9 +461,6 @@ Then, the script will be run:
 
 and a csv file containing results is created.
 
-It is a Dataframe like :
-
-
 Plot_beamformers
 -----------------
 
@@ -483,3 +487,4 @@ The user has to modify the following block:
 - Secondly, the user enters the results to display in *toplot* option.
 - Finally, the user must specify where to save the results (*dir_plot*).
 
+.. image:: _images_notebooks/7_beamforming_averaging_beamformer_freq_1.35.png
