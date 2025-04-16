@@ -360,6 +360,7 @@ where,
 
 -p is the cartesian cross-correlations parameter identifier,
 -b is the batch size. 
+-c is an option allowing to choose the component pair to use (ZZ, EE, NN, EZ, EN, NZ, NE, ZE,ZN).
 
 The cartesian cross-correlations results are stored in the database (table: crosscorrelation_cartesiannew):
 
@@ -403,3 +404,42 @@ To compute the beamformers according to the selected parameters, the user runs t
     noiz processing run_beamforming -sd 2019-10-01 -ed 2019-10-08 -p1 -p2 -p3 -p4 -p5 -p6 -p7 -p8 -p9 -p10 -p11 -p12 -p13 -p14 -p15 -p16 -p17 -p18 -p19 -p20 -p21 -p22 -p23 -p24 -p25 -p26 -p27 -p28 -p29 -p30 -p31 -p32 -p33 -p34 -p35 -p36 -p37 -p38 -p39 -p40 -b1000 
 
 where -p are the beamfomer parameter identifiers.
+
+The following tables are filled according to the chosen option in the toml file:
+- beamforming_association_datachunks 
+- beamforming_file
+- beamforming_peak_all_abspower
+- beamforming_peak_all_relpower
+- beamforming_peak_average_abspower
+- beamforming_peak_average_relpower
+- beamforming_result
+- beamforming_result_association_all_abspower
+- beamforming_result_association_rel_abspower
+- beamforming_result_association_avg_abspower
+- beamforming_result_association_avg_relpower
+
+.. image:: _images/34_beamforming_association_datachunks.PNG
+
+.. image:: _images/35_beamforming_file.PNG
+
+.. image:: _images/36_beamforming_peak_average_relpower.PNG
+
+.. image:: _images/37_beamforming_result.PNG
+
+.. image:: _images/38_beamforming_result_association_avg_relpower.PNG
+
+
+
+Cross-correlations in cylindrical coordinates
+=============================================
+
+Before computing and inserting cross-correlations in cylindrical coordinates, the components in cylindrical coordinates have to be creates.
+The following command has to be run to create and insert the :
+::
+
+    noiz data add_cylindrical_componentpair
+
+Thus, componentpair_cylindrical table will be filled. 
+
+.. image:: _images/39_componentpair_cylindrical.PNG
+
