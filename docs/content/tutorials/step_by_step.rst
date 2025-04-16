@@ -406,17 +406,29 @@ To compute the beamformers according to the selected parameters, the user runs t
 where -p are the beamfomer parameter identifiers.
 
 The following tables are filled according to the chosen option in the toml file:
+
 - beamforming_association_datachunks 
+
 - beamforming_file
+
 - beamforming_peak_all_abspower
+
 - beamforming_peak_all_relpower
+
 - beamforming_peak_average_abspower
+
 - beamforming_peak_average_relpower
+
 - beamforming_result
+
 - beamforming_result_association_all_abspower
+
 - beamforming_result_association_rel_abspower
+
 - beamforming_result_association_avg_abspower
+
 - beamforming_result_association_avg_relpower
+
 
 .. image:: _images/34_beamforming_association_datachunks.PNG
 
