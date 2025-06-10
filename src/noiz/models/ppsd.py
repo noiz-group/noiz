@@ -29,9 +29,7 @@ class PPSDFile(FileModelMixin):
 class PPSDResult(db.Model):
     __tablename__ = "ppsd_result"
     __table_args__ = (
-        db.UniqueConstraint(
-            "datachunk_id", "ppsd_params_id", name="unique_ppsd_per_config_per_datachunk"
-        ),
+        db.UniqueConstraint("datachunk_id", "ppsd_params_id", name="unique_ppsd_per_config_per_datachunk"),
     )
     id = db.Column("id", db.Integer, primary_key=True)
     ppsd_params_id = db.Column("ppsd_params_id", db.Integer, db.ForeignKey("ppsd_params.id"), nullable=False)

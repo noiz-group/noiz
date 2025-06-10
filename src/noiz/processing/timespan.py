@@ -56,9 +56,7 @@ def generate_starttimes_endtimes(
                          or pd.Timedelta or np.timedelta64"
         )
 
-    starttimes = pd.date_range(
-        start=startdate, end=enddate, freq=starttime_freq, normalize=True, closed='left'
-    )
+    starttimes = pd.date_range(start=startdate, end=enddate, freq=starttime_freq, normalize=True, closed="left")
     endtimes = starttimes + window_length
     if not generate_midtimes:
         return starttimes.to_list(), endtimes.to_list()

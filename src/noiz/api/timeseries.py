@@ -15,9 +15,7 @@ from noiz.processing.timeseries import run_mseedindex_on_passed_dir
 from noiz.models.timespan import Timespan
 
 
-def fetch_raw_timeseries(
-    component: Component, execution_date: datetime.datetime
-) -> Tsindex:
+def fetch_raw_timeseries(component: Component, execution_date: datetime.datetime) -> Tsindex:
     year = execution_date.year
     day_of_year = execution_date.timetuple().tm_yday
     time_series: List[Tsindex] = Tsindex.query.filter(
@@ -39,10 +37,10 @@ def fetch_raw_timeseries(
 
 
 def add_seismic_data(
-        basedir: Union[Path, Collection[Path]],
-        current_dir: Path,
-        filename_pattern: str = "*",
-        parallel: bool = True,
+    basedir: Union[Path, Collection[Path]],
+    current_dir: Path,
+    filename_pattern: str = "*",
+    parallel: bool = True,
 ) -> None:
     """
     Executes call to mseedindex app to add the seismic data from provided directory to the db.
@@ -59,11 +57,11 @@ def add_seismic_data(
     :return: None
     :rtype: NoneType
     """
-    mseedindex_executable = app.config['MSEEDINDEX_EXECUTABLE']
-    postgres_host = app.config['POSTGRES_HOST']
-    postgres_user = app.config['POSTGRES_USER']
-    postgres_password = app.config['POSTGRES_PASSWORD']
-    postgres_db = app.config['POSTGRES_DB']
+    mseedindex_executable = app.config["MSEEDINDEX_EXECUTABLE"]
+    postgres_host = app.config["POSTGRES_HOST"]
+    postgres_user = app.config["POSTGRES_USER"]
+    postgres_password = app.config["POSTGRES_PASSWORD"]
+    postgres_db = app.config["POSTGRES_DB"]
 
     run_mseedindex_on_passed_dir(
         basedir=basedir,
@@ -79,35 +77,24 @@ def add_seismic_data(
     return
 
 
-def fetch_timeseries_for_component_timespan(
-        component: Component,
-        timespan: Timespan
-) -> List[Tsindex]:
-    return _query_tsindex_by_time(component=component,
-                                  starttime=timespan.starttime,
-                                  endtime=timespan.remove_last_microsecond()).all()
+def fetch_timeseries_for_component_timespan(component: Component, timespan: Timespan) -> List[Tsindex]:
+    return _query_tsindex_by_time(
+        component=component, starttime=timespan.starttime, endtime=timespan.remove_last_microsecond()
+    ).all()
 
 
-def count_timeseries_for_component_timespan(
-        component: Component,
-        timespan: Timespan
-) -> int:
-    return _query_tsindex_by_time(component=component,
-                                  starttime=timespan.starttime,
-                                  endtime=timespan.remove_last_microsecond()).count()
+def count_timeseries_for_component_timespan(component: Component, timespan: Timespan) -> int:
+    return _query_tsindex_by_time(
+        component=component, starttime=timespan.starttime, endtime=timespan.remove_last_microsecond()
+    ).count()
 
 
-def _query_tsindex_by_time(
-        component: Component,
-        starttime: datetime.datetime,
-        endtime: datetime.datetime
-) -> Query:
-
+def _query_tsindex_by_time(component: Component, starttime: datetime.datetime, endtime: datetime.datetime) -> Query:
     query = Tsindex.query.filter(
         Tsindex.network == component.network,
         Tsindex.station == component.station,
         Tsindex.component == component.component,
         Tsindex.starttime <= starttime,
         Tsindex.endtime >= endtime,
-        )
+    )
     return query

@@ -11,15 +11,16 @@ import pandas as pd
 
 
 def write_ccfs_to_npz(
-        df: pd.DataFrame,
-        filepath: Path,
-        overwrite: bool = False,
-        metadata_keys: Collection[str] = (),
-        metadata_values: Collection[Any] = (),
+    df: pd.DataFrame,
+    filepath: Path,
+    overwrite: bool = False,
+    metadata_keys: Collection[str] = (),
+    metadata_values: Collection[Any] = (),
 ) -> Path:
     if not overwrite and filepath.exists():
-        raise FileExistsError(f"There already exists file with name {filepath}."
-                              f"Either provide different filepath or use overwrite=True")
+        raise FileExistsError(
+            f"There already exists file with name {filepath}.Either provide different filepath or use overwrite=True"
+        )
 
     _check_and_append_npz_suffix(filepath)
 
@@ -48,8 +49,10 @@ def _check_and_append_npz_suffix(filepath: Path) -> Path:
     """
     if filepath.suffix != ".npz":
         filepath.with_suffix(filepath.suffix + ".npz")
-        warnings.warn(f"Provided path does not have npz suffix. "
-                      f"It will be appended and file will be saved to {filepath}")
+        warnings.warn(
+            message=f"Provided path does not have npz suffix. It will be appended and file will be saved to {filepath}",
+            stacklevel=1,
+        )
     return filepath
 
 

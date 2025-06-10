@@ -16,14 +16,16 @@ from noiz.processing.signal_helpers import validate_and_fix_subsample_starttime_
 
 
 def test_validate_and_fix_subsample_starttime_error_valid():
-    s = ['', '', '3 Trace(s) in Stream:',
-         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
-         '2016-01-07T00:00:09.900000Z | 10.0 Hz, 100 samples',
-         'AA.XXY..HH2 | 2016-01-07T00:00:00.000000Z - '
-         '2016-01-07T00:00:09.900000Z | 60.0 Hz, 120 samples',
-         'AA.XXZ..HH2 | 2016-01-07T00:00:00.000000Z - '
-         '2016-01-07T00:00:21.900000Z | 10.0 Hz, 100 samples',
-         '', '']
+    s = [
+        "",
+        "",
+        "3 Trace(s) in Stream:",
+        "AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - 2016-01-07T00:00:09.900000Z | 10.0 Hz, 100 samples",
+        "AA.XXY..HH2 | 2016-01-07T00:00:00.000000Z - 2016-01-07T00:00:09.900000Z | 60.0 Hz, 120 samples",
+        "AA.XXZ..HH2 | 2016-01-07T00:00:00.000000Z - 2016-01-07T00:00:21.900000Z | 10.0 Hz, 100 samples",
+        "",
+        "",
+    ]
 
     s = os.linesep.join(s)
     st = Stream._dummy_stream_from_string(s)
@@ -32,12 +34,15 @@ def test_validate_and_fix_subsample_starttime_error_valid():
 
 
 def test_validate_and_fix_subsample_starttime_error_not_enough_traces():
-    s = ['', '', '2 Trace(s) in Stream:',
-         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
-         '2016-01-07T00:00:09.900000Z | 60.0 Hz, 120 samples',
-         'AA.XXY..HH2 | 2016-01-07T00:00:00.000000Z - '
-         '2016-01-07T00:00:09.900000Z | 60.0 Hz, 120 samples',
-         '', '']
+    s = [
+        "",
+        "",
+        "2 Trace(s) in Stream:",
+        "AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - 2016-01-07T00:00:09.900000Z | 60.0 Hz, 120 samples",
+        "AA.XXY..HH2 | 2016-01-07T00:00:00.000000Z - 2016-01-07T00:00:09.900000Z | 60.0 Hz, 120 samples",
+        "",
+        "",
+    ]
 
     s = os.linesep.join(s)
     st = Stream._dummy_stream_from_string(s)
@@ -46,25 +51,29 @@ def test_validate_and_fix_subsample_starttime_error_not_enough_traces():
 
 
 def test_validate_and_fix_subsample_starttime_error_valid_start_later():
-    s = ['', '', '3 Trace(s) in Stream:',
-         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
-         '2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples',
-         'AA.XXY..HH2 | 2016-01-07T00:00:00.000000Z - '
-         '2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples',
-         'AA.XXZ..HH2 | 2016-01-07T00:00:00.000000Z - '
-         '2016-01-07T00:00:21.900000Z | 10.0 Hz, 120 samples',
-         '', '']
+    s = [
+        "",
+        "",
+        "3 Trace(s) in Stream:",
+        "AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - 2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples",
+        "AA.XXY..HH2 | 2016-01-07T00:00:00.000000Z - 2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples",
+        "AA.XXZ..HH2 | 2016-01-07T00:00:00.000000Z - 2016-01-07T00:00:21.900000Z | 10.0 Hz, 120 samples",
+        "",
+        "",
+    ]
 
     s = os.linesep.join(s)
     st_expected = Stream._dummy_stream_from_string(s)
-    s = ['', '', '3 Trace(s) in Stream:',
-         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
-         '2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples',
-         'AA.XXY..HH2 | 2016-01-07T00:00:00.000000Z - '
-         '2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples',
-         'AA.XXZ..HH2 | 2016-01-07T00:00:00.010000Z - '
-         '2016-01-07T00:00:21.900000Z | 10.0 Hz, 120 samples',
-         '', '']
+    s = [
+        "",
+        "",
+        "3 Trace(s) in Stream:",
+        "AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - 2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples",
+        "AA.XXY..HH2 | 2016-01-07T00:00:00.000000Z - 2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples",
+        "AA.XXZ..HH2 | 2016-01-07T00:00:00.010000Z - 2016-01-07T00:00:21.900000Z | 10.0 Hz, 120 samples",
+        "",
+        "",
+    ]
 
     s = os.linesep.join(s)
     st_invalid = Stream._dummy_stream_from_string(s)
@@ -73,25 +82,29 @@ def test_validate_and_fix_subsample_starttime_error_valid_start_later():
 
 
 def test_validate_and_fix_subsample_starttime_error_valid_start_earlier():
-    s = ['', '', '3 Trace(s) in Stream:',
-         'AA.XXX..HH2 | 2016-01-07T01:00:00.000000Z - '
-         '2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples',
-         'AA.XXY..HH2 | 2016-01-07T01:00:00.000000Z - '
-         '2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples',
-         'AA.XXZ..HH2 | 2016-01-07T01:00:00.000000Z - '
-         '2016-01-07T00:00:21.900000Z | 10.0 Hz, 120 samples',
-         '', '']
+    s = [
+        "",
+        "",
+        "3 Trace(s) in Stream:",
+        "AA.XXX..HH2 | 2016-01-07T01:00:00.000000Z - 2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples",
+        "AA.XXY..HH2 | 2016-01-07T01:00:00.000000Z - 2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples",
+        "AA.XXZ..HH2 | 2016-01-07T01:00:00.000000Z - 2016-01-07T00:00:21.900000Z | 10.0 Hz, 120 samples",
+        "",
+        "",
+    ]
 
     s = os.linesep.join(s)
     st_expected = Stream._dummy_stream_from_string(s)
-    s = ['', '', '3 Trace(s) in Stream:',
-         'AA.XXX..HH2 | 2016-01-07T01:00:00.000000Z - '
-         '2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples',
-         'AA.XXY..HH2 | 2016-01-07T01:00:00.000000Z - '
-         '2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples',
-         'AA.XXZ..HH2 | 2016-01-07T00:59:59.990000Z - '
-         '2016-01-07T00:00:21.900000Z | 10.0 Hz, 120 samples',
-         '', '']
+    s = [
+        "",
+        "",
+        "3 Trace(s) in Stream:",
+        "AA.XXX..HH2 | 2016-01-07T01:00:00.000000Z - 2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples",
+        "AA.XXY..HH2 | 2016-01-07T01:00:00.000000Z - 2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples",
+        "AA.XXZ..HH2 | 2016-01-07T00:59:59.990000Z - 2016-01-07T00:00:21.900000Z | 10.0 Hz, 120 samples",
+        "",
+        "",
+    ]
 
     s = os.linesep.join(s)
     st_invalid = Stream._dummy_stream_from_string(s)
@@ -100,29 +113,31 @@ def test_validate_and_fix_subsample_starttime_error_valid_start_earlier():
 
 
 def test_validate_and_fix_subsample_starttime_error_valid_start_earlier_and_later():
-    s = ['', '', '3 Trace(s) in Stream:',
-         'AA.XXX..HH2 | 2016-01-07T01:00:00.000000Z - '
-         '2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples',
-         'AA.XXY..HH2 | 2016-01-07T01:00:00.000000Z - '
-         '2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples',
-         'AA.XXZ..HH2 | 2016-01-07T01:00:00.000000Z - '
-         '2016-01-07T00:00:21.900000Z | 10.0 Hz, 120 samples',
-         'AA.XZZ..HH2 | 2016-01-07T01:00:00.000000Z - '
-         '2016-01-07T00:00:21.900000Z | 10.0 Hz, 120 samples',
-         '', '']
+    s = [
+        "",
+        "",
+        "3 Trace(s) in Stream:",
+        "AA.XXX..HH2 | 2016-01-07T01:00:00.000000Z - 2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples",
+        "AA.XXY..HH2 | 2016-01-07T01:00:00.000000Z - 2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples",
+        "AA.XXZ..HH2 | 2016-01-07T01:00:00.000000Z - 2016-01-07T00:00:21.900000Z | 10.0 Hz, 120 samples",
+        "AA.XZZ..HH2 | 2016-01-07T01:00:00.000000Z - 2016-01-07T00:00:21.900000Z | 10.0 Hz, 120 samples",
+        "",
+        "",
+    ]
 
     s = os.linesep.join(s)
     st_expected = Stream._dummy_stream_from_string(s)
-    s = ['', '', '3 Trace(s) in Stream:',
-         'AA.XXX..HH2 | 2016-01-07T01:00:00.000000Z - '
-         '2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples',
-         'AA.XXY..HH2 | 2016-01-07T01:00:00.000000Z - '
-         '2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples',
-         'AA.XXZ..HH2 | 2016-01-07T00:59:59.990000Z - '
-         '2016-01-07T00:00:21.900000Z | 10.0 Hz, 120 samples',
-         'AA.XZZ..HH2 | 2016-01-07T01:00:00.0490000Z - '
-         '2016-01-07T00:00:21.900000Z | 10.0 Hz, 120 samples',
-         '', '']
+    s = [
+        "",
+        "",
+        "3 Trace(s) in Stream:",
+        "AA.XXX..HH2 | 2016-01-07T01:00:00.000000Z - 2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples",
+        "AA.XXY..HH2 | 2016-01-07T01:00:00.000000Z - 2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples",
+        "AA.XXZ..HH2 | 2016-01-07T00:59:59.990000Z - 2016-01-07T00:00:21.900000Z | 10.0 Hz, 120 samples",
+        "AA.XZZ..HH2 | 2016-01-07T01:00:00.0490000Z - 2016-01-07T00:00:21.900000Z | 10.0 Hz, 120 samples",
+        "",
+        "",
+    ]
 
     s = os.linesep.join(s)
     st_invalid = Stream._dummy_stream_from_string(s)
@@ -131,14 +146,16 @@ def test_validate_and_fix_subsample_starttime_error_valid_start_earlier_and_late
 
 
 def test_validate_and_fix_subsample_starttime_error_valid_start_later_too_big():
-    s = ['', '', '3 Trace(s) in Stream:',
-         'AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - '
-         '2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples',
-         'AA.XXY..HH2 | 2016-01-07T00:00:01.000000Z - '
-         '2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples',
-         'AA.XXZ..HH2 | 2016-01-07T00:00:00.000000Z - '
-         '2016-01-07T00:00:21.900000Z | 10.0 Hz, 120 samples',
-         '', '']
+    s = [
+        "",
+        "",
+        "3 Trace(s) in Stream:",
+        "AA.XXX..HH2 | 2016-01-07T00:00:00.000000Z - 2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples",
+        "AA.XXY..HH2 | 2016-01-07T00:00:01.000000Z - 2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples",
+        "AA.XXZ..HH2 | 2016-01-07T00:00:00.000000Z - 2016-01-07T00:00:21.900000Z | 10.0 Hz, 120 samples",
+        "",
+        "",
+    ]
 
     s = os.linesep.join(s)
     st = Stream._dummy_stream_from_string(s)
@@ -147,14 +164,16 @@ def test_validate_and_fix_subsample_starttime_error_valid_start_later_too_big():
 
 
 def test_validate_and_fix_subsample_starttime_error_valid_start_earlier_too_big():
-    s = ['', '', '3 Trace(s) in Stream:',
-         'AA.XXX..HH2 | 2016-01-07T01:00:00.000000Z - '
-         '2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples',
-         'AA.XXY..HH2 | 2016-01-07T01:00:00.000000Z - '
-         '2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples',
-         'AA.XXZ..HH2 | 2016-01-07T00:59:59.000000Z - '
-         '2016-01-07T00:00:21.900000Z | 10.0 Hz, 120 samples',
-         '', '']
+    s = [
+        "",
+        "",
+        "3 Trace(s) in Stream:",
+        "AA.XXX..HH2 | 2016-01-07T01:00:00.000000Z - 2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples",
+        "AA.XXY..HH2 | 2016-01-07T01:00:00.000000Z - 2016-01-07T00:00:09.900000Z | 10.0 Hz, 120 samples",
+        "AA.XXZ..HH2 | 2016-01-07T00:59:59.000000Z - 2016-01-07T00:00:21.900000Z | 10.0 Hz, 120 samples",
+        "",
+        "",
+    ]
 
     s = os.linesep.join(s)
     st = Stream._dummy_stream_from_string(s)

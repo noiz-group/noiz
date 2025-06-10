@@ -31,17 +31,16 @@ class StackingTimespan(TimespanMixin):
         nullable=False,
     )
 
-    stacking_schema = db.relationship(
-        "StackingSchema", foreign_keys=[stacking_schema_id]
-    )
+    stacking_schema = db.relationship("StackingSchema", foreign_keys=[stacking_schema_id])
 
 
 @dataclass
 class StackingSchemaHolder:
     """
-        This simple dataclass is just helping to validate :py:class:`~noiz.models.StackingSchema` values loaded
-        from the TOML file
+    This simple dataclass is just helping to validate :py:class:`~noiz.models.StackingSchema` values loaded
+    from the TOML file
     """
+
     qctwo_config_id: int
     minimum_ccf_count: int
     starttime: Union[datetime.datetime, datetime.date]
@@ -56,7 +55,11 @@ class StackingSchema(db.Model):
 
     id = db.Column("id", db.Integer, primary_key=True)
     crosscorrelation_cartesian_params_id = db.Column(
-        "crosscorrelation_cartesian_params_id", db.Integer, db.ForeignKey("crosscorrelation_cartesian_params.id"), nullable=False)
+        "crosscorrelation_cartesian_params_id",
+        db.Integer,
+        db.ForeignKey("crosscorrelation_cartesian_params.id"),
+        nullable=False,
+    )
     qctwo_config_id = db.Column("qctwo_config_id", db.Integer, db.ForeignKey("qctwo_config.id"), nullable=False)
     minimum_ccf_count = db.Column("minimum_ccf_count", db.Integer, nullable=False)
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
@@ -64,17 +67,21 @@ class StackingSchema(db.Model):
     stacking_length = db.Column("stacking_length", db.Interval, nullable=False)
     stacking_overlap = db.Column("stacking_overlap", db.Interval, nullable=False)
 
-    crosscorrelation_cartesian_params = db.relationship("CrosscorrelationCartesianParams", foreign_keys=[crosscorrelation_cartesian_params_id],
-                                                        uselist=False, lazy="joined")
+    crosscorrelation_cartesian_params = db.relationship(
+        "CrosscorrelationCartesianParams",
+        foreign_keys=[crosscorrelation_cartesian_params_id],
+        uselist=False,
+        lazy="joined",
+    )
     qctwo_config = db.relationship("QCTwoConfig", foreign_keys=[qctwo_config_id], uselist=False, lazy="joined")
 
     def __init__(self, **kwargs):
         for key in (
-                "qctwo_config_id",
-                "starttime",
-                "endtime",
-                "stacking_length",
-                "minimum_ccf_count",
+            "qctwo_config_id",
+            "starttime",
+            "endtime",
+            "stacking_length",
+            "minimum_ccf_count",
         ):
             if key not in kwargs.keys():
                 raise ValueError(f"Required value of {key} missing. You have to provide it.")
@@ -111,11 +118,7 @@ class StackingSchema(db.Model):
 ccf_ccfstack_association_table = db.Table(
     "stacking_association",
     db.metadata,
-    db.Column(
-        "crosscorrelation_cartesian_id",
-        db.BigInteger,
-        db.ForeignKey("crosscorrelation_cartesian.id")
-    ),
+    db.Column("crosscorrelation_cartesian_id", db.BigInteger, db.ForeignKey("crosscorrelation_cartesian.id")),
     db.Column("ccfstack_id", db.BigInteger, db.ForeignKey("ccfstack.id")),
 )
 
@@ -155,15 +158,9 @@ class CCFStack(db.Model):
     )
 
     stacking_timespan = db.relationship(
-        "StackingTimespan",
-        foreign_keys=[stacking_timespan_id],
-        uselist=False,
-        lazy="joined"
+        "StackingTimespan", foreign_keys=[stacking_timespan_id], uselist=False, lazy="joined"
     )
 
     stacking_schema = db.relationship(
-        "StackingSchema",
-        foreign_keys=[stacking_schema_id],
-        uselist=False,
-        lazy="joined"
+        "StackingSchema", foreign_keys=[stacking_schema_id], uselist=False, lazy="joined"
     )

@@ -18,16 +18,33 @@ import shutil
 
 from noiz.api.component import fetch_components
 from noiz.api.component_pair import fetch_componentpairs_cartesian
-from noiz.api.processing_config import fetch_datachunkparams_by_id, fetch_processed_datachunk_params_by_id, \
-    fetch_crosscorrelation_cartesian_params_by_id, fetch_stacking_schema_by_id
+from noiz.api.processing_config import (
+    fetch_datachunkparams_by_id,
+    fetch_processed_datachunk_params_by_id,
+    fetch_crosscorrelation_cartesian_params_by_id,
+    fetch_stacking_schema_by_id,
+)
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.app import create_app
 from noiz.cli import cli
 from noiz.database import db
 from noiz.globals import PROCESSED_DATA_DIR
-from noiz.models import StackingSchema, QCOneResults, QCTwoResults, DatachunkParams, \
-    ProcessedDatachunkParams, CrosscorrelationCartesianParams, Datachunk, DatachunkStats, ProcessedDatachunk, \
-    SohGps, SohInstrument, Timespan, CCFStack, CrosscorrelationCartesian
+from noiz.models import (
+    StackingSchema,
+    QCOneResults,
+    QCTwoResults,
+    DatachunkParams,
+    ProcessedDatachunkParams,
+    CrosscorrelationCartesianParams,
+    Datachunk,
+    DatachunkStats,
+    ProcessedDatachunk,
+    SohGps,
+    SohInstrument,
+    Timespan,
+    CCFStack,
+    CrosscorrelationCartesian,
+)
 from noiz.models.component import ComponentFile
 from noiz.models.beamforming import BeamformingResult, BeamformingFile, BeamformingPeakAverageAbspower
 from noiz.models.ppsd import PPSDResult
@@ -69,8 +86,7 @@ class TestDataIngestionRoutines:
         assert Path(PROCESSED_DATA_DIR).absolute().exists()
 
     def test_add_inventory_data(self, workdir_with_content, noiz_app):
-
-        inventory_path = workdir_with_content.joinpath('STI_station_minimal.xml')
+        inventory_path = workdir_with_content.joinpath("STI_station_minimal.xml")
 
         runner = CliRunner()
         result = runner.invoke(cli, ["data", "add_inventory", str(inventory_path)])
@@ -90,19 +106,19 @@ class TestDataIngestionRoutines:
 
     def test_fetch_componentpairs_cartesian(self, noiz_app):
         # TODO remove that test once it's running through API system tests
-        kwargs = dict(
-            network_codes_a=None,
-            station_codes_a=None,
-            component_codes_a=None,
-            network_codes_b=None,
-            station_codes_b=None,
-            component_codes_b=None,
-            accepted_component_code_pairs=None,
-            include_autocorrelation=False,
-            include_intracorrelation=False,
-            only_autocorrelation=False,
-            only_intracorrelation=False,
-        )
+        kwargs = {
+            "network_codes_a": None,
+            "station_codes_a": None,
+            "component_codes_a": None,
+            "network_codes_b": None,
+            "station_codes_b": None,
+            "component_codes_b": None,
+            "accepted_component_code_pairs": None,
+            "include_autocorrelation": False,
+            "include_intracorrelation": False,
+            "only_autocorrelation": False,
+            "only_intracorrelation": False,
+        }
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
@@ -110,85 +126,85 @@ class TestDataIngestionRoutines:
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['include_autocorrelation'] = True
-            kwargs_mod['include_intracorrelation'] = True
+            kwargs_mod["include_autocorrelation"] = True
+            kwargs_mod["include_intracorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 54
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['only_autocorrelation'] = True
+            kwargs_mod["only_autocorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 9
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['only_intracorrelation'] = True
+            kwargs_mod["only_intracorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 18
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11", "TD05")
+            kwargs_mod["station_codes_a"] = ("TD11", "TD05")
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 9
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11", "TD05")
-            kwargs_mod['only_autocorrelation'] = True
+            kwargs_mod["station_codes_a"] = ("TD11", "TD05")
+            kwargs_mod["only_autocorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 6
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11",)
-            kwargs_mod['only_autocorrelation'] = True
+            kwargs_mod["station_codes_a"] = ("TD11",)
+            kwargs_mod["only_autocorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 3
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11",)
-            kwargs_mod['only_intracorrelation'] = True
+            kwargs_mod["station_codes_a"] = ("TD11",)
+            kwargs_mod["only_intracorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 6
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11", "TD05")
-            kwargs_mod['only_intracorrelation'] = True
+            kwargs_mod["station_codes_a"] = ("TD11", "TD05")
+            kwargs_mod["only_intracorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 12
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11",)
-            kwargs_mod['include_autocorrelation'] = True
+            kwargs_mod["station_codes_a"] = ("TD11",)
+            kwargs_mod["include_autocorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 3
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11",)
-            kwargs_mod['include_intracorrelation'] = True
+            kwargs_mod["station_codes_a"] = ("TD11",)
+            kwargs_mod["include_intracorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 6
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11",)
-            kwargs_mod['include_autocorrelation'] = True
-            kwargs_mod['include_intracorrelation'] = True
+            kwargs_mod["station_codes_a"] = ("TD11",)
+            kwargs_mod["include_autocorrelation"] = True
+            kwargs_mod["include_intracorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 9
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11", "TD05")
-            kwargs_mod['include_autocorrelation'] = True
+            kwargs_mod["station_codes_a"] = ("TD11", "TD05")
+            kwargs_mod["include_autocorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 15
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11", "TD05")
-            kwargs_mod['include_intracorrelation'] = True
+            kwargs_mod["station_codes_a"] = ("TD11", "TD05")
+            kwargs_mod["include_intracorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 21
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11", "TD05")
-            kwargs_mod['include_autocorrelation'] = True
-            kwargs_mod['include_intracorrelation'] = True
+            kwargs_mod["station_codes_a"] = ("TD11", "TD05")
+            kwargs_mod["include_autocorrelation"] = True
+            kwargs_mod["include_intracorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 27
 
     @pytest.mark.xfail
@@ -196,77 +212,110 @@ class TestDataIngestionRoutines:
         assert False
 
     def test_add_soh_files_miniseed_instrument(self, workdir_with_content, noiz_app):
-        station = 'TD11'
-        station_type = 'centaur'
-        soh_type = 'miniseed_gpstime'
-        soh_dir = workdir_with_content.joinpath('soh-data', "TD03-all-fields-miniseed")
+        station = "TD11"
+        station_type = "centaur"
+        soh_type = "miniseed_gpstime"
+        soh_dir = workdir_with_content.joinpath("soh-data", "TD03-all-fields-miniseed")
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["data", "add_soh_dir",
-                                     '--station', station,
-                                     '--station_type', station_type,
-                                     '--soh_type', soh_type,
-                                     str(soh_dir)])
+        result = runner.invoke(
+            cli,
+            [
+                "data",
+                "add_soh_dir",
+                "--station",
+                station,
+                "--station_type",
+                station_type,
+                "--soh_type",
+                soh_type,
+                str(soh_dir),
+            ],
+        )
 
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
         with noiz_app.app_context():
-            found_in_db = db.session.query(SohGps) \
+            found_in_db = (
+                db.session.query(SohGps)
                 .filter(
-                SohGps.datetime > datetime.datetime(2017, 11, 24),
-                SohGps.datetime < datetime.datetime(2017, 11, 26),
-            ).all()
+                    SohGps.datetime > datetime.datetime(2017, 11, 24),
+                    SohGps.datetime < datetime.datetime(2017, 11, 26),
+                )
+                .all()
+            )
         assert len(found_in_db) == 48
 
     def test_add_soh_files_miniseed_gpstime(self, workdir_with_content, noiz_app):
-        station = 'TD23'
-        station_type = 'centaur'
-        soh_type = 'miniseed_instrument'
-        soh_dir = workdir_with_content.joinpath('soh-data', "TD09-lacking-fields-minised")
+        station = "TD23"
+        station_type = "centaur"
+        soh_type = "miniseed_instrument"
+        soh_dir = workdir_with_content.joinpath("soh-data", "TD09-lacking-fields-minised")
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["data", "add_soh_dir",
-                                     '--station', station,
-                                     '--station_type', station_type,
-                                     '--soh_type', soh_type,
-                                     str(soh_dir)])
+        result = runner.invoke(
+            cli,
+            [
+                "data",
+                "add_soh_dir",
+                "--station",
+                station,
+                "--station_type",
+                station_type,
+                "--soh_type",
+                soh_type,
+                str(soh_dir),
+            ],
+        )
 
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
         with noiz_app.app_context():
-            found_in_db = db.session.query(SohInstrument) \
+            found_in_db = (
+                db.session.query(SohInstrument)
                 .filter(
-                SohInstrument.datetime > datetime.datetime(2018, 6, 15),
-                SohInstrument.datetime < datetime.datetime(2018, 6, 17),
-            ).all()
+                    SohInstrument.datetime > datetime.datetime(2018, 6, 15),
+                    SohInstrument.datetime < datetime.datetime(2018, 6, 17),
+                )
+                .all()
+            )
         assert len(found_in_db) == 48
 
     def test_add_soh_data_dir(self, workdir_with_content, noiz_app):
-        station = 'TD23'
-        station_type = 'taurus'
-        soh_type = 'gpstime'
-        soh_dir = workdir_with_content.joinpath('soh-data', station)
+        station = "TD23"
+        station_type = "taurus"
+        soh_type = "gpstime"
+        soh_dir = workdir_with_content.joinpath("soh-data", station)
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["data", "add_soh_dir",
-                                     '--station', station,
-                                     '--station_type', station_type,
-                                     '--soh_type', soh_type,
-                                     str(soh_dir)])
+        result = runner.invoke(
+            cli,
+            [
+                "data",
+                "add_soh_dir",
+                "--station",
+                station,
+                "--station_type",
+                station_type,
+                "--soh_type",
+                soh_type,
+                str(soh_dir),
+            ],
+        )
 
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
 
     def test_add_seismic_data(self, workdir_with_content, noiz_app):
-        basedir = workdir_with_content.joinpath('seismic-data')
+        basedir = workdir_with_content.joinpath("seismic-data")
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["data", "add_seismic_data",
-                                     "--filename_pattern", "*.???.resampled",
-                                     str(basedir)])
+        result = runner.invoke(
+            cli, ["data", "add_seismic_data", "--filename_pattern", "*.???.resampled", str(basedir)]
+        )
 
         if result.exit_code != 0:
             raise result.exception
@@ -280,8 +329,7 @@ class TestDataIngestionRoutines:
         assert isinstance(found_in_db[0], Tsindex)
 
     def test_insert_datachunk_params(self, workdir_with_content, noiz_app):
-
-        config_path = workdir_with_content.joinpath('datachunk_params.toml')
+        config_path = workdir_with_content.joinpath("datachunk_params.toml")
 
         runner = CliRunner()
         result = runner.invoke(cli, ["configs", "add_datachunk_params", "--add_to_db", "-f", str(config_path)])
@@ -298,8 +346,7 @@ class TestDataIngestionRoutines:
         assert len(all_configs) == 1
 
     def test_add_qcone_config(self, workdir_with_content, noiz_app):
-
-        config_path = workdir_with_content.joinpath('QCOneConfig.toml')
+        config_path = workdir_with_content.joinpath("QCOneConfig.toml")
 
         runner = CliRunner()
         result = runner.invoke(cli, ["configs", "add_qcone_config", "--add_to_db", "-f", str(config_path)])
@@ -320,10 +367,10 @@ class TestDataIngestionRoutines:
         assert isinstance(fetched_config, QCOneConfig)
         assert len(all_configs) == 1
 
-        with open(config_path, 'r') as f:
+        with open(config_path, "r") as f:
             original_config = toml.load(f)
 
-        for key, value in original_config['QCOne'].items():
+        for key, value in original_config["QCOne"].items():
             if key in ("rejected_times", "null_treatment_policy"):
                 continue
             # elif key == "null_treatment_policy":
@@ -336,11 +383,10 @@ class TestDataIngestionRoutines:
             else:
                 check.almost_equal(fetched_config.__getattribute__(key), value)
 
-        check.equal(len(original_config['QCOne']['rejected_times']), len(fetched_config.time_periods_rejected))
+        check.equal(len(original_config["QCOne"]["rejected_times"]), len(fetched_config.time_periods_rejected))
 
     def test_add_qcone_config_no_rejected_times(self, workdir_with_content, noiz_app):
-
-        config_path = workdir_with_content.joinpath('QCOneConfig_without_rejected_times.toml')
+        config_path = workdir_with_content.joinpath("QCOneConfig_without_rejected_times.toml")
 
         runner = CliRunner()
         result = runner.invoke(cli, ["configs", "add_qcone_config", "--add_to_db", "-f", str(config_path)])
@@ -361,10 +407,10 @@ class TestDataIngestionRoutines:
         assert isinstance(fetched_config, QCOneConfig)
         assert len(all_configs) == 2
 
-        with open(config_path, 'r') as f:
+        with open(config_path, "r") as f:
             original_config = toml.load(f)
 
-        for key, value in original_config['QCOne'].items():
+        for key, value in original_config["QCOne"].items():
             if key in ("rejected_times", "null_treatment_policy"):
                 continue
             # elif key == "null_treatment_policy":
@@ -380,11 +426,12 @@ class TestDataIngestionRoutines:
         assert len(fetched_config.time_periods_rejected) == 0
 
     def test_insert_processed_datachunk_params(self, workdir_with_content, noiz_app):
-
-        config_path = workdir_with_content.joinpath('processed_datachunk_params.toml')
+        config_path = workdir_with_content.joinpath("processed_datachunk_params.toml")
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["configs", "add_processed_datachunk_params", "--add_to_db", "-f", str(config_path)])
+        result = runner.invoke(
+            cli, ["configs", "add_processed_datachunk_params", "--add_to_db", "-f", str(config_path)]
+        )
 
         if result.exit_code != 0:
             raise result.exception
@@ -398,11 +445,12 @@ class TestDataIngestionRoutines:
         assert len(all_configs) == 1
 
     def test_insert_crosscorrelation_cartesian_params(self, workdir_with_content, noiz_app):
-
-        config_path = workdir_with_content.joinpath('crosscorrelation_cartesian_params.toml')
+        config_path = workdir_with_content.joinpath("crosscorrelation_cartesian_params.toml")
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["configs", "add_crosscorrelation_cartesian_params", "--add_to_db", "-f", str(config_path)])
+        result = runner.invoke(
+            cli, ["configs", "add_crosscorrelation_cartesian_params", "--add_to_db", "-f", str(config_path)]
+        )
 
         if result.exit_code != 0:
             raise result.exception
@@ -418,8 +466,7 @@ class TestDataIngestionRoutines:
         assert fetched_config.correlation_max_lag == 20
 
     def test_add_qctwo_config(self, workdir_with_content, noiz_app):
-
-        config_path = workdir_with_content.joinpath('QCTwoConfig.toml')
+        config_path = workdir_with_content.joinpath("QCTwoConfig.toml")
 
         runner = CliRunner()
         result = runner.invoke(cli, ["configs", "add_qctwo_config", "--add_to_db", "-f", str(config_path)])
@@ -440,10 +487,10 @@ class TestDataIngestionRoutines:
         assert isinstance(fetched_config, QCTwoConfig)
         assert len(all_configs) == 1
 
-        with open(config_path, 'r') as f:
+        with open(config_path, "r") as f:
             original_config = toml.load(f)
 
-        for key, value in original_config['QCTwo'].items():
+        for key, value in original_config["QCTwo"].items():
             if key in ("null_treatment_policy", "rejected_times"):
                 continue
             if key in ("starttime", "endtime"):
@@ -451,11 +498,10 @@ class TestDataIngestionRoutines:
                 continue
             check.almost_equal(fetched_config.__getattribute__(key), value)
 
-        check.equal(len(original_config['QCTwo']['rejected_times']), len(fetched_config.time_periods_rejected))
+        check.equal(len(original_config["QCTwo"]["rejected_times"]), len(fetched_config.time_periods_rejected))
 
     def test_add_beamforming_params(self, workdir_with_content, noiz_app):
-
-        config_path = workdir_with_content.joinpath('beamforming_params.toml')
+        config_path = workdir_with_content.joinpath("beamforming_params.toml")
 
         runner = CliRunner()
         result = runner.invoke(cli, ["configs", "add_beamforming_params", "--add_to_db", "-f", str(config_path)])
@@ -476,25 +522,25 @@ class TestDataIngestionRoutines:
         assert isinstance(fetched_config, BeamformingParams)
         assert len(all_configs) == 1
 
-        with open(config_path, 'r') as f:
+        with open(config_path, "r") as f:
             original_config = toml.load(f)
 
-        for key, value in original_config['BeamformingParams'].items():
+        for key, value in original_config["BeamformingParams"].items():
             if key in (
-                    "prewhiten",
-                    "save_average_beamformer_abspower",
-                    "save_all_beamformers_abspower",
-                    "save_average_beamformer_relpower",
-                    "save_all_beamformers_relpower",
-                    "extract_peaks_average_beamformer_abspower",
-                    "extract_peaks_all_beamformers_abspower",
-                    "extract_peaks_average_beamformer_relpower",
-                    "extract_peaks_all_beamformers_relpower",
-                    "random_angle_at_each_iteration",
-                    "perform_deconvolution_all",
-                    "perform_deconvolution_average",
-                    "save_all_arf",
-                    "save_average_arf",
+                "prewhiten",
+                "save_average_beamformer_abspower",
+                "save_all_beamformers_abspower",
+                "save_average_beamformer_relpower",
+                "save_all_beamformers_relpower",
+                "extract_peaks_average_beamformer_abspower",
+                "extract_peaks_all_beamformers_abspower",
+                "extract_peaks_average_beamformer_relpower",
+                "extract_peaks_all_beamformers_relpower",
+                "random_angle_at_each_iteration",
+                "perform_deconvolution_all",
+                "perform_deconvolution_average",
+                "save_all_arf",
+                "save_average_arf",
             ):
                 check.equal(str(fetched_config.__getattribute__(key)), value)
                 continue
@@ -502,26 +548,37 @@ class TestDataIngestionRoutines:
                 check.equal(fetched_config._method, value)
                 continue
             if key in (
-                    "used_component_codes",
-                    "window_length_minimum_periods",
-                    "window_step_fraction",
-                    "neighborhood_size_xaxis_fraction"
+                "used_component_codes",
+                "window_length_minimum_periods",
+                "window_step_fraction",
+                "neighborhood_size_xaxis_fraction",
             ):
                 # TODO Add check for that value
                 continue
             check.almost_equal(fetched_config.__getattribute__(key), value)
 
     def test_generate_beamforming_params(self, workdir_with_content, noiz_app):
-        config_path = workdir_with_content.joinpath('beamforming_params.toml')
+        config_path = workdir_with_content.joinpath("beamforming_params.toml")
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["configs", "generate_beamforming_params",
-                                     "-fn", "30",
-                                     "-fx", "40",
-                                     "-fp", "0.1",
-                                     "-fw", "0.15",
-                                     "--add_to_db",
-                                     "-f", str(config_path)])
+        result = runner.invoke(
+            cli,
+            [
+                "configs",
+                "generate_beamforming_params",
+                "-fn",
+                "30",
+                "-fx",
+                "40",
+                "-fp",
+                "0.1",
+                "-fw",
+                "0.15",
+                "--add_to_db",
+                "-f",
+                str(config_path),
+            ],
+        )
 
         if result.exit_code != 0:
             raise result.exception
@@ -540,8 +597,7 @@ class TestDataIngestionRoutines:
         assert len(fetched_configs) == 100
 
     def test_add_ppsd_params(self, workdir_with_content, noiz_app):
-
-        config_path = workdir_with_content.joinpath('ppsd_params.toml')
+        config_path = workdir_with_content.joinpath("ppsd_params.toml")
 
         runner = CliRunner()
         result = runner.invoke(cli, ["configs", "add_ppsd_params", "--add_to_db", "-f", str(config_path)])
@@ -562,24 +618,23 @@ class TestDataIngestionRoutines:
         assert isinstance(fetched_config, PPSDParams)
         assert len(all_configs) == 1
 
-        with open(config_path, 'r') as f:
+        with open(config_path, "r") as f:
             original_config = toml.load(f)
 
-        for key, value in original_config['PPSDParams'].items():
+        for key, value in original_config["PPSDParams"].items():
             if key in ("save_all_windows", "save_compressed", "resample"):
                 check.equal(str(fetched_config.__getattribute__(key)), value)
             elif key in (
-                    "resampled_frequency_start",
-                    "resampled_frequency_stop",
-                    "resampled_frequency_step",
+                "resampled_frequency_start",
+                "resampled_frequency_stop",
+                "resampled_frequency_step",
             ):
                 continue
             else:
                 check.almost_equal(fetched_config.__getattribute__(key), value)
 
     def test_add_ppsd_params_resample(self, workdir_with_content, noiz_app):
-
-        config_path = workdir_with_content.joinpath('ppsd_params_resampled.toml')
+        config_path = workdir_with_content.joinpath("ppsd_params_resampled.toml")
 
         runner = CliRunner()
         result = runner.invoke(cli, ["configs", "add_ppsd_params", "--add_to_db", "-f", str(config_path)])
@@ -598,18 +653,17 @@ class TestDataIngestionRoutines:
 
         assert isinstance(fetched_config, PPSDParams)
 
-        with open(config_path, 'r') as f:
+        with open(config_path, "r") as f:
             original_config = toml.load(f)
 
-        for key, value in original_config['PPSDParams'].items():
+        for key, value in original_config["PPSDParams"].items():
             if key in ("save_all_windows", "save_compressed", "resample"):
                 check.equal(str(fetched_config.__getattribute__(key)), value)
             else:
                 check.almost_equal(fetched_config.__getattribute__(key), value)
 
     def test_insert_stacking_schema(self, workdir_with_content, noiz_app):
-
-        config_path = workdir_with_content.joinpath('stacking_schema.toml')
+        config_path = workdir_with_content.joinpath("stacking_schema.toml")
 
         runner = CliRunner()
         result = runner.invoke(cli, ["configs", "add_stacking_schema", "--add_to_db", "-f", str(config_path)])
@@ -630,19 +684,25 @@ class TestDataIngestionRoutines:
         assert isinstance(fetched_config.stacking_length, datetime.timedelta)
 
     def test_insert_timespans(self, workdir_with_content, noiz_app):
-
         startdate = datetime.datetime(2019, 9, 30)
         enddate = datetime.datetime(2019, 10, 3)
         delta = datetime.timedelta(days=3)
 
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "data", "add_timespans",
-            "-sd", startdate.strftime("%Y-%m-%d"),
-            "-ed", enddate.strftime("%Y-%m-%d"),
-            "-wl", "1800",
-            "--add_to_db"
-        ])
+        result = runner.invoke(
+            cli,
+            [
+                "data",
+                "add_timespans",
+                "-sd",
+                startdate.strftime("%Y-%m-%d"),
+                "-ed",
+                enddate.strftime("%Y-%m-%d"),
+                "-wl",
+                "1800",
+                "--add_to_db",
+            ],
+        )
 
         if result.exit_code != 0:
             raise result.exception
@@ -650,8 +710,8 @@ class TestDataIngestionRoutines:
 
         with noiz_app.app_context():
             fetched_timespans = fetch_timespans_between_dates(
-                starttime=startdate-delta,
-                endtime=enddate+delta,
+                starttime=startdate - delta,
+                endtime=enddate + delta,
             )
         fetched_timespans = list(fetched_timespans)
 
@@ -661,10 +721,13 @@ class TestDataIngestionRoutines:
     def test_run_datachunk_creation(self, noiz_app, run_sequential):
         runner = CliRunner()
         args = [
-            "processing", "prepare_datachunks",
-            "-sd", "2019-09-30",
-            "-ed", "2019-10-03",
-         ]
+            "processing",
+            "prepare_datachunks",
+            "-sd",
+            "2019-09-30",
+            "-ed",
+            "2019-10-03",
+        ]
         if run_sequential:
             args.append(run_sequential)
 
@@ -674,6 +737,7 @@ class TestDataIngestionRoutines:
         assert result.exit_code == 0
 
         from noiz.api.datachunk import fetch_datachunks
+
         with noiz_app.app_context():
             fetched_datachunks = fetch_datachunks()
 
@@ -688,11 +752,20 @@ class TestDataIngestionRoutines:
         exported_filename = "exported_soh.png"
         exported_filepath = empty_workdir.joinpath(exported_filename).absolute()
         runner = CliRunner()
-        result = runner.invoke(cli, ["plot", "raw_gps_soh",
-                                     "-sd", "2019-09-01",
-                                     "-ed", "2019-11-01",
-                                     "--savefig",
-                                     "-pp", str(exported_filepath)])
+        result = runner.invoke(
+            cli,
+            [
+                "plot",
+                "raw_gps_soh",
+                "-sd",
+                "2019-09-01",
+                "-ed",
+                "2019-11-01",
+                "--savefig",
+                "-pp",
+                str(exported_filepath),
+            ],
+        )
         if result.exit_code != 0:
             raise result.exception
         if result.exit_code != 0:
@@ -702,11 +775,19 @@ class TestDataIngestionRoutines:
 
     def test_average_soh_gps(self, noiz_app):
         from noiz.api.soh import fetch_averaged_soh_gps_all
+
         runner = CliRunner()
-        result = runner.invoke(cli, ["processing", "average_soh_gps",
-                                     "-sd", "2019-09-01",
-                                     "-ed", "2019-11-01",
-                                     ])
+        result = runner.invoke(
+            cli,
+            [
+                "processing",
+                "average_soh_gps",
+                "-sd",
+                "2019-09-01",
+                "-ed",
+                "2019-11-01",
+            ],
+        )
         if result.exit_code != 0:
             raise result.exception
         if result.exit_code != 0:
@@ -729,11 +810,9 @@ class TestDataIngestionRoutines:
         exported_filename = "exported_soh.csv"
         exported_filepath = empty_workdir.joinpath(exported_filename).absolute()
         runner = CliRunner()
-        result = runner.invoke(cli, ["export", "raw_gps_soh",
-                                     "-sd", "2019-09-01",
-                                     "-ed", "2019-11-01",
-                                     '-p', str(exported_filepath)
-                                     ])
+        result = runner.invoke(
+            cli, ["export", "raw_gps_soh", "-sd", "2019-09-01", "-ed", "2019-11-01", "-p", str(exported_filepath)]
+        )
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
@@ -742,10 +821,14 @@ class TestDataIngestionRoutines:
     def test_calc_datachunk_stats(self, noiz_app, run_sequential):
         runner = CliRunner()
         args = [
-            "processing", "calc_datachunk_stats",
-            "-p", "1",
-            "-sd", "2019-09-30",
-            "-ed", "2019-10-03",
+            "processing",
+            "calc_datachunk_stats",
+            "-p",
+            "1",
+            "-sd",
+            "2019-09-30",
+            "-ed",
+            "2019-10-03",
         ]
         if run_sequential:
             args.append(run_sequential)
@@ -767,10 +850,14 @@ class TestDataIngestionRoutines:
     def test_calc_ppsd(self, noiz_app, run_sequential):
         runner = CliRunner()
         args = [
-            "processing", "run_ppsd",
-            "-p", "1",
-            "-sd", "2019-09-30",
-            "-ed", "2019-10-03",
+            "processing",
+            "run_ppsd",
+            "-p",
+            "1",
+            "-sd",
+            "2019-09-30",
+            "-ed",
+            "2019-10-03",
         ]
         if run_sequential:
             args.append(run_sequential)
@@ -794,10 +881,14 @@ class TestDataIngestionRoutines:
     def test_calc_ppsd_resampled(self, noiz_app, run_sequential):
         runner = CliRunner()
         args = [
-            "processing", "run_ppsd",
-            "-p", "2",
-            "-sd", "2019-09-30",
-            "-ed", "2019-10-03",
+            "processing",
+            "run_ppsd",
+            "-p",
+            "2",
+            "-sd",
+            "2019-09-30",
+            "-ed",
+            "2019-10-03",
         ]
         if run_sequential:
             args.append(run_sequential)
@@ -824,19 +915,29 @@ class TestDataIngestionRoutines:
         for key in hand_loaded_file.keys():
             assert np.array_equal(hand_loaded_file[key], loaded_file[key])
 
-        mean_fft = loaded_file['fft_mean']
+        mean_fft = loaded_file["fft_mean"]
         assert len(mean_fft) == len(params.resampled_frequency_vector)
 
     def test_plot_average_psd(self, noiz_app, empty_workdir):
         exported_filename = "average_psd.png"
         exported_filepath = empty_workdir.joinpath(exported_filename).absolute()
         runner = CliRunner()
-        result = runner.invoke(cli, ["plot", "average_psd",
-                                     "-p", "1",
-                                     "-sd", "2019-09-01",
-                                     "-ed", "2019-11-01",
-                                     "--savefig",
-                                     "-pp", str(exported_filepath)])
+        result = runner.invoke(
+            cli,
+            [
+                "plot",
+                "average_psd",
+                "-p",
+                "1",
+                "-sd",
+                "2019-09-01",
+                "-ed",
+                "2019-11-01",
+                "--savefig",
+                "-pp",
+                str(exported_filepath),
+            ],
+        )
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
@@ -846,12 +947,22 @@ class TestDataIngestionRoutines:
         exported_filename = "average_psd.png"
         exported_filepath = empty_workdir.joinpath(exported_filename).absolute()
         runner = CliRunner()
-        result = runner.invoke(cli, ["plot", "average_psd",
-                                     "-p", "2",
-                                     "-sd", "2019-09-01",
-                                     "-ed", "2019-11-01",
-                                     "--savefig",
-                                     "-pp", str(exported_filepath)])
+        result = runner.invoke(
+            cli,
+            [
+                "plot",
+                "average_psd",
+                "-p",
+                "2",
+                "-sd",
+                "2019-09-01",
+                "-ed",
+                "2019-11-01",
+                "--savefig",
+                "-pp",
+                str(exported_filepath),
+            ],
+        )
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
@@ -860,12 +971,22 @@ class TestDataIngestionRoutines:
     def test_plot_spectrogram(self, noiz_app, empty_workdir):
         exported_filepath = empty_workdir.absolute()
         runner = CliRunner()
-        result = runner.invoke(cli, ["plot", "spectrogram",
-                                     "-p", "1",
-                                     "-sd", "2019-09-01",
-                                     "-ed", "2019-11-01",
-                                     "--savefig",
-                                     "-pp", str(exported_filepath)])
+        result = runner.invoke(
+            cli,
+            [
+                "plot",
+                "spectrogram",
+                "-p",
+                "1",
+                "-sd",
+                "2019-09-01",
+                "-ed",
+                "2019-11-01",
+                "--savefig",
+                "-pp",
+                str(exported_filepath),
+            ],
+        )
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
@@ -874,12 +995,22 @@ class TestDataIngestionRoutines:
     def test_plot_spectrogram_resampled_data(self, noiz_app, empty_workdir):
         exported_filepath = empty_workdir.absolute()
         runner = CliRunner()
-        result = runner.invoke(cli, ["plot", "spectrogram",
-                                     "-p", "2",
-                                     "-sd", "2019-09-01",
-                                     "-ed", "2019-11-01",
-                                     "--savefig",
-                                     "-pp", str(exported_filepath)])
+        result = runner.invoke(
+            cli,
+            [
+                "plot",
+                "spectrogram",
+                "-p",
+                "2",
+                "-sd",
+                "2019-09-01",
+                "-ed",
+                "2019-11-01",
+                "--savefig",
+                "-pp",
+                str(exported_filepath),
+            ],
+        )
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
@@ -888,10 +1019,14 @@ class TestDataIngestionRoutines:
     def test_run_qcone(self, noiz_app, run_sequential):
         runner = CliRunner()
         args = [
-            "processing", "run_qcone",
-            "-p", "1",
-            "-sd", "2019-09-30",
-            "-ed", "2019-10-03",
+            "processing",
+            "run_qcone",
+            "-p",
+            "1",
+            "-sd",
+            "2019-09-30",
+            "-ed",
+            "2019-10-03",
         ]
         if run_sequential:
             args.append(run_sequential)
@@ -915,10 +1050,14 @@ class TestDataIngestionRoutines:
     def test_run_beamforming_extract_avg_abspower_save_avg_abspower(self, noiz_app, run_sequential):
         runner = CliRunner()
         args = [
-            "processing", "run_beamforming",
-            "-p", "1",
-            "-sd", "2019-10-02",
-            "-ed", "2019-10-04",
+            "processing",
+            "run_beamforming",
+            "-p",
+            "1",
+            "-sd",
+            "2019-10-02",
+            "-ed",
+            "2019-10-04",
             "--no_skip_existing",
             "--no_raise_errors",
         ]
@@ -947,11 +1086,20 @@ class TestDataIngestionRoutines:
         exported_filename = "beamforming_freq_slow.png"
         exported_filepath = empty_workdir.joinpath(exported_filename).absolute()
         runner = CliRunner()
-        result = runner.invoke(cli, ["plot", "beamforming_freq_slowness",
-                                     "-sd", "2019-09-01",
-                                     "-ed", "2019-11-01",
-                                     "--savefig",
-                                     "-pp", str(exported_filepath)])
+        result = runner.invoke(
+            cli,
+            [
+                "plot",
+                "beamforming_freq_slowness",
+                "-sd",
+                "2019-09-01",
+                "-ed",
+                "2019-11-01",
+                "--savefig",
+                "-pp",
+                str(exported_filepath),
+            ],
+        )
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
@@ -961,11 +1109,20 @@ class TestDataIngestionRoutines:
         exported_filename = "beamforming_freq_velocity.png"
         exported_filepath = empty_workdir.joinpath(exported_filename).absolute()
         runner = CliRunner()
-        result = runner.invoke(cli, ["plot", "beamforming_freq_velocity",
-                                     "-sd", "2019-09-01",
-                                     "-ed", "2019-11-01",
-                                     "--savefig",
-                                     "-pp", str(exported_filepath)])
+        result = runner.invoke(
+            cli,
+            [
+                "plot",
+                "beamforming_freq_velocity",
+                "-sd",
+                "2019-09-01",
+                "-ed",
+                "2019-11-01",
+                "--savefig",
+                "-pp",
+                str(exported_filepath),
+            ],
+        )
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
@@ -974,9 +1131,12 @@ class TestDataIngestionRoutines:
     def test_run_datachunk_processing(self, noiz_app, run_sequential):
         runner = CliRunner()
         args = [
-            "processing", "process_datachunks",
-            "-sd", "2019-09-30",
-            "-ed", "2019-10-03",
+            "processing",
+            "process_datachunks",
+            "-sd",
+            "2019-09-30",
+            "-ed",
+            "2019-10-03",
         ]
         if run_sequential:
             args.append(run_sequential)
@@ -993,10 +1153,14 @@ class TestDataIngestionRoutines:
     def test_run_crosscorrelations_cartesian_ZZ(self, noiz_app, run_sequential):
         runner = CliRunner()
         args = [
-            "processing", "run_crosscorrelations_cartesian",
-            "-sd", "2019-09-30",
-            "-ed", "2019-10-03",
-            "-c", "ZZ",
+            "processing",
+            "run_crosscorrelations_cartesian",
+            "-sd",
+            "2019-09-30",
+            "-ed",
+            "2019-10-03",
+            "-c",
+            "ZZ",
         ]
         if run_sequential:
             args.append(run_sequential)
@@ -1012,10 +1176,14 @@ class TestDataIngestionRoutines:
     def test_run_crosscorrelations_cartesian_ZE(self, noiz_app, run_sequential):
         runner = CliRunner()
         args = [
-            "processing", "run_crosscorrelations_cartesian",
-            "-sd", "2019-09-30",
-            "-ed", "2019-10-03",
-            "-c", "ZE",
+            "processing",
+            "run_crosscorrelations_cartesian",
+            "-sd",
+            "2019-09-30",
+            "-ed",
+            "2019-10-03",
+            "-c",
+            "ZE",
         ]
         if run_sequential:
             args.append(run_sequential)
@@ -1034,9 +1202,15 @@ class TestDataIngestionRoutines:
 
     def test_run_qctwo(self, noiz_app):
         runner = CliRunner()
-        result = runner.invoke(cli, ["processing", "run_qctwo",
-                                     "-c", "1",
-                                     ])
+        result = runner.invoke(
+            cli,
+            [
+                "processing",
+                "run_qctwo",
+                "-c",
+                "1",
+            ],
+        )
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
@@ -1050,9 +1224,12 @@ class TestDataIngestionRoutines:
     def test_run_stacking(self, noiz_app, run_sequential):
         runner = CliRunner()
         args = [
-            "processing", "run_stacking",
-            "-sd", "2019-09-30",
-            "-ed", "2019-10-03",
+            "processing",
+            "run_stacking",
+            "-sd",
+            "2019-09-30",
+            "-ed",
+            "2019-10-03",
         ]
         if run_sequential:
             args.append(run_sequential)

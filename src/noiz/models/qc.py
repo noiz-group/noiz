@@ -27,10 +27,7 @@ class QCOneRejectedTime(db.Model):
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
 
     qcone_config = db.relationship(
-        "QCOneConfig",
-        uselist=False,
-        back_populates="time_periods_rejected",
-        foreign_keys=[qcone_config_id]
+        "QCOneConfig", uselist=False, back_populates="time_periods_rejected", foreign_keys=[qcone_config_id]
     )
     component = db.relationship("Component", foreign_keys=[component_id])
 
@@ -65,17 +62,10 @@ class QCOneConfig(db.Model):
     signal_kurtosis_max = db.Column("signal_kurtosis_max", db.Float, nullable=True)
 
     time_periods_rejected: List[QCOneRejectedTime] = db.relationship(
-        "QCOneRejectedTime",
-        uselist=True,
-        back_populates="qcone_config",
-        lazy="joined"
+        "QCOneRejectedTime", uselist=True, back_populates="qcone_config", lazy="joined"
     )
 
-    datachunk_params = db.relationship(
-        "DatachunkParams",
-        uselist=True,
-        lazy="joined"
-    )
+    datachunk_params = db.relationship("DatachunkParams", uselist=True, lazy="joined")
 
     processed_datachunk_params = db.relationship(
         "ProcessedDatachunkParams",
@@ -96,12 +86,15 @@ class QCOneConfig(db.Model):
         :return: If any of GPS checks is defined
         :rtype: bool
         """
-        res = any([x is not None for x in (
-            self.avg_gps_time_error_min,
-            self.avg_gps_time_error_max,
-            self.avg_gps_time_uncertainty_max,
-            self.avg_gps_time_uncertainty_min
-        )])
+        res = any(
+            x is not None
+            for x in (
+                self.avg_gps_time_error_min,
+                self.avg_gps_time_error_max,
+                self.avg_gps_time_uncertainty_max,
+                self.avg_gps_time_uncertainty_min,
+            )
+        )
         return res
 
     @cached_property
@@ -112,22 +105,25 @@ class QCOneConfig(db.Model):
         :return: Returns True if any of the Stats is defined
         :rtype: bool
         """
-        res = any([x is not None for x in (
-            self.signal_energy_min,
-            self.signal_energy_max,
-            self.signal_min_value_min,
-            self.signal_min_value_max,
-            self.signal_max_value_min,
-            self.signal_max_value_max,
-            self.signal_mean_value_min,
-            self.signal_mean_value_max,
-            self.signal_variance_min,
-            self.signal_variance_max,
-            self.signal_skewness_min,
-            self.signal_skewness_max,
-            self.signal_kurtosis_min,
-            self.signal_kurtosis_max,
-        )])
+        res = any(
+            x is not None
+            for x in (
+                self.signal_energy_min,
+                self.signal_energy_max,
+                self.signal_min_value_min,
+                self.signal_min_value_max,
+                self.signal_max_value_min,
+                self.signal_max_value_max,
+                self.signal_mean_value_min,
+                self.signal_mean_value_max,
+                self.signal_variance_min,
+                self.signal_variance_max,
+                self.signal_skewness_min,
+                self.signal_skewness_max,
+                self.signal_kurtosis_min,
+                self.signal_kurtosis_max,
+            )
+        )
         return res
 
     # py38 only. If you want to go below, use just standard property
@@ -149,9 +145,7 @@ class QCOneConfig(db.Model):
 class QCOneResults(db.Model):
     __tablename__ = "qcone_results"
     __table_args__ = (
-        db.UniqueConstraint(
-            "datachunk_id", "qcone_config_id", name="unique_qcone_results_per_config_per_datachunk"
-        ),
+        db.UniqueConstraint("datachunk_id", "qcone_config_id", name="unique_qcone_results_per_config_per_datachunk"),
     )
 
     id = db.Column("id", db.BigInteger, primary_key=True)
@@ -191,38 +185,41 @@ class QCOneResults(db.Model):
         :return: If QCOne is passing for that chunk
         :rtype: bool
         """
-        ret = all((
-            self.starttime,
-            self.endtime,
-            self.accepted_time,
-            self.avg_gps_time_error_min,
-            self.avg_gps_time_error_max,
-            self.avg_gps_time_uncertainty_min,
-            self.avg_gps_time_uncertainty_max,
-            self.signal_energy_min,
-            self.signal_energy_max,
-            self.signal_min_value_min,
-            self.signal_min_value_max,
-            self.signal_max_value_min,
-            self.signal_max_value_max,
-            self.signal_mean_value_min,
-            self.signal_mean_value_max,
-            self.signal_variance_min,
-            self.signal_variance_max,
-            self.signal_skewness_min,
-            self.signal_skewness_max,
-            self.signal_kurtosis_min,
-            self.signal_kurtosis_max,
-        ))
+        ret = all(
+            (
+                self.starttime,
+                self.endtime,
+                self.accepted_time,
+                self.avg_gps_time_error_min,
+                self.avg_gps_time_error_max,
+                self.avg_gps_time_uncertainty_min,
+                self.avg_gps_time_uncertainty_max,
+                self.signal_energy_min,
+                self.signal_energy_max,
+                self.signal_min_value_min,
+                self.signal_min_value_max,
+                self.signal_max_value_min,
+                self.signal_max_value_max,
+                self.signal_mean_value_min,
+                self.signal_mean_value_max,
+                self.signal_variance_min,
+                self.signal_variance_max,
+                self.signal_skewness_min,
+                self.signal_skewness_max,
+                self.signal_kurtosis_min,
+                self.signal_kurtosis_max,
+            )
+        )
         return ret
 
 
 @dataclass
 class QCOneConfigRejectedTimeHolder:
     """
-        This simple dataclass is just helping to validate :class:`~noiz.models.QCOneRejectedTime` values loaded
-        from the TOML file
+    This simple dataclass is just helping to validate :class:`~noiz.models.QCOneRejectedTime` values loaded
+    from the TOML file
     """
+
     network: str
     station: str
     component: str
@@ -245,7 +242,7 @@ class QCOneConfigHolder:
     avg_gps_time_error_max: Optional[float] = None
     avg_gps_time_uncertainty_min: Optional[float] = None
     avg_gps_time_uncertainty_max: Optional[float] = None
-    rejected_times: Union[Tuple[QCOneConfigRejectedTimeHolder, ...], List[QCOneConfigRejectedTimeHolder]] = tuple()
+    rejected_times: Union[Tuple[QCOneConfigRejectedTimeHolder, ...], List[QCOneConfigRejectedTimeHolder]] = ()
     signal_energy_min: Optional[float] = None
     signal_energy_max: Optional[float] = None
     signal_min_value_min: Optional[float] = None
@@ -272,10 +269,7 @@ class QCTwoRejectedTime(db.Model):
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
 
     qctwo_config = db.relationship(
-        "QCTwoConfig",
-        uselist=False,
-        back_populates="time_periods_rejected",
-        foreign_keys=[qctwo_config_id]
+        "QCTwoConfig", uselist=False, back_populates="time_periods_rejected", foreign_keys=[qctwo_config_id]
     )
     component_pair_cartesian = db.relationship("ComponentPairCartesian", foreign_keys=[componentpair_id])
 
@@ -286,25 +280,17 @@ class QCTwoConfig(db.Model):
     id = db.Column("id", db.Integer, primary_key=True)
 
     crosscorrelation_cartesian_params_id = db.Column(
-        "crosscorrelation_cartesian_params_id",
-        db.Integer,
-        db.ForeignKey("crosscorrelation_cartesian_params.id"))
+        "crosscorrelation_cartesian_params_id", db.Integer, db.ForeignKey("crosscorrelation_cartesian_params.id")
+    )
     null_policy = db.Column("null_policy", db.UnicodeText, default=NullTreatmentPolicy.PASS.value, nullable=False)
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
 
     time_periods_rejected: List[QCTwoRejectedTime] = db.relationship(
-        "QCTwoRejectedTime",
-        uselist=True,
-        back_populates="qctwo_config",
-        lazy="joined"
+        "QCTwoRejectedTime", uselist=True, back_populates="qctwo_config", lazy="joined"
     )
 
-    crosscorrelation_cartesian_params = db.relationship(
-        "CrosscorrelationCartesianParams",
-        uselist=True,
-        lazy="joined"
-    )
+    crosscorrelation_cartesian_params = db.relationship("CrosscorrelationCartesianParams", uselist=True, lazy="joined")
 
     # py38 only. If you want to go below, use just standard property
     @cached_property
@@ -334,9 +320,7 @@ class QCTwoResults(db.Model):
 
     qctwo_config_id = db.Column("qctwo_config_id", db.Integer, db.ForeignKey("qctwo_config.id"))
     crosscorrelation_cartesian_id = db.Column(
-        "crosscorrelation_cartesian_id",
-        db.Integer,
-        db.ForeignKey("crosscorrelation_cartesian.id")
+        "crosscorrelation_cartesian_id", db.Integer, db.ForeignKey("crosscorrelation_cartesian.id")
     )
 
     starttime = db.Column("starttime", db.Boolean, nullable=False)
@@ -344,7 +328,9 @@ class QCTwoResults(db.Model):
     accepted_time = db.Column("accepted_time", db.Boolean, nullable=False)
 
     qctwo_config = db.relationship("QCTwoConfig", foreign_keys=[qctwo_config_id])
-    crosscorrelation_cartesian = db.relationship("CrosscorrelationCartesian", foreign_keys=[crosscorrelation_cartesian_id])
+    crosscorrelation_cartesian = db.relationship(
+        "CrosscorrelationCartesian", foreign_keys=[crosscorrelation_cartesian_id]
+    )
 
     def is_passing(self) -> bool:
         """
@@ -353,20 +339,23 @@ class QCTwoResults(db.Model):
         :return: If QCTwo is passing for that chunk
         :rtype: bool
         """
-        ret = all((
-            self.starttime,
-            self.endtime,
-            self.accepted_time,
-        ))
+        ret = all(
+            (
+                self.starttime,
+                self.endtime,
+                self.accepted_time,
+            )
+        )
         return ret
 
 
 @dataclass
 class QCTwoConfigRejectedTimeHolder:
     """
-        This simple dataclass is just helping to validate :class:`~noiz.models.QCOneRejectedTime` values loaded
-        from the TOML file
+    This simple dataclass is just helping to validate :class:`~noiz.models.QCOneRejectedTime` values loaded
+    from the TOML file
     """
+
     network_a: str
     station_a: str
     component_a: str
@@ -387,4 +376,4 @@ class QCTwoConfigHolder:
     null_treatment_policy: NullTreatmentPolicy = NullTreatmentPolicy.PASS
     starttime: Union[datetime.datetime, datetime.date] = datetime.date(2010, 1, 1)
     endtime: Union[datetime.datetime, datetime.date] = datetime.date(2030, 1, 1)
-    rejected_times: Union[Tuple[QCTwoConfigRejectedTimeHolder, ...], List[QCTwoConfigRejectedTimeHolder]] = tuple()
+    rejected_times: Union[Tuple[QCTwoConfigRejectedTimeHolder, ...], List[QCTwoConfigRejectedTimeHolder]] = ()

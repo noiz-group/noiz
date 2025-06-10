@@ -33,9 +33,9 @@ def __calculate_mean_gps_soh(df: pd.DataFrame, timespan_id: int) -> List[TempAve
     :raises: ValueError
     """
     if len(df) == 0:
-        raise ValueError('Provided DataFrame was empty')
+        raise ValueError("Provided DataFrame was empty")
 
-    averaged = df.drop(['component_id', 'id'], axis=1).groupby('z_component_id').mean()
+    averaged = df.drop(["component_id", "id"], axis=1).groupby("z_component_id").mean()
 
     res = []
     for z_component_id, row in averaged.iterrows():
@@ -45,10 +45,10 @@ def __calculate_mean_gps_soh(df: pd.DataFrame, timespan_id: int) -> List[TempAve
             TempAverageGpsSoh(
                 z_component_id=z_component_id,
                 all_components=all_components.values,
-                device_id=row['device_id'],
+                device_id=row["device_id"],
                 timespan_id=timespan_id,
-                time_error=row['time_error'],
-                time_uncertainty=row['time_uncertainty']
+                time_error=row["time_error"],
+                time_uncertainty=row["time_uncertainty"],
             )
         )
 

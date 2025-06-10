@@ -22,15 +22,9 @@ from noiz.validation_helpers import validate_timestamp_as_pydatetime
 class TimespanMixin(db.Model):
     __abstract__ = True
     id: int = db.Column("id", db.BigInteger, primary_key=True)
-    starttime: datetime.datetime = db.Column(
-        "starttime", db.TIMESTAMP(timezone=True), nullable=False
-    )
-    midtime: datetime.datetime = db.Column(
-        "midtime", db.TIMESTAMP(timezone=True), nullable=False
-    )
-    endtime: datetime.datetime = db.Column(
-        "endtime", db.TIMESTAMP(timezone=True), nullable=False
-    )
+    starttime: datetime.datetime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
+    midtime: datetime.datetime = db.Column("midtime", db.TIMESTAMP(timezone=True), nullable=False)
+    endtime: datetime.datetime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
 
     def __init__(self, **kwargs):
         super(TimespanMixin, self).__init__(**kwargs)
@@ -141,7 +135,7 @@ class TimespanMixin(db.Model):
         return obspy.UTCDateTime(self.endtime_pd - pd.Timedelta(microseconds=1))
 
     def endtime_at_last_sample(self, sampling_rate: Union[int, float]) -> pd.Timestamp:
-        return self.endtime_pd - pd.Timedelta(seconds=1/sampling_rate)
+        return self.endtime_pd - pd.Timedelta(seconds=1 / sampling_rate)
 
     def same_day(self) -> bool:
         """

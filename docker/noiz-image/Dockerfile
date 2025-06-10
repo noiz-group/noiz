@@ -5,7 +5,7 @@
 # Copyright © 2019-2023 Contributors to the Noiz project.
 
 
-FROM python:3.9-buster
+FROM ghcr.io/astral-sh/uv:python3.10-bookworm
 LABEL name="noiz"
 LABEL description="Base image for Noiz"
 LABEL maintainer="Damian Kula, dkula@unistra.fr"
@@ -15,6 +15,14 @@ LABEL date="2020.11.12"
 ENV PYTHONUNBUFFERED 1
 
 RUN apt-get update -yqq && \
+    apt-get install -yqq --no-install-recommends \
+        gnupg && \
+    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys \
+        0E98404D386FA1D9 \
+        6ED0E7B82643E131 \
+        F8D2585B8783D481 \
+        54404762BBB6E853 \
+        BDE6D2B9216EC7A8 && \
     apt-get upgrade -yqq && \
     apt-get install -yqq --no-install-recommends \
         build-essential \
@@ -34,7 +42,6 @@ RUN apt-get update -yqq && \
         /usr/share/man \
         /usr/share/doc \
         /usr/share/doc-base
-
 RUN git clone https://github.com/EarthScope/mseedindex.git /mseedindex && \
   cd /mseedindex && \
   git checkout e8853ccc4c685af399d1c8e5b8136cb2a15b09b1 && \
@@ -50,7 +57,5 @@ WORKDIR /noiz
 COPY ../.. /noiz/
 
 RUN cd /noiz/ && \
-  python -m pip install -r requirements.txt --no-cache-dir && \
-  python -m pip install jupyterlab --no-cache-dir && \
-  pip install -e .
+    uv sync --all-groups
 ENV FLASK_APP="autoapp.py"

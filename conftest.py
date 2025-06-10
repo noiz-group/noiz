@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 @dataclass
 class TestsWithMarkSkipper:
-    ''' Util to skip tests with mark, unless cli option provided. '''
+    """Util to skip tests with mark, unless cli option provided."""
 
     test_mark: str
     cli_option_name: str
@@ -17,12 +17,12 @@ class TestsWithMarkSkipper:
 
 
 cli_skipper = TestsWithMarkSkipper(
-    test_mark='cli',
+    test_mark="cli",
     cli_option_name="--runcli",
     cli_option_help="run cli system tests",
 )
 api_skipper = TestsWithMarkSkipper(
-    test_mark='api',
+    test_mark="api",
     cli_option_name="--runapi",
     cli_option_help="run api system tests",
 )

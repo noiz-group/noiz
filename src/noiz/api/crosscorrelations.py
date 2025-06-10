@@ -14,35 +14,68 @@ from sqlalchemy.sql import Insert
 from typing import List, Union, Optional, Collection, Dict, Generator, Tuple, Any, FrozenSet
 
 from noiz.api.component import fetch_components_by_id
-from noiz.api.component_pair import fetch_componentpairs_cartesian, fetch_componentpairs_cartesian_by_id, \
-    fetch_componentpairs_cylindrical
-from noiz.api.helpers import extract_object_ids, _run_calculate_and_upsert_on_dask, \
-    _run_calculate_and_upsert_sequentially, extract_object_ids_keep_objects
-from noiz.api.processing_config import fetch_crosscorrelation_cartesian_params_by_id, \
-    fetch_crosscorrelation_cylindrical_params_by_id
+from noiz.api.component_pair import (
+    fetch_componentpairs_cartesian,
+    fetch_componentpairs_cartesian_by_id,
+    fetch_componentpairs_cylindrical,
+)
+from noiz.api.helpers import (
+    extract_object_ids,
+    _run_calculate_and_upsert_on_dask,
+    _run_calculate_and_upsert_sequentially,
+    extract_object_ids_keep_objects,
+)
+from noiz.api.processing_config import (
+    fetch_crosscorrelation_cartesian_params_by_id,
+    fetch_crosscorrelation_cylindrical_params_by_id,
+)
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.database import db
 from noiz.exceptions import InconsistentDataException, CorruptedDataException
-from noiz.models import ComponentPairCartesian, CrosscorrelationCartesianFile, CrosscorrelationCartesian, \
-    Datachunk, ProcessedDatachunk, CrosscorrelationCartesianParams, Timespan, CrosscorrelationCylindrical, \
-    ComponentPairCylindrical, CrosscorrelationCylindricalFile, CrosscorrelationCylindricalParams
+from noiz.models import (
+    ComponentPairCartesian,
+    CrosscorrelationCartesianFile,
+    CrosscorrelationCartesian,
+    Datachunk,
+    ProcessedDatachunk,
+    CrosscorrelationCartesianParams,
+    Timespan,
+    CrosscorrelationCylindrical,
+    ComponentPairCylindrical,
+    CrosscorrelationCylindricalFile,
+    CrosscorrelationCylindricalParams,
+)
 from noiz.models.type_aliases import CrosscorrelationCartesianRunnerInputs, CrosscorrelationCylindricalRunnerInputs
-from noiz.processing.crosscorrelations import validate_component_code_pairs, group_chunks_by_timespanid_componentid, \
-    load_data_for_chunks, extract_component_ids_from_component_pairs_cartesian, assembly_ccf_cartesian_dataframe, \
-    group_xcrorrcartesian_by_timespanid_componentids, _fetch_R_T_xcoor, _computation_cylindrical_correlation_R_T, _fetch_RT_Z_xcoor, \
-    _computation_cylindrical_correlation_RT_Z, _fetch_Z_TR_xcoor, _computation_cylindrical_correlation_Z_TR
+from noiz.processing.crosscorrelations import (
+    validate_component_code_pairs,
+    group_chunks_by_timespanid_componentid,
+    load_data_for_chunks,
+    extract_component_ids_from_component_pairs_cartesian,
+    assembly_ccf_cartesian_dataframe,
+    group_xcrorrcartesian_by_timespanid_componentids,
+    _fetch_R_T_xcoor,
+    _computation_cylindrical_correlation_R_T,
+    _fetch_RT_Z_xcoor,
+    _computation_cylindrical_correlation_RT_Z,
+    _fetch_Z_TR_xcoor,
+    _computation_cylindrical_correlation_Z_TR,
+)
 from noiz.processing.io import write_ccfs_to_npz
-from noiz.processing.path_helpers import assembly_filepath, increment_filename_counter, parent_directory_exists_or_create
+from noiz.processing.path_helpers import (
+    assembly_filepath,
+    increment_filename_counter,
+    parent_directory_exists_or_create,
+)
 from noiz.validation_helpers import validate_to_tuple
 
 
 def fetch_crosscorrelation_cartesian(
-        crosscorrelation_cartesian_params_id: Optional[int] = None,
-        componentpair_id: Optional[Collection[int]] = None,
-        timespan_id: Optional[Collection[int]] = None,
-        load_componentpair: bool = False,
-        load_timespan: bool = False,
-        load_crosscorrelation_cartesian_params: bool = False,
+    crosscorrelation_cartesian_params_id: Optional[int] = None,
+    componentpair_id: Optional[Collection[int]] = None,
+    timespan_id: Optional[Collection[int]] = None,
+    load_componentpair: bool = False,
+    load_timespan: bool = False,
+    load_crosscorrelation_cartesian_params: bool = False,
 ) -> List[CrosscorrelationCartesian]:
     """filldocs"""
 
@@ -59,12 +92,12 @@ def fetch_crosscorrelation_cartesian(
 
 
 def count_crosscorrelation_cartesian(
-        crosscorrelation_cartesian_params_id: Optional[int] = None,
-        componentpair_id: Optional[Collection[int]] = None,
-        timespan_id: Optional[Collection[int]] = None,
-        load_componentpair: bool = False,
-        load_timespan: bool = False,
-        load_crosscorrelation_cartesian_params: bool = False,
+    crosscorrelation_cartesian_params_id: Optional[int] = None,
+    componentpair_id: Optional[Collection[int]] = None,
+    timespan_id: Optional[Collection[int]] = None,
+    load_componentpair: bool = False,
+    load_timespan: bool = False,
+    load_crosscorrelation_cartesian_params: bool = False,
 ) -> int:
     """filldocs"""
     query = _query_crosscorrelation_cartesian(
@@ -80,18 +113,20 @@ def count_crosscorrelation_cartesian(
 
 
 def _query_crosscorrelation_cartesian(
-        crosscorrelation_cartesian_params_id: Optional[int] = None,
-        componentpair_id: Optional[Collection[int]] = None,
-        timespan_id: Optional[Collection[int]] = None,
-        load_componentpair: bool = False,
-        load_timespan: bool = False,
-        load_crosscorrelation_cartesian_params: bool = False,
+    crosscorrelation_cartesian_params_id: Optional[int] = None,
+    componentpair_id: Optional[Collection[int]] = None,
+    timespan_id: Optional[Collection[int]] = None,
+    load_componentpair: bool = False,
+    load_timespan: bool = False,
+    load_crosscorrelation_cartesian_params: bool = False,
 ) -> Query:
     """filldocs"""
     filters = []
 
     if crosscorrelation_cartesian_params_id is not None:
-        filters.append(CrosscorrelationCartesian.crosscorrelation_cartesian_params_id == crosscorrelation_cartesian_params_id)
+        filters.append(
+            CrosscorrelationCartesian.crosscorrelation_cartesian_params_id == crosscorrelation_cartesian_params_id
+        )
     if componentpair_id is not None:
         filters.append(CrosscorrelationCartesian.componentpair_id.in_(componentpair_id))
     if timespan_id is not None:
@@ -121,30 +156,30 @@ def _prepare_upsert_command_crosscorrelation_cartesian(xcorr: CrosscorrelationCa
         )
         .on_conflict_do_update(
             constraint="unique_ccf_per_timespan_per_componentpair_per_config",
-            set_=dict(ccf=xcorr.ccf),
+            set_={"ccf": xcorr.ccf},
         )
     )
     return insert_command
 
 
 def perform_crosscorrelations_cartesian(
-        crosscorrelation_cartesian_params_id: int,
-        starttime: Union[datetime.date, datetime.datetime],
-        endtime: Union[datetime.date, datetime.datetime],
-        network_codes_a: Optional[Union[Collection[str], str]] = None,
-        station_codes_a: Optional[Union[Collection[str], str]] = None,
-        component_codes_a: Optional[Union[Collection[str], str]] = None,
-        network_codes_b: Optional[Union[Collection[str], str]] = None,
-        station_codes_b: Optional[Union[Collection[str], str]] = None,
-        component_codes_b: Optional[Union[Collection[str], str]] = None,
-        accepted_component_code_pairs: Optional[Union[Collection[str], str]] = None,
-        include_autocorrelation: Optional[bool] = False,
-        include_intracorrelation: Optional[bool] = False,
-        only_autocorrelation: Optional[bool] = False,
-        only_intracorrelation: Optional[bool] = False,
-        raise_errors: bool = False,
-        batch_size: int = 5000,
-        parallel: bool = True,
+    crosscorrelation_cartesian_params_id: int,
+    starttime: Union[datetime.date, datetime.datetime],
+    endtime: Union[datetime.date, datetime.datetime],
+    network_codes_a: Optional[Union[Collection[str], str]] = None,
+    station_codes_a: Optional[Union[Collection[str], str]] = None,
+    component_codes_a: Optional[Union[Collection[str], str]] = None,
+    network_codes_b: Optional[Union[Collection[str], str]] = None,
+    station_codes_b: Optional[Union[Collection[str], str]] = None,
+    component_codes_b: Optional[Union[Collection[str], str]] = None,
+    accepted_component_code_pairs: Optional[Union[Collection[str], str]] = None,
+    include_autocorrelation: Optional[bool] = False,
+    include_intracorrelation: Optional[bool] = False,
+    only_autocorrelation: Optional[bool] = False,
+    only_intracorrelation: Optional[bool] = False,
+    raise_errors: bool = False,
+    batch_size: int = 5000,
+    parallel: bool = True,
 ) -> None:
     """
     Performs crosscorrelations_cartesian according to provided set of selectors.
@@ -227,20 +262,20 @@ def perform_crosscorrelations_cartesian(
 
 
 def _prepare_inputs_for_crosscorrelations_cartesian(
-        crosscorrelation_cartesian_params_id: int,
-        starttime: Union[datetime.date, datetime.datetime],
-        endtime: Union[datetime.date, datetime.datetime],
-        network_codes_a: Optional[Union[Collection[str], str]] = None,
-        station_codes_a: Optional[Union[Collection[str], str]] = None,
-        component_codes_a: Optional[Union[Collection[str], str]] = None,
-        network_codes_b: Optional[Union[Collection[str], str]] = None,
-        station_codes_b: Optional[Union[Collection[str], str]] = None,
-        component_codes_b: Optional[Union[Collection[str], str]] = None,
-        accepted_component_code_pairs: Optional[Union[Collection[str], str]] = None,
-        include_autocorrelation: Optional[bool] = False,
-        include_intracorrelation: Optional[bool] = False,
-        only_autocorrelation: Optional[bool] = False,
-        only_intracorrelation: Optional[bool] = False,
+    crosscorrelation_cartesian_params_id: int,
+    starttime: Union[datetime.date, datetime.datetime],
+    endtime: Union[datetime.date, datetime.datetime],
+    network_codes_a: Optional[Union[Collection[str], str]] = None,
+    station_codes_a: Optional[Union[Collection[str], str]] = None,
+    component_codes_a: Optional[Union[Collection[str], str]] = None,
+    network_codes_b: Optional[Union[Collection[str], str]] = None,
+    station_codes_b: Optional[Union[Collection[str], str]] = None,
+    component_codes_b: Optional[Union[Collection[str], str]] = None,
+    accepted_component_code_pairs: Optional[Union[Collection[str], str]] = None,
+    include_autocorrelation: Optional[bool] = False,
+    include_intracorrelation: Optional[bool] = False,
+    only_autocorrelation: Optional[bool] = False,
+    only_intracorrelation: Optional[bool] = False,
 ) -> Generator[CrosscorrelationCartesianRunnerInputs, None, None]:
     """
     Performs all the database queries to prepare all the data required for running crosscorrelations_cartesian.
@@ -307,17 +342,16 @@ def _prepare_inputs_for_crosscorrelations_cartesian(
     logger.info(f"Fetched correlation_params object {params}")
     fetched_processed_datachunks = (
         db.session.query(Timespan, ProcessedDatachunk)
-                  .join(Datachunk, Timespan.id == Datachunk.timespan_id)
-                  .join(ProcessedDatachunk, Datachunk.id == ProcessedDatachunk.datachunk_id)
-                  .filter(
-                      Timespan.id.in_(fetched_timespans_ids),  # type: ignore
-                      ProcessedDatachunk.processed_datachunk_params_id == params.processed_datachunk_params_id,
-                      Datachunk.component_id.in_(single_component_ids),
+        .join(Datachunk, Timespan.id == Datachunk.timespan_id)
+        .join(ProcessedDatachunk, Datachunk.id == ProcessedDatachunk.datachunk_id)
+        .filter(
+            Timespan.id.in_(fetched_timespans_ids),  # type: ignore
+            ProcessedDatachunk.processed_datachunk_params_id == params.processed_datachunk_params_id,
+            Datachunk.component_id.in_(single_component_ids),
         )
-        .options(
-            subqueryload(ProcessedDatachunk.datachunk)
-        )
-        .all())
+        .options(subqueryload(ProcessedDatachunk.datachunk))
+        .all()
+    )
     grouped_datachunks = group_chunks_by_timespanid_componentid(processed_datachunks=fetched_processed_datachunks)
 
     for timespan, grouped_processed_chunks in grouped_datachunks.items():
@@ -326,13 +360,13 @@ def _prepare_inputs_for_crosscorrelations_cartesian(
             timespan=timespan,
             crosscorrelation_cartesian_params=params,
             grouped_processed_chunks=grouped_processed_chunks,
-            component_pairs_cartesian=tuple(fetched_component_pairs)
+            component_pairs_cartesian=tuple(fetched_component_pairs),
         )
     return
 
 
 def _crosscorrelate_for_timespan_wrapper(
-        inputs: CrosscorrelationCartesianRunnerInputs,
+    inputs: CrosscorrelationCartesianRunnerInputs,
 ) -> Tuple[CrosscorrelationCartesian, ...]:
     """
     Thin wrapper around :py:meth:`noiz.api.crosscorrelations._crosscorrelate_for_timespan` translating
@@ -353,26 +387,24 @@ def _crosscorrelate_for_timespan_wrapper(
     )
 
 
-def assembly_ccf_filename(
-        component_pair_cartesian: ComponentPairCartesian,
-        timespan: Timespan,
-        count: int = 0
-) -> str:
+def assembly_ccf_filename(component_pair_cartesian: ComponentPairCartesian, timespan: Timespan, count: int = 0) -> str:
     year = str(timespan.starttime.year)
     doy_time = timespan.starttime.strftime("%j.%H%M")
 
-    filename = ".".join([
-        component_pair_cartesian.component_a.network,
-        component_pair_cartesian.component_a.station,
-        component_pair_cartesian.component_a.component,
-        component_pair_cartesian.component_b.network,
-        component_pair_cartesian.component_b.station,
-        component_pair_cartesian.component_b.component,
-        year,
-        doy_time,
-        str(count),
-        "npy"
-    ])
+    filename = ".".join(
+        [
+            component_pair_cartesian.component_a.network,
+            component_pair_cartesian.component_a.station,
+            component_pair_cartesian.component_a.component,
+            component_pair_cartesian.component_b.network,
+            component_pair_cartesian.component_b.station,
+            component_pair_cartesian.component_b.component,
+            year,
+            doy_time,
+            str(count),
+            "npy",
+        ]
+    )
 
     return filename
 
@@ -394,23 +426,29 @@ def assembly_ccf_dir(component_pair_cartesian: ComponentPairCartesian, timespan:
         Path(str(timespan.starttime.year))
         .joinpath(str(timespan.starttime.month))
         .joinpath(component_pair_cartesian.component_code_pair)
-        .joinpath(f"{component_pair_cartesian.component_a.network}.{component_pair_cartesian.component_a.station}-"
-                  f"{component_pair_cartesian.component_b.network}.{component_pair_cartesian.component_b.station}")
+        .joinpath(
+            f"{component_pair_cartesian.component_a.network}.{component_pair_cartesian.component_a.station}-"
+            f"{component_pair_cartesian.component_b.network}.{component_pair_cartesian.component_b.station}"
+        )
     )
 
 
 def _crosscorrelate_for_timespan(
-        timespan: Timespan,
-        params: CrosscorrelationCartesianParams,
-        grouped_processed_chunks: Dict[int, ProcessedDatachunk],
-        component_pairs_cartesian: Tuple[ComponentPairCartesian, ...]
+    timespan: Timespan,
+    params: CrosscorrelationCartesianParams,
+    grouped_processed_chunks: Dict[int, ProcessedDatachunk],
+    component_pairs_cartesian: Tuple[ComponentPairCartesian, ...],
 ) -> List[CrosscorrelationCartesian]:
     """filldocs"""
     from noiz.globals import PROCESSED_DATA_DIR
-    from noiz.processing.path_helpers import assembly_filepath, \
-        increment_filename_counter, parent_directory_exists_or_create
+    from noiz.processing.path_helpers import (
+        assembly_filepath,
+        increment_filename_counter,
+        parent_directory_exists_or_create,
+    )
 
     import numpy as np
+
     logger.info(f"Running crosscorrelation_cartesian for {timespan}")
 
     logger.debug(f"Loading data for timespan {timespan}")
@@ -418,7 +456,7 @@ def _crosscorrelate_for_timespan(
         streams = load_data_for_chunks(chunks=grouped_processed_chunks)
     except CorruptedDataException as e:
         logger.error(e)
-        raise CorruptedDataException(e)
+        raise CorruptedDataException(e) from e
     xcorrs = []
     for pair in component_pairs_cartesian:
         cmp_a_id = pair.component_a_id
@@ -431,9 +469,11 @@ def _crosscorrelate_for_timespan(
         logger.debug(f"Processed chunks for {pair} are present. Starting processing.")
 
         if streams[cmp_a_id].data.shape != streams[cmp_b_id].data.shape:
-            msg = f"The shapes of data arrays for {cmp_a_id} and {cmp_b_id} are different. " \
-                  f"Shapes: {cmp_a_id} is {streams[cmp_a_id].data.shape} " \
-                  f"{cmp_b_id} is {streams[cmp_b_id].data.shape} "
+            msg = (
+                f"The shapes of data arrays for {cmp_a_id} and {cmp_b_id} are different. "
+                f"Shapes: {cmp_a_id} is {streams[cmp_a_id].data.shape} "
+                f"{cmp_b_id} is {streams[cmp_b_id].data.shape} "
+            )
             logger.error(msg)
             raise InconsistentDataException(msg)
 
@@ -446,20 +486,15 @@ def _crosscorrelate_for_timespan(
         filepath = assembly_filepath(
             PROCESSED_DATA_DIR,  # type: ignore
             "ccf",
-            assembly_ccf_dir(component_pair_cartesian=pair, timespan=timespan) \
-            .joinpath(assembly_ccf_filename(
-                component_pair_cartesian=pair,
-                timespan=timespan,
-                count=0
-            )),
+            assembly_ccf_dir(component_pair_cartesian=pair, timespan=timespan).joinpath(
+                assembly_ccf_filename(component_pair_cartesian=pair, timespan=timespan, count=0)
+            ),
         )
 
         if filepath.exists():
-            logger.debug(f"Filepath {filepath} exists. "
-                         f"Trying to find next free one.")
+            logger.debug(f"Filepath {filepath} exists. Trying to find next free one.")
             filepath = increment_filename_counter(filepath=filepath, extension=True)
-            logger.debug(f"Free filepath found. "
-                         f"CCF will be saved to {filepath}")
+            logger.debug(f"Free filepath found. CCF will be saved to {filepath}")
 
         logger.info(f"CCF will be written to {str(filepath)}")
         parent_directory_exists_or_create(filepath)
@@ -480,22 +515,22 @@ def _crosscorrelate_for_timespan(
 
 
 def fetch_crosscorrelations_cartesian_and_save(
-        crosscorrelation_cartesian_params_id: int,
-        starttime: Union[datetime.date, datetime.datetime],
-        endtime: Union[datetime.date, datetime.datetime],
-        dirpath: Path,
-        overwrite: bool = False,
-        network_codes_a: Optional[Union[Collection[str], str]] = None,
-        station_codes_a: Optional[Union[Collection[str], str]] = None,
-        component_codes_a: Optional[Union[Collection[str], str]] = None,
-        network_codes_b: Optional[Union[Collection[str], str]] = None,
-        station_codes_b: Optional[Union[Collection[str], str]] = None,
-        component_codes_b: Optional[Union[Collection[str], str]] = None,
-        accepted_component_code_pairs: Optional[Union[Collection[str], str]] = None,
-        include_autocorrelation: Optional[bool] = False,
-        include_intracorrelation: Optional[bool] = False,
-        only_autocorrelation: Optional[bool] = False,
-        only_intracorrelation: Optional[bool] = False,
+    crosscorrelation_cartesian_params_id: int,
+    starttime: Union[datetime.date, datetime.datetime],
+    endtime: Union[datetime.date, datetime.datetime],
+    dirpath: Path,
+    overwrite: bool = False,
+    network_codes_a: Optional[Union[Collection[str], str]] = None,
+    station_codes_a: Optional[Union[Collection[str], str]] = None,
+    component_codes_a: Optional[Union[Collection[str], str]] = None,
+    network_codes_b: Optional[Union[Collection[str], str]] = None,
+    station_codes_b: Optional[Union[Collection[str], str]] = None,
+    component_codes_b: Optional[Union[Collection[str], str]] = None,
+    accepted_component_code_pairs: Optional[Union[Collection[str], str]] = None,
+    include_autocorrelation: Optional[bool] = False,
+    include_intracorrelation: Optional[bool] = False,
+    only_autocorrelation: Optional[bool] = False,
+    only_intracorrelation: Optional[bool] = False,
 ):
     component_pairs_cartesian = fetch_componentpairs_cartesian(
         network_codes_a=network_codes_a,
@@ -533,10 +568,12 @@ def fetch_crosscorrelations_cartesian_and_save(
                 overwrite=overwrite,
             )
         except FileExistsError:
-            logger.error(f"File {filepath} with data for pair {pair} exists. "
-                         f"It will not be overwritten. "
-                         f"If you want to overwrite it, pass overwrite=True."
-                         f"Skipping to the next pair. ")
+            logger.error(
+                f"File {filepath} with data for pair {pair} exists. "
+                f"It will not be overwritten. "
+                f"If you want to overwrite it, pass overwrite=True."
+                f"Skipping to the next pair. "
+            )
             continue
         if final_path is None:
             continue
@@ -546,13 +583,13 @@ def fetch_crosscorrelations_cartesian_and_save(
 
 
 def fetch_crosscorrelations_cartesian_single_pair_and_save(
-        crosscorrelation_cartesian_params_id: int,
-        starttime: Union[datetime.date, datetime.datetime],
-        endtime: Union[datetime.date, datetime.datetime],
-        filepath: Path,
-        component_pair_cartesian: Optional[ComponentPairCartesian] = None,
-        component_pair_cartesian_id: Optional[int] = None,
-        overwrite: bool = False,
+    crosscorrelation_cartesian_params_id: int,
+    starttime: Union[datetime.date, datetime.datetime],
+    endtime: Union[datetime.date, datetime.datetime],
+    filepath: Path,
+    component_pair_cartesian: Optional[ComponentPairCartesian] = None,
+    component_pair_cartesian_id: Optional[int] = None,
+    overwrite: bool = False,
 ) -> Optional[Path]:
     if component_pair_cartesian_id is not None and component_pair_cartesian is not None:
         raise ValueError("You cannot provide both component_pair_cartesian and component_pair_cartesian_id")
@@ -572,9 +609,7 @@ def fetch_crosscorrelations_cartesian_single_pair_and_save(
     timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
     # noinspection PyUnboundLocalVariable
     fetched_ccfs = fetch_crosscorrelation_cartesian(
-        componentpair_id=(pair.id,),
-        load_timespan=True,
-        timespan_id=extract_object_ids(timespans)
+        componentpair_id=(pair.id,), load_timespan=True, timespan_id=extract_object_ids(timespans)
     )
 
     if len(fetched_ccfs) == 0:
@@ -633,22 +668,21 @@ def _create_cylindrical_correlation_file(component_pair_cylindrical, xcorr_cylin
     from noiz.globals import PROCESSED_DATA_DIR
 
     filepath = assembly_filepath(
-            PROCESSED_DATA_DIR,  # type: ignore
-            "ccf_cylindrical",
-            assembly_ccf_cylindrical_dir(component_pair_cylindrical=component_pair_cylindrical, timespan=timespan) \
-            .joinpath(assembly_ccf_cylindrical_filename(
-                component_pair_cylindrical=component_pair_cylindrical,
-                timespan=timespan,
-                count=0
-            )),
-        )
+        PROCESSED_DATA_DIR,  # type: ignore
+        "ccf_cylindrical",
+        assembly_ccf_cylindrical_dir(
+            component_pair_cylindrical=component_pair_cylindrical, timespan=timespan
+        ).joinpath(
+            assembly_ccf_cylindrical_filename(
+                component_pair_cylindrical=component_pair_cylindrical, timespan=timespan, count=0
+            )
+        ),
+    )
 
     if filepath.exists():
-        logger.debug(f"Filepath {filepath} exists. "
-                     f"Trying to find next free one.")
+        logger.debug(f"Filepath {filepath} exists. Trying to find next free one.")
         filepath = increment_filename_counter(filepath=filepath, extension=True)
-        logger.debug(f"Free filepath found. "
-                     f"CCF will be saved to {filepath}")
+        logger.debug(f"Free filepath found. CCF will be saved to {filepath}")
 
     logger.info(f"CCF will be written to {str(filepath)}")
     parent_directory_exists_or_create(filepath)
@@ -695,15 +729,12 @@ def assembly_ccf_cylindrical_dir(
         Path(str(timespan.starttime.year))
         .joinpath(str(timespan.starttime.month))
         .joinpath(component_pair_cylindrical.component_cylindrical_code_pair)
-        .joinpath(f"{a_network}.{a_station}-"
-                  f"{b_network}.{b_station}")
+        .joinpath(f"{a_network}.{a_station}-{b_network}.{b_station}")
     )
 
 
 def assembly_ccf_cylindrical_filename(
-        component_pair_cylindrical: ComponentPairCylindrical,
-        timespan: Timespan,
-        count: int = 0
+    component_pair_cylindrical: ComponentPairCylindrical, timespan: Timespan, count: int = 0
 ) -> str:
     """
     Creating the filename for saving cylindrical crosscorrelation file
@@ -735,26 +766,27 @@ def assembly_ccf_cylindrical_filename(
         b_network = component_pair_cylindrical.component_bE.network
         b_station = component_pair_cylindrical.component_bE.station
 
-    filename = ".".join([
-        a_network,
-        a_station,
-        component_pair_cylindrical.component_cylindrical_code_pair[0],
-        b_network,
-        b_station,
-        component_pair_cylindrical.component_cylindrical_code_pair[1],
-        year,
-        doy_time,
-        str(count),
-        "npy"
-    ])
+    filename = ".".join(
+        [
+            a_network,
+            a_station,
+            component_pair_cylindrical.component_cylindrical_code_pair[0],
+            b_network,
+            b_station,
+            component_pair_cylindrical.component_cylindrical_code_pair[1],
+            year,
+            doy_time,
+            str(count),
+            "npy",
+        ]
+    )
 
     return filename
 
 
 def _crosscorrelate_cylindrical_for_timespan_wrapper(
-        inputs: CrosscorrelationCylindricalRunnerInputs,
+    inputs: CrosscorrelationCylindricalRunnerInputs,
 ) -> Tuple[CrosscorrelationCylindrical, ...]:
-
     return tuple(
         _crosscorrelate_cylindrical_for_timespan(
             timespan=inputs["timespan"],
@@ -766,24 +798,29 @@ def _crosscorrelate_cylindrical_for_timespan_wrapper(
 
 
 def _crosscorrelate_cylindrical_for_timespan(
-        timespan: Timespan,
-        crosscorrelation_cylindrical_params: CrosscorrelationCylindricalParams,
-        grouped_processed_xcorrcartisian,
-        component_pairs_cylindrical: Tuple[ComponentPairCylindrical, ...]
+    timespan: Timespan,
+    crosscorrelation_cylindrical_params: CrosscorrelationCylindricalParams,
+    grouped_processed_xcorrcartisian,
+    component_pairs_cylindrical: Tuple[ComponentPairCylindrical, ...],
 ) -> List[CrosscorrelationCylindrical]:
-
     from noiz.globals import PROCESSED_DATA_DIR
-    from noiz.processing.path_helpers import assembly_filepath, \
-        increment_filename_counter, parent_directory_exists_or_create
+    from noiz.processing.path_helpers import (
+        assembly_filepath,
+        increment_filename_counter,
+        parent_directory_exists_or_create,
+    )
 
     import numpy as np
+
     logger.info(f"Running crosscorrelation_cylindrical for {timespan}")
 
     logger.debug(f"Loading data for timespan {timespan}")
     xcorrs_cylindrical = []
 
     for cp in component_pairs_cylindrical:
-        xcorr_cylindrical_all = cylindrical_correlation_computation(cp, grouped_processed_xcorrcartisian, timespan, crosscorrelation_cylindrical_params)
+        xcorr_cylindrical_all = cylindrical_correlation_computation(
+            cp, grouped_processed_xcorrcartisian, timespan, crosscorrelation_cylindrical_params
+        )
         xcorrs_cylindrical.append(xcorr_cylindrical_all)
 
     return xcorrs_cylindrical
@@ -807,10 +844,9 @@ def _prepare_upsert_command_crosscorrelation_cylindrical(xcorr: Crosscorrelation
             crosscorrelation_cylindrical_file_id=xcorr.crosscorrelation_cylindrical_file_id,
             ccf=xcorr.ccf,
         )
-
         .on_conflict_do_update(
             constraint="unique_ccfcylindrical_per_timespan_cylindrical_per_config",
-            set_=dict(ccf=xcorr.ccf),
+            set_={"ccf": xcorr.ccf},
         )
     )
     return insert_command
@@ -829,15 +865,13 @@ def _fetch_cp_cartesian_associated_to_cp_cylindrical(
 
     component_a_id = tuple(
         [
-            cp.component_aE_id
-            if cp.component_aE_id is not None else cp.component_aZ_id
+            cp.component_aE_id if cp.component_aE_id is not None else cp.component_aZ_id
             for cp in component_pairs_cylindrical
         ]
     )
     component_b_id = tuple(
         [
-            cp.component_bE_id
-            if cp.component_bE_id is not None else cp.component_bZ_id
+            cp.component_bE_id if cp.component_bE_id is not None else cp.component_bZ_id
             for cp in component_pairs_cylindrical
         ]
     )
@@ -850,10 +884,10 @@ def _fetch_cp_cartesian_associated_to_cp_cylindrical(
 
 
 def cylindrical_correlation_computation(
-        component_pair_cylindrical: ComponentPairCylindrical,
-        grouped_processed_xcorrcartisian: Dict[FrozenSet[int], CrosscorrelationCartesian],
-        timespan: Timespan,
-        params: CrosscorrelationCylindricalParams,
+    component_pair_cylindrical: ComponentPairCylindrical,
+    grouped_processed_xcorrcartisian: Dict[FrozenSet[int], CrosscorrelationCartesian],
+    timespan: Timespan,
+    params: CrosscorrelationCylindricalParams,
 ):
     """_summary_
 
@@ -874,16 +908,10 @@ def cylindrical_correlation_computation(
     try:
         if (code == "RR") | (code == "TT") | (code == "RT") | (code == "TR"):
             xcorr_aN_bN, xcorr_aE_bE, xcorr_aN_bE, xcorr_aE_bN = _fetch_R_T_xcoor(
-                grouped_processed_xcorrcartisian,
-                component_pair_cylindrical
+                grouped_processed_xcorrcartisian, component_pair_cylindrical
             )
             xcorr_cylindrical = _computation_cylindrical_correlation_R_T(
-                code,
-                xcorr_aN_bN,
-                xcorr_aE_bE,
-                xcorr_aN_bE,
-                xcorr_aE_bN,
-                back_az
+                code, xcorr_aN_bN, xcorr_aE_bE, xcorr_aN_bE, xcorr_aE_bN, back_az
             )
             ccf_file = _create_cylindrical_correlation_file(component_pair_cylindrical, xcorr_cylindrical, timespan)
 
@@ -952,13 +980,13 @@ def cylindrical_correlation_computation(
 
 
 def _prepare_inputs_for_crosscorrelations_cylindrical(
-        crosscorrelation_cylindrical_params_id: int,
-        starttime: Union[datetime.date, datetime.datetime],
-        endtime: Union[datetime.date, datetime.datetime],
-        accepted_component_code_pairs_cylindrical: Optional[Union[Collection[str], str]] = None,
-        station_codes_a: Optional[Union[Collection[str], str]] = None,
-        station_codes_b: Optional[Union[Collection[str], str]] = None,
-        batch_size: int = 100,
+    crosscorrelation_cylindrical_params_id: int,
+    starttime: Union[datetime.date, datetime.datetime],
+    endtime: Union[datetime.date, datetime.datetime],
+    accepted_component_code_pairs_cylindrical: Optional[Union[Collection[str], str]] = None,
+    station_codes_a: Optional[Union[Collection[str], str]] = None,
+    station_codes_b: Optional[Union[Collection[str], str]] = None,
+    batch_size: int = 100,
 ) -> Generator[CrosscorrelationCylindricalRunnerInputs, None, None]:
     """Performs all the database queries to prepare all the data required for running crosscorrelations_cylindrical.
     Returns a tuple of inputs specific for the further calculations.
@@ -997,9 +1025,7 @@ def _prepare_inputs_for_crosscorrelations_cylindrical(
         endtime=endtime,
     )
     component_pairs_cartesian_ids = extract_object_ids(
-        _fetch_cp_cartesian_associated_to_cp_cylindrical(
-            component_pairs_cylindrical
-        )
+        _fetch_cp_cartesian_associated_to_cp_cylindrical(component_pairs_cylindrical)
     )
     params = fetch_crosscorrelation_cylindrical_params_by_id(id=crosscorrelation_cylindrical_params_id)
 
@@ -1008,11 +1034,11 @@ def _prepare_inputs_for_crosscorrelations_cylindrical(
         logger.info(f"batch_t_id length  is {len(batch_t_tid)}")
         fetched_xcorrelation_cartesian = (
             db.session.query(CrosscorrelationCartesian.timespan_id, CrosscorrelationCartesian)
-                      .filter(
-                          CrosscorrelationCartesian.timespan_id.in_(batch_t_tid.keys()),  # type: ignore
-                          CrosscorrelationCartesian.crosscorrelation_cartesian_params_id
-                          == params.crosscorrelation_cartesian_params_id,
-                          CrosscorrelationCartesian.componentpair_id.in_(component_pairs_cartesian_ids),
+            .filter(
+                CrosscorrelationCartesian.timespan_id.in_(batch_t_tid.keys()),  # type: ignore
+                CrosscorrelationCartesian.crosscorrelation_cartesian_params_id
+                == params.crosscorrelation_cartesian_params_id,
+                CrosscorrelationCartesian.componentpair_id.in_(component_pairs_cartesian_ids),
             )
             .order_by(CrosscorrelationCartesian.timespan_id)
             .all()
@@ -1022,11 +1048,17 @@ def _prepare_inputs_for_crosscorrelations_cylindrical(
             processed_xcorrcartesian=fetched_xcorrelation_cartesian
         )
 
-        comp_cart_id = list({
-            xc.CrosscorrelationCartesian.componentpair_cartesian.component_a_id for xc in fetched_xcorrelation_cartesian
-        }.union({
-            xc.CrosscorrelationCartesian.componentpair_cartesian.component_b_id for xc in fetched_xcorrelation_cartesian
-        }))
+        comp_cart_id = list(
+            {
+                xc.CrosscorrelationCartesian.componentpair_cartesian.component_a_id
+                for xc in fetched_xcorrelation_cartesian
+            }.union(
+                {
+                    xc.CrosscorrelationCartesian.componentpair_cartesian.component_b_id
+                    for xc in fetched_xcorrelation_cartesian
+                }
+            )
+        )
 
         component_pairs_cylindrical_select = []
         for xc in component_pairs_cylindrical:
@@ -1039,7 +1071,7 @@ def _prepare_inputs_for_crosscorrelations_cylindrical(
                 timespan=batch_t_tid[timespan_id],
                 crosscorrelation_cylindrical_params=params,
                 grouped_processed_xcorrcartisian=grouped_processed_xcorr,
-                component_pairs_cylindrical=tuple(component_pairs_cylindrical_select)
+                component_pairs_cylindrical=tuple(component_pairs_cylindrical_select),
             )
     return
 
@@ -1055,7 +1087,6 @@ def perform_crosscorrelations_cylindrical(
     batch_size: int = 100,
     parallel: bool = True,
 ) -> None:
-
     calculation_inputs = _prepare_inputs_for_crosscorrelations_cylindrical(
         crosscorrelation_cylindrical_params_id=crosscorrelation_cylindrical_params_id,
         starttime=starttime,
@@ -1065,7 +1096,7 @@ def perform_crosscorrelations_cylindrical(
         station_codes_b=station_codes_b,
         batch_size=batch_size,
     )
-    logger.info('calculation_inputs ok')
+    logger.info("calculation_inputs ok")
     if parallel:
         _run_calculate_and_upsert_on_dask(
             batch_size=batch_size,

@@ -13,7 +13,12 @@ import datetime
 class TestComponent:
     def test_init(self):
         with pytest.raises(ValueError):
-            Component(x=452484.15, y=5411718.72, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1))
+            Component(
+                x=452484.15,
+                y=5411718.72,
+                start_date=datetime.datetime(2016, 1, 1),
+                end_date=datetime.datetime(2020, 1, 1),
+            )
 
         with pytest.raises(ValueError):
             Component(x=452484.15, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1))
@@ -21,8 +26,20 @@ class TestComponent:
         with pytest.raises(ValueError):
             Component(start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1))
 
-        assert isinstance(Component(lat=10, lon=1, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1)), Component)
-        assert isinstance(Component(x=452484.15, y=5411718.72, zone=31, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1)), Component)
+        assert isinstance(
+            Component(lat=10, lon=1, start_date=datetime.datetime(2016, 1, 1), end_date=datetime.datetime(2020, 1, 1)),
+            Component,
+        )
+        assert isinstance(
+            Component(
+                x=452484.15,
+                y=5411718.72,
+                zone=31,
+                start_date=datetime.datetime(2016, 1, 1),
+                end_date=datetime.datetime(2020, 1, 1),
+            ),
+            Component,
+        )
 
     def test_get_location_as_attribdict(self):
         latitude = 10

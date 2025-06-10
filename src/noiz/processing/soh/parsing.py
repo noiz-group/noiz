@@ -11,8 +11,8 @@ from noiz.processing.soh.parsing_params import SohParsingParams
 
 
 def read_multiple_soh(
-        filepaths: Union[Collection[Path], Generator[Path, None, None]],
-        parsing_params: SohParsingParams,
+    filepaths: Union[Collection[Path], Generator[Path, None, None]],
+    parsing_params: SohParsingParams,
 ) -> pd.DataFrame:
     """
     Method that takes a collection of Paths and iterates over them trying to parse each of them according
@@ -27,6 +27,7 @@ def read_multiple_soh(
     :rtype: pd.DataFrame
     """
     from tqdm import tqdm
+
     all_dfs = []
     for filepath in tqdm(filepaths):
         try:
@@ -35,28 +36,25 @@ def read_multiple_soh(
                 parsing_params=parsing_params,
             )
         except UnparsableDateTimeException as e:
-            raise UnparsableDateTimeException(f"{filepath} has raised exception {e}")
+            raise UnparsableDateTimeException(f"{filepath} has raised exception {e}") from e
         if single_df is None:
             continue
 
         all_dfs.append(single_df)
 
     if len(all_dfs) == 0:
-        raise SohParsingException('There were no parsable SOH among provided filepaths.')
+        raise SohParsingException("There were no parsable SOH among provided filepaths.")
 
     try:
         df = pd.concat(all_dfs)
     except ValueError as e:
-        raise SohParsingException(f"There was an exception raised by pd.concat. The exception was: {e}")
+        raise SohParsingException(f"There was an exception raised by pd.concat. The exception was: {e}") from e
     df = df.sort_index()
     df = parsing_params.postprocessor(df=df)
     return df
 
 
-def _glob_soh_directory(
-        parsing_parameters: SohParsingParams,
-        main_filepath: Path
-) -> Generator[Path, None, None]:
+def _glob_soh_directory(parsing_parameters: SohParsingParams, main_filepath: Path) -> Generator[Path, None, None]:
     """
     Method that uses Path.rglob to find all files in main_filepath that fit a globbing string defined in
     parsing_parameters.search_regex

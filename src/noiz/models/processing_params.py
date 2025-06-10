@@ -72,14 +72,15 @@ class DatachunkParams(db.Model):
         self._preprocessing_taper_max_percentage = kwargs.get("preprocessing_taper_max_percentage", 0.1)
 
         self._remove_response = kwargs.get("remove_response", True)
-        self._response_constant_coefficient = kwargs.get("response_constant_coefficient", 0.)
+        self._response_constant_coefficient = kwargs.get("response_constant_coefficient", 0.0)
 
         self._spectral_whitening = kwargs.get("spectral_whitening", True)  # deprecatethis
         self._one_bit = kwargs.get("one_bit", True)  # deprecatethis
 
         if "datachunk_sample_threshold" in kwargs.keys() and "datachunk_sample_tolerance" in kwargs.keys():
-            raise ValueError("Only one of `datachunk_sample_threshold` or `datachunk_sample_tolerance` "
-                             "accepted at time.")
+            raise ValueError(
+                "Only one of `datachunk_sample_threshold` or `datachunk_sample_tolerance` accepted at time."
+            )
 
         if "datachunk_sample_threshold" in kwargs.keys():
             self._datachunk_sample_tolerance = 1 - kwargs.get("datachunk_sample_threshold", 0.98)
@@ -89,9 +90,11 @@ class DatachunkParams(db.Model):
         padding_method = kwargs.get("zero_padding_method", "tapered_padded")
         try:
             padding_method_valid = ZeroPaddingMethod(padding_method)
-        except ValueError:
-            raise ValueError(f"Not supported padding method. Supported types are: {list(ZeroPaddingMethod)}, "
-                             f"You provided {padding_method}")
+        except ValueError as e:
+            raise ValueError(
+                f"Not supported padding method. Supported types are: {list(ZeroPaddingMethod)}, "
+                f"You provided {padding_method}"
+            ) from e
         self._padding_method = padding_method_valid.value
 
         self._max_gap_for_merging = kwargs.get("max_gap_for_merging", 10)
@@ -102,26 +105,25 @@ class DatachunkParams(db.Model):
         self._correlation_max_lag = kwargs.get("correlation_max_lag", 60)  # deprecatethis
 
     def as_dict(self):
-        return dict(
-            datachunk_params_id=self.id,
-            datachunk_params_sampling_rate=self.sampling_rate,
-            datachunk_params_prefiltering_low=self.prefiltering_low,
-            datachunk_params_prefiltering_high=self.prefiltering_high,
-            datachunk_params_prefiltering_order=self.prefiltering_order,
-            datachunk_params_preprocessing_taper_type=self.preprocessing_taper_type,
-            datachunk_params_preprocessing_taper_side=self.preprocessing_taper_side,
-            datachunk_params_preprocessing_taper_max_length=self.preprocessing_taper_max_length,
-            datachunk_params_preprocessing_taper_max_percentage=self.preprocessing_taper_max_percentage,
-            datachunk_params_remove_response=self.remove_response,
-            datachunk_params_response_constant_coefficient=self.response_constant_coefficient,
-            datachunk_params_datachunk_sample_tolerance=self.datachunk_sample_tolerance,
-            datachunk_params_max_gap_for_merging=self.max_gap_for_merging,
-            datachunk_params_zero_padding_method=self.zero_padding_method,
-            datachunk_params_padding_taper_type=self.padding_taper_type,
-            datachunk_params_padding_taper_max_length=self.padding_taper_max_length,
-            datachunk_params_padding_taper_max_percentage=self.padding_taper_max_percentage,
-
-        )
+        return {
+            "datachunk_params_id": self.id,
+            "datachunk_params_sampling_rate": self.sampling_rate,
+            "datachunk_params_prefiltering_low": self.prefiltering_low,
+            "datachunk_params_prefiltering_high": self.prefiltering_high,
+            "datachunk_params_prefiltering_order": self.prefiltering_order,
+            "datachunk_params_preprocessing_taper_type": self.preprocessing_taper_type,
+            "datachunk_params_preprocessing_taper_side": self.preprocessing_taper_side,
+            "datachunk_params_preprocessing_taper_max_length": self.preprocessing_taper_max_length,
+            "datachunk_params_preprocessing_taper_max_percentage": self.preprocessing_taper_max_percentage,
+            "datachunk_params_remove_response": self.remove_response,
+            "datachunk_params_response_constant_coefficient": self.response_constant_coefficient,
+            "datachunk_params_datachunk_sample_tolerance": self.datachunk_sample_tolerance,
+            "datachunk_params_max_gap_for_merging": self.max_gap_for_merging,
+            "datachunk_params_zero_padding_method": self.zero_padding_method,
+            "datachunk_params_padding_taper_type": self.padding_taper_type,
+            "datachunk_params_padding_taper_max_length": self.padding_taper_max_length,
+            "datachunk_params_padding_taper_max_percentage": self.padding_taper_max_percentage,
+        }
 
     @property
     def sampling_rate(self):
@@ -240,9 +242,10 @@ class DatachunkParams(db.Model):
 @dataclass
 class DatachunkParamsHolder:
     """
-        This simple dataclass is just helping to validate :class:`~noiz.models.DatachunkParams` values loaded
-        from the TOML file
+    This simple dataclass is just helping to validate :class:`~noiz.models.DatachunkParams` values loaded
+    from the TOML file
     """
+
     sampling_rate: float
     prefiltering_low: float
     prefiltering_high: float
@@ -267,21 +270,22 @@ class DatachunkParamsHolder:
 @dataclass
 class ProcessedDatachunkParamsHolder:
     """
-        This simple dataclass is just helping to validate :py:class:`~noiz.models.ProcessedDatachunkParams`
-        values loaded from the TOML file
+    This simple dataclass is just helping to validate :py:class:`~noiz.models.ProcessedDatachunkParams`
+    values loaded from the TOML file
     """
+
     datachunk_params_id: int
     qcone_config_id: Optional[int]
-    filtering_low : float
-    filtering_high : float
-    filtering_order : int
-    waterlevel_ratio_to_max : float
-    convolution_sliding_window_min_samples : int
-    convolution_sliding_window_max_ratio_to_fmin : float
-    convolution_sliding_window_ratio_to_bandwidth : float
-    quefrency_filter_lowpass_pct : float
-    quefrency_filter_taper_min_samples : int
-    quefrency_filter_taper_length_ratio_to_length_cepstrum : float
+    filtering_low: float
+    filtering_high: float
+    filtering_order: int
+    waterlevel_ratio_to_max: float
+    convolution_sliding_window_min_samples: int
+    convolution_sliding_window_max_ratio_to_fmin: float
+    convolution_sliding_window_ratio_to_bandwidth: float
+    quefrency_filter_lowpass_pct: float
+    quefrency_filter_taper_min_samples: int
+    quefrency_filter_taper_length_ratio_to_length_cepstrum: float
     spectral_whitening: bool
     one_bit: bool
     quefrency: bool
@@ -301,12 +305,22 @@ class ProcessedDatachunkParams(db.Model):
     _filtering_order = db.Column("filtering_order", db.Integer, nullable=False)
     _waterlevel_ratio_to_max = db.Column("waterlevel_ratio_to_max", db.Float, default=0.001, nullable=False)
 
-    _convolution_sliding_window_min_samples = db.Column("convolution_sliding_window_min_samples", db.Integer, default=10,  nullable=False)
-    _convolution_sliding_window_max_ratio_to_fmin = db.Column("convolution_sliding_window_max_ratio_to_fmin", db.Float, default=0.5, nullable=False)
-    _convolution_sliding_window_ratio_to_bandwidth = db.Column("convolution_sliding_window_ratio_to_bandwidth", db.Float, default=0.15, nullable=False)
+    _convolution_sliding_window_min_samples = db.Column(
+        "convolution_sliding_window_min_samples", db.Integer, default=10, nullable=False
+    )
+    _convolution_sliding_window_max_ratio_to_fmin = db.Column(
+        "convolution_sliding_window_max_ratio_to_fmin", db.Float, default=0.5, nullable=False
+    )
+    _convolution_sliding_window_ratio_to_bandwidth = db.Column(
+        "convolution_sliding_window_ratio_to_bandwidth", db.Float, default=0.15, nullable=False
+    )
     _quefrency_filter_lowpass_pct = db.Column("quefrency_filter_lowpass_pct", db.Float, default=0.5, nullable=False)
-    _quefrency_filter_taper_min_samples = db.Column("quefrency_filter_taper_min_samples", db.Integer, default=10,  nullable=False)
-    _quefrency_filter_taper_length_ratio_to_length_cepstrum = db.Column("quefrency_filter_taper_length_ratio_to_length_cepstrum", db.Float, default=0.01, nullable=False)
+    _quefrency_filter_taper_min_samples = db.Column(
+        "quefrency_filter_taper_min_samples", db.Integer, default=10, nullable=False
+    )
+    _quefrency_filter_taper_length_ratio_to_length_cepstrum = db.Column(
+        "quefrency_filter_taper_length_ratio_to_length_cepstrum", db.Float, default=0.01, nullable=False
+    )
 
     _spectral_whitening = db.Column("spectral_whitening", db.Boolean, default=True, nullable=False)
     _one_bit = db.Column("one_bit", db.Boolean, default=True, nullable=False)
@@ -326,7 +340,8 @@ class ProcessedDatachunkParams(db.Model):
     )
 
     crosscorrelation_cartesian_params = db.relationship(
-        "CrosscorrelationCartesianParams", uselist=True,
+        "CrosscorrelationCartesianParams",
+        uselist=True,
     )
 
     def __init__(self, **kwargs):
@@ -337,34 +352,40 @@ class ProcessedDatachunkParams(db.Model):
         self._filtering_order = kwargs.get("filtering_order")
         self._waterlevel_ratio_to_max = kwargs.get("waterlevel_ratio_to_max", 0.001)
         self._convolution_sliding_window_min_samples = kwargs.get("convolution_sliding_window_min_samples", 10)
-        self._convolution_sliding_window_max_ratio_to_fmin = kwargs.get("convolution_sliding_window_max_ratio_to_fmin ", 0.5)
-        self._convolution_sliding_window_ratio_to_bandwidth = kwargs.get("convolution_sliding_window_ratio_to_bandwidth", 0.15)
+        self._convolution_sliding_window_max_ratio_to_fmin = kwargs.get(
+            "convolution_sliding_window_max_ratio_to_fmin ", 0.5
+        )
+        self._convolution_sliding_window_ratio_to_bandwidth = kwargs.get(
+            "convolution_sliding_window_ratio_to_bandwidth", 0.15
+        )
         self._quefrency_filter_lowpass_pct = kwargs.get("quefrency_filter_lowpass_pct", 0.5)
         self._quefrency_filter_taper_min_samples = kwargs.get("quefrency_filter_taper_min_samples", 10)
-        self._quefrency_filter_taper_length_ratio_to_length_cepstrum = kwargs.get("quefrency_filter_taper_length_ratio_to_length_cepstrum", 0.01)
+        self._quefrency_filter_taper_length_ratio_to_length_cepstrum = kwargs.get(
+            "quefrency_filter_taper_length_ratio_to_length_cepstrum", 0.01
+        )
         self._spectral_whitening = kwargs.get("spectral_whitening", True)
         self._one_bit = kwargs.get("one_bit", True)
         self._quefrency = kwargs.get("quefrency", True)
 
     def as_dict(self):
-        return dict(
-            processeddatachunk_params_id=self.id,
-            processeddatachunk_params_datachunk_params_id=self.datachunk_params_id,
-            processeddatachunk_params_qcone_config_id=self.qcone_config_id,
-            processeddatachunk_params_filtering_low=self.filtering_low,
-            processeddatachunk_params_filtering_high=self.filtering_high,
-            processeddatachunk_params_filtering_order=self.filtering_order,
-            processeddatachunk_params_waterlevel_ratio_to_max=self.waterlevel_ratio_to_max,
-            processeddatachunk_params_convolution_sliding_window_min_samples=self.convolution_sliding_window_min_samples,
-            processeddatachunk_params_convolution_sliding_window_max_ratio_to_fmin=self.convolution_sliding_window_max_ratio_to_fmin,
-            processeddatachunk_params_convolution_sliding_window_ratio_to_bandwidth=self.convolution_sliding_window_ratio_to_bandwidth,
-            processeddatachunk_params_quefrency_filter_lowpass_pct=self.quefrency_filter_lowpass_pct,
-            processeddatachunk_params_quefrency_filter_taper_min_samples=self.quefrency_filter_taper_min_samples,
-            processeddatachunk_params_quefrency_filter_taper_length_ratio_to_length_cepstrum=self.quefrency_filter_taper_length_ratio_to_length_cepstrum,
-            processeddatachunk_params_spectral_whitening=self.spectral_whitening,
-            processeddatachunk_params_one_bit=self.one_bit,
-            processeddatachunk_params_quefrency=self.quefrency,
-        )
+        return {
+            "processeddatachunk_params_id": self.id,
+            "processeddatachunk_params_datachunk_params_id": self.datachunk_params_id,
+            "processeddatachunk_params_qcone_config_id": self.qcone_config_id,
+            "processeddatachunk_params_filtering_low": self.filtering_low,
+            "processeddatachunk_params_filtering_high": self.filtering_high,
+            "processeddatachunk_params_filtering_order": self.filtering_order,
+            "processeddatachunk_params_waterlevel_ratio_to_max": self.waterlevel_ratio_to_max,
+            "processeddatachunk_params_convolution_sliding_window_min_samples": self.convolution_sliding_window_min_samples,
+            "processeddatachunk_params_convolution_sliding_window_max_ratio_to_fmin": self.convolution_sliding_window_max_ratio_to_fmin,
+            "processeddatachunk_params_convolution_sliding_window_ratio_to_bandwidth": self.convolution_sliding_window_ratio_to_bandwidth,
+            "processeddatachunk_params_quefrency_filter_lowpass_pct": self.quefrency_filter_lowpass_pct,
+            "processeddatachunk_params_quefrency_filter_taper_min_samples": self.quefrency_filter_taper_min_samples,
+            "processeddatachunk_params_quefrency_filter_taper_length_ratio_to_length_cepstrum": self.quefrency_filter_taper_length_ratio_to_length_cepstrum,
+            "processeddatachunk_params_spectral_whitening": self.spectral_whitening,
+            "processeddatachunk_params_one_bit": self.one_bit,
+            "processeddatachunk_params_quefrency": self.quefrency,
+        }
 
     @property
     def filtering_low(self):
@@ -422,9 +443,10 @@ class ProcessedDatachunkParams(db.Model):
 @dataclass
 class CrosscorrelationCartesianParamsHolder:
     """
-        This simple dataclass is just helping to validate :py:class:`~noiz.models.CrosscorrelationCartesianParams`
-        values loaded from the TOML file
+    This simple dataclass is just helping to validate :py:class:`~noiz.models.CrosscorrelationCartesianParams`
+    values loaded from the TOML file
     """
+
     processed_datachunk_params_id: int
     correlation_max_lag: int
 
@@ -447,7 +469,8 @@ class CrosscorrelationCartesianParams(db.Model):
     )
 
     crosscorrelation_cylindrical_params = db.relationship(
-        "CrosscorrelationCylindricalParams", uselist=True,
+        "CrosscorrelationCylindricalParams",
+        uselist=True,
     )
 
     def __init__(self, **kwargs):
@@ -458,12 +481,12 @@ class CrosscorrelationCartesianParams(db.Model):
 
     def as_dict(self):
         """filldocs"""
-        return dict(
-            crosscorrelation_cartesian_params_id=self.id,
-            crosscorrelation_cartesian_params_processed_datachunk_params_id=self.processed_datachunk_params_id,
-            crosscorrelation_cartesian_params_sampling_rate=self.sampling_rate,
-            crosscorrelation_cartesian_params_correlation_max_lag=self.correlation_max_lag,
-        )
+        return {
+            "crosscorrelation_cartesian_params_id": self.id,
+            "crosscorrelation_cartesian_params_processed_datachunk_params_id": self.processed_datachunk_params_id,
+            "crosscorrelation_cartesian_params_sampling_rate": self.sampling_rate,
+            "crosscorrelation_cartesian_params_correlation_max_lag": self.correlation_max_lag,
+        }
 
     @property
     def sampling_rate(self):
@@ -500,9 +523,10 @@ class CrosscorrelationCartesianParams(db.Model):
 @dataclass
 class CrosscorrelationCylindricalParamsHolder:
     """
-        This simple dataclass is just helping to validate :py:class:`~noiz.models.CrosscorrelationCylindricalParams`
-        values loaded from the TOML file
+    This simple dataclass is just helping to validate :py:class:`~noiz.models.CrosscorrelationCylindricalParams`
+    values loaded from the TOML file
     """
+
     crosscorrelation_cartesian_params_id: int
 
 
@@ -511,7 +535,10 @@ class CrosscorrelationCylindricalParams(db.Model):
 
     id = db.Column("id", db.Integer, primary_key=True)
     crosscorrelation_cartesian_params_id = db.Column(
-        "crosscorrelation_cartesian_params_id", db.Integer, db.ForeignKey("crosscorrelation_cartesian_params.id"), nullable=False
+        "crosscorrelation_cartesian_params_id",
+        db.Integer,
+        db.ForeignKey("crosscorrelation_cartesian_params.id"),
+        nullable=False,
     )
     crosscorrelation_cartesian_params = db.relationship(
         "CrosscorrelationCartesianParams",
@@ -525,18 +552,19 @@ class CrosscorrelationCylindricalParams(db.Model):
 
     def as_dict(self):
         """filldocs"""
-        return dict(
-            crosscorrelation_cylindrical_params_id=self.id,
-            crosscorrelation_cylindrical_params_crosscorrelation_cartesian_params_id=self.crosscorrelation_cartesian_params_id,
-        )
+        return {
+            "crosscorrelation_cylindrical_params_id": self.id,
+            "crosscorrelation_cylindrical_params_crosscorrelation_cartesian_params_id": self.crosscorrelation_cartesian_params_id,
+        }
 
 
 @dataclass
 class BeamformingParamsHolder:
     """
-        This simple dataclass is just helping to validate :class:`~noiz.models.BeamformingParams` values loaded
-        from the TOML file
+    This simple dataclass is just helping to validate :class:`~noiz.models.BeamformingParams` values loaded
+    from the TOML file
     """
+
     qcone_config_id: int
     min_freq: float
     max_freq: float
@@ -549,11 +577,11 @@ class BeamformingParamsHolder:
     window_length: Optional[Union[int, float]] = None
     window_step_fraction: Optional[float] = None
     window_step: Optional[float] = None
-    
-    perform_statistical_reject : Optional[bool] = False
-    n_sigma_stat_reject:Optional[float] = 2.5
+
+    perform_statistical_reject: Optional[bool] = False
+    n_sigma_stat_reject: Optional[float] = 2.5
     prop_bad_freqs_stat_reject: Optional[float] = 0.5
-    
+
     save_average_beamformer_abspower: bool = True
     save_all_beamformers_abspower: bool = False
     save_average_beamformer_relpower: bool = False
@@ -586,14 +614,14 @@ class BeamformingParamsHolder:
     extract_peaks_all_beamformers_relpower: bool = False
     neighborhood_size: Optional[float] = None
     neighborhood_size_xaxis_fraction: Optional[float] = None
-    maxima_threshold: float = 0.
+    maxima_threshold: float = 0.0
     best_point_count: int = 10
     beam_portion_threshold: float = 0.1
     semblance_threshold: float = -1e9
     velocity_threshold: float = -1e9
     prewhiten: bool = False
     method: str = "beamforming"
-    used_component_codes: Tuple[str, ...] = ("Z", )
+    used_component_codes: Tuple[str, ...] = ("Z",)
     minimum_trace_count: int = 3
 
 
@@ -611,7 +639,7 @@ class BeamformingParams(db.Model):
 
     window_length = NotNullColumn("window_length", db.Float)
     window_step = NotNullColumn("window_step", db.Float)
-    
+
     perform_statistical_reject = NotNullColumn("perform_statistical_reject", db.Boolean)
     n_sigma_stat_reject = NotNullColumn("n_sigma_stat_reject", db.Float)
     prop_bad_freqs_stat_reject = NotNullColumn("prop_bad_freqs_stat_reject", db.Float)
@@ -638,13 +666,13 @@ class BeamformingParams(db.Model):
     thetamin2 = NullColumn("thetamin2", db.Float)
     thetamax2 = NullColumn("thetamax2", db.Float)
     sparsity_max = NotNullColumn("sparsity_max", db.Integer)
-    sigma_angle_kernels =  NotNullColumn("sigma_angle", db.Float)
-    sigma_slowness_kernels_ratio_to_ds =  NotNullColumn("sigma_slowness_kernels_ratio_to_ds", db.Integer)
+    sigma_angle_kernels = NotNullColumn("sigma_angle", db.Float)
+    sigma_slowness_kernels_ratio_to_ds = NotNullColumn("sigma_slowness_kernels_ratio_to_ds", db.Integer)
     rms_threshold_deconv = NotNullColumn("rms_target_deconv", db.Float)
     reg_coef_deconv = NotNullColumn("reg_coef_deconv", db.Float)
     rel_rms_thresh_admissible_slowness = NotNullColumn("rel_rms_thresh_admissible_slowness", db.Float)
     rel_rms_stop_crit_increase_sparsity = NotNullColumn("rel_rms_stop_crit_increase_sparsity", db.Float)
-    
+
     # n_iter_max = NotNullColumn("n_iter_max", db.Integer)
     # angle_step_min = NotNullColumn("angle_step_min", db.Float)
     # angle_width_start = NotNullColumn("angle_width_start", db.Float)
@@ -681,62 +709,61 @@ class BeamformingParams(db.Model):
     )
 
     def __init__(
-            self,
-            qcone_config_id: int,
-            min_freq: float,
-            max_freq: float,
-            slowness_x_min: float,
-            slowness_x_max: float,
-            slowness_y_min: float,
-            slowness_y_max: float,
-            slowness_step: float,
-            window_length_minimum_periods: Optional[float],
-            window_length: Optional[float],
-            window_step_fraction: Optional[float],
-            window_step: Optional[float],
-            perform_statistical_reject : Optional[bool],
-            n_sigma_stat_reject:Optional[float],
-            prop_bad_freqs_stat_reject: Optional[float],
-            save_average_beamformer_abspower: bool,
-            save_all_beamformers_abspower: bool,
-            save_average_beamformer_relpower: bool,
-            save_all_beamformers_relpower: bool,
-            perform_deconvolution_all: bool,
-            perform_deconvolution_average: bool,
-            save_all_arf: bool,
-            save_average_arf: bool,
-            arf_enlarge_ratio: float,
-            smin1: Optional[float],
-            smax1: Optional[float],
-            smin2: Optional[float],
-            smax2: Optional[float],
-            thetamin1: Optional[float],
-            thetamax1: Optional[float],
-            thetamin2: Optional[float],
-            thetamax2: Optional[float],
-            sparsity_max: Optional[int],
-            sigma_angle_kernels: Optional[float],
-            sigma_slowness_kernels_ratio_to_ds: Optional[float],
-            rms_threshold_deconv: Optional[float],
-            reg_coef_deconv: Optional[float],
-            rel_rms_thresh_admissible_slowness: Optional[float],
-            rel_rms_stop_crit_increase_sparsity: Optional[float],
-            extract_peaks_average_beamformer_abspower: bool,
-            extract_peaks_all_beamformers_abspower: bool,
-            extract_peaks_average_beamformer_relpower: bool,
-            extract_peaks_all_beamformers_relpower: bool,
-            neighborhood_size: Optional[float],
-            neighborhood_size_xaxis_fraction: Optional[float],
-            maxima_threshold: float,
-            best_point_count: int,
-            beam_portion_threshold: float,
-            semblance_threshold: float,
-            velocity_threshold: float,
-            prewhiten: bool,
-            method: str,
-            used_component_codes: Tuple[str, ...],
-            minimum_trace_count: int,
-
+        self,
+        qcone_config_id: int,
+        min_freq: float,
+        max_freq: float,
+        slowness_x_min: float,
+        slowness_x_max: float,
+        slowness_y_min: float,
+        slowness_y_max: float,
+        slowness_step: float,
+        window_length_minimum_periods: Optional[float],
+        window_length: Optional[float],
+        window_step_fraction: Optional[float],
+        window_step: Optional[float],
+        perform_statistical_reject: Optional[bool],
+        n_sigma_stat_reject: Optional[float],
+        prop_bad_freqs_stat_reject: Optional[float],
+        save_average_beamformer_abspower: bool,
+        save_all_beamformers_abspower: bool,
+        save_average_beamformer_relpower: bool,
+        save_all_beamformers_relpower: bool,
+        perform_deconvolution_all: bool,
+        perform_deconvolution_average: bool,
+        save_all_arf: bool,
+        save_average_arf: bool,
+        arf_enlarge_ratio: float,
+        smin1: Optional[float],
+        smax1: Optional[float],
+        smin2: Optional[float],
+        smax2: Optional[float],
+        thetamin1: Optional[float],
+        thetamax1: Optional[float],
+        thetamin2: Optional[float],
+        thetamax2: Optional[float],
+        sparsity_max: Optional[int],
+        sigma_angle_kernels: Optional[float],
+        sigma_slowness_kernels_ratio_to_ds: Optional[float],
+        rms_threshold_deconv: Optional[float],
+        reg_coef_deconv: Optional[float],
+        rel_rms_thresh_admissible_slowness: Optional[float],
+        rel_rms_stop_crit_increase_sparsity: Optional[float],
+        extract_peaks_average_beamformer_abspower: bool,
+        extract_peaks_all_beamformers_abspower: bool,
+        extract_peaks_average_beamformer_relpower: bool,
+        extract_peaks_all_beamformers_relpower: bool,
+        neighborhood_size: Optional[float],
+        neighborhood_size_xaxis_fraction: Optional[float],
+        maxima_threshold: float,
+        best_point_count: int,
+        beam_portion_threshold: float,
+        semblance_threshold: float,
+        velocity_threshold: float,
+        prewhiten: bool,
+        method: str,
+        used_component_codes: Tuple[str, ...],
+        minimum_trace_count: int,
     ):
         validate_exactly_one_argument_provided(window_length, window_length_minimum_periods)
         validate_exactly_one_argument_provided(window_step, window_step_fraction)
@@ -758,18 +785,18 @@ class BeamformingParams(db.Model):
         if window_length is not None:
             self.window_length = window_length
         elif window_length_minimum_periods is not None:
-            self.window_length = window_length_minimum_periods/min_freq
+            self.window_length = window_length_minimum_periods / min_freq
 
         if window_step is not None:
             self.window_step = window_step
         elif window_step_fraction is not None:
-            self.window_step = self.window_length*window_step_fraction
+            self.window_step = self.window_length * window_step_fraction
 
         self.save_average_beamformer_abspower = save_average_beamformer_abspower
         self.save_all_beamformers_abspower = save_all_beamformers_abspower
         self.save_average_beamformer_relpower = save_average_beamformer_relpower
         self.save_all_beamformers_relpower = save_all_beamformers_relpower
-        
+
         self.perform_statistical_reject = perform_statistical_reject
         self.n_sigma_stat_reject = n_sigma_stat_reject
         self.prop_bad_freqs_stat_reject = prop_bad_freqs_stat_reject
@@ -779,12 +806,12 @@ class BeamformingParams(db.Model):
         self.save_all_arf = save_all_arf
         self.save_average_arf = save_average_arf
         self.arf_enlarge_ratio = arf_enlarge_ratio
-        
+
         self.smin1 = smin1
         self.smax1 = smax1
         self.smin2 = smin2
         self.smax2 = smax2
-        
+
         self.thetamin1 = thetamin1
         self.thetamax1 = thetamax1
 
@@ -807,7 +834,7 @@ class BeamformingParams(db.Model):
         if neighborhood_size is not None:
             self.neighborhood_size = neighborhood_size
         elif neighborhood_size_xaxis_fraction is not None:
-            self.neighborhood_size = len(self.get_xaxis())*neighborhood_size_xaxis_fraction
+            self.neighborhood_size = len(self.get_xaxis()) * neighborhood_size_xaxis_fraction
         self.maxima_threshold = maxima_threshold
         self.best_point_count = int(best_point_count)
         self.beam_portion_threshold = beam_portion_threshold
@@ -828,7 +855,7 @@ class BeamformingParams(db.Model):
 
     @typed_hybrid_property
     def central_freq(self):
-        return (self.min_freq + self.max_freq)/2
+        return (self.min_freq + self.max_freq) / 2
 
     @property
     def method(self) -> int:
@@ -843,50 +870,48 @@ class BeamformingParams(db.Model):
     @property
     def window_fraction(self) -> float:
         """filldocs"""
-        return self.window_length/self.window_step
+        return self.window_length / self.window_step
 
     @property
     def used_component_codes(self) -> Tuple[str, ...]:
         """filldocs"""
-        return tuple(self._used_component_codes.split(';'))
+        return tuple(self._used_component_codes.split(";"))
 
     def get_xaxis(self):  # -> npt.ArrayLike:
         """filldocs"""
         return np.arange(
-            start=self.slowness_x_min,
-            stop=self.slowness_x_max+self.slowness_step/2,
-            step=self.slowness_step
+            start=self.slowness_x_min, stop=self.slowness_x_max + self.slowness_step / 2, step=self.slowness_step
         )
 
     def get_yaxis(self):  # -> npt.ArrayLike:
         """filldocs"""
         return np.arange(
-            start=self.slowness_y_min,
-            stop=self.slowness_y_max+self.slowness_step/2,
-            step=self.slowness_step
+            start=self.slowness_y_min, stop=self.slowness_y_max + self.slowness_step / 2, step=self.slowness_step
         )
 
     @property
     def save_abspow(self) -> bool:
         """filldocs"""
-        return any([
-            self.save_average_beamformer_abspower,
-            self.save_all_beamformers_abspower,
-            self.extract_peaks_average_beamformer_abspower,
-            self.extract_peaks_all_beamformers_abspower,
-
-        ])
+        return any(
+            [
+                self.save_average_beamformer_abspower,
+                self.save_all_beamformers_abspower,
+                self.extract_peaks_average_beamformer_abspower,
+                self.extract_peaks_all_beamformers_abspower,
+            ]
+        )
 
     @property
     def save_relpow(self) -> bool:
         """filldocs"""
-        return any([
-            self.save_average_beamformer_relpower,
-            self.save_all_beamformers_relpower,
-            self.extract_peaks_average_beamformer_relpower,
-            self.extract_peaks_all_beamformers_relpower,
-
-        ])
+        return any(
+            [
+                self.save_average_beamformer_relpower,
+                self.save_all_beamformers_relpower,
+                self.extract_peaks_average_beamformer_relpower,
+                self.extract_peaks_all_beamformers_relpower,
+            ]
+        )
 
     @property
     def max_slowness(self):
@@ -897,18 +922,21 @@ class BeamformingParams(db.Model):
         :rtype: float
         """
         return np.round(
-            np.sqrt(max(abs(self.slowness_x_max), abs(self.slowness_x_min)) ** 2 +
-                    max(abs(self.slowness_y_max), abs(self.slowness_y_min)) ** 2),
-            2
+            np.sqrt(
+                max(abs(self.slowness_x_max), abs(self.slowness_x_min)) ** 2
+                + max(abs(self.slowness_y_max), abs(self.slowness_y_min)) ** 2
+            ),
+            2,
         )
 
 
 @dataclass
 class PPSDParamsHolder:
     """
-        This simple dataclass is just helping to validate :class:`~noiz.models.PPSDParams` values loaded
-        from the TOML file
+    This simple dataclass is just helping to validate :class:`~noiz.models.PPSDParams` values loaded
+    from the TOML file
     """
+
     datachunk_params_id: int
 
     segment_length: float  # seconds
@@ -932,10 +960,7 @@ class PPSDParams(db.Model):
     id = db.Column("id", db.Integer, primary_key=True)
 
     datachunk_params_id = db.Column(
-        "datachunk_params_id",
-        db.Integer,
-        db.ForeignKey("datachunk_params.id"),
-        nullable=False
+        "datachunk_params_id", db.Integer, db.ForeignKey("datachunk_params.id"), nullable=False
     )
     segment_length = db.Column("segment_length", db.Float, nullable=False)
     segment_step = db.Column("segment_overlap", db.Float, nullable=False)
@@ -961,38 +986,43 @@ class PPSDParams(db.Model):
     )
 
     def __init__(
-            self,
-            datachunk_params_id: int,
-            segment_length: float,
-            segment_step: float,
-            sampling_rate: Union[float, int],
-            freq_min: float,
-            freq_max: float,
-            resample: bool,
-            resampled_frequency_start: Optional[float],
-            resampled_frequency_stop: Optional[float],
-            resampled_frequency_step: Optional[float],
-            taper_type: Optional[str],
-            taper_max_percentage: Optional[float],
-            rejected_windows_quantile: float,
-            save_all_windows: bool,
-            save_compressed: bool,
-
+        self,
+        datachunk_params_id: int,
+        segment_length: float,
+        segment_step: float,
+        sampling_rate: Union[float, int],
+        freq_min: float,
+        freq_max: float,
+        resample: bool,
+        resampled_frequency_start: Optional[float],
+        resampled_frequency_stop: Optional[float],
+        resampled_frequency_step: Optional[float],
+        taper_type: Optional[str],
+        taper_max_percentage: Optional[float],
+        rejected_windows_quantile: float,
+        save_all_windows: bool,
+        save_compressed: bool,
     ):
-        if resample and any([
-            resampled_frequency_start is None,
-            resampled_frequency_stop is None,
-            resampled_frequency_step is None,
-        ]):
+        if resample and any(
+            [
+                resampled_frequency_start is None,
+                resampled_frequency_stop is None,
+                resampled_frequency_step is None,
+            ]
+        ):
             raise ValueError("If you want to resample you have to provide all resampled_* params")
 
         if resampled_frequency_start is not None and resampled_frequency_start < freq_min:
-            raise ValueError("Frequency vector to which you want to resample cannot start before the accepted "
-                             "frequencies. It has to be resample_frequency_start >= freq_min")
+            raise ValueError(
+                "Frequency vector to which you want to resample cannot start before the accepted "
+                "frequencies. It has to be resample_frequency_start >= freq_min"
+            )
 
         if resampled_frequency_stop is not None and resampled_frequency_stop > freq_max:
-            raise ValueError("Frequency vector to which you want to resample cannot end after the accepted "
-                             "frequencies. It has to be: resampled_frequency_stop <= freq_max")
+            raise ValueError(
+                "Frequency vector to which you want to resample cannot end after the accepted "
+                "frequencies. It has to be: resampled_frequency_stop <= freq_max"
+            )
 
         if taper_max_percentage is not None and taper_type is None:
             raise ValueError("Taper type should be given")
@@ -1023,11 +1053,12 @@ class PPSDParams(db.Model):
 
     @property
     def signal_sample_spacing(self):
-        return 1/self.sampling_rate
+        return 1 / self.sampling_rate
 
     @cached_property
     def _all_fft_freqs(self):
         from scipy.fft import fftfreq
+
         return fftfreq(n=self.expected_signal_sample_count, d=self.signal_sample_spacing)
 
     @cached_property
@@ -1130,9 +1161,10 @@ ParamsLike = Union[
 @dataclass
 class EventDetectionParamsHolder:
     """
-        This simple dataclass is just helping to validate :py:class:`~noiz.models.EventDetectionParams`
-        values loaded from the TOML file
+    This simple dataclass is just helping to validate :py:class:`~noiz.models.EventDetectionParams`
+    values loaded from the TOML file
     """
+
     minimum_frequency: float
     maximum_frequency: float
     output_margin_length_sec: float
@@ -1148,22 +1180,27 @@ class EventDetectionParamsHolder:
     def __post_init__(self):
         if self.detection_type == "sta_lta":
             if None in (
-                    self.n_short_time_average,
-                    self.n_long_time_average,
-                    self.trigger_value,
-                    self.detrigger_value,
-                    ):
-                raise ValueError("EventDetectionParams is invalid:"
-                                 "At least one parameter required for a StaLta detection is missing."
-                                 "n_short_time_average, n_long_time_average, trigger_value"
-                                 "and detrigger_value are all required.")
+                self.n_short_time_average,
+                self.n_long_time_average,
+                self.trigger_value,
+                self.detrigger_value,
+            ):
+                raise ValueError(
+                    "EventDetectionParams is invalid:"
+                    "At least one parameter required for a StaLta detection is missing."
+                    "n_short_time_average, n_long_time_average, trigger_value"
+                    "and detrigger_value are all required."
+                )
         elif self.detection_type == "amplitude_spike":
             if self.peak_ground_velocity_threshold is None:
-                raise ValueError("EventDetectionParams is invalid:"
-                                 "peak_ground_velocity_threshold is required for an AmplitudeSpike detection.")
+                raise ValueError(
+                    "EventDetectionParams is invalid:"
+                    "peak_ground_velocity_threshold is required for an AmplitudeSpike detection."
+                )
         else:
-            raise ValueError("EventDetectionParams is invalid:"
-                             "detection_type is neither 'sta_lta' nor 'amplitude_spike'.")
+            raise ValueError(
+                "EventDetectionParams is invalid:detection_type is neither 'sta_lta' nor 'amplitude_spike'."
+            )
 
 
 class EventDetectionParams(db.Model):
@@ -1209,20 +1246,20 @@ class EventDetectionParams(db.Model):
         self._trace_trimming_sec = kwargs.get("trace_trimming_sec")
 
     def as_dict(self):
-        return dict(
-            event_detection_params_id=self.id,
-            event_detection_params_datachunk_params_id=self.datachunk_params_id,
-            event_detection_params_detection_type=self.detection_type,
-            event_detection_params_n_short_time_average=self.n_short_time_average,
-            event_detection_params_n_long_time_average=self.n_long_time_average,
-            event_detection_params_trigger_value=self.trigger_value,
-            event_detection_params_detrigger_value=self.detrigger_value,
-            event_detection_params_peak_ground_velocity_threshold=self.peak_ground_velocity_threshold,
-            event_detection_params_minimum_frequency=self.minimum_frequency,
-            event_detection_params_maximum_frequency=self.maximum_frequency,
-            event_detection_params_output_margin_length_sec=self.output_margin_length_sec,
-            event_detection_params_trace_trimming_sec=self.trace_trimming_sec,
-        )
+        return {
+            "event_detection_params_id": self.id,
+            "event_detection_params_datachunk_params_id": self.datachunk_params_id,
+            "event_detection_params_detection_type": self.detection_type,
+            "event_detection_params_n_short_time_average": self.n_short_time_average,
+            "event_detection_params_n_long_time_average": self.n_long_time_average,
+            "event_detection_params_trigger_value": self.trigger_value,
+            "event_detection_params_detrigger_value": self.detrigger_value,
+            "event_detection_params_peak_ground_velocity_threshold": self.peak_ground_velocity_threshold,
+            "event_detection_params_minimum_frequency": self.minimum_frequency,
+            "event_detection_params_maximum_frequency": self.maximum_frequency,
+            "event_detection_params_output_margin_length_sec": self.output_margin_length_sec,
+            "event_detection_params_trace_trimming_sec": self.trace_trimming_sec,
+        }
 
     @property
     def detection_type(self):
@@ -1268,9 +1305,10 @@ class EventDetectionParams(db.Model):
 @dataclass
 class EventConfirmationParamsHolder:
     """
-        This simple dataclass is just helping to validate :py:class:`~noiz.models.EventConfirmationParams`
-        values loaded from the TOML file
+    This simple dataclass is just helping to validate :py:class:`~noiz.models.EventConfirmationParams`
+    values loaded from the TOML file
     """
+
     datachunk_params_id: int
     event_detection_params_id: int
     time_lag: float
@@ -1316,15 +1354,15 @@ class EventConfirmationParams(db.Model):
             self._vote_weight = ";".join(kwargs.get("vote_weight"))  # type: ignore
 
     def as_dict(self):
-        return dict(
-            event_confirmation_params_id=self.id,
-            event_confirmation_params_datachunk_params_id=self.datachunk_params_id,
-            event_confirmation_params_event_detection_params_id=self.event_detection_params_id,
-            event_confirmation_params_time_lag=self.time_lag,
-            event_confirmation_params_vote_threshold=self.vote_threshold,
-            event_confirmation_params_sampling_step=self.sampling_step,
-            event_confirmation_params_vote_weight=self.vote_weight,
-        )
+        return {
+            "event_confirmation_params_id": self.id,
+            "event_confirmation_params_datachunk_params_id": self.datachunk_params_id,
+            "event_confirmation_params_event_detection_params_id": self.event_detection_params_id,
+            "event_confirmation_params_time_lag": self.time_lag,
+            "event_confirmation_params_vote_threshold": self.vote_threshold,
+            "event_confirmation_params_sampling_step": self.sampling_step,
+            "event_confirmation_params_vote_weight": self.vote_weight,
+        }
 
     @property
     def time_lag(self):
@@ -1342,5 +1380,5 @@ class EventConfirmationParams(db.Model):
     def vote_weight(self):
         """filldocs"""
         if self._vote_weight is not None:
-            return tuple(self._vote_weight.split(';'))
+            return tuple(self._vote_weight.split(";"))
         return None

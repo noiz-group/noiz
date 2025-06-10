@@ -14,12 +14,7 @@ from noiz.routes import simple_page
 DEFAULT_LOGGING_LEVEL = logger.level("INFO").no
 
 
-def create_app(
-        config_object: str = "noiz.settings",
-        mode: str = "app",
-        verbosity: int = 0,
-        quiet: bool = False
-):
+def create_app(config_object: str = "noiz.settings", mode: str = "app", verbosity: int = 0, quiet: bool = False):
     app = Flask(__name__)
     app.config.from_object(config_object)
 

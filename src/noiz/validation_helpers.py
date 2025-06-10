@@ -63,9 +63,7 @@ def validate_stream_with_single_trace(st: obspy.Stream) -> None:
         raise ValueError(f"This method expects exactly one trace in the stream! There were {len(st)} traces found.")
 
 
-def validate_timedelta_as_pytimedelta(
-        timedelta: Union[pd.Timedelta, datetime.timedelta, str]
-) -> datetime.timedelta:
+def validate_timedelta_as_pytimedelta(timedelta: Union[pd.Timedelta, datetime.timedelta, str]) -> datetime.timedelta:
     """
     Checks if provided variable is either :py:class:`pandas.Timedelta`, :py:class:`datetime.timedelta` or
     a string that can be parsed by :py:class:`pandas.Timedelta` and converts it to :py:class:`datetime.timedelta`.
@@ -82,13 +80,13 @@ def validate_timedelta_as_pytimedelta(
     elif isinstance(timedelta, str):
         return pd.Timedelta(timedelta).to_pytimedelta()
     else:
-        raise TypeError(f"Valid types are: pd.Timedelta, datetime.timedelta and str that can be parsed as pd.Timedelta"
-                        f"Provided variable is {type(timedelta)}")
+        raise TypeError(
+            f"Valid types are: pd.Timedelta, datetime.timedelta and str that can be parsed as pd.Timedelta"
+            f"Provided variable is {type(timedelta)}"
+        )
 
 
-def validate_timedelta_as_pdtimedelta(
-        timedelta: Union[pd.Timedelta, datetime.timedelta, str]
-) -> pd.Timedelta:
+def validate_timedelta_as_pdtimedelta(timedelta: Union[pd.Timedelta, datetime.timedelta, str]) -> pd.Timedelta:
     """
     Checks if provided variable is either :py:class:`pandas.Timedelta`, :py:class:`datetime.timedelta` or
     a string that can be parsed by :py:class:`pandas.Timedelta` and converts it to :py:class:`datetime.timedelta`.
@@ -105,12 +103,14 @@ def validate_timedelta_as_pdtimedelta(
     elif isinstance(timedelta, str):
         return pd.Timedelta(timedelta)
     else:
-        raise TypeError(f"Valid types are: pd.Timedelta, datetime.timedelta and str that can be parsed as pd.Timedelta"
-                        f"Provided variable is {type(timedelta)}")
+        raise TypeError(
+            f"Valid types are: pd.Timedelta, datetime.timedelta and str that can be parsed as pd.Timedelta"
+            f"Provided variable is {type(timedelta)}"
+        )
 
 
 def validate_as_pytimedelta_or_none(
-        var: Optional[Union[pd.Timedelta, datetime.timedelta, str]]
+    var: Optional[Union[pd.Timedelta, datetime.timedelta, str]],
 ) -> Optional[datetime.timedelta]:
     """
     Checks if provided variable is either :py:class:`pandas.Timedelta`, :py:class:`datetime.timedelta` or
@@ -130,7 +130,7 @@ def validate_as_pytimedelta_or_none(
 
 
 def validate_timestamp_as_pydatetime(
-    time_obj: Union[pd.Timestamp, datetime.datetime, np.datetime64, obspy.UTCDateTime, pendulum.DateTime, str]
+    time_obj: Union[pd.Timestamp, datetime.datetime, np.datetime64, obspy.UTCDateTime, pendulum.DateTime, str],
 ) -> datetime.datetime:
     """
     Takes a time object and converts it to a pd.Timestamp if originally it was either datetime.datetime,
@@ -158,14 +158,14 @@ def validate_timestamp_as_pydatetime(
     elif isinstance(time_obj, str):
         return validate_timestamp_as_pydatetime(pd.Timestamp(time_obj))
     else:
-        raise TypeError(f"Valid types are: pd.Timestamp, datetime.datetime or np.datetime64 "
-                        f"or str that can be casted to pd.Timestamp. "
-                        f"Provided variable is {type(time_obj)}")
+        raise TypeError(
+            f"Valid types are: pd.Timestamp, datetime.datetime or np.datetime64 "
+            f"or str that can be casted to pd.Timestamp. "
+            f"Provided variable is {type(time_obj)}"
+        )
 
 
-def validate_timestamp_as_pdtimestamp(
-    time_obj: Union[pd.Timestamp, datetime.datetime, np.datetime64]
-) -> pd.Timestamp:
+def validate_timestamp_as_pdtimestamp(time_obj: Union[pd.Timestamp, datetime.datetime, np.datetime64]) -> pd.Timestamp:
     """
     Takes a time object and converts it to a pd.Timestamp if originally it was either datetime.datetime,
     np.datetime64 or pd.Timestamp
@@ -180,14 +180,16 @@ def validate_timestamp_as_pdtimestamp(
     elif isinstance(time_obj, (datetime.datetime, np.datetime64, str)):
         return pd.Timestamp(time_obj)
     else:
-        raise TypeError(f"Valid types are: pd.Timestamp, datetime.datetime or np.datetime64 "
-                        f"or str that can be casted to pd.Timestamp. "
-                        f"Provided variable is {type(time_obj)}")
+        raise TypeError(
+            f"Valid types are: pd.Timestamp, datetime.datetime or np.datetime64 "
+            f"or str that can be casted to pd.Timestamp. "
+            f"Provided variable is {type(time_obj)}"
+        )
 
 
 def validate_to_tuple(
-        val: Union[Tuple[Any], Any],
-        accepted_type: Type,
+    val: Union[Tuple[Any], Any],
+    accepted_type: Type,
 ) -> Tuple:
     """
     Method that checks if provided argument is a str, int or float or a tuple and returns
@@ -212,9 +214,9 @@ def validate_to_tuple(
 
 
 def validate_uniformity_of_tuple(
-        val: Tuple[Any, ...],
-        accepted_type: Type,
-        raise_errors: bool = True,
+    val: Tuple[Any, ...],
+    accepted_type: Type,
+    raise_errors: bool = True,
 ) -> bool:
     """
     Checks if all elements of provided tuple are of the same type.
@@ -238,15 +240,19 @@ def validate_uniformity_of_tuple(
         types.append(type(item))
         if not isinstance(item, accepted_type):
             if raise_errors:
-                raise ValueError(f'Values inside of provided tuple should be of type: {accepted_type}. '
-                                 f'Value {item} is of type {type(item)}. ')
+                raise ValueError(
+                    f"Values inside of provided tuple should be of type: {accepted_type}. "
+                    f"Value {item} is of type {type(item)}. "
+                )
             else:
                 return False
 
     if not len(list(set(types))) == 1:
         if raise_errors:
-            raise ValueError(f"Type of values inside of tuple should be uniform. "
-                             f"Inside of tuple {val} there were types: {set(types)}")
+            raise ValueError(
+                f"Type of values inside of tuple should be uniform. "
+                f"Inside of tuple {val} there were types: {set(types)}"
+            )
         else:
             return False
 
@@ -254,8 +260,8 @@ def validate_uniformity_of_tuple(
 
 
 def validate_exactly_one_argument_provided(
-        first: Optional[Any],
-        second: Optional[Any],
+    first: Optional[Any],
+    second: Optional[Any],
 ) -> bool:
     """
     Method that checks if exactly one of provided arguments is not None.
@@ -270,14 +276,14 @@ def validate_exactly_one_argument_provided(
     """
 
     if (second is None and first is None) or (second is not None and first is not None):
-        raise ValueError('There has to be exactly one argument provided.')
+        raise ValueError("There has to be exactly one argument provided.")
     else:
         return True
 
 
 def validate_maximum_one_argument_provided(
-        first: Optional[Any],
-        second: Optional[Any],
+    first: Optional[Any],
+    second: Optional[Any],
 ) -> bool:
     """
     Method that checks if maximum one of provided arguments is not None.
@@ -292,6 +298,6 @@ def validate_maximum_one_argument_provided(
     """
 
     if second is not None and first is not None:
-        raise ValueError('There has to be maximum one argument provided.')
+        raise ValueError("There has to be maximum one argument provided.")
     else:
         return True

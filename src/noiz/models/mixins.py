@@ -35,10 +35,10 @@ class FileModelMixin(db.Model):
         return self._file_model_type
 
     def _assemble_filename(
-            self,
-            cmp: Optional[Union[Component, ComponentPairCartesian]],
-            ts: Timespan,
-            count: int = 0,
+        self,
+        cmp: Optional[Union[Component, ComponentPairCartesian]],
+        ts: Timespan,
+        count: int = 0,
     ) -> str:
         year = str(ts.starttime.year)
         doy = ts.starttime.strftime("%j")
@@ -65,7 +65,9 @@ class FileModelMixin(db.Model):
         else:
             raise TypeError(f"Expected either Component, ComponentPairCartesian or None. Got {type(cmp)}")
 
-        extensions = [str(count), ]
+        extensions = [
+            str(count),
+        ]
 
         if self._filename_extension is not None:
             extensions.append(self._filename_extension)
@@ -75,10 +77,10 @@ class FileModelMixin(db.Model):
         return os.extsep.join([name, *tuple(extensions)])
 
     def _assemble_dirpath(
-            self,
-            params: ParamsLike,
-            ts: Timespan,
-            cmp: Optional[Union[Component, ComponentPairCartesian]],
+        self,
+        params: ParamsLike,
+        ts: Timespan,
+        cmp: Optional[Union[Component, ComponentPairCartesian]],
     ) -> Path:
         year = str(ts.starttime.year)
         doy = ts.starttime.strftime("%j")
@@ -101,8 +103,10 @@ class FileModelMixin(db.Model):
                 .joinpath(year)
                 .joinpath(doy)
                 .joinpath(cmp.component_code_pair)
-                .joinpath(f"{cmp.component_a.network}.{cmp.component_a.station}-"
-                          f"{cmp.component_b.network}.{cmp.component_b.station}")
+                .joinpath(
+                    f"{cmp.component_a.network}.{cmp.component_a.station}-"
+                    f"{cmp.component_b.network}.{cmp.component_b.station}"
+                )
             )
         elif cmp is None:
             return (
@@ -116,10 +120,10 @@ class FileModelMixin(db.Model):
             raise TypeError(f"Expected either Component, ComponentPairCartesian or None. Got {type(cmp)}")
 
     def _prepare_dirpath(
-            self,
-            params: ParamsLike,
-            ts: Timespan,
-            cmp: Optional[Union[Component, ComponentPairCartesian]],
+        self,
+        params: ParamsLike,
+        ts: Timespan,
+        cmp: Optional[Union[Component, ComponentPairCartesian]],
     ) -> Path:
         """filldocs"""
         dirpath = self._assemble_dirpath(params=params, ts=ts, cmp=cmp)
@@ -127,10 +131,7 @@ class FileModelMixin(db.Model):
         return dirpath
 
     def _find_empty_filepath(
-            self,
-            ts: Timespan,
-            params: ParamsLike,
-            cmp: Optional[Union[Component, ComponentPairCartesian]]
+        self, ts: Timespan, params: ParamsLike, cmp: Optional[Union[Component, ComponentPairCartesian]]
     ) -> Path:
         """filldocs"""
         dirpath = self._prepare_dirpath(params=params, ts=ts, cmp=None)

@@ -15,14 +15,14 @@ from noiz.api.timespan import fetch_timespans_between_dates
 
 
 def plot_datachunk_availability(
-        networks: Optional[Collection[str]] = None,
-        stations: Optional[Collection[str]] = None,
-        components: Optional[Collection[str]] = None,
-        datachunk_processing_params_id: int = 1,
-        starttime: datetime = datetime(2000, 1, 1),
-        endtime: datetime = datetime(2030, 1, 1),
-        filepath: Optional[Path] = None,
-        showfig: bool = False,
+    networks: Optional[Collection[str]] = None,
+    stations: Optional[Collection[str]] = None,
+    components: Optional[Collection[str]] = None,
+    datachunk_processing_params_id: int = 1,
+    starttime: datetime = datetime(2000, 1, 1),
+    endtime: datetime = datetime(2030, 1, 1),
+    filepath: Optional[Path] = None,
+    showfig: bool = False,
 ) -> plt.Figure:
     """
     Method that allows for selection and plotting of which datachunks are available for given set of requirements.
@@ -46,17 +46,17 @@ def plot_datachunk_availability(
     :return: Figure object with the plot for further manipulation
     :rtype: matppltlotlib.Figure
     """
-    fetched_timespans = fetch_timespans_between_dates(starttime=starttime,
-                                                      endtime=endtime)
-    fetched_components = fetch_components(networks=networks,
-                                          stations=stations,
-                                          components=components)
+    fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
+    fetched_components = fetch_components(networks=networks, stations=stations, components=components)
 
     processing_params = fetch_datachunkparams_by_id(id=datachunk_processing_params_id)
-    datachunks = fetch_datachunks(components=fetched_components,
-                                  timespans=fetched_timespans,
-                                  datachunk_params=processing_params,
-                                  load_timespan=True, load_component=True)
+    datachunks = fetch_datachunks(
+        components=fetched_components,
+        timespans=fetched_timespans,
+        datachunk_params=processing_params,
+        load_timespan=True,
+        load_component=True,
+    )
 
     midtimes = defaultdict(list)
     for datachunk in datachunks:
@@ -66,11 +66,9 @@ def plot_datachunk_availability(
 
     availability = {}
     for key, times in midtimes.items():
-        availability[key] = round(
-            len(times) / len(fetched_timespans) * 100, 2)
+        availability[key] = round(len(times) / len(fetched_timespans) * 100, 2)
 
-    fig = __plot_availability(midtimes, starttime, endtime, fig_title,
-                              availability)
+    fig = __plot_availability(midtimes, starttime, endtime, fig_title, availability)
 
     if filepath is not None:
         fig.savefig(filepath)
@@ -82,11 +80,11 @@ def plot_datachunk_availability(
 
 
 def __plot_availability(
-        midtimes: Dict[str, List[datetime]],
-        starttime: datetime,
-        endtime: datetime,
-        fig_title: str,
-        availability: Dict[str, float]
+    midtimes: Dict[str, List[datetime]],
+    starttime: datetime,
+    endtime: datetime,
+    fig_title: str,
+    availability: Dict[str, float],
 ) -> plt.Figure:
     """
     Internam method that creates plots of data availability type, based on the midtimes of Timespans.
@@ -114,18 +112,16 @@ def __plot_availability(
     keys.sort(reverse=True)
 
     for key in keys:
-        ax.scatter(midtimes[key], [key] * len(midtimes[key]), marker='x',
-                   linewidth=0.1, alpha=1)
+        ax.scatter(midtimes[key], [key] * len(midtimes[key]), marker="x", linewidth=0.1, alpha=1)
 
-    ax.set_xlim(starttime - timedelta(days=5),
-                endtime + timedelta(days=5))
+    ax.set_xlim(starttime - timedelta(days=5), endtime + timedelta(days=5))
     fig.autofmt_xdate()
 
     height = len(midtimes.keys()) * 0.75
     height = max(4, height)
     fig.set_figheight(height)
 
-    width = max(6, days / 30.)
+    width = max(6, days / 30.0)
     width = min(width, height * 4)
     fig.set_figwidth(width)
 

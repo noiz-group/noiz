@@ -5,9 +5,9 @@
 .build-docs-parent:
   stage: documentation
   before_script:
-    - python -m pip install -U pip hatch
+    - uv sync --all-groups
   script:
-    - hatch run docs:build_html
+    - sphinx-build -M html docs/ docs/_build 
   artifacts:
     paths:
     - docs/_build/html/

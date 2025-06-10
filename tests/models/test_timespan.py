@@ -72,9 +72,7 @@ class TestTimespan:
         timespan = Timespan(starttime=starttime, midtime=midtime, endtime=endtime)
         timespan_removed = timespan.remove_last_microsecond()
         assert isinstance(timespan_removed, obspy.UTCDateTime)
-        assert (timespan.endtime - pd.Timedelta(microseconds=1)) == pd.Timestamp(
-            timespan_removed.datetime
-        )
+        assert (timespan.endtime - pd.Timedelta(microseconds=1)) == pd.Timestamp(timespan_removed.datetime)
 
     @pytest.mark.parametrize(
         "timespan_a, same_day",

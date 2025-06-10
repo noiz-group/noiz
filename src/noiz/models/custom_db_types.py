@@ -8,10 +8,10 @@ from sqlalchemy import types as types
 
 
 class PathInDB(types.TypeDecorator):
-    '''
+    """
     Casts a :py:class:`pathlib.Path` object to string when adding to DB, brings it back to
      :py:class:`pathlib.Path` on the way back
-    '''
+    """
 
     impl = types.UnicodeText
 

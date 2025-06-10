@@ -13,20 +13,35 @@ from typing import Union, Optional, Collection, Generator, List, Tuple
 from noiz.database import db
 from noiz.api.component import fetch_components
 from noiz.api.datachunk import _query_datachunks
-from noiz.api.helpers import extract_object_ids, _run_calculate_and_upsert_on_dask, \
-    _run_calculate_and_upsert_sequentially
+from noiz.api.helpers import (
+    extract_object_ids,
+    _run_calculate_and_upsert_on_dask,
+    _run_calculate_and_upsert_sequentially,
+)
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.api.database_helpers import _get_maximum_value_of_column_incremented
 from noiz.models.component import Component
 from noiz.models.timespan import Timespan
-from noiz.models import Datachunk, EventDetectionParams, EventConfirmationParams, EventDetectionResult, EventConfirmationResult, \
-    EventConfirmationRun
+from noiz.models import (
+    Datachunk,
+    EventDetectionParams,
+    EventConfirmationParams,
+    EventDetectionResult,
+    EventConfirmationResult,
+    EventConfirmationRun,
+)
 from noiz.models.type_aliases import EventDetectionRunnerInputs, EventConfirmationRunnerInputs
-from noiz.validation_helpers import validate_maximum_one_argument_provided, validate_to_tuple, \
-    validate_timestamp_as_pydatetime
+from noiz.validation_helpers import (
+    validate_maximum_one_argument_provided,
+    validate_to_tuple,
+    validate_timestamp_as_pydatetime,
+)
 from noiz.exceptions import EmptyResultException
-from noiz.processing.event_detection import calculate_event_detection_wrapper, calculate_event_confirmation_wrapper, \
-    _parse_str_collection_as_dict
+from noiz.processing.event_detection import (
+    calculate_event_detection_wrapper,
+    calculate_event_confirmation_wrapper,
+    _parse_str_collection_as_dict,
+)
 
 
 def fetch_event_detection_params_by_id(params_id: int) -> EventDetectionParams:
@@ -45,7 +60,7 @@ def fetch_event_detection_params_by_id(params_id: int) -> EventDetectionParams:
 
 
 def fetch_event_detection_params(
-        ids: Optional[Collection[int]] = None,
+    ids: Optional[Collection[int]] = None,
 ) -> List[EventDetectionParams]:
     """
     Fetches a EventDetectionParams objects by its ID.
@@ -61,9 +76,7 @@ def fetch_event_detection_params(
     if len(filters) == 0:
         filters.append(True)
 
-    fetched_params = (EventDetectionParams.query
-                      .filter(*filters)
-                      .all())
+    fetched_params = EventDetectionParams.query.filter(*filters).all()
     if len(fetched_params) == 0:
         raise EmptyResultException(f"EventDetectionParams with ids of {ids} do not exist.")
 
@@ -86,16 +99,16 @@ def fetch_event_confirmation_params_by_id(params_id: int) -> EventConfirmationPa
 
 
 def fetch_event_detection_results(
-        event_detection_params: Optional[EventDetectionParams] = None,
-        event_detection_params_id: Optional[int] = None,
-        event_detection_run_id : Optional[Collection[int]] = None,
-        timespan_id: Optional[Collection[int]] = None,
-        datachunks: Optional[Collection[Datachunk]] = None,
-        datachunk_ids: Optional[Collection[int]] = None,
-        load_timespan: bool = False,
-        load_datachunk: bool = False,
-        load_event_detection_params: bool = False,
-        batch_size: Optional[int] = None,
+    event_detection_params: Optional[EventDetectionParams] = None,
+    event_detection_params_id: Optional[int] = None,
+    event_detection_run_id: Optional[Collection[int]] = None,
+    timespan_id: Optional[Collection[int]] = None,
+    datachunks: Optional[Collection[Datachunk]] = None,
+    datachunk_ids: Optional[Collection[int]] = None,
+    load_timespan: bool = False,
+    load_datachunk: bool = False,
+    load_event_detection_params: bool = False,
+    batch_size: Optional[int] = None,
 ) -> List[EventDetectionResult]:
     """
     Fetches EventDetectionResult objects using varying optional filters. Associated Timespan, \
@@ -144,12 +157,12 @@ def fetch_event_detection_results(
 
 
 def count_event_detection_results(
-        event_detection_params: Optional[EventDetectionParams] = None,
-        event_detection_params_id: Optional[int] = None,
-        event_detection_run_id : Optional[Collection[int]] = None,
-        timespan_id: Optional[Collection[int]] = None,
-        datachunks: Optional[Collection[Datachunk]] = None,
-        datachunk_ids: Optional[Collection[int]] = None,
+    event_detection_params: Optional[EventDetectionParams] = None,
+    event_detection_params_id: Optional[int] = None,
+    event_detection_run_id: Optional[Collection[int]] = None,
+    timespan_id: Optional[Collection[int]] = None,
+    datachunks: Optional[Collection[Datachunk]] = None,
+    datachunk_ids: Optional[Collection[int]] = None,
 ) -> int:
     """filldocs"""
     query = _query_event_detection_results(
@@ -165,25 +178,25 @@ def count_event_detection_results(
 
 
 def _query_event_detection_results(
-        event_detection_params: Optional[EventDetectionParams] = None,
-        event_detection_params_id: Optional[int] = None,
-        event_detection_run_id : Optional[Collection[int]] = None,
-        timespan_id: Optional[Collection[int]] = None,
-        datachunks: Optional[Collection[Datachunk]] = None,
-        datachunk_ids: Optional[Collection[int]] = None,
-        load_timespan: bool = False,
-        load_datachunk: bool = False,
-        load_event_detection_params: bool = False,
+    event_detection_params: Optional[EventDetectionParams] = None,
+    event_detection_params_id: Optional[int] = None,
+    event_detection_run_id: Optional[Collection[int]] = None,
+    timespan_id: Optional[Collection[int]] = None,
+    datachunks: Optional[Collection[Datachunk]] = None,
+    datachunk_ids: Optional[Collection[int]] = None,
+    load_timespan: bool = False,
+    load_datachunk: bool = False,
+    load_event_detection_params: bool = False,
 ) -> Query:
     """filldocs"""
     try:
         validate_maximum_one_argument_provided(event_detection_params, event_detection_params_id)
-    except ValueError:
-        raise ValueError('Maximum one of event_detection_params or event_detection_params_id can be provided')
+    except ValueError as e:
+        raise ValueError("Maximum one of event_detection_params or event_detection_params_id can be provided") from e
     try:
         validate_maximum_one_argument_provided(datachunks, datachunk_ids)
-    except ValueError:
-        raise ValueError('Maximum one of datachunks or datachunk_ids can be provided')
+    except ValueError as e:
+        raise ValueError("Maximum one of datachunks or datachunk_ids can be provided") from e
 
     filters, opts = _determine_filters_and_opts_for_event_detection(
         event_detection_params=event_detection_params,
@@ -203,17 +216,16 @@ def _query_event_detection_results(
 
 
 def _determine_filters_and_opts_for_event_detection(
-        event_detection_params: Optional[EventDetectionParams] = None,
-        event_detection_params_id: Optional[int] = None,
-        event_detection_run_id: Optional[Collection[int]] = None,
-        timespan_id: Optional[Collection[int]] = None,
-        datachunks: Optional[Collection[Datachunk]] = None,
-        datachunk_ids: Optional[Collection[int]] = None,
-        load_timespan: bool = False,
-        load_datachunk: bool = False,
-        load_event_detection_params: bool = False,
+    event_detection_params: Optional[EventDetectionParams] = None,
+    event_detection_params_id: Optional[int] = None,
+    event_detection_run_id: Optional[Collection[int]] = None,
+    timespan_id: Optional[Collection[int]] = None,
+    datachunks: Optional[Collection[Datachunk]] = None,
+    datachunk_ids: Optional[Collection[int]] = None,
+    load_timespan: bool = False,
+    load_datachunk: bool = False,
+    load_event_detection_params: bool = False,
 ) -> Tuple[List, List]:
-
     filters = []
     if event_detection_params is not None:
         filters.append(EventDetectionResult.event_detection_params_id.in_((event_detection_params.id,)))
@@ -243,12 +255,12 @@ def _determine_filters_and_opts_for_event_detection(
 
 
 def fetch_event_confirmation_results(
-        event_confirmation_params: Optional[EventConfirmationParams] = None,
-        event_confirmation_params_id: Optional[int] = None,
-        event_confirmation_run_id : Optional[Collection[int]] = None,
-        load_timespan: bool = False,
-        load_event_confirmation_params: bool = False,
-        batch_size: Optional[int] = None,
+    event_confirmation_params: Optional[EventConfirmationParams] = None,
+    event_confirmation_params_id: Optional[int] = None,
+    event_confirmation_run_id: Optional[Collection[int]] = None,
+    load_timespan: bool = False,
+    load_event_confirmation_params: bool = False,
+    batch_size: Optional[int] = None,
 ) -> List[EventConfirmationResult]:
     """
     Fetches EventConfirmationResult objects using varying optional filters. Associated Timespan, \
@@ -286,9 +298,9 @@ def fetch_event_confirmation_results(
 
 
 def count_event_confirmation_results(
-        event_confirmation_params: Optional[EventConfirmationParams] = None,
-        event_confirmation_params_id: Optional[int] = None,
-        event_confirmation_run_id : Optional[Collection[int]] = None,
+    event_confirmation_params: Optional[EventConfirmationParams] = None,
+    event_confirmation_params_id: Optional[int] = None,
+    event_confirmation_run_id: Optional[Collection[int]] = None,
 ) -> int:
     """filldocs"""
     query = _query_event_confirmation_results(
@@ -301,17 +313,19 @@ def count_event_confirmation_results(
 
 
 def _query_event_confirmation_results(
-        event_confirmation_params: Optional[EventConfirmationParams] = None,
-        event_confirmation_params_id: Optional[int] = None,
-        event_confirmation_run_id : Optional[Collection[int]] = None,
-        load_timespan: bool = False,
-        load_event_confirmation_params: bool = False,
+    event_confirmation_params: Optional[EventConfirmationParams] = None,
+    event_confirmation_params_id: Optional[int] = None,
+    event_confirmation_run_id: Optional[Collection[int]] = None,
+    load_timespan: bool = False,
+    load_event_confirmation_params: bool = False,
 ) -> Query:
     """filldocs"""
     try:
         validate_maximum_one_argument_provided(event_confirmation_params, event_confirmation_params_id)
-    except ValueError:
-        raise ValueError('Maximum one of event_confirmation_params or event_confirmation_params_id can be provided')
+    except ValueError as e:
+        raise ValueError(
+            "Maximum one of event_confirmation_params or event_confirmation_params_id can be provided"
+        ) from e
 
     filters, opts = _determine_filters_and_opts_for_event_confirmation(
         event_confirmation_params=event_confirmation_params,
@@ -327,13 +341,12 @@ def _query_event_confirmation_results(
 
 
 def _determine_filters_and_opts_for_event_confirmation(
-        event_confirmation_params: Optional[EventConfirmationParams] = None,
-        event_confirmation_params_id: Optional[int] = None,
-        event_confirmation_run_id : Optional[Collection[int]] = None,
-        load_timespan: bool = False,
-        load_event_confirmation_params: bool = False,
+    event_confirmation_params: Optional[EventConfirmationParams] = None,
+    event_confirmation_params_id: Optional[int] = None,
+    event_confirmation_run_id: Optional[Collection[int]] = None,
+    load_timespan: bool = False,
+    load_event_confirmation_params: bool = False,
 ) -> Tuple[List, List]:
-
     filters = []
     if event_confirmation_params is not None:
         filters.append(EventConfirmationResult.event_confirmation_params_id.in_((event_confirmation_params.id,)))
@@ -367,18 +380,18 @@ def fetch_latest_event_confirmation_run() -> EventConfirmationRun:
 
 
 def perform_event_detection(
-        event_detection_params_id: int,
-        starttime: Union[datetime.date, datetime.datetime],
-        endtime: Union[datetime.date, datetime.datetime],
-        networks: Optional[Union[Collection[str], str]] = None,
-        stations: Optional[Union[Collection[str], str]] = None,
-        components: Optional[Union[Collection[str], str]] = None,
-        component_ids: Optional[Union[Collection[int], int]] = None,
-        plot_figures: bool = True,
-        batch_size: int = 2000,
-        parallel: bool = True,
-        skip_existing: bool = True,
-        raise_errors: bool = False,
+    event_detection_params_id: int,
+    starttime: Union[datetime.date, datetime.datetime],
+    endtime: Union[datetime.date, datetime.datetime],
+    networks: Optional[Union[Collection[str], str]] = None,
+    stations: Optional[Union[Collection[str], str]] = None,
+    components: Optional[Union[Collection[str], str]] = None,
+    component_ids: Optional[Union[Collection[int], int]] = None,
+    plot_figures: bool = True,
+    batch_size: int = 2000,
+    parallel: bool = True,
+    skip_existing: bool = True,
+    raise_errors: bool = False,
 ):
     """
     Performs event detection according to provided set of selectors.
@@ -449,16 +462,16 @@ def perform_event_detection(
 
 
 def _prepare_inputs_for_event_detection(
-        event_detection_params_id: int,
-        starttime: Union[datetime.date, datetime.datetime],
-        endtime: Union[datetime.date, datetime.datetime],
-        networks: Optional[Union[Collection[str], str]] = None,
-        stations: Optional[Union[Collection[str], str]] = None,
-        components: Optional[Union[Collection[str], str]] = None,
-        component_ids: Optional[Union[Collection[int], int]] = None,
-        plot_figures: bool = True,
-        batch_size: int = 2000,
-        skip_existing: bool = True,
+    event_detection_params_id: int,
+    starttime: Union[datetime.date, datetime.datetime],
+    endtime: Union[datetime.date, datetime.datetime],
+    networks: Optional[Union[Collection[str], str]] = None,
+    stations: Optional[Union[Collection[str], str]] = None,
+    components: Optional[Union[Collection[str], str]] = None,
+    component_ids: Optional[Union[Collection[int], int]] = None,
+    plot_figures: bool = True,
+    batch_size: int = 2000,
+    skip_existing: bool = True,
 ) -> Generator[EventDetectionRunnerInputs, None, None]:
     """
     Parses the given selectors and retrieves the corresponding datachunks.
@@ -527,10 +540,12 @@ def _prepare_inputs_for_event_detection(
 
         if skip_existing:
             logger.debug("Fetching existing EventDetectionResult")
-            existing_results = fetch_event_detection_results(event_detection_params=params, datachunk_ids=fetched_datachunk_ids)
+            existing_results = fetch_event_detection_results(
+                event_detection_params=params, datachunk_ids=fetched_datachunk_ids
+            )
             existing_results_datachunk_ids = [x.datachunk_id for x in existing_results]
         else:
-            existing_results_datachunk_ids = list()
+            existing_results_datachunk_ids = []
 
         for datachunk in fetched_datachunks:
             if datachunk.id in existing_results_datachunk_ids:
@@ -578,26 +593,26 @@ def _prepare_upsert_command_event_detection(event_detection_result: EventDetecti
         )
         .on_conflict_do_update(
             constraint="unique_detection_per_timespan_per_datachunk_per_param_per_time",
-            set_=dict(event_detection_file_id=event_detection_result.event_detection_file_id),
+            set_={"event_detection_file_id": event_detection_result.event_detection_file_id},
         )
     )
     return insert_command
 
 
 def perform_event_confirmation(
-        event_confirmation_params_id: int,
-        starttime: Union[datetime.date, datetime.datetime],
-        endtime: Union[datetime.date, datetime.datetime],
-        networks: Optional[Union[Collection[str], str]] = None,
-        stations: Optional[Union[Collection[str], str]] = None,
-        exclude_stations: Optional[Union[Collection[str], str]] = None,
-        specific_stations_params: Optional[Union[Collection[str], str]] = None,
-        components: Optional[Union[Collection[str], str]] = None,
-        component_ids: Optional[Union[Collection[int], int]] = None,
-        batch_size: int = 50,
-        parallel: bool = True,
-        skip_existing: bool = True,
-        raise_errors: bool = False,
+    event_confirmation_params_id: int,
+    starttime: Union[datetime.date, datetime.datetime],
+    endtime: Union[datetime.date, datetime.datetime],
+    networks: Optional[Union[Collection[str], str]] = None,
+    stations: Optional[Union[Collection[str], str]] = None,
+    exclude_stations: Optional[Union[Collection[str], str]] = None,
+    specific_stations_params: Optional[Union[Collection[str], str]] = None,
+    components: Optional[Union[Collection[str], str]] = None,
+    component_ids: Optional[Union[Collection[int], int]] = None,
+    batch_size: int = 50,
+    parallel: bool = True,
+    skip_existing: bool = True,
+    raise_errors: bool = False,
 ):
     """
     Performs event confirmation according to provided set of selectors.
@@ -673,17 +688,17 @@ def perform_event_confirmation(
 
 
 def _prepare_inputs_for_event_confirmation(
-        event_confirmation_params_id: int,
-        starttime: Union[datetime.date, datetime.datetime],
-        endtime: Union[datetime.date, datetime.datetime],
-        networks: Optional[Union[Collection[str], str]] = None,
-        stations: Optional[Union[Collection[str], str]] = None,
-        exclude_stations: Optional[Union[Collection[str], str]] = None,
-        specific_stations_params: Optional[Union[Collection[str], str]] = None,
-        components: Optional[Union[Collection[str], str]] = None,
-        component_ids: Optional[Union[Collection[int], int]] = None,
-        batch_size: int = 10,
-        skip_existing: bool = True,
+    event_confirmation_params_id: int,
+    starttime: Union[datetime.date, datetime.datetime],
+    endtime: Union[datetime.date, datetime.datetime],
+    networks: Optional[Union[Collection[str], str]] = None,
+    stations: Optional[Union[Collection[str], str]] = None,
+    exclude_stations: Optional[Union[Collection[str], str]] = None,
+    specific_stations_params: Optional[Union[Collection[str], str]] = None,
+    components: Optional[Union[Collection[str], str]] = None,
+    component_ids: Optional[Union[Collection[int], int]] = None,
+    batch_size: int = 10,
+    skip_existing: bool = True,
 ) -> Generator[EventConfirmationRunnerInputs, None, None]:
     """
     Parses the given selectors and retrieves the corresponding EventDetectionResult.
@@ -769,7 +784,7 @@ def _prepare_inputs_for_event_confirmation(
         timespans_query = Timespan.query.filter(
             Timespan.starttime >= starttime,
             Timespan.endtime <= endtime,
-            )
+        )
         timespans = timespans_query.limit(batch_size).offset(i * batch_size)
         fetched_timespans = timespans.all()
 
@@ -781,7 +796,6 @@ def _prepare_inputs_for_event_confirmation(
             break  # end the while loop when all timespans in fetched_timespans are handled.
 
         for timespan in fetched_timespans:
-
             # Retrieves event_detection_results from default args
             fetched_datachunks = _query_datachunks(
                 datachunk_params_id=params.datachunk_params_id,
@@ -789,12 +803,11 @@ def _prepare_inputs_for_event_confirmation(
                 components=fetched_components,
                 load_timespan=False,
                 load_component=False,
-                ).all()
+            ).all()
             fetched_datachunk_ids = extract_object_ids(fetched_datachunks)
             event_detection_results = fetch_event_detection_results(
-                    event_detection_params_id=params.event_detection_params_id,
-                    datachunk_ids=fetched_datachunk_ids
-                )
+                event_detection_params_id=params.event_detection_params_id, datachunk_ids=fetched_datachunk_ids
+            )
 
             # Retrieves event_detection_results from specific args
             if specific_stations_params is not None:
@@ -813,9 +826,8 @@ def _prepare_inputs_for_event_confirmation(
                         load_component=False,
                     ).all()
                     specifics_event_detection_results = fetch_event_detection_results(
-                        event_detection_params_id=int(event_detection_params_id),
-                        datachunk_ids=extract_object_ids(dks)
-                        )
+                        event_detection_params_id=int(event_detection_params_id), datachunk_ids=extract_object_ids(dks)
+                    )
                     event_detection_results.extend(specifics_event_detection_results)
 
             if len(event_detection_results) == 0:
@@ -826,24 +838,24 @@ def _prepare_inputs_for_event_confirmation(
 
             db.session.expunge_all()
             yield EventConfirmationRunnerInputs(
-                    event_confirmation_params=params,
-                    timespan=timespan,
-                    event_detection_results=event_detection_results,
-                    event_confirmation_run=event_confirmation_run,
-                )
+                event_confirmation_params=params,
+                timespan=timespan,
+                event_detection_results=event_detection_results,
+                event_confirmation_run=event_confirmation_run,
+            )
 
         i += 1
 
 
 def _create_and_upsert_event_confirmation_run(
-        event_confirmation_params: EventConfirmationParams,
-        datachunk_params_id: int,
-        timespans: Collection[Timespan],
-        fetched_components: Collection[Component],
-        networks: Optional[Union[Collection[str], str]] = None,
-        components: Optional[Union[Collection[str], str]] = None,
-        component_ids: Optional[Union[Collection[int], int]] = None,
-        couple_params_stations: Optional[dict] = None,
+    event_confirmation_params: EventConfirmationParams,
+    datachunk_params_id: int,
+    timespans: Collection[Timespan],
+    fetched_components: Collection[Component],
+    networks: Optional[Union[Collection[str], str]] = None,
+    components: Optional[Union[Collection[str], str]] = None,
+    component_ids: Optional[Union[Collection[int], int]] = None,
+    couple_params_stations: Optional[dict] = None,
 ):
     """
     Creates and upsert an EventConfirmationRun object in the db to log the parameters
@@ -870,21 +882,20 @@ def _create_and_upsert_event_confirmation_run(
     :rtype: NoneType
     """
 
-    event_detection_params = fetch_event_detection_params_by_id(
-        event_confirmation_params.event_detection_params_id
-        )
+    event_detection_params = fetch_event_detection_params_by_id(event_confirmation_params.event_detection_params_id)
 
     event_confirmation_run = EventConfirmationRun(
         event_confirmation_params=event_confirmation_params,
-        event_detection_type=event_detection_params.detection_type,)
+        event_detection_type=event_detection_params.detection_type,
+    )
 
     fetched_datachunks = _query_datachunks(
-            datachunk_params_id=datachunk_params_id,
-            timespans=timespans,
-            components=fetched_components,
-            load_timespan=False,
-            load_component=False,
-        ).all()
+        datachunk_params_id=datachunk_params_id,
+        timespans=timespans,
+        components=fetched_components,
+        load_timespan=False,
+        load_component=False,
+    ).all()
 
     if couple_params_stations is not None:
         event_confirmation_run.specific_stations_params = str(couple_params_stations)
@@ -940,7 +951,7 @@ def _prepare_upsert_command_event_confirmation(event_confirmation_result: EventC
         )
         .on_conflict_do_update(
             constraint="unique_confirmation_per_timespan_per_param_per_time",
-            set_=dict(event_confirmation_file_id=event_confirmation_result.event_confirmation_file_id),
+            set_={"event_confirmation_file_id": event_confirmation_result.event_confirmation_file_id},
         )
     )
     return insert_command

@@ -7,7 +7,7 @@ include: # include our template script collection
     - local: "/.gitlab/templates/documentation.yml"
 
 
-image: python:3.9-buster
+image: ghcr.io/astral-sh/uv:python3.10-bookworm
 
 stages:
   - testing
@@ -30,29 +30,21 @@ variables:
   # Use TLS https://docs.gitlab.com/ee/ci/docker/using_docker_build.html#tls-enabled
   DOCKER_HOST: tcp://docker:2376
   DOCKER_TLS_CERTDIR: "/certs"
-  UNITTESTING_IMAGE_TAG: $CI_REGISTRY_IMAGE:unittesting
   POSTGRES_IMAGE_TAG: $CI_REGISTRY_IMAGE:postgres
   STABLE_IMAGE_TAG: $CI_REGISTRY_IMAGE:stable
   LATEST_IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
-  DIND_IMAGE: docker:19.03.12
-  DIND_SERVICE: docker:19.03.12-dind
+  BRANCH_IMAGE_TAG: $CI_REGISTRY_IMAGE:branch-$CI_COMMIT_SHORT_SHA
+  DIND_IMAGE: docker:24.0.5
+  DIND_SERVICE: docker:24.0.5-dind
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
 test-noiz:
-  parallel:
-    matrix:
-      - TESTING_IMAGE:
-          - python:3.9-buster
-          - python:3.10-buster
-#          - python:3.11-buster # to be activated when constraint are released
-#          - python:3.12-buster # to be activated when constraint are released
-
-  image: $TESTING_IMAGE
+  image: ghcr.io/astral-sh/uv:python3.10-bookworm
   stage: testing
   before_script:
-    - python -m pip install --upgrade pip hatch
+    - uv sync --all-groups
   script:
-    - hatch run test:cov
+    - uv run pytest --cov=noiz
 
 .image_building_parent:
   stage: image-building
@@ -62,48 +54,46 @@ test-noiz:
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - export DOCKER_BUILDKIT=1
-  after_script:
-    - docker push $CI_REGISTRY_IMAGE
 
 test_build:
   extends: .image_building_parent
   script:
-    - docker build -f docker/noiz-image/Dockerfile --cache-from $LATEST_IMAGE_TAG -t $LATEST_IMAGE_TAG .
+    - docker build -f docker/noiz-image/Dockerfile --cache-from $LATEST_IMAGE_TAG -t $BRANCH_IMAGE_TAG .
+  after_script:
+    - docker push $BRANCH_IMAGE_TAG
+
+latest_build:
+  extends: .image_building_parent
+  script:
+    - docker build -f docker/noiz-image/Dockerfile -t $LATEST_IMAGE_TAG .
+  after_script:
+    - docker push $LATEST_IMAGE_TAG
   rules:
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
-      changes:
-        - docker/noiz-image/Dockerfile
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 stable_build:
   extends: .image_building_parent
   script:
     - docker build -f docker/noiz-image/Dockerfile -t $LATEST_IMAGE_TAG -t $STABLE_IMAGE_TAG .
+  after_script:
+    - docker push $LATEST_IMAGE_TAG $STABLE_IMAGE_TAG
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      changes:
-        - docker/noiz-image/Dockerfile
-
-build_unittesting:
-  extends: .image_building_parent
-  script:
-    - docker build -f docker/unittest-image/Dockerfile -t $UNITTESTING_IMAGE_TAG .
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      changes:
-        - docker/unittest-image/Dockerfile
+    - if: $CI_COMMIT_TAG
 
 build_postgres:
   extends: .image_building_parent
   script:
     - docker build -f docker/postgres-image/Dockerfile -t $POSTGRES_IMAGE_TAG .
+  after_script:
+    - docker push $POSTGRES_IMAGE_TAG
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
       changes:
         - docker/postgres-image/Dockerfile
 
 .system_test_parent:
   stage: system-testing
-  image: $LATEST_IMAGE_TAG
+  image: $BRANCH_IMAGE_TAG
   services:
     - name: $POSTGRES_IMAGE_TAG
       alias: postgres
@@ -116,13 +106,12 @@ build_postgres:
     PROCESSED_DATA_DIR: /processed-data-dir
     GIT_SUBMODULE_STRATEGY: recursive
   before_script:
-    - python -m pip install --upgrade pip hatch
-    - python -m pip install -r requirements.txt
-    - python -m pip install .
+    - uv sync --all-groups
+    - uv pip install --no-cache-dir -e .
     - mkdir -p $PROCESSED_DATA_DIR
-#    - noiz db init
-    - noiz db migrate
-    - noiz db upgrade
+#    - uv run noiz db init
+    - uv run noiz db migrate
+    - uv run noiz db upgrade
 #
 #api_system_tests:
 #  extends: .system_test_parent
@@ -132,7 +121,7 @@ build_postgres:
 cli_system_tests:
   extends: .system_test_parent
   script:
-    - SQLALCHEMY_WARN_20=1 pytest --cov=noiz --runcli
+    - SQLALCHEMY_WARN_20=1 uv run pytest --cov=noiz --runcli
     - coverage xml
   artifacts:
     reports:
@@ -145,5 +134,5 @@ cli_system_tests_parallel:
   variables:
     NOIZ_RUN_SYSTEM_TESTS_PARALLEL: "True"
   script:
-    - SQLALCHEMY_WARN_20=1 pytest --runcli
+    - SQLALCHEMY_WARN_20=1 uv run pytest --runcli
   allow_failure: true

@@ -14,33 +14,48 @@ from sqlalchemy.orm import subqueryload, Query
 from typing import List, Tuple, Collection, Optional, Dict, Union, Generator
 
 from noiz.api.component import fetch_components
-from noiz.api.helpers import extract_object_ids, _run_calculate_and_upsert_on_dask, \
-    _run_calculate_and_upsert_sequentially
+from noiz.api.helpers import (
+    extract_object_ids,
+    _run_calculate_and_upsert_on_dask,
+    _run_calculate_and_upsert_sequentially,
+)
 from noiz.api.processing_config import fetch_datachunkparams_by_id, fetch_processed_datachunk_params_by_id
 from noiz.api.timeseries import fetch_raw_timeseries
 from noiz.api.timespan import fetch_timespans_for_doy, fetch_timespans_between_dates
 from noiz.database import db
 from noiz.exceptions import NoDataException
-from noiz.models import AveragedSohGps, Component, Datachunk, DatachunkParams, DatachunkStats, ProcessedDatachunk, \
-    QCOneConfig, QCOneResults, Timespan
-from noiz.models.type_aliases import CalculateDatachunkStatsInputs, RunDatachunkPreparationInputs, \
-    ProcessDatachunksInputs
+from noiz.models import (
+    AveragedSohGps,
+    Component,
+    Datachunk,
+    DatachunkParams,
+    DatachunkStats,
+    ProcessedDatachunk,
+    QCOneConfig,
+    QCOneResults,
+    Timespan,
+)
+from noiz.models.type_aliases import (
+    CalculateDatachunkStatsInputs,
+    RunDatachunkPreparationInputs,
+    ProcessDatachunksInputs,
+)
 from noiz.processing.datachunk import create_datachunks_for_component_wrapper, calculate_datachunk_stats_wrapper
 from noiz.processing.datachunk_processing import process_datachunk_wrapper
 from noiz.validation_helpers import validate_maximum_one_argument_provided
 
 
 def count_datachunks(
-        components: Optional[Collection[Component]] = None,
-        timespans: Optional[Collection[Timespan]] = None,
-        datachunk_params: Optional[DatachunkParams] = None,
-        datachunk_params_id: Optional[int] = None,
-        datachunk_ids: Optional[Collection[int]] = None,
-        not_datachunk_ids: Optional[Collection[int]] = None,
-        load_component: bool = False,
-        load_stats: bool = False,
-        load_timespan: bool = False,
-        load_processing_params: bool = False,
+    components: Optional[Collection[Component]] = None,
+    timespans: Optional[Collection[Timespan]] = None,
+    datachunk_params: Optional[DatachunkParams] = None,
+    datachunk_params_id: Optional[int] = None,
+    datachunk_ids: Optional[Collection[int]] = None,
+    not_datachunk_ids: Optional[Collection[int]] = None,
+    load_component: bool = False,
+    load_stats: bool = False,
+    load_timespan: bool = False,
+    load_processing_params: bool = False,
 ) -> int:
     """
     Counts number of datachunks that fit passed parameter set.
@@ -89,17 +104,17 @@ def count_datachunks(
 
 
 def fetch_datachunks(
-        components: Optional[Collection[Component]] = None,
-        timespans: Optional[Collection[Timespan]] = None,
-        datachunk_params: Optional[DatachunkParams] = None,
-        datachunk_params_id: Optional[int] = None,
-        datachunk_ids: Optional[Collection[int]] = None,
-        not_datachunk_ids: Optional[Collection[int]] = None,
-        load_component: bool = False,
-        load_stats: bool = False,
-        load_timespan: bool = False,
-        load_processing_params: bool = False,
-        order_by_id: bool = True,
+    components: Optional[Collection[Component]] = None,
+    timespans: Optional[Collection[Timespan]] = None,
+    datachunk_params: Optional[DatachunkParams] = None,
+    datachunk_params_id: Optional[int] = None,
+    datachunk_ids: Optional[Collection[int]] = None,
+    not_datachunk_ids: Optional[Collection[int]] = None,
+    load_component: bool = False,
+    load_stats: bool = False,
+    load_timespan: bool = False,
+    load_processing_params: bool = False,
+    order_by_id: bool = True,
 ) -> List[Datachunk]:
     """
     Fetches datachunks based on provided filters.
@@ -159,16 +174,16 @@ def fetch_datachunks(
 
 
 def fetch_datachunks_without_stats(
-        components: Optional[Collection[Component]] = None,
-        timespans: Optional[Collection[Timespan]] = None,
-        datachunk_params: Optional[DatachunkParams] = None,
-        datachunk_params_id: Optional[int] = None,
-        datachunk_ids: Optional[Collection[int]] = None,
-        not_datachunk_ids: Optional[Collection[int]] = None,
-        load_component: bool = False,
-        load_stats: bool = False,
-        load_timespan: bool = False,
-        load_processing_params: bool = False,
+    components: Optional[Collection[Component]] = None,
+    timespans: Optional[Collection[Timespan]] = None,
+    datachunk_params: Optional[DatachunkParams] = None,
+    datachunk_params_id: Optional[int] = None,
+    datachunk_ids: Optional[Collection[int]] = None,
+    not_datachunk_ids: Optional[Collection[int]] = None,
+    load_component: bool = False,
+    load_stats: bool = False,
+    load_timespan: bool = False,
+    load_processing_params: bool = False,
 ) -> List[Datachunk]:
     """filldocs"""
     query = _query_datachunks(
@@ -187,13 +202,13 @@ def fetch_datachunks_without_stats(
 
 
 def fetch_datachunks_from_other_channels(
-        datachunk: Optional[Datachunk] = None,
-        datachunk_id: Optional[int] = None,
-        load_component: bool = False,
-        load_stats: bool = False,
-        load_timespan: bool = False,
-        load_processing_params: bool = False,
-        order_by_id: bool = True,
+    datachunk: Optional[Datachunk] = None,
+    datachunk_id: Optional[int] = None,
+    load_component: bool = False,
+    load_stats: bool = False,
+    load_timespan: bool = False,
+    load_processing_params: bool = False,
+    order_by_id: bool = True,
 ) -> List[Datachunk]:
     """
     Fetches datachunks from the other channels with the same station, network,
@@ -228,7 +243,9 @@ def fetch_datachunks_from_other_channels(
     """
 
     if datachunk is None and datachunk_id is None:
-        raise ValueError("Neither `datachunk` nor `datachunk_id` argument was provided. It is required to provide exactly one of them")
+        raise ValueError(
+            "Neither `datachunk` nor `datachunk_id` argument was provided. It is required to provide exactly one of them"
+        )
     elif None not in (datachunk, datachunk_id):
         raise ValueError("A datachunk AND a datachunk_id cannot be given at the same time.")
 
@@ -239,7 +256,7 @@ def fetch_datachunks_from_other_channels(
         components=fetch_components(
             networks=datachunk.component.network,  # type: ignore
             stations=datachunk.component.station,  # type: ignore
-            ),
+        ),
         timespans=[datachunk.timespan],  # type: ignore
         datachunk_params_id=datachunk.datachunk_params_id,  # type: ignore
         load_component=load_component,
@@ -253,17 +270,17 @@ def fetch_datachunks_from_other_channels(
 
 
 def query_datachunks_without_qcone(
-        qc_one: QCOneConfig,
-        components: Optional[Collection[Component]] = None,
-        timespans: Optional[Collection[Timespan]] = None,
-        datachunk_params: Optional[DatachunkParams] = None,
-        datachunk_params_id: Optional[int] = None,
-        datachunk_ids: Optional[Collection[int]] = None,
-        not_datachunk_ids: Optional[Collection[int]] = None,
-        load_component: bool = False,
-        load_stats: bool = False,
-        load_timespan: bool = False,
-        load_processing_params: bool = False,
+    qc_one: QCOneConfig,
+    components: Optional[Collection[Component]] = None,
+    timespans: Optional[Collection[Timespan]] = None,
+    datachunk_params: Optional[DatachunkParams] = None,
+    datachunk_params_id: Optional[int] = None,
+    datachunk_ids: Optional[Collection[int]] = None,
+    not_datachunk_ids: Optional[Collection[int]] = None,
+    load_component: bool = False,
+    load_stats: bool = False,
+    load_timespan: bool = False,
+    load_processing_params: bool = False,
 ) -> Query:
     """filldocs"""
     filters, opts = _determine_filters_and_opts_for_datachunk(
@@ -282,28 +299,29 @@ def query_datachunks_without_qcone(
     if qc_one.uses_gps():
         objects_to_query.append(AveragedSohGps)
 
-    query = (db.session
-             .query(*tuple(objects_to_query))
-             .join(DatachunkStats, Datachunk.id == DatachunkStats.datachunk_id)
-             .filter(*filters).options(opts))
+    query = (
+        db.session.query(*tuple(objects_to_query))
+        .join(DatachunkStats, Datachunk.id == DatachunkStats.datachunk_id)
+        .filter(*filters)
+        .options(opts)
+    )
 
     return query
 
 
 def _query_datachunks(
-        components: Optional[Collection[Component]] = None,
-        timespans: Optional[Collection[Timespan]] = None,
-        datachunk_params: Optional[DatachunkParams] = None,
-        datachunk_params_id: Optional[int] = None,
-        datachunk_ids: Optional[Collection[int]] = None,
-        not_datachunk_ids: Optional[Collection[int]] = None,
-        load_component: bool = False,
-        load_stats: bool = False,
-        load_timespan: bool = False,
-        load_processing_params: bool = False,
-        order_by_id: bool = True,
+    components: Optional[Collection[Component]] = None,
+    timespans: Optional[Collection[Timespan]] = None,
+    datachunk_params: Optional[DatachunkParams] = None,
+    datachunk_params_id: Optional[int] = None,
+    datachunk_ids: Optional[Collection[int]] = None,
+    not_datachunk_ids: Optional[Collection[int]] = None,
+    load_component: bool = False,
+    load_stats: bool = False,
+    load_timespan: bool = False,
+    load_processing_params: bool = False,
+    order_by_id: bool = True,
 ) -> Query:
-
     filters, opts = _determine_filters_and_opts_for_datachunk(
         components=components,
         timespans=timespans,
@@ -323,21 +341,21 @@ def _query_datachunks(
 
 
 def _determine_filters_and_opts_for_datachunk(
-        components: Optional[Collection[Component]] = None,
-        timespans: Optional[Collection[Timespan]] = None,
-        datachunk_params: Optional[DatachunkParams] = None,
-        datachunk_params_id: Optional[int] = None,
-        datachunk_ids: Optional[Collection[int]] = None,
-        not_datachunk_ids: Optional[Collection[int]] = None,
-        load_component: bool = False,
-        load_stats: bool = False,
-        load_timespan: bool = False,
-        load_processing_params: bool = False,
+    components: Optional[Collection[Component]] = None,
+    timespans: Optional[Collection[Timespan]] = None,
+    datachunk_params: Optional[DatachunkParams] = None,
+    datachunk_params_id: Optional[int] = None,
+    datachunk_ids: Optional[Collection[int]] = None,
+    not_datachunk_ids: Optional[Collection[int]] = None,
+    load_component: bool = False,
+    load_stats: bool = False,
+    load_timespan: bool = False,
+    load_processing_params: bool = False,
 ) -> Tuple[List, List]:
     try:
         validate_maximum_one_argument_provided(datachunk_params, datachunk_params_id)
-    except ValueError:
-        raise ValueError('You can provide maximum one of datachunk_params or datachunk_params_id')
+    except ValueError as e:
+        raise ValueError("You can provide maximum one of datachunk_params or datachunk_params_id") from e
 
     filters = []
     if components is not None:
@@ -384,50 +402,44 @@ def _prepare_upsert_command_datachunk(datachunk: Datachunk) -> Insert:
         )
         .on_conflict_do_update(
             constraint="unique_datachunk_per_timespan_per_station_per_processing",
-            set_=dict(
-                datachunk_file_id=datachunk.file.id,
-                padded_npts=datachunk.padded_npts,
-                sampling_rate=datachunk.sampling_rate,
-                npts=datachunk.npts,
-            )
+            set_={
+                "datachunk_file_id": datachunk.file.id,
+                "padded_npts": datachunk.padded_npts,
+                "sampling_rate": datachunk.sampling_rate,
+                "npts": datachunk.npts,
+            },
         )
     )
     return insert_datachunk
 
 
 def _generate_datachunk_preparation_inputs(
-        stations: Optional[Tuple[str]],
-        components: Optional[Tuple[str]],
-        startdate: datetime.datetime,
-        enddate: datetime.datetime,
-        processing_config_id: int,
-        skip_existing: bool = True,
+    stations: Optional[Tuple[str]],
+    components: Optional[Tuple[str]],
+    startdate: datetime.datetime,
+    enddate: datetime.datetime,
+    processing_config_id: int,
+    skip_existing: bool = True,
 ) -> Generator[RunDatachunkPreparationInputs, None, None]:
     date_period = pendulum.period(startdate, enddate)  # type: ignore
 
     logger.info("Fetching processing config, timespans and components from db. ")
     processing_params = fetch_datachunkparams_by_id(id=processing_config_id)
 
-    all_timespans = [(date, fetch_timespans_for_doy(
-        year=date.year, doy=date.day_of_year
-    )) for date in date_period.range('days')]
+    all_timespans = [
+        (date, fetch_timespans_for_doy(year=date.year, doy=date.day_of_year)) for date in date_period.range("days")
+    ]
 
     if len(all_timespans) == 0:
         raise ValueError("There were no timespans for requested dates. Check if you created timespans at all.")
 
-    fetched_components = fetch_components(networks=None,
-                                          stations=stations,
-                                          components=components)
+    fetched_components = fetch_components(networks=None, stations=stations, components=components)
 
-    for component, (date, timespans) in itertools.product(fetched_components,
-                                                          all_timespans):
-
+    for component, (date, timespans) in itertools.product(fetched_components, all_timespans):
         logger.info(f"Looking for data on {date} for {component}")
 
         try:
-            time_series = fetch_raw_timeseries(
-                component=component, execution_date=date
-            )
+            time_series = fetch_raw_timeseries(component=component, execution_date=date)
         except NoDataException as e:
             logger.warning(f"{e} Skipping.")
             continue
@@ -443,14 +455,18 @@ def _generate_datachunk_preparation_inputs(
                 logger.debug("Number of existing timespans is sufficient. Skipping")
                 continue
             if existing_count > 0:
-                logger.debug(f"There are only {existing_count} existing Datachunks. "
-                             f"Looking for those that are missing one by one.")
-                new_timespans = [timespan for timespan in timespans if
-                                 count_datachunks(
-                                     components=(component,),
-                                     timespans=(timespan,),
-                                     datachunk_params=processing_params
-                                 ) == 0]
+                logger.debug(
+                    f"There are only {existing_count} existing Datachunks. "
+                    f"Looking for those that are missing one by one."
+                )
+                new_timespans = [
+                    timespan
+                    for timespan in timespans
+                    if count_datachunks(
+                        components=(component,), timespans=(timespan,), datachunk_params=processing_params
+                    )
+                    == 0
+                ]
                 timespans = new_timespans
 
         logger.info(f"There are {len(timespans)} to be sliced for that seismic file.")
@@ -465,14 +481,13 @@ def _generate_datachunk_preparation_inputs(
 
 
 def run_datachunk_preparation(
-        stations: Tuple[str],
-        components: Tuple[str],
-        startdate: datetime.datetime,
-        enddate: datetime.datetime,
-        processing_config_id: int,
-        parallel: bool = True,
-        batch_size: int = 1000,
-
+    stations: Tuple[str],
+    components: Tuple[str],
+    startdate: datetime.datetime,
+    enddate: datetime.datetime,
+    processing_config_id: int,
+    parallel: bool = True,
+    batch_size: int = 1000,
 ):
     logger.info("Preparing jobs for execution")
     calculation_inputs = _generate_datachunk_preparation_inputs(
@@ -506,17 +521,16 @@ def run_datachunk_preparation(
 
 
 def run_stats_calculation(
-        starttime: Union[datetime.date, datetime.datetime],
-        endtime: Union[datetime.date, datetime.datetime],
-        datachunk_params_id: int,
-        networks: Optional[Union[Collection[str], str]] = None,
-        stations: Optional[Union[Collection[str], str]] = None,
-        components: Optional[Union[Collection[str], str]] = None,
-        component_ids: Optional[Union[Collection[int], int]] = None,
-        batch_size: int = 5000,
-        parallel: bool = True,
+    starttime: Union[datetime.date, datetime.datetime],
+    endtime: Union[datetime.date, datetime.datetime],
+    datachunk_params_id: int,
+    networks: Optional[Union[Collection[str], str]] = None,
+    stations: Optional[Union[Collection[str], str]] = None,
+    components: Optional[Union[Collection[str], str]] = None,
+    component_ids: Optional[Union[Collection[int], int]] = None,
+    batch_size: int = 5000,
+    parallel: bool = True,
 ):
-
     calculation_inputs = _prepare_inputs_for_datachunk_stats_calculations(
         starttime=starttime,
         endtime=endtime,
@@ -545,26 +559,21 @@ def run_stats_calculation(
 
 
 def _prepare_inputs_for_datachunk_stats_calculations(
-        starttime: Union[datetime.date, datetime.datetime],
-        endtime: Union[datetime.date, datetime.datetime],
-        datachunk_params_id: int,
-        networks: Optional[Union[Collection[str], str]],
-        stations: Optional[Union[Collection[str], str]],
-        components: Optional[Union[Collection[str], str]],
-        component_ids: Optional[Union[Collection[int], int]],
+    starttime: Union[datetime.date, datetime.datetime],
+    endtime: Union[datetime.date, datetime.datetime],
+    datachunk_params_id: int,
+    networks: Optional[Union[Collection[str], str]],
+    stations: Optional[Union[Collection[str], str]],
+    components: Optional[Union[Collection[str], str]],
+    component_ids: Optional[Union[Collection[int], int]],
 ) -> Generator[CalculateDatachunkStatsInputs, None, None]:
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
     fetched_components = fetch_components(
-        networks=networks,
-        stations=stations,
-        components=components,
-        component_ids=component_ids
+        networks=networks, stations=stations, components=components, component_ids=component_ids
     )
     fetched_datachunk_params = fetch_datachunkparams_by_id(id=datachunk_params_id)
     fetched_datachunks = fetch_datachunks_without_stats(
-        timespans=fetched_timespans,
-        components=fetched_components,
-        datachunk_params=fetched_datachunk_params
+        timespans=fetched_timespans, components=fetched_components, datachunk_params=fetched_datachunk_params
     )
 
     db.session.expunge_all()
@@ -592,31 +601,31 @@ def _prepare_upsert_command_datachunk_stats(datachunk_stats: DatachunkStats) -> 
         )
         .on_conflict_do_update(
             constraint="unique_stats_per_datachunk",
-            set_=dict(
-                energy=datachunk_stats.energy,
-                min=datachunk_stats.min,
-                max=datachunk_stats.max,
-                mean=datachunk_stats.mean,
-                variance=datachunk_stats.variance,
-                skewness=datachunk_stats.skewness,
-                kurtosis=datachunk_stats.kurtosis,
-            ),
+            set_={
+                "energy": datachunk_stats.energy,
+                "min": datachunk_stats.min,
+                "max": datachunk_stats.max,
+                "mean": datachunk_stats.mean,
+                "variance": datachunk_stats.variance,
+                "skewness": datachunk_stats.skewness,
+                "kurtosis": datachunk_stats.kurtosis,
+            },
         )
     )
     return insert_command
 
 
 def run_datachunk_processing(
-        processed_datachunk_params_id: int,
-        starttime: Union[datetime.date, datetime.datetime],
-        endtime: Union[datetime.date, datetime.datetime],
-        networks: Optional[Union[Collection[str], str]] = None,
-        stations: Optional[Union[Collection[str], str]] = None,
-        components: Optional[Union[Collection[str], str]] = None,
-        component_ids: Optional[Union[Collection[int], int]] = None,
-        batch_size: int = 2500,
-        parallel: bool = True,
-        skip_existing: bool = True,
+    processed_datachunk_params_id: int,
+    starttime: Union[datetime.date, datetime.datetime],
+    endtime: Union[datetime.date, datetime.datetime],
+    networks: Optional[Union[Collection[str], str]] = None,
+    stations: Optional[Union[Collection[str], str]] = None,
+    components: Optional[Union[Collection[str], str]] = None,
+    component_ids: Optional[Union[Collection[int], int]] = None,
+    batch_size: int = 2500,
+    parallel: bool = True,
+    skip_existing: bool = True,
 ):
     # filldocs
     calculation_inputs = _select_datachunks_for_processing(
@@ -652,15 +661,15 @@ def run_datachunk_processing(
 
 
 def _select_datachunks_for_processing(
-        processed_datachunk_params_id: int,
-        starttime: Union[datetime.date, datetime.datetime],
-        endtime: Union[datetime.date, datetime.datetime],
-        networks: Optional[Union[Collection[str], str]] = None,
-        stations: Optional[Union[Collection[str], str]] = None,
-        components: Optional[Union[Collection[str], str]] = None,
-        component_ids: Optional[Union[Collection[int], int]] = None,
-        skip_existing: bool = True,
-        batch_size: int = 2500,
+    processed_datachunk_params_id: int,
+    starttime: Union[datetime.date, datetime.datetime],
+    endtime: Union[datetime.date, datetime.datetime],
+    networks: Optional[Union[Collection[str], str]] = None,
+    stations: Optional[Union[Collection[str], str]] = None,
+    components: Optional[Union[Collection[str], str]] = None,
+    component_ids: Optional[Union[Collection[int], int]] = None,
+    skip_existing: bool = True,
+    batch_size: int = 2500,
 ) -> Generator[ProcessDatachunksInputs, None, None]:
     # filldocs
 
@@ -698,15 +707,22 @@ def _select_datachunks_for_processing(
     if params.qcone_config_id is not None:
         logger.debug("Fetching QCOneResults associated with fetched datachunks")
         logger.info("QCOne will be used for selection of Datachunks for processing")
-        fetched_qcone_results = db.session.query(QCOneResults.datachunk_id, QCOneResults).filter(
-            QCOneResults.qcone_config_id == params.qcone_config_id,
-            QCOneResults.datachunk_id.in_(fetched_datachunks_ids)).all()
+        fetched_qcone_results = (
+            db.session.query(QCOneResults.datachunk_id, QCOneResults)
+            .filter(
+                QCOneResults.qcone_config_id == params.qcone_config_id,
+                QCOneResults.datachunk_id.in_(fetched_datachunks_ids),
+            )
+            .all()
+        )
 
         logger.debug(f"Fetched {len(fetched_qcone_results)} QCOneResults")
         for datachunk_id, qcone_results in fetched_qcone_results:
             valid_chunks[qcone_results.is_passing()].append(datachunk_id)
-        logger.info(f"There were {len(valid_chunks[True])} valid QCOneResults. "
-                    f"There were {len(valid_chunks[False])} invalid QCOneResults.")
+        logger.info(
+            f"There were {len(valid_chunks[True])} valid QCOneResults. "
+            f"There were {len(valid_chunks[False])} invalid QCOneResults."
+        )
 
     else:
         logger.info("QCOne is not used for selection of Datachunks. All fetched Datachunks will be processed.")
@@ -716,11 +732,14 @@ def _select_datachunks_for_processing(
         if skip_existing:
             logger.info(f"Querying DB for existing ProcessedDatachunks. Batch no.{i}")
             batch_ids = extract_object_ids(batch)
-            batch_existing_ids = (db.session.query(ProcessedDatachunk.datachunk_id)
-                                  .filter(
-                ProcessedDatachunk.processed_datachunk_params_id == params.id,
-                ProcessedDatachunk.datachunk_id.in_(batch_ids)
-            ).all())
+            batch_existing_ids = (
+                db.session.query(ProcessedDatachunk.datachunk_id)
+                .filter(
+                    ProcessedDatachunk.processed_datachunk_params_id == params.id,
+                    ProcessedDatachunk.datachunk_id.in_(batch_ids),
+                )
+                .all()
+            )
 
             batch_ids.sort()
             batch_existing_ids.sort()
@@ -738,16 +757,12 @@ def _select_datachunks_for_processing(
             else:
                 exists = False
 
-            if all((chunk.id in valid_chunks[True], not skip_existing)) \
-                    or all((chunk.id in valid_chunks[True], skip_existing, not exists)):
-
+            if all((chunk.id in valid_chunks[True], not skip_existing)) or all(
+                (chunk.id in valid_chunks[True], skip_existing, not exists)
+            ):
                 logger.debug(f"There QCOneResult was True for datachunk with id {chunk.id}")
                 db.session.expunge_all()
-                yield ProcessDatachunksInputs(
-                    datachunk=chunk,
-                    params=params,
-                    datachunk_file=None
-                )
+                yield ProcessDatachunksInputs(datachunk=chunk, params=params, datachunk_file=None)
             elif chunk.id in valid_chunks[True] and skip_existing and exists:
                 logger.debug(f"ProcessedDatachunk for datachunk with id {chunk.id} already exists.")
                 continue
@@ -770,7 +785,7 @@ def _prepare_upsert_command_processed_datachunk(proc_datachunk):
         )
         .on_conflict_do_update(
             constraint="unique_processing_per_datachunk_per_config",
-            set_=dict(processed_datachunk_file_id=proc_datachunk.processed_datachunk_file_id),
+            set_={"processed_datachunk_file_id": proc_datachunk.processed_datachunk_file_id},
         )
     )
     return insert_command

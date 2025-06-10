@@ -18,7 +18,7 @@ from noiz.models.type_aliases import BulkAddableObjects, InputsForMassCalculatio
 
 
 def extract_object_ids(
-        instances: Iterable[Any],
+    instances: Iterable[Any],
 ) -> List[int]:
     """
     Extracts parameter .id from all provided instances of objects.
@@ -36,7 +36,7 @@ def extract_object_ids(
 
 
 def extract_object_ids_keep_objects(
-        instances: Iterable[Any],
+    instances: Iterable[Any],
 ) -> Dict[int, Any]:
     """
     Extracts parameter .id from all provided instances of objects.
@@ -86,9 +86,9 @@ def bulk_merge_objects(objects_to_merge: Collection[BulkAddableObjects]) -> None
 
 
 def bulk_add_or_upsert_objects(
-        objects_to_add: Union[BulkAddableObjects, Collection[BulkAddableObjects]],
-        upserter_callable: Callable[[BulkAddableObjects], Insert],
-        bulk_insert: bool = True,
+    objects_to_add: Union[BulkAddableObjects, Collection[BulkAddableObjects]],
+    upserter_callable: Callable[[BulkAddableObjects], Insert],
+    bulk_insert: bool = True,
 ) -> None:
     """
     Adds in bulk or upserts provided Collection of objects to DB.
@@ -125,9 +125,9 @@ def bulk_add_or_upsert_objects(
 
 
 def bulk_merge_or_upsert_objects(
-        objects_to_merge: Union[BulkAddableObjects, Collection[BulkAddableObjects]],
-        upserter_callable: Callable[[BulkAddableObjects], Insert],
-        bulk_insert: bool = True,
+    objects_to_merge: Union[BulkAddableObjects, Collection[BulkAddableObjects]],
+    upserter_callable: Callable[[BulkAddableObjects], Insert],
+    bulk_insert: bool = True,
 ) -> None:
     """
     Merges in bulk or upserts provided Collection of objects to DB.
@@ -164,7 +164,7 @@ def bulk_merge_or_upsert_objects(
 
 
 def bulk_add_and_check_objects(
-        objects_to_add: Union[BulkAddableFileObjects, Collection[BulkAddableFileObjects]],
+    objects_to_add: Union[BulkAddableFileObjects, Collection[BulkAddableFileObjects]],
 ) -> None:
     """
     Adds in bulk or upserts provided Collection of objects to DB.
@@ -191,19 +191,18 @@ def bulk_add_and_check_objects(
 
 
 def _run_upsert_commands(
-        objects_to_add: Collection[BulkAddableObjects],
-        upserter_callable: Callable[[BulkAddableObjects], Insert]
+    objects_to_add: Collection[BulkAddableObjects], upserter_callable: Callable[[BulkAddableObjects], Insert]
 ) -> None:
-
     logger.info(f"Starting upsert procedure. There are {len(objects_to_add)} elements to be processed.")
     insert_commands = []
     for results in objects_to_add:
-
         if not isinstance(results, get_args(BulkAddableObjects)):
-            logger.warning(f'Provided object is not an instance of any of the subtypes of {BulkAddableObjects}. '
-                           f'Provided object was an {type(results)}. '
-                           f'Content of the object: {results}'
-                           f'Skipping.')
+            logger.warning(
+                f"Provided object is not an instance of any of the subtypes of {BulkAddableObjects}. "
+                f"Provided object was an {type(results)}. "
+                f"Content of the object: {results}"
+                f"Skipping."
+            )
             continue
 
         logger.debug(f"Generating upsert command for {results}")
@@ -213,24 +212,24 @@ def _run_upsert_commands(
     for insert_command in insert_commands:
         db.session.execute(insert_command)
 
-    logger.debug('Commiting session.')
+    logger.debug("Commiting session.")
     db.session.commit()
 
 
 def _run_calculate_and_upsert_on_dask(
-        inputs: Iterable[InputsForMassCalculations],
-        calculation_task: Callable[[InputsForMassCalculations], Tuple[BulkAddableObjects, ...]],
-        upserter_callable: Callable[[BulkAddableObjects], Insert],
-        batch_size: int = 5000,
-        raise_errors: bool = False,
-        with_file: bool = False,
-        is_beamforming: bool = False,
-        is_event_confirmation: bool = False,
+    inputs: Iterable[InputsForMassCalculations],
+    calculation_task: Callable[[InputsForMassCalculations], Tuple[BulkAddableObjects, ...]],
+    upserter_callable: Callable[[BulkAddableObjects], Insert],
+    batch_size: int = 5000,
+    raise_errors: bool = False,
+    with_file: bool = False,
+    is_beamforming: bool = False,
+    is_event_confirmation: bool = False,
 ):
     from dask.distributed import Client
+
     client = Client()
-    logger.info(f'Dask client started successfully. '
-                f'You can monitor execution on {client.dashboard_link}')
+    logger.info(f"Dask client started successfully. You can monitor execution on {client.dashboard_link}")
     logger.info(f"Processing will be executed in batches. The chunks size is {batch_size}")
     for i, input_batch in enumerate(more_itertools.chunked(iterable=inputs, n=batch_size)):
         if i != 0:
@@ -254,14 +253,14 @@ def _run_calculate_and_upsert_on_dask(
 
 
 def _submit_task_to_client_and_add_results_to_db(
-        client,
-        inputs_to_process: Iterable[InputsForMassCalculations],
-        calculation_task: Callable[[InputsForMassCalculations], Tuple[BulkAddableObjects, ...]],
-        upserter_callable: Callable[[BulkAddableObjects], Insert],
-        raise_errors: bool = False,
-        with_file: bool = False,
-        is_beamforming: bool = False,
-        is_event_confirmation: bool = False,
+    client,
+    inputs_to_process: Iterable[InputsForMassCalculations],
+    calculation_task: Callable[[InputsForMassCalculations], Tuple[BulkAddableObjects, ...]],
+    upserter_callable: Callable[[BulkAddableObjects], Insert],
+    raise_errors: bool = False,
+    with_file: bool = False,
+    is_beamforming: bool = False,
+    is_event_confirmation: bool = False,
 ):
     from dask.distributed import as_completed
 
@@ -273,14 +272,14 @@ def _submit_task_to_client_and_add_results_to_db(
         except CorruptedDataException as e:
             if raise_errors:
                 logger.error(f"Cought error {e}. Finishing execution.")
-                raise CorruptedDataException(e)
+                raise CorruptedDataException(e) from e
             else:
                 logger.error(f"Cought error {e}. Skipping to next timespan.")
                 continue
         except InconsistentDataException as e:
             if raise_errors:
                 logger.error(f"Cought error {e}. Finishing execution.")
-                raise InconsistentDataException(e)
+                raise InconsistentDataException(e) from e
             else:
                 logger.error(f"Cought error {e}. Skipping to next timespan.")
                 continue
@@ -316,31 +315,24 @@ def _submit_task_to_client_and_add_results_to_db(
 
         if is_event_confirmation:
             bulk_merge_or_upsert_objects(
-                objects_to_merge=results,
-                upserter_callable=upserter_callable,
-                bulk_insert=True
+                objects_to_merge=results, upserter_callable=upserter_callable, bulk_insert=True
             )
         else:
-            bulk_add_or_upsert_objects(
-                objects_to_add=results,
-                upserter_callable=upserter_callable,
-                bulk_insert=True
-            )
+            bulk_add_or_upsert_objects(objects_to_add=results, upserter_callable=upserter_callable, bulk_insert=True)
 
     return
 
 
 def _run_calculate_and_upsert_sequentially(
-        inputs: Iterable[InputsForMassCalculations],
-        calculation_task: Callable[[InputsForMassCalculations], Tuple[BulkAddableObjects, ...]],
-        upserter_callable: Callable[[BulkAddableObjects], Insert],
-        batch_size: int = 1000,
-        raise_errors: bool = False,
-        with_file: bool = False,
-        is_beamforming: bool = False,
-        is_event_confirmation: bool = False,
+    inputs: Iterable[InputsForMassCalculations],
+    calculation_task: Callable[[InputsForMassCalculations], Tuple[BulkAddableObjects, ...]],
+    upserter_callable: Callable[[BulkAddableObjects], Insert],
+    batch_size: int = 1000,
+    raise_errors: bool = False,
+    with_file: bool = False,
+    is_beamforming: bool = False,
+    is_event_confirmation: bool = False,
 ):
-
     for i, input_batch in enumerate(more_itertools.chunked(iterable=inputs, n=batch_size)):
         logger.info(f"Starting processing of chunk no.{i}")
         results_nested = []
@@ -350,21 +342,21 @@ def _run_calculate_and_upsert_sequentially(
             except CorruptedDataException as e:
                 if raise_errors:
                     logger.error(f"Cought error {e}. Finishing execution.")
-                    raise CorruptedDataException(e)
+                    raise CorruptedDataException(e) from e
                 else:
                     logger.error(f"Cought error {e}. Skipping to next timespan.")
                     continue
             except InconsistentDataException as e:
                 if raise_errors:
                     logger.error(f"Cought error {e}. Finishing execution.")
-                    raise InconsistentDataException(e)
+                    raise InconsistentDataException(e) from e
                 else:
                     logger.error(f"Cought error {e}. Skipping to next timespan.")
                     continue
             except ObspyError as e:
                 if raise_errors:
                     logger.error(f"Cought error {e}. Finishing execution.")
-                    raise ObspyError(e)
+                    raise ObspyError(e) from e
                 else:
                     logger.error(f"Cought error {e}. Skipping to next timespan.")
                     continue
@@ -392,16 +384,10 @@ def _run_calculate_and_upsert_sequentially(
 
         if is_event_confirmation:
             bulk_merge_or_upsert_objects(
-                objects_to_merge=results,
-                upserter_callable=upserter_callable,
-                bulk_insert=True
+                objects_to_merge=results, upserter_callable=upserter_callable, bulk_insert=True
             )
         else:
-            bulk_add_or_upsert_objects(
-                objects_to_add=results,
-                upserter_callable=upserter_callable,
-                bulk_insert=True
-            )
+            bulk_add_or_upsert_objects(objects_to_add=results, upserter_callable=upserter_callable, bulk_insert=True)
 
     logger.info("All processing is done.")
     return

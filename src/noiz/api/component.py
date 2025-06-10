@@ -32,8 +32,7 @@ def fetch_components_by_id(component_ids: Collection[int]) -> List[Component]:
     :return: List of all fetched components
     :rtype: List[Component]
     """
-    logger.warning("DEPRACATION. Method depracted. "
-                   "Use noiz.api.component.fetch_components")
+    logger.warning("DEPRACATION. Method depracted. Use noiz.api.component.fetch_components")
     return fetch_components(component_ids=component_ids)
 
 
@@ -83,7 +82,6 @@ def fetch_components(
 
 
 def parse_inventory_insert_stations_and_components_into_db(inventory_path: Path, filetype: str = "STATIONXML") -> None:
-
     inventory_dir = get_processed_inventory_dir()
 
     components, devices = parse_inventory_for_single_component_db_entries(
@@ -103,7 +101,7 @@ def parse_inventory_insert_stations_and_components_into_db(inventory_path: Path,
     db.session.add_all(components)
     logger.info("Commiting components to db")
     db.session.commit()
-    logger.info('Success')
+    logger.info("Success")
     return
 
 

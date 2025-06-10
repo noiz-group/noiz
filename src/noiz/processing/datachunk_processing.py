@@ -13,23 +13,30 @@ from noiz.models.datachunk import Datachunk, ProcessedDatachunk, ProcessedDatach
 from noiz.models.processing_params import ProcessedDatachunkParams, DatachunkParams
 from noiz.models.timespan import Timespan
 from noiz.models.component import Component
-from noiz.processing.path_helpers import parent_directory_exists_or_create, assembly_filepath, assembly_preprocessing_filename, \
-    assembly_sds_like_dir, increment_filename_counter
+from noiz.processing.path_helpers import (
+    parent_directory_exists_or_create,
+    assembly_filepath,
+    assembly_preprocessing_filename,
+    assembly_sds_like_dir,
+    increment_filename_counter,
+)
 from noiz.globals import PROCESSED_DATA_DIR
 
 
-def whiten_trace(tr: obspy.Trace,
-                 f_max: float,
-                 waterlevel_ratio_to_max: float,
-                 filtering_low: float,
-                 filtering_high: float,
-                 convolution_sliding_window_min_samples: int,
-                 convolution_sliding_window_max_ratio_to_fmin: float,
-                 convolution_sliding_window_ratio_to_bandwidth: float,
-                 quefrency_filter_lowpass_pct: float,
-                 quefrency_filter_taper_min_samples: int,
-                 quefrency_filter_taper_length_ratio_to_length_cepstrum: float,
-                 quefrency: bool) -> obspy.Trace:
+def whiten_trace(
+    tr: obspy.Trace,
+    f_max: float,
+    waterlevel_ratio_to_max: float,
+    filtering_low: float,
+    filtering_high: float,
+    convolution_sliding_window_min_samples: int,
+    convolution_sliding_window_max_ratio_to_fmin: float,
+    convolution_sliding_window_ratio_to_bandwidth: float,
+    quefrency_filter_lowpass_pct: float,
+    quefrency_filter_taper_min_samples: int,
+    quefrency_filter_taper_length_ratio_to_length_cepstrum: float,
+    quefrency: bool,
+) -> obspy.Trace:
     """
     Spectrally whitens the trace. Calculates a spectrum of trace,
     divides it by its absolute value and
@@ -64,11 +71,13 @@ def whiten_trace(tr: obspy.Trace,
     """
 
     f_niquist = f_max / 2  # to spectral domain
-    convolution_sliding_window_max_width = filtering_low*convolution_sliding_window_max_ratio_to_fmin  # do not used more than half of filtering_low
+    convolution_sliding_window_max_width = (
+        filtering_low * convolution_sliding_window_max_ratio_to_fmin
+    )  # do not used more than half of filtering_low
     width_band_pass = filtering_high - filtering_low
 
     tr_tap = tr.copy()
-    tr_tap = tr_tap.taper(0.5, max_length=1/filtering_low)
+    tr_tap = tr_tap.taper(0.5, max_length=1 / filtering_low)
     data_use = tr_tap.data
     spectrum = np.fft.fft(data_use)
 
@@ -79,34 +88,43 @@ def whiten_trace(tr: obspy.Trace,
         min_waterlevel_log = np.min(s_waterlevel_log)
         s_waterlevel_log_shifted = s_waterlevel_log - min_waterlevel_log
 
-        l_conv, smooth_vector = _convolution_kernel_def(convolution_sliding_window_ratio_to_bandwidth,
-                                                        width_band_pass,
-                                                        convolution_sliding_window_max_width,
-                                                        convolution_sliding_window_min_samples,
-                                                        f_niquist,
-                                                        len(spectrum))  # definition convolution filter
+        l_conv, smooth_vector = _convolution_kernel_def(
+            convolution_sliding_window_ratio_to_bandwidth,
+            width_band_pass,
+            convolution_sliding_window_max_width,
+            convolution_sliding_window_min_samples,
+            f_niquist,
+            len(spectrum),
+        )  # definition convolution filter
 
         s_log_new = s_waterlevel_log_shifted.copy()  # convolution application
-        s_log_new_conv = (1 / np.sum(smooth_vector)) * np.convolve(s_waterlevel_log_shifted[1:], smooth_vector, mode="same")
-        s_log_new_conv_sym = 0.5*(s_log_new_conv + np.flip(s_log_new_conv))
+        s_log_new_conv = (1 / np.sum(smooth_vector)) * np.convolve(
+            s_waterlevel_log_shifted[1:], smooth_vector, mode="same"
+        )
+        s_log_new_conv_sym = 0.5 * (s_log_new_conv + np.flip(s_log_new_conv))
         s_log_new[1:] = s_log_new_conv_sym
         spectrum_fft = np.fft.fft(s_log_new)
         spectrum_fft_shift = np.fft.fftshift(spectrum_fft)
 
-        n = round(len(spectrum)*quefrency_filter_lowpass_pct/2)  # to spectral domain
-        taper_qfr = _taper_quefrency(len(s_log_new), n, quefrency_filter_taper_min_samples, quefrency_filter_taper_length_ratio_to_length_cepstrum)
-        spectrum_fft_shift_tap = spectrum_fft_shift*taper_qfr  # application du taper
+        n = round(len(spectrum) * quefrency_filter_lowpass_pct / 2)  # to spectral domain
+        taper_qfr = _taper_quefrency(
+            len(s_log_new),
+            n,
+            quefrency_filter_taper_min_samples,
+            quefrency_filter_taper_length_ratio_to_length_cepstrum,
+        )
+        spectrum_fft_shift_tap = spectrum_fft_shift * taper_qfr  # application du taper
         spectrum_fft_tap = np.fft.ifftshift(spectrum_fft_shift_tap)
         smooth_s = np.fft.ifft(spectrum_fft_tap)
         smooth_s_real = np.real(smooth_s)
         taper_to_td = _taper_to_timedomaine(len(smooth_s_real), filtering_low, filtering_high, f_niquist, l_conv)
         smooth_s_exp_conv = np.exp(s_log_new + min_waterlevel_log)
-        psd_white = (spectrum/smooth_s_exp_conv)*taper_to_td
+        psd_white = (spectrum / smooth_s_exp_conv) * taper_to_td
         s_white = np.fft.ifft(psd_white)
         tr.data = np.real(s_white)
 
     else:
-        psd_white = (spectrum/np.abs(s_waterlevel))
+        psd_white = spectrum / np.abs(s_waterlevel)
         s_white = np.fft.ifft(psd_white)
         tr.data = np.real(s_white)
 
@@ -129,7 +147,7 @@ def one_bit_normalization(tr: obspy.Trace) -> obspy.Trace:
 
 
 def process_datachunk_wrapper(
-        inputs: ProcessDatachunksInputs,
+    inputs: ProcessDatachunksInputs,
 ) -> Tuple[ProcessedDatachunk, ...]:
     """
     Thin wrapper around :py:meth:`noiz.processing.datachunk_processing.process_datachunk` that converts a single
@@ -152,9 +170,9 @@ def process_datachunk_wrapper(
 
 
 def process_datachunk(
-        datachunk: Datachunk,
-        params: ProcessedDatachunkParams,
-        datachunk_file: Optional[DatachunkFile] = None,
+    datachunk: Datachunk,
+    params: ProcessedDatachunkParams,
+    datachunk_file: Optional[DatachunkFile] = None,
 ) -> ProcessedDatachunk:
     """
     Method that allows for processing of the datachunks.
@@ -171,11 +189,11 @@ def process_datachunk(
     """
 
     if not isinstance(datachunk.timespan, Timespan):
-        msg = 'The Timespan is not loaded with the Datachunk. Correct that.'
-        logger.error('The Timespan is not loaded with the Datachunk. Correct that.')
+        msg = "The Timespan is not loaded with the Datachunk. Correct that."
+        logger.error("The Timespan is not loaded with the Datachunk. Correct that.")
         raise ValueError(msg)
     if not isinstance(datachunk.component, Component):
-        msg = 'The Component is not loaded with the Datachunk. Correct that.'
+        msg = "The Component is not loaded with the Datachunk. Correct that."
         logger.error(msg)
         raise ValueError(msg)
 
@@ -192,19 +210,19 @@ def process_datachunk(
     if params.spectral_whitening:
         logger.debug("Performing spectral whitening")
         st[0] = whiten_trace(
-                            st[0],
-                            st[0].stats.sampling_rate,
-                            params.waterlevel_ratio_to_max,
-                            params.filtering_low,
-                            params.filtering_high,
-                            params.convolution_sliding_window_min_samples,
-                            params.convolution_sliding_window_max_ratio_to_fmin,
-                            params.convolution_sliding_window_ratio_to_bandwidth,
-                            params.quefrency_filter_lowpass_pct,
-                            params.quefrency_filter_taper_min_samples,
-                            params.quefrency_filter_taper_length_ratio_to_length_cepstrum,
-                            params.quefrency
-                )
+            st[0],
+            st[0].stats.sampling_rate,
+            params.waterlevel_ratio_to_max,
+            params.filtering_low,
+            params.filtering_high,
+            params.convolution_sliding_window_min_samples,
+            params.convolution_sliding_window_max_ratio_to_fmin,
+            params.convolution_sliding_window_ratio_to_bandwidth,
+            params.quefrency_filter_lowpass_pct,
+            params.quefrency_filter_taper_min_samples,
+            params.quefrency_filter_taper_length_ratio_to_length_cepstrum,
+            params.quefrency,
+        )
         logger.debug("Performing bandpass filter")
     st[0].filter(
         type="bandpass",
@@ -220,12 +238,9 @@ def process_datachunk(
     filepath = assembly_filepath(
         PROCESSED_DATA_DIR,  # type: ignore
         "processed_datachunk",
-        assembly_sds_like_dir(datachunk.component, datachunk.timespan) \
-        .joinpath(assembly_preprocessing_filename(
-            component=datachunk.component,
-            timespan=datachunk.timespan,
-            count=0
-        )),
+        assembly_sds_like_dir(datachunk.component, datachunk.timespan).joinpath(
+            assembly_preprocessing_filename(component=datachunk.component, timespan=datachunk.timespan, count=0)
+        ),
     )
 
     if filepath.exists():
@@ -252,10 +267,10 @@ def process_datachunk(
 
 
 def _taper_function(
-        w: int,
-        idx: int,
-        taper_f: np.ndarray,
-        factor: int,
+    w: int,
+    idx: int,
+    taper_f: np.ndarray,
+    factor: int,
 ) -> np.ndarray:
     """Fill out taper
 
@@ -272,8 +287,8 @@ def _taper_function(
     """
 
     for i_im in range(w):
-        val_wid = np.sin((i_im)/(w-1)*np.pi/2)**2
-        indice = idx+(-w+i_im+1)*factor
+        val_wid = np.sin((i_im) / (w - 1) * np.pi / 2) ** 2
+        indice = idx + (-w + i_im + 1) * factor
         taper_f[indice] = val_wid
         taper_f[-indice] = val_wid
 
@@ -281,11 +296,11 @@ def _taper_function(
 
 
 def _taper_def(
-        spect_len: int,
-        ind_b: int,
-        ind_e: int,
-        value: int,
-        init_type: str,
+    spect_len: int,
+    ind_b: int,
+    ind_e: int,
+    value: int,
+    init_type: str,
 ) -> np.ndarray:
     """Definition/initialisation taper
 
@@ -314,10 +329,10 @@ def _taper_def(
 
 
 def _taper_quefrency(
-        len_s_log_new: int,
-        n: int,
-        quefrency_filter_taper_min_samples: int,
-        quefrency_filter_taper_length_ratio_to_length_cepstrum: float,
+    len_s_log_new: int,
+    n: int,
+    quefrency_filter_taper_min_samples: int,
+    quefrency_filter_taper_length_ratio_to_length_cepstrum: float,
 ) -> np.ndarray:
     """taper definition for quefrency domain
 
@@ -334,21 +349,22 @@ def _taper_quefrency(
     """
 
     len_signal = len_s_log_new
-    width_ff = max(quefrency_filter_taper_min_samples,
-                   round(len_signal*quefrency_filter_taper_length_ratio_to_length_cepstrum))
-    ind = int(round(len_s_log_new/2)-n)
-    taper_qfr = _taper_def(len_signal, ind, len_signal-ind, 1, "zeros")
+    width_ff = max(
+        quefrency_filter_taper_min_samples, round(len_signal * quefrency_filter_taper_length_ratio_to_length_cepstrum)
+    )
+    ind = int(round(len_s_log_new / 2) - n)
+    taper_qfr = _taper_def(len_signal, ind, len_signal - ind, 1, "zeros")
     taper_qfr = _taper_function(width_ff, ind, taper_qfr, 1)
 
     return taper_qfr
 
 
 def _taper_to_timedomaine(
-        len_smooth_s: int,
-        filtering_low: float,
-        filtering_high: float,
-        f_niquist: float,
-        l_conv: int,
+    len_smooth_s: int,
+    filtering_low: float,
+    filtering_high: float,
+    f_niquist: float,
+    l_conv: int,
 ) -> np.ndarray:
     """taper definition/creation for time domaine
 
@@ -366,21 +382,21 @@ def _taper_to_timedomaine(
     :rtype: np.ndarray
     """
 
-    hz_axis = np.linspace(0, f_niquist, round(len_smooth_s/2))
-    i_min = int(np.argmin(np.abs(hz_axis-filtering_low)))
-    i_max = int(np.argmin(np.abs(hz_axis-filtering_high)))
-    taper_min = _taper_def(len_smooth_s, i_min, len_smooth_s-(i_min), 1, "zeros")
-    taper_max = _taper_def(len_smooth_s, i_max, len_smooth_s-(i_max-1), 0, "ones")
+    hz_axis = np.linspace(0, f_niquist, round(len_smooth_s / 2))
+    i_min = int(np.argmin(np.abs(hz_axis - filtering_low)))
+    i_max = int(np.argmin(np.abs(hz_axis - filtering_high)))
+    taper_min = _taper_def(len_smooth_s, i_min, len_smooth_s - (i_min), 1, "zeros")
+    taper_max = _taper_def(len_smooth_s, i_max, len_smooth_s - (i_max - 1), 0, "ones")
     taper_min = _taper_function(l_conv, i_min, taper_min, 1)
     taper_max = _taper_function(l_conv, i_max, taper_max, -1)
-    taper_to_td = taper_min*taper_max
+    taper_to_td = taper_min * taper_max
 
     return taper_to_td
 
 
 def _waterlevel_f(
-        spectrum: np.ndarray,
-        waterlevel_ratio_to_max: float,
+    spectrum: np.ndarray,
+    waterlevel_ratio_to_max: float,
 ) -> np.ndarray:
     """waterlevel filter
 
@@ -393,19 +409,21 @@ def _waterlevel_f(
     """
 
     s_waterlevel = spectrum.copy()
-    s_waterlevel[np.abs(s_waterlevel) <= waterlevel_ratio_to_max*np.max(np.abs(s_waterlevel))] = waterlevel_ratio_to_max*np.max(np.abs(s_waterlevel))
+    s_waterlevel[np.abs(s_waterlevel) <= waterlevel_ratio_to_max * np.max(np.abs(s_waterlevel))] = (
+        waterlevel_ratio_to_max * np.max(np.abs(s_waterlevel))
+    )
     s_waterlevel[0] = np.abs(spectrum[0])
 
     return np.abs(s_waterlevel)
 
 
 def _convolution_kernel_def(
-        convolution_sliding_window_ratio_to_bandwidth: float,
-        width_band_pass: float,
-        convolution_sliding_window_max_width: float,
-        convolution_sliding_window_min_samples: int,
-        f_niquist: float,
-        len_spectrum: int,
+    convolution_sliding_window_ratio_to_bandwidth: float,
+    width_band_pass: float,
+    convolution_sliding_window_max_width: float,
+    convolution_sliding_window_min_samples: int,
+    f_niquist: float,
+    len_spectrum: int,
 ) -> Tuple[int, np.ndarray]:
     """Definition of the convolution kernel
 
@@ -425,7 +443,9 @@ def _convolution_kernel_def(
     :rtype: Tuple[int,np.ndarray]
     """
 
-    width_conv = min(convolution_sliding_window_ratio_to_bandwidth * width_band_pass, convolution_sliding_window_max_width)
+    width_conv = min(
+        convolution_sliding_window_ratio_to_bandwidth * width_band_pass, convolution_sliding_window_max_width
+    )
     l_conv = round(max(convolution_sliding_window_min_samples, width_conv / f_niquist * len_spectrum))
     smooth_vector = np.ones((l_conv))
 

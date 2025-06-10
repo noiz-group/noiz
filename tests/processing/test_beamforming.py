@@ -16,8 +16,16 @@ def beamformerkeeper():
     st = pd.Timestamp(2020, 1, 1, 1, 3, 5).to_datetime64()
     mt = pd.Timestamp(2020, 1, 1, 1, 18, 5).to_datetime64()
     et = pd.Timestamp(2020, 1, 1, 1, 33, 5).to_datetime64()
-    bk = BeamformerKeeper(xaxis=axis, yaxis=axis, time_vector=time, save_abspow=True, save_relpow=True,
-                          starttime=st, midtime=mt, endtime=et)
+    bk = BeamformerKeeper(
+        xaxis=axis,
+        yaxis=axis,
+        time_vector=time,
+        save_abspow=True,
+        save_relpow=True,
+        starttime=st,
+        midtime=mt,
+        endtime=et,
+    )
     return (axis, time, st, mt, et, bk)
 
 
@@ -69,8 +77,16 @@ class TestBeamformerKeeper:
     def test_save_beamformers_abspows_only(self, beamformerkeeper):
         (axis, time, st, mt, et, _) = beamformerkeeper
 
-        bk = BeamformerKeeper(xaxis=axis, yaxis=axis, time_vector=time, save_abspow=True, save_relpow=False,
-                              starttime=st, midtime=mt, endtime=et)
+        bk = BeamformerKeeper(
+            xaxis=axis,
+            yaxis=axis,
+            time_vector=time,
+            save_abspow=True,
+            save_relpow=False,
+            starttime=st,
+            midtime=mt,
+            endtime=et,
+        )
 
         apows = [
             np.ones((3, 3)) * 10,
@@ -95,8 +111,16 @@ class TestBeamformerKeeper:
     def test_save_beamformers_relpows_only(self, beamformerkeeper):
         (axis, time, st, mt, et, _) = beamformerkeeper
 
-        bk = BeamformerKeeper(xaxis=axis, yaxis=axis, time_vector=time, save_abspow=False, save_relpow=True,
-                              starttime=st, midtime=mt, endtime=et)
+        bk = BeamformerKeeper(
+            xaxis=axis,
+            yaxis=axis,
+            time_vector=time,
+            save_abspow=False,
+            save_relpow=True,
+            starttime=st,
+            midtime=mt,
+            endtime=et,
+        )
 
         apows = [
             np.ones((3, 3)) * 10,
@@ -133,7 +157,7 @@ class TestBeamformerKeeper:
         ]
         i_vals = [1000, 2000, 3000]
 
-        expected_average_relpow = np.ones((3, 3)) * 200.
+        expected_average_relpow = np.ones((3, 3)) * 200.0
 
         for apow, relpow, i_val in zip(apows, relpows, i_vals):
             bk.save_beamformers(relpow, apow, i_val)
@@ -146,8 +170,16 @@ class TestBeamformerKeeper:
     def test_calculate_average_relpower_beamformer_data_not_saved(self, beamformerkeeper):
         (axis, time, st, mt, et, _) = beamformerkeeper
 
-        bk = BeamformerKeeper(xaxis=axis, yaxis=axis, time_vector=time, save_abspow=False, save_relpow=False,
-                              starttime=st, midtime=mt, endtime=et)
+        bk = BeamformerKeeper(
+            xaxis=axis,
+            yaxis=axis,
+            time_vector=time,
+            save_abspow=False,
+            save_relpow=False,
+            starttime=st,
+            midtime=mt,
+            endtime=et,
+        )
 
         apows = [
             np.ones((3, 3)) * 10,
@@ -185,7 +217,7 @@ class TestBeamformerKeeper:
         ]
         i_vals = [1000, 2000, 3000]
 
-        expected_average_abs = np.ones((3, 3)) * 20.
+        expected_average_abs = np.ones((3, 3)) * 20.0
 
         for apow, relpow, i_val in zip(apows, relpows, i_vals):
             bk.save_beamformers(relpow, apow, i_val)
@@ -226,8 +258,8 @@ class TestBeamformerKeeper:
         ]
         i_vals = [1000, 2000, 3000]
 
-        expected_average_abs = np.ones((3, 3)) * 20.
-        expected_average_rel = np.ones((3, 3)) * 200.
+        expected_average_abs = np.ones((3, 3)) * 20.0
+        expected_average_rel = np.ones((3, 3)) * 200.0
 
         def method_to_write_to_bk_from_within(apows, relpows, i_vals, save_callable):
             for apow, relpow, i_val in zip(apows, relpows, i_vals):

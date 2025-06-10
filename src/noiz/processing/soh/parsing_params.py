@@ -141,15 +141,7 @@ centaur_miniseed_header_columns = (
     "VPB",  # Digitizer buffer percent used [%]
 )
 
-centaur_miniseed_gpstime_used_columns = (
-    "GST",
-    "GNS",
-    "LCQ",
-    "GPL",
-    "VCO",
-    "LCE",
-    "TIME_UNCERTAINTY"
-)
+centaur_miniseed_gpstime_used_columns = ("GST", "GNS", "LCQ", "GPL", "VCO", "LCE", "TIME_UNCERTAINTY")
 
 centaur_miniseed_gpstime_name_mappings = {
     "GST": "GPS receiver status",
@@ -158,7 +150,7 @@ centaur_miniseed_gpstime_name_mappings = {
     "GPL": "Phase lock loop status",
     "VCO": "Timing DAC count",
     "LCE": "Time error(ms)",
-    "TIME_UNCERTAINTY": "Time uncertainty(ms)"
+    "TIME_UNCERTAINTY": "Time uncertainty(ms)",
 }
 
 centaur_miniseed_gpstime_dtypes = {
@@ -361,6 +353,7 @@ class SohParsingParams:
     This is just here implemented for the future.
     The SOHProcessingParams dict should be refactored to use that class
     """
+
     instrument_name: SohInstrumentNames
     soh_type: SohType
     header_names: Tuple[str, ...]
@@ -373,8 +366,8 @@ class SohParsingParams:
 
 
 def _read_single_soh_csv(
-        filepath: Path,
-        parsing_params: SohParsingParams,
+    filepath: Path,
+    parsing_params: SohParsingParams,
 ) -> Optional[pd.DataFrame]:
     """
     Takes a filepath to a single CSV file and parses it according to parameters passed.
@@ -395,10 +388,8 @@ def _read_single_soh_csv(
             parse_dates=["UTCDateTime"],
             skiprows=1,
         ).set_index("UTCDateTime")
-    except ValueError:
-        raise UnparsableDateTimeException(
-            f"There is a problem with parsing file.\n {filepath}"
-        )
+    except ValueError as e:
+        raise UnparsableDateTimeException(f"There is a problem with parsing file.\n {filepath}") from e
 
     if len(single_df) == 0:
         return None
@@ -407,13 +398,13 @@ def _read_single_soh_csv(
         single_df = single_df[~single_df.index.str.contains("Time")]
         try:
             single_df.index = single_df.index.astype("datetime64[ns]")
-        except ValueError:
+        except ValueError as e:
             raise UnparsableDateTimeException(
                 f"There was a problem with parsing the SOH file.\n"
                 f" One of elements of UTCDateTime column could not be parsed to datetime format.\n"
                 f" Check the file, it might contain single unparsable line.\n"
                 f" {filepath} "
-            )
+            ) from e
 
     single_df = single_df.astype(parsing_params.header_dtypes)
     single_df.index = single_df.index.tz_localize("UTC")
@@ -422,8 +413,8 @@ def _read_single_soh_csv(
 
 
 def _read_single_soh_miniseed_centaur(
-        filepath: Path,
-        parsing_params: SohParsingParams,
+    filepath: Path,
+    parsing_params: SohParsingParams,
 ) -> pd.DataFrame:
     """
     This method reads a miniseed file and looks for channels defined in the
@@ -449,9 +440,9 @@ def _read_single_soh_miniseed_centaur(
         for tr in st_selected:
             data_read.append(
                 pd.Series(
-                    index=[pd.Timestamp.utcfromtimestamp(t) for t in tr.times('timestamp')],
+                    index=[pd.Timestamp.utcfromtimestamp(t) for t in tr.times("timestamp")],
                     data=tr.data,
-                    name=parsing_params.name_mappings[channel]
+                    name=parsing_params.name_mappings[channel],
                 )
             )
 
@@ -473,9 +464,9 @@ def _postprocess_soh_miniseed_instrument_centaur(df: pd.DataFrame) -> pd.DataFra
     :return: Postprocessed dataframe
     :rtype: pd.DataFrame
     """
-    df.loc[:, 'Supply voltage(V)'] = df.loc[:, 'Supply voltage(V)'] / 1000
-    df.loc[:, 'Total current(A)'] = df.loc[:, 'Total current(A)'] / 1000
-    df.loc[:, 'Temperature(C)'] = df.loc[:, 'Temperature(C)'] / 1000
+    df.loc[:, "Supply voltage(V)"] = df.loc[:, "Supply voltage(V)"] / 1000
+    df.loc[:, "Total current(A)"] = df.loc[:, "Total current(A)"] / 1000
+    df.loc[:, "Temperature(C)"] = df.loc[:, "Temperature(C)"] / 1000
     return df
 
 
@@ -491,7 +482,7 @@ def _postprocess_soh_miniseed_gpstime_centaur(df: pd.DataFrame) -> pd.DataFrame:
     :return: Postprocessed dataframe
     :rtype: pd.DataFrame
     """
-    df.loc[:, 'Time error(ms)'] = df.loc[:, 'Time error(ms)'] / 1000
+    df.loc[:, "Time error(ms)"] = df.loc[:, "Time error(ms)"] / 1000
     return df
 
 
@@ -532,15 +523,16 @@ def __postprocess_soh_taurus_instrument(df: pd.DataFrame) -> pd.DataFrame:
 
     df["Supply voltage(V)"] = df["Supply Voltage(mV)"] / 1000
     df["Total current(A)"] = (
-        df.loc[:,
-               [
-                   "NMX Bus Current(mA)",
-                   "Sensor Current(mA)",
-                   "Serial Port Current(mA)",
-                   "Controller Current(mA)",
-                   "Digitizer Current(mA)",
-               ],
-               ].sum(axis="columns")
+        df.loc[
+            :,
+            [
+                "NMX Bus Current(mA)",
+                "Sensor Current(mA)",
+                "Serial Port Current(mA)",
+                "Controller Current(mA)",
+                "Digitizer Current(mA)",
+            ],
+        ].sum(axis="columns")
         / 1000
     )
 
@@ -568,7 +560,7 @@ __parsing_params_list = (
         search_regex="*SOH_*.miniseed",
         postprocessor=_postprocess_soh_miniseed_gpstime_centaur,
         name_mappings=centaur_miniseed_gpstime_name_mappings,
-        parser=_read_single_soh_miniseed_centaur
+        parser=_read_single_soh_miniseed_centaur,
     ),
     SohParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
@@ -579,7 +571,7 @@ __parsing_params_list = (
         search_regex="*SOH_*.miniseed",
         postprocessor=_postprocess_soh_miniseed_instrument_centaur,
         name_mappings=centaur_miniseed_instrument_name_mappings,
-        parser=_read_single_soh_miniseed_centaur
+        parser=_read_single_soh_miniseed_centaur,
     ),
     SohParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
@@ -590,7 +582,7 @@ __parsing_params_list = (
         search_regex="*Instrument*.csv",
         postprocessor=_empty_postprocessor,
         name_mappings={},
-        parser=_read_single_soh_csv
+        parser=_read_single_soh_csv,
     ),
     SohParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
@@ -601,7 +593,7 @@ __parsing_params_list = (
         search_regex="*GPSTime*.csv",
         postprocessor=__postprocess_soh_gpstime_gnsstime,
         name_mappings={},
-        parser=_read_single_soh_csv
+        parser=_read_single_soh_csv,
     ),
     SohParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
@@ -612,7 +604,7 @@ __parsing_params_list = (
         search_regex="*GNSSTime*.csv",
         postprocessor=__postprocess_soh_gpstime_gnsstime,
         name_mappings={},
-        parser=_read_single_soh_csv
+        parser=_read_single_soh_csv,
     ),
     SohParsingParams(
         instrument_name=SohInstrumentNames.CENTAUR,
@@ -623,7 +615,7 @@ __parsing_params_list = (
         search_regex="*EnvironmentSOH*.csv",
         postprocessor=_empty_postprocessor,
         name_mappings={},
-        parser=_read_single_soh_csv
+        parser=_read_single_soh_csv,
     ),
     SohParsingParams(
         instrument_name=SohInstrumentNames.TAURUS,
@@ -634,7 +626,7 @@ __parsing_params_list = (
         search_regex="*Instrument*.csv",
         postprocessor=__postprocess_soh_taurus_instrument,
         name_mappings={},
-        parser=_read_single_soh_csv
+        parser=_read_single_soh_csv,
     ),
     SohParsingParams(
         instrument_name=SohInstrumentNames.TAURUS,
@@ -645,7 +637,7 @@ __parsing_params_list = (
         search_regex="*GPSTime*.csv",
         postprocessor=__postprocess_soh_gpstime_gnsstime,
         name_mappings={},
-        parser=_read_single_soh_csv
+        parser=_read_single_soh_csv,
     ),
     SohParsingParams(
         instrument_name=SohInstrumentNames.TAURUS,
@@ -656,7 +648,7 @@ __parsing_params_list = (
         search_regex="*EnvironmentSOH*.csv",
         postprocessor=_empty_postprocessor,
         name_mappings={},
-        parser=_read_single_soh_csv
+        parser=_read_single_soh_csv,
     ),
 )
 
@@ -687,10 +679,12 @@ def load_parsing_parameters(soh_type: str, station_type: str) -> SohParsingParam
     _soh_type = validate_soh_type(soh_type)
 
     if _soh_type not in SOH_PARSING_PARAMETERS[_station_type].keys():
-        raise ValueError(f"Not supported soh type for this station type. "
-                         f"For this station type the supported soh types are: "
-                         f"{SOH_PARSING_PARAMETERS[_station_type].keys()}, "
-                         f"You provided {_soh_type}")
+        raise ValueError(
+            f"Not supported soh type for this station type. "
+            f"For this station type the supported soh types are: "
+            f"{SOH_PARSING_PARAMETERS[_station_type].keys()}, "
+            f"You provided {_soh_type}"
+        )
 
     parsing_parameters = SOH_PARSING_PARAMETERS[_station_type][_soh_type]
 
@@ -709,9 +703,10 @@ def validate_soh_type(soh_type: str) -> SohType:
     """
     try:
         _soh_type = SohType(soh_type)
-    except ValueError:
-        raise ValueError(f"Not supported soh type. Supported types are: {list(SohType)}, "
-                         f"You provided {soh_type}")
+    except ValueError as e:
+        raise ValueError(
+            f"Not supported soh type. Supported types are: {list(SohType)}, You provided {soh_type}"
+        ) from e
     return _soh_type
 
 
@@ -727,7 +722,8 @@ def validate_soh_instrument_name(station_type: str) -> SohInstrumentNames:
     """
     try:
         _station_type = SohInstrumentNames(station_type)
-    except ValueError:
-        raise ValueError(f"Not supported station type. Supported types are: {list(SohInstrumentNames)}, "
-                         f"You provided {station_type}")
+    except ValueError as e:
+        raise ValueError(
+            f"Not supported station type. Supported types are: {list(SohInstrumentNames)}, You provided {station_type}"
+        ) from e
     return _station_type

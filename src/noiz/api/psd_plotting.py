@@ -19,18 +19,18 @@ from noiz.api.timespan import fetch_timespans_between_dates
 
 
 def plot_average_psd_between_dates(
-        starttime: Union[datetime.date, datetime.datetime, UTCDateTime],
-        endtime: Union[datetime.date, datetime.datetime, UTCDateTime],
-        ppsd_params_id: int,
-        networks: Optional[Union[Collection[str], str]] = None,
-        stations: Optional[Union[Collection[str], str]] = None,
-        component_codes: Optional[Union[Collection[str], str]] = None,
-        fig_title: Optional[str] = None,
-        show_legend: bool = True,
-        filepath: Optional[Path] = None,
-        showfig: bool = False,
-        xlims: Optional[Tuple[float, float]] = None,
-        ylims: Optional[Tuple[float, float]] = None,
+    starttime: Union[datetime.date, datetime.datetime, UTCDateTime],
+    endtime: Union[datetime.date, datetime.datetime, UTCDateTime],
+    ppsd_params_id: int,
+    networks: Optional[Union[Collection[str], str]] = None,
+    stations: Optional[Union[Collection[str], str]] = None,
+    component_codes: Optional[Union[Collection[str], str]] = None,
+    fig_title: Optional[str] = None,
+    show_legend: bool = True,
+    filepath: Optional[Path] = None,
+    showfig: bool = False,
+    xlims: Optional[Tuple[float, float]] = None,
+    ylims: Optional[Tuple[float, float]] = None,
 ) -> plt.Figure:
     """filldocs"""
 
@@ -40,7 +40,7 @@ def plot_average_psd_between_dates(
 
     grouped_psds = defaultdict(list)
     for component in fetched_components:
-        datachunks = fetch_datachunks(timespans=fetched_timespans, load_component=False, components=(component, ))
+        datachunks = fetch_datachunks(timespans=fetched_timespans, load_component=False, components=(component,))
         if len(datachunks) == 0:
             logger.info(f"There were no datachunks fetched for {component}. Did you prepare datachunks? Skipping")
             continue
@@ -70,22 +70,22 @@ def plot_average_psd_between_dates(
 
 
 def plot_spectrograms_between_dates(
-        starttime: Union[datetime.date, datetime.datetime, UTCDateTime],
-        endtime: Union[datetime.date, datetime.datetime, UTCDateTime],
-        ppsd_params_id: int,
-        networks: Optional[Union[Collection[str], str]] = None,
-        stations: Optional[Union[Collection[str], str]] = None,
-        component_codes: Optional[Union[Collection[str], str]] = None,
-        rolling_window: Optional[str] = None,
-        return_figures: bool = True,
-        fig_title: Optional[str] = None,
-        log_freq_scale: bool = True,
-        vmin: Union[int, float] = -180,
-        vmax: Union[int, float] = -120,
-        dirpath: Path = Path.cwd(),
-        showfig: bool = False,
-        xlims: Optional[Tuple[float, float]] = None,
-        ylims: Optional[Tuple[float, float]] = None,
+    starttime: Union[datetime.date, datetime.datetime, UTCDateTime],
+    endtime: Union[datetime.date, datetime.datetime, UTCDateTime],
+    ppsd_params_id: int,
+    networks: Optional[Union[Collection[str], str]] = None,
+    stations: Optional[Union[Collection[str], str]] = None,
+    component_codes: Optional[Union[Collection[str], str]] = None,
+    rolling_window: Optional[str] = None,
+    return_figures: bool = True,
+    fig_title: Optional[str] = None,
+    log_freq_scale: bool = True,
+    vmin: Union[int, float] = -180,
+    vmax: Union[int, float] = -120,
+    dirpath: Optional[Path] = None,
+    showfig: bool = False,
+    xlims: Optional[Tuple[float, float]] = None,
+    ylims: Optional[Tuple[float, float]] = None,
 ) -> Tuple[plt.Figure, ...]:
     """filldocs"""
 
@@ -101,7 +101,7 @@ def plot_spectrograms_between_dates(
 
     figs = []
     for component in fetched_components:
-        datachunks = fetch_datachunks(timespans=fetched_timespans, load_component=False, components=(component, ))
+        datachunks = fetch_datachunks(timespans=fetched_timespans, load_component=False, components=(component,))
         if len(datachunks) == 0:
             logger.info(f"There were no datachunks fetched for {component}. Did you prepare datachunks? Skipping")
             continue
@@ -109,6 +109,9 @@ def plot_spectrograms_between_dates(
         if len(fetched_psds) == 0:
             logger.info(f"There were no PSDResults fetched for {component}. Did you calculate PSDs? Skipping")
             continue
+
+        if dirpath is None:
+            dirpath = Path.cwd()
 
         filepath = dirpath.joinpath(f"spectrogram_{component}_{starttime}_{endtime}.png")
 

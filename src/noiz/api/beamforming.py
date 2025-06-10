@@ -13,22 +13,36 @@ from sqlalchemy.sql.elements import BinaryExpression
 from typing import Union, Collection, Optional, List, Tuple, Generator, Dict
 
 from noiz.api.component import fetch_components
-from noiz.api.helpers import extract_object_ids, _run_calculate_and_upsert_sequentially, \
-    _run_calculate_and_upsert_on_dask, _parse_query_as_dataframe
+from noiz.api.helpers import (
+    extract_object_ids,
+    _run_calculate_and_upsert_sequentially,
+    _run_calculate_and_upsert_on_dask,
+    _parse_query_as_dataframe,
+)
 from noiz.api.qc import fetch_qcone_config_single
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.models.type_aliases import BeamformingRunnerInputs
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
 from noiz.models import Timespan, Datachunk, QCOneResults, BeamformingParams
-from noiz.models.beamforming import BeamformingResult, BeamformingPeakAverageAbspower, \
-    association_table_beamforming_result_avg_abspower, BeamformingResultType, \
-    BeamformingPeakAllAbspower, association_table_beamforming_result_all_abspower, \
-    BeamformingPeakAllRelpower, association_table_beamforming_result_all_relpower, \
-    BeamformingPeakAverageRelpower, association_table_beamforming_result_avg_relpower, \
-    BeamformingFile
-from noiz.processing.beamforming import calculate_beamforming_results_wrapper, \
-    validate_if_all_beamforming_params_use_same_component_codes, validate_if_all_beamforming_params_use_same_qcone
+from noiz.models.beamforming import (
+    BeamformingResult,
+    BeamformingPeakAverageAbspower,
+    association_table_beamforming_result_avg_abspower,
+    BeamformingResultType,
+    BeamformingPeakAllAbspower,
+    association_table_beamforming_result_all_abspower,
+    BeamformingPeakAllRelpower,
+    association_table_beamforming_result_all_relpower,
+    BeamformingPeakAverageRelpower,
+    association_table_beamforming_result_avg_relpower,
+    BeamformingFile,
+)
+from noiz.processing.beamforming import (
+    calculate_beamforming_results_wrapper,
+    validate_if_all_beamforming_params_use_same_component_codes,
+    validate_if_all_beamforming_params_use_same_qcone,
+)
 from noiz.validation_helpers import validate_to_tuple, validate_maximum_one_argument_provided
 
 
@@ -49,8 +63,8 @@ def fetch_beamforming_params_single(params_id: int) -> BeamformingParams:
 
 
 def fetch_beamforming_params(
-        ids: Optional[Collection[int]] = None,
-        load_qcone_config: bool = True,
+    ids: Optional[Collection[int]] = None,
+    load_qcone_config: bool = True,
 ) -> List[BeamformingParams]:
     """
     Fetches a BeamformingParams objects by its ID.
@@ -71,10 +85,7 @@ def fetch_beamforming_params(
     if load_qcone_config:
         opts.append(subqueryload(BeamformingParams.qcone_config))
 
-    fetched_params = (BeamformingParams.query
-                      .filter(*filters)
-                      .options(opts)
-                      .all())
+    fetched_params = BeamformingParams.query.filter(*filters).options(opts).all()
     if len(fetched_params) == 0:
         raise EmptyResultException(f"BeamformingParams with ids of {ids} do not exist.")
 
@@ -82,18 +93,17 @@ def fetch_beamforming_params(
 
 
 def run_beamforming(
-        beamforming_params_ids: Union[int, Tuple[int, ...]],
-        starttime: Union[datetime.date, datetime.datetime],
-        endtime: Union[datetime.date, datetime.datetime],
-        networks: Optional[Union[Collection[str], str]] = None,
-        stations: Optional[Union[Collection[str], str]] = None,
-        component_ids: Optional[Union[Collection[int], int]] = None,
-        skip_existing: bool = True,
-        batch_size: int = 500,
-        parallel: bool = True,
-        raise_errors: bool = True,
+    beamforming_params_ids: Union[int, Tuple[int, ...]],
+    starttime: Union[datetime.date, datetime.datetime],
+    endtime: Union[datetime.date, datetime.datetime],
+    networks: Optional[Union[Collection[str], str]] = None,
+    stations: Optional[Union[Collection[str], str]] = None,
+    component_ids: Optional[Union[Collection[int], int]] = None,
+    skip_existing: bool = True,
+    batch_size: int = 500,
+    parallel: bool = True,
+    raise_errors: bool = True,
 ):
-
     calculation_inputs = _prepare_inputs_for_beamforming_runner(
         beamforming_params_ids=validate_to_tuple(beamforming_params_ids, int),
         starttime=starttime,
@@ -102,7 +112,7 @@ def run_beamforming(
         stations=stations,
         component_ids=component_ids,
         skip_existing=skip_existing,
-        batch_size=batch_size
+        batch_size=batch_size,
     )
 
     if parallel:
@@ -128,16 +138,15 @@ def run_beamforming(
 
 
 def _prepare_inputs_for_beamforming_runner(
-        beamforming_params_ids: Collection[int],
-        starttime: Union[datetime.date, datetime.datetime],
-        endtime: Union[datetime.date, datetime.datetime],
-        networks: Optional[Union[Collection[str], str]] = None,
-        stations: Optional[Union[Collection[str], str]] = None,
-        component_ids: Optional[Union[Collection[int], int]] = None,
-        skip_existing: bool = True,
-        batch_size: int = 500,
+    beamforming_params_ids: Collection[int],
+    starttime: Union[datetime.date, datetime.datetime],
+    endtime: Union[datetime.date, datetime.datetime],
+    networks: Optional[Union[Collection[str], str]] = None,
+    stations: Optional[Union[Collection[str], str]] = None,
+    component_ids: Optional[Union[Collection[int], int]] = None,
+    skip_existing: bool = True,
+    batch_size: int = 500,
 ) -> Generator[BeamformingRunnerInputs, None, None]:
-
     logger.debug(f"Fetching BeamformingParams with ids {beamforming_params_ids}")
     params = fetch_beamforming_params(ids=beamforming_params_ids)
     fetched_params_ids = extract_object_ids(params)
@@ -166,18 +175,17 @@ def _prepare_inputs_for_beamforming_runner(
     logger.debug(f"Fetched {len(fetched_components)} components")
 
     for timespan_batch in more_itertools.chunked(iterable=fetched_timespans, n=batch_size):
-
         selection: List[Tuple[Timespan, Datachunk, QCOneResults]] = (
             db.session.query(Timespan, Datachunk, QCOneResults)
-                      .select_from(Timespan)
-                      .join(Datachunk, Datachunk.timespan_id == Timespan.id)
-                      .join(QCOneResults, Datachunk.id == QCOneResults.datachunk_id)
-                      .filter(Timespan.id.in_(extract_object_ids(timespan_batch)))  # type: ignore
-                      .filter(Datachunk.component_id.in_(extract_object_ids(fetched_components)))
-                      .filter(QCOneResults.qcone_config_id == qcone_config.id)
-                      .options(subqueryload(Datachunk.component))
-                      .order_by(Timespan.id)
-                      .all()
+            .select_from(Timespan)
+            .join(Datachunk, Datachunk.timespan_id == Timespan.id)
+            .join(QCOneResults, Datachunk.id == QCOneResults.datachunk_id)
+            .filter(Timespan.id.in_(extract_object_ids(timespan_batch)))  # type: ignore
+            .filter(Datachunk.component_id.in_(extract_object_ids(fetched_components)))
+            .filter(QCOneResults.qcone_config_id == qcone_config.id)
+            .options(subqueryload(Datachunk.component))
+            .order_by(Timespan.id)
+            .all()
         )
 
         grouped_by_tid: Dict[Timespan, List[Tuple[Datachunk, QCOneResults]]] = defaultdict(list)
@@ -217,14 +225,18 @@ def _prepare_inputs_for_beamforming_runner(
             logger.debug(f"There are {len(used_params)} beamformings to be done for timespan {ts}. ")
 
             passing_chunks = [chunk for chunk, qconeresult in group if qconeresult.is_passing()]
-            logger.debug(f"There are {len(passing_chunks)} passing QCOne out of {len(group)} datachunks in total "
-                         f"for timespan {ts}")
+            logger.debug(
+                f"There are {len(passing_chunks)} passing QCOne out of {len(group)} datachunks in total "
+                f"for timespan {ts}"
+            )
 
             if len(passing_chunks) < global_minimum_trace_count:
-                logger.warning(f"There was not enough traces passing QCOne for the beamforming. "
-                               f"Skipping this timespan. Timespan: {ts} "
-                               f"Global minimum trace count: {global_minimum_trace_count}. "
-                               f"Passing traces: {len(passing_chunks)}")
+                logger.warning(
+                    f"There was not enough traces passing QCOne for the beamforming. "
+                    f"Skipping this timespan. Timespan: {ts} "
+                    f"Global minimum trace count: {global_minimum_trace_count}. "
+                    f"Passing traces: {len(passing_chunks)}"
+                )
                 continue
 
             db.session.expunge_all()
@@ -256,20 +268,20 @@ def _prepare_upsert_command_beamforming(results: BeamformingResult) -> Insert:
         )
         .on_conflict_do_update(
             constraint="unique_beam_per_config_per_timespan",
-            set_=dict(
-                beamforming_file_id=results.beamforming_file_id,
-                used_component_count=results.used_component_count,
-            ),
+            set_={
+                "beamforming_file_id": results.beamforming_file_id,
+                "used_component_count": results.used_component_count,
+            },
         )
     )
     return insert_command
 
 
 def fetch_beamforming_peaks_avg_abspower_results_in_freq_slowness(
-        beamforming_params_collection: Optional[Collection[BeamformingParams]] = None,
-        timespans: Optional[Collection[Timespan]] = None,
-        minimum_trace_used_count: Optional[int] = None,
-        beamforming_result_type: Union[str, BeamformingResultType] = BeamformingResultType.AVGABSPOWER,
+    beamforming_params_collection: Optional[Collection[BeamformingParams]] = None,
+    timespans: Optional[Collection[Timespan]] = None,
+    minimum_trace_used_count: Optional[int] = None,
+    beamforming_result_type: Union[str, BeamformingResultType] = BeamformingResultType.AVGABSPOWER,
 ) -> pd.DataFrame:
     """filldocs"""
     filters = _determine_filters_for_fetching_beamforming_peaks(
@@ -280,10 +292,12 @@ def fetch_beamforming_peaks_avg_abspower_results_in_freq_slowness(
 
     try:
         beamforming_result_type = BeamformingResultType(beamforming_result_type)
-    except ValueError:
-        raise ValueError(f"Invalid value of beamforming_result_type. "
-                         f"Accepted values: {list(BeamformingResultType)}; "
-                         f"Got value: {beamforming_result_type} ")
+    except ValueError as e:
+        raise ValueError(
+            f"Invalid value of beamforming_result_type. "
+            f"Accepted values: {list(BeamformingResultType)}; "
+            f"Got value: {beamforming_result_type} "
+        ) from e
 
     query = _query_one_of_the_beamforming_result_types_for_freq_slowness(beamforming_result_type, filters)
 
@@ -292,8 +306,8 @@ def fetch_beamforming_peaks_avg_abspower_results_in_freq_slowness(
 
 
 def _query_one_of_the_beamforming_result_types_for_freq_slowness(
-        beamforming_result_type: BeamformingResultType,
-        filters: Union[List[BinaryExpression], List[bool]],
+    beamforming_result_type: BeamformingResultType,
+    filters: Union[List[BinaryExpression], List[bool]],
 ) -> Query:
     if beamforming_result_type is BeamformingResultType.AVGABSPOWER:
         query = _query_beamforming_peaks_avg_abspower(filters)
@@ -304,17 +318,24 @@ def _query_one_of_the_beamforming_result_types_for_freq_slowness(
     elif beamforming_result_type is BeamformingResultType.ALLRELPOWER:
         query = _query_beamforming_peaks_all_relpower(filters)
     else:
-        raise NotImplementedError(f'This value is not supported at all. Supported values {list(BeamformingResultType)}')
+        raise NotImplementedError(
+            f"This value is not supported at all. Supported values {list(BeamformingResultType)}"
+        )
     return query
 
 
 def _query_beamforming_peaks_avg_abspower(filters: Union[List[BinaryExpression], List[bool]]) -> Query:
     """filldocs"""
     query = (
-        db.session
-        .query(BeamformingParams.central_freq, BeamformingPeakAverageAbspower.slowness,
-               BeamformingPeakAverageAbspower.slowness_x, BeamformingPeakAverageAbspower.slowness_y,
-               BeamformingPeakAverageAbspower.amplitude, BeamformingPeakAverageAbspower.backazimuth, BeamformingPeakAverageAbspower.azimuth)
+        db.session.query(
+            BeamformingParams.central_freq,
+            BeamformingPeakAverageAbspower.slowness,
+            BeamformingPeakAverageAbspower.slowness_x,
+            BeamformingPeakAverageAbspower.slowness_y,
+            BeamformingPeakAverageAbspower.amplitude,
+            BeamformingPeakAverageAbspower.backazimuth,
+            BeamformingPeakAverageAbspower.azimuth,
+        )
         .select_from(BeamformingResult)
         .join(BeamformingParams, BeamformingParams.id == BeamformingResult.beamforming_params_id)
         .join(association_table_beamforming_result_avg_abspower)
@@ -327,10 +348,15 @@ def _query_beamforming_peaks_avg_abspower(filters: Union[List[BinaryExpression],
 def _query_beamforming_peaks_all_abspower(filters: Union[List[BinaryExpression], List[bool]]) -> Query:
     """filldocs"""
     query = (
-        db.session
-        .query(BeamformingParams.central_freq, BeamformingPeakAllAbspower.slowness,
-               BeamformingPeakAllAbspower.slowness_x, BeamformingPeakAllAbspower.slowness_y,
-               BeamformingPeakAllAbspower.amplitude, BeamformingPeakAllAbspower.backazimuth, BeamformingPeakAllAbspower.azimuth)
+        db.session.query(
+            BeamformingParams.central_freq,
+            BeamformingPeakAllAbspower.slowness,
+            BeamformingPeakAllAbspower.slowness_x,
+            BeamformingPeakAllAbspower.slowness_y,
+            BeamformingPeakAllAbspower.amplitude,
+            BeamformingPeakAllAbspower.backazimuth,
+            BeamformingPeakAllAbspower.azimuth,
+        )
         .select_from(BeamformingResult)
         .join(BeamformingParams, BeamformingParams.id == BeamformingResult.beamforming_params_id)
         .join(association_table_beamforming_result_all_abspower)
@@ -343,10 +369,15 @@ def _query_beamforming_peaks_all_abspower(filters: Union[List[BinaryExpression],
 def _query_beamforming_peaks_all_relpower(filters: Union[List[BinaryExpression], List[bool]]) -> Query:
     """filldocs"""
     query = (
-        db.session
-        .query(BeamformingParams.central_freq, BeamformingPeakAllRelpower.slowness,
-               BeamformingPeakAllRelpower.slowness_x, BeamformingPeakAllRelpower.slowness_y,
-               BeamformingPeakAllRelpower.amplitude, BeamformingPeakAllRelpower.backazimuth, BeamformingPeakAllRelpower.azimuth)
+        db.session.query(
+            BeamformingParams.central_freq,
+            BeamformingPeakAllRelpower.slowness,
+            BeamformingPeakAllRelpower.slowness_x,
+            BeamformingPeakAllRelpower.slowness_y,
+            BeamformingPeakAllRelpower.amplitude,
+            BeamformingPeakAllRelpower.backazimuth,
+            BeamformingPeakAllRelpower.azimuth,
+        )
         .select_from(BeamformingResult)
         .join(BeamformingParams, BeamformingParams.id == BeamformingResult.beamforming_params_id)
         .join(association_table_beamforming_result_all_relpower)
@@ -359,10 +390,15 @@ def _query_beamforming_peaks_all_relpower(filters: Union[List[BinaryExpression],
 def _query_beamforming_peaks_avg_relpower(filters: Union[List[BinaryExpression], List[bool]]) -> Query:
     """filldocs"""
     query = (
-        db.session
-        .query(BeamformingParams.central_freq, BeamformingPeakAverageRelpower.slowness,
-               BeamformingPeakAverageRelpower.slowness_x, BeamformingPeakAverageRelpower.slowness_y,
-               BeamformingPeakAverageRelpower.amplitude, BeamformingPeakAverageRelpower.backazimuth, BeamformingPeakAverageRelpower.azimuth)
+        db.session.query(
+            BeamformingParams.central_freq,
+            BeamformingPeakAverageRelpower.slowness,
+            BeamformingPeakAverageRelpower.slowness_x,
+            BeamformingPeakAverageRelpower.slowness_y,
+            BeamformingPeakAverageRelpower.amplitude,
+            BeamformingPeakAverageRelpower.backazimuth,
+            BeamformingPeakAverageRelpower.azimuth,
+        )
         .select_from(BeamformingResult)
         .join(BeamformingParams, BeamformingParams.id == BeamformingResult.beamforming_params_id)
         .join(association_table_beamforming_result_avg_relpower)
@@ -373,9 +409,9 @@ def _query_beamforming_peaks_avg_relpower(filters: Union[List[BinaryExpression],
 
 
 def _determine_filters_for_fetching_beamforming_peaks(
-        beamforming_params_collection: Optional[Collection[BeamformingParams]] = None,
-        timespans: Optional[Collection[Timespan]] = None,
-        minimum_trace_used_count: Optional[int] = None,
+    beamforming_params_collection: Optional[Collection[BeamformingParams]] = None,
+    timespans: Optional[Collection[Timespan]] = None,
+    minimum_trace_used_count: Optional[int] = None,
 ) -> Union[List[BinaryExpression], List[bool]]:
     """filldocs"""
     filters = []
@@ -393,13 +429,13 @@ def _determine_filters_for_fetching_beamforming_peaks(
 
 
 def fetch_beamforming_results(
-        beamforming_params: Optional[BeamformingParams] = None,
-        beamforming_params_id: Optional[int] = None,
-        datachunks: Optional[Collection[Datachunk]] = None,
-        datachunk_ids: Optional[Collection[int]] = None,
-        load_timespan: bool = False,
-        load_datachunk: bool = False,
-        load_beamforming_params: bool = False,
+    beamforming_params: Optional[BeamformingParams] = None,
+    beamforming_params_id: Optional[int] = None,
+    datachunks: Optional[Collection[Datachunk]] = None,
+    datachunk_ids: Optional[Collection[int]] = None,
+    load_timespan: bool = False,
+    load_datachunk: bool = False,
+    load_beamforming_params: bool = False,
 ) -> List[BeamformingParams]:
     """filldocs"""
     query = _query_beamforming_results(
@@ -416,23 +452,23 @@ def fetch_beamforming_results(
 
 
 def _query_beamforming_results(
-        beamforming_params: Optional[BeamformingParams] = None,
-        beamforming_params_id: Optional[int] = None,
-        datachunks: Optional[Collection[Datachunk]] = None,
-        datachunk_ids: Optional[Collection[int]] = None,
-        load_timespan: bool = False,
-        load_datachunk: bool = False,
-        load_beamforming_params: bool = False,
+    beamforming_params: Optional[BeamformingParams] = None,
+    beamforming_params_id: Optional[int] = None,
+    datachunks: Optional[Collection[Datachunk]] = None,
+    datachunk_ids: Optional[Collection[int]] = None,
+    load_timespan: bool = False,
+    load_datachunk: bool = False,
+    load_beamforming_params: bool = False,
 ) -> Query:
     """filldocs"""
     try:
         validate_maximum_one_argument_provided(beamforming_params, beamforming_params_id)
-    except ValueError:
-        raise ValueError('Maximum one of beamforming_params or beamforming_params_id can be provided')
+    except ValueError as e:
+        raise ValueError("Maximum one of beamforming_params or beamforming_params_id can be provided") from e
     try:
         validate_maximum_one_argument_provided(datachunks, datachunk_ids)
-    except ValueError:
-        raise ValueError('Maximum one of datachunks or datachunk_ids can be provided')
+    except ValueError as e:
+        raise ValueError("Maximum one of datachunks or datachunk_ids can be provided") from e
 
     filters, opts = _determine_filters_and_opts_for_beamforming_results(
         beamforming_params=beamforming_params,
@@ -450,15 +486,14 @@ def _query_beamforming_results(
 
 
 def _determine_filters_and_opts_for_beamforming_results(
-        beamforming_params: Optional[BeamformingParams] = None,
-        beamforming_params_id: Optional[int] = None,
-        datachunks: Optional[Collection[Datachunk]] = None,
-        datachunk_ids: Optional[Collection[int]] = None,
-        load_timespan: bool = False,
-        load_datachunk: bool = False,
-        load_beamforming_params: bool = False,
+    beamforming_params: Optional[BeamformingParams] = None,
+    beamforming_params_id: Optional[int] = None,
+    datachunks: Optional[Collection[Datachunk]] = None,
+    datachunk_ids: Optional[Collection[int]] = None,
+    load_timespan: bool = False,
+    load_datachunk: bool = False,
+    load_beamforming_params: bool = False,
 ) -> Tuple[List, List]:
-
     filters = []
     if beamforming_params is not None:
         filters.append(BeamformingResult.beamforming_params_id.in_((beamforming_params.id,)))
@@ -483,10 +518,10 @@ def _determine_filters_and_opts_for_beamforming_results(
 
 
 def fetch_beamforming_peaks_all_abspower_results_in_freq_slowness(
-        beamforming_params_collection: Optional[Collection[BeamformingParams]] = None,
-        timespans: Optional[Collection[Timespan]] = None,
-        minimum_trace_used_count: Optional[int] = None,
-        beamforming_result_type: Union[str, BeamformingResultType] = BeamformingResultType.ALLABSPOWER,
+    beamforming_params_collection: Optional[Collection[BeamformingParams]] = None,
+    timespans: Optional[Collection[Timespan]] = None,
+    minimum_trace_used_count: Optional[int] = None,
+    beamforming_result_type: Union[str, BeamformingResultType] = BeamformingResultType.ALLABSPOWER,
 ) -> pd.DataFrame:
     """filldocs"""
     filters = _determine_filters_for_fetching_beamforming_peaks(
@@ -497,10 +532,12 @@ def fetch_beamforming_peaks_all_abspower_results_in_freq_slowness(
 
     try:
         beamforming_result_type = BeamformingResultType(beamforming_result_type)
-    except ValueError:
-        raise ValueError(f"Invalid value of beamforming_result_type. "
-                         f"Accepted values: {list(BeamformingResultType)}; "
-                         f"Got value: {beamforming_result_type} ")
+    except ValueError as e:
+        raise ValueError(
+            f"Invalid value of beamforming_result_type. "
+            f"Accepted values: {list(BeamformingResultType)}; "
+            f"Got value: {beamforming_result_type} "
+        ) from e
 
     query = _query_one_of_the_beamforming_result_types_for_freq_slowness(beamforming_result_type, filters)
 
@@ -509,10 +546,10 @@ def fetch_beamforming_peaks_all_abspower_results_in_freq_slowness(
 
 
 def fetch_beamforming_peaks_all_relpower_results_in_freq_slowness(
-        beamforming_params_collection: Optional[Collection[BeamformingParams]] = None,
-        timespans: Optional[Collection[Timespan]] = None,
-        minimum_trace_used_count: Optional[int] = None,
-        beamforming_result_type: Union[str, BeamformingResultType] = BeamformingResultType.ALLRELPOWER,
+    beamforming_params_collection: Optional[Collection[BeamformingParams]] = None,
+    timespans: Optional[Collection[Timespan]] = None,
+    minimum_trace_used_count: Optional[int] = None,
+    beamforming_result_type: Union[str, BeamformingResultType] = BeamformingResultType.ALLRELPOWER,
 ) -> pd.DataFrame:
     """filldocs"""
     filters = _determine_filters_for_fetching_beamforming_peaks(
@@ -523,10 +560,12 @@ def fetch_beamforming_peaks_all_relpower_results_in_freq_slowness(
 
     try:
         beamforming_result_type = BeamformingResultType(beamforming_result_type)
-    except ValueError:
-        raise ValueError(f"Invalid value of beamforming_result_type. "
-                         f"Accepted values: {list(BeamformingResultType)}; "
-                         f"Got value: {beamforming_result_type} ")
+    except ValueError as e:
+        raise ValueError(
+            f"Invalid value of beamforming_result_type. "
+            f"Accepted values: {list(BeamformingResultType)}; "
+            f"Got value: {beamforming_result_type} "
+        ) from e
 
     query = _query_one_of_the_beamforming_result_types_for_freq_slowness(beamforming_result_type, filters)
 
@@ -535,10 +574,10 @@ def fetch_beamforming_peaks_all_relpower_results_in_freq_slowness(
 
 
 def fetch_beamforming_peaks_avg_relpower_results_in_freq_slowness(
-        beamforming_params_collection: Optional[Collection[BeamformingParams]] = None,
-        timespans: Optional[Collection[Timespan]] = None,
-        minimum_trace_used_count: Optional[int] = None,
-        beamforming_result_type: Union[str, BeamformingResultType] = BeamformingResultType.AVGRELPOWER,
+    beamforming_params_collection: Optional[Collection[BeamformingParams]] = None,
+    timespans: Optional[Collection[Timespan]] = None,
+    minimum_trace_used_count: Optional[int] = None,
+    beamforming_result_type: Union[str, BeamformingResultType] = BeamformingResultType.AVGRELPOWER,
 ) -> pd.DataFrame:
     """filldocs"""
     filters = _determine_filters_for_fetching_beamforming_peaks(
@@ -549,10 +588,12 @@ def fetch_beamforming_peaks_avg_relpower_results_in_freq_slowness(
 
     try:
         beamforming_result_type = BeamformingResultType(beamforming_result_type)
-    except ValueError:
-        raise ValueError(f"Invalid value of beamforming_result_type. "
-                         f"Accepted values: {list(BeamformingResultType)}; "
-                         f"Got value: {beamforming_result_type} ")
+    except ValueError as e:
+        raise ValueError(
+            f"Invalid value of beamforming_result_type. "
+            f"Accepted values: {list(BeamformingResultType)}; "
+            f"Got value: {beamforming_result_type} "
+        ) from e
 
     query = _query_one_of_the_beamforming_result_types_for_freq_slowness(beamforming_result_type, filters)
     df = _parse_query_as_dataframe(query)
@@ -560,10 +601,10 @@ def fetch_beamforming_peaks_avg_relpower_results_in_freq_slowness(
 
 
 def fetch_beamforming_file_by_timespan_and_beamforming_param(
-        beamforming_params: Optional[BeamformingParams] = None,
-        beamforming_params_id: Optional[int] = None,
-        timespans: Optional[Timespan] = None,
-        timespan_ids: Optional[int] = None,
+    beamforming_params: Optional[BeamformingParams] = None,
+    beamforming_params_id: Optional[int] = None,
+    timespans: Optional[Timespan] = None,
+    timespan_ids: Optional[int] = None,
 ) -> pd.DataFrame:
     """Fetching the beamforming filepath filtered by time period (timespans) and by beamforming parameters.
     Allow to win a lot of computing time compared to fetching_beamforming_results as just filepaths are loaded
@@ -591,25 +632,21 @@ def fetch_beamforming_file_by_timespan_and_beamforming_param(
     df_beam_file_id = df_beam_file_id.rename(columns={"beamforming_file_id": "id"})
     df_beam_file_id = df_beam_file_id.drop("anon_1", axis=1)
 
-    query_beam_file_all = query = (
-            db.session
-            .query(BeamformingFile)
-            .select_from(BeamformingFile)
-    )
+    query_beam_file_all = query = db.session.query(BeamformingFile).select_from(BeamformingFile)
 
     df_beam_file_all = _parse_query_as_dataframe(query_beam_file_all)
 
-    df = df_beam_file_id.merge(df_beam_file_all, on='id')
+    df = df_beam_file_id.merge(df_beam_file_all, on="id")
 
     return df
 
 
 def _query_beamforming_file_id_by_timespan_by_beamforming_param(
-        beamforming_params: Optional[BeamformingParams] = None,
-        beamforming_params_id: Optional[int] = None,
-        timespans: Optional[Timespan] = None,
-        timespan_ids: Optional[int] = None,
-        ) -> Query:
+    beamforming_params: Optional[BeamformingParams] = None,
+    beamforming_params_id: Optional[int] = None,
+    timespans: Optional[Timespan] = None,
+    timespan_ids: Optional[int] = None,
+) -> Query:
     """Creating the filters for selecting beamforming and then doing the query
 
     :param beamforming_params: beamforming parameters, defaults to None
@@ -637,14 +674,17 @@ def _query_beamforming_file_id_by_timespan_by_beamforming_param(
         filters.append(BeamformingResult.timespan_id.in_(timespan_ids))
 
     query = (
-            db.session
-            .query(BeamformingResult.beamforming_file_id, BeamformingResult.file, 
-                   BeamformingResult.timespan_id, BeamformingResult.used_component_count, 
-                   BeamformingResult.beamforming_params_id)
-            .select_from(BeamformingResult)
-            .join(BeamformingParams, BeamformingParams.id == BeamformingResult.beamforming_params_id)
-            .join(BeamformingFile, BeamformingFile.id == BeamformingResult.beamforming_file_id)
-            .filter(*filters)
+        db.session.query(
+            BeamformingResult.beamforming_file_id,
+            BeamformingResult.file,
+            BeamformingResult.timespan_id,
+            BeamformingResult.used_component_count,
+            BeamformingResult.beamforming_params_id,
+        )
+        .select_from(BeamformingResult)
+        .join(BeamformingParams, BeamformingParams.id == BeamformingResult.beamforming_params_id)
+        .join(BeamformingFile, BeamformingFile.id == BeamformingResult.beamforming_file_id)
+        .filter(*filters)
     )
 
     return query

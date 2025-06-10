@@ -34,9 +34,7 @@ class CrosscorrelationCartesian(db.Model):
         db.ForeignKey("componentpair_cartesian.id"),
         nullable=False,
     )
-    timespan_id = db.Column(
-        "timespan_id", db.BigInteger, db.ForeignKey("timespan.id"), nullable=False
-    )
+    timespan_id = db.Column("timespan_id", db.BigInteger, db.ForeignKey("timespan.id"), nullable=False)
     crosscorrelation_cartesian_params_id = db.Column(
         "crosscorrelation_cartesian_params_id",
         db.Integer,
@@ -51,8 +49,7 @@ class CrosscorrelationCartesian(db.Model):
         nullable=True,
     )
 
-    componentpair_cartesian = db.relationship("ComponentPairCartesian", foreign_keys=[componentpair_id],
-                                              lazy="joined")
+    componentpair_cartesian = db.relationship("ComponentPairCartesian", foreign_keys=[componentpair_id], lazy="joined")
 
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
     crosscorrelation_cartesian_params = db.relationship(
@@ -66,12 +63,11 @@ class CrosscorrelationCartesian(db.Model):
         lazy="joined",
     )
 
-    stacks = db.relationship(
-        "CCFStack", secondary=ccf_ccfstack_association_table, back_populates="ccfs"
-    )
+    stacks = db.relationship("CCFStack", secondary=ccf_ccfstack_association_table, back_populates="ccfs")
 
     def load_data(self, crosscorrelation_cartesian_file: Optional[CrosscorrelationCartesianFile] = None):
         import numpy as np
+
         if crosscorrelation_cartesian_file is None:
             filepath = Path(self.file.filepath)
         else:
@@ -119,37 +115,43 @@ class CrosscorrelationCylindrical(db.Model):
         db.ForeignKey("componentpair_cylindrical.id"),
         nullable=False,
     )
-    timespan_id = db.Column(
-        "timespan_id", db.BigInteger, db.ForeignKey("timespan.id"), nullable=False
-    )
+    timespan_id = db.Column("timespan_id", db.BigInteger, db.ForeignKey("timespan.id"), nullable=False)
     crosscorrelation_cartesian_1_id = db.Column(
         "crosscorrelation_cartesian_1_id",
         db.Integer,
         db.ForeignKey("crosscorrelation_cartesian.id"),
         nullable=True,
     )
-    crosscorrelation_cartesian_1_code_pair = db.Column("crosscorrelation_cartesian_1_code_pair", db.UnicodeText, nullable=True)
+    crosscorrelation_cartesian_1_code_pair = db.Column(
+        "crosscorrelation_cartesian_1_code_pair", db.UnicodeText, nullable=True
+    )
     crosscorrelation_cartesian_2_id = db.Column(
         "crosscorrelation_cartesian_2_id",
         db.Integer,
         db.ForeignKey("crosscorrelation_cartesian.id"),
         nullable=True,
     )
-    crosscorrelation_cartesian_2_code_pair = db.Column("crosscorrelation_cartesian_2_code_pair", db.UnicodeText, nullable=True)
+    crosscorrelation_cartesian_2_code_pair = db.Column(
+        "crosscorrelation_cartesian_2_code_pair", db.UnicodeText, nullable=True
+    )
     crosscorrelation_cartesian_3_id = db.Column(
         "crosscorrelation_cartesian_3_id",
         db.Integer,
         db.ForeignKey("crosscorrelation_cartesian.id"),
         nullable=True,
     )
-    crosscorrelation_cartesian_3_code_pair = db.Column("crosscorrelation_cartesian_3_code_pair", db.UnicodeText, nullable=True)
+    crosscorrelation_cartesian_3_code_pair = db.Column(
+        "crosscorrelation_cartesian_3_code_pair", db.UnicodeText, nullable=True
+    )
     crosscorrelation_cartesian_4_id = db.Column(
         "crosscorrelation_cartesian_4_id",
         db.Integer,
         db.ForeignKey("crosscorrelation_cartesian.id"),
         nullable=True,
     )
-    crosscorrelation_cartesian_4_code_pair = db.Column("crosscorrelation_cartesian_4_code_pair", db.UnicodeText, nullable=True)
+    crosscorrelation_cartesian_4_code_pair = db.Column(
+        "crosscorrelation_cartesian_4_code_pair", db.UnicodeText, nullable=True
+    )
     crosscorrelation_cylindrical_params_id = db.Column(
         "crosscorrelation_cylindrical_params_id",
         db.Integer,
@@ -163,7 +165,9 @@ class CrosscorrelationCylindrical(db.Model):
         nullable=True,
     )
 
-    componentpair_cylindrical = db.relationship("ComponentPairCylindrical", foreign_keys=[componentpair_cylindrical_id])
+    componentpair_cylindrical = db.relationship(
+        "ComponentPairCylindrical", foreign_keys=[componentpair_cylindrical_id]
+    )
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id])
     crosscorrelation_cylindrical_params = db.relationship(
         "CrosscorrelationCylindricalParams", foreign_keys=[crosscorrelation_cylindrical_params_id]
@@ -174,13 +178,32 @@ class CrosscorrelationCylindrical(db.Model):
         uselist=False,
         lazy="joined",
     )
-    crosscorrelation_cartesian_1 = db.relationship("CrosscorrelationCartesian", foreign_keys=[crosscorrelation_cartesian_1_id], lazy="joined", )
-    crosscorrelation_cartesian_2 = db.relationship("CrosscorrelationCartesian", foreign_keys=[crosscorrelation_cartesian_2_id], lazy="joined", )
-    crosscorrelation_cartesian_3 = db.relationship("CrosscorrelationCartesian", foreign_keys=[crosscorrelation_cartesian_3_id], lazy="joined", )
-    crosscorrelation_cartesian_4 = db.relationship("CrosscorrelationCartesian", foreign_keys=[crosscorrelation_cartesian_4_id], lazy="joined", )
+    crosscorrelation_cartesian_1 = db.relationship(
+        "CrosscorrelationCartesian",
+        foreign_keys=[crosscorrelation_cartesian_1_id],
+        lazy="joined",
+    )
+    crosscorrelation_cartesian_2 = db.relationship(
+        "CrosscorrelationCartesian",
+        foreign_keys=[crosscorrelation_cartesian_2_id],
+        lazy="joined",
+    )
+    crosscorrelation_cartesian_3 = db.relationship(
+        "CrosscorrelationCartesian",
+        foreign_keys=[crosscorrelation_cartesian_3_id],
+        lazy="joined",
+    )
+    crosscorrelation_cartesian_4 = db.relationship(
+        "CrosscorrelationCartesian",
+        foreign_keys=[crosscorrelation_cartesian_4_id],
+        lazy="joined",
+    )
 
-    def load_data_cylindrical(self, crosscorrelation_cylindrical_file: Optional[CrosscorrelationCylindricalFile] = None):
+    def load_data_cylindrical(
+        self, crosscorrelation_cylindrical_file: Optional[CrosscorrelationCylindricalFile] = None
+    ):
         import numpy as np
+
         if crosscorrelation_cylindrical_file is None:
             filepath = Path(self.file.filepath)
         else:

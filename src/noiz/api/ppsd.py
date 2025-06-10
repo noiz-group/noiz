@@ -12,8 +12,11 @@ from typing import Union, Optional, Collection, Generator, List, Tuple
 
 from noiz.api.component import fetch_components
 from noiz.api.datachunk import _query_datachunks
-from noiz.api.helpers import _run_calculate_and_upsert_on_dask, _run_calculate_and_upsert_sequentially, \
-    extract_object_ids
+from noiz.api.helpers import (
+    _run_calculate_and_upsert_on_dask,
+    _run_calculate_and_upsert_sequentially,
+    extract_object_ids,
+)
 from noiz.api.timespan import fetch_timespans_between_dates, fetch_timespans
 from noiz.database import db
 from noiz.exceptions import EmptyResultException
@@ -39,13 +42,13 @@ def fetch_ppsd_params_by_id(params_id: int) -> PPSDParams:
 
 
 def fetch_ppsd_results(
-        ppsd_params: Optional[PPSDParams] = None,
-        ppsd_params_id: Optional[int] = None,
-        datachunks: Optional[Collection[Datachunk]] = None,
-        datachunk_ids: Optional[Collection[int]] = None,
-        load_timespan: bool = False,
-        load_datachunk: bool = False,
-        load_ppsd_params: bool = False,
+    ppsd_params: Optional[PPSDParams] = None,
+    ppsd_params_id: Optional[int] = None,
+    datachunks: Optional[Collection[Datachunk]] = None,
+    datachunk_ids: Optional[Collection[int]] = None,
+    load_timespan: bool = False,
+    load_datachunk: bool = False,
+    load_ppsd_params: bool = False,
 ) -> List[PPSDResult]:
     """filldocs"""
     query = _query_ppsd_results(
@@ -62,10 +65,10 @@ def fetch_ppsd_results(
 
 
 def count_ppsd_results(
-        ppsd_params: Optional[PPSDParams] = None,
-        ppsd_params_id: Optional[int] = None,
-        datachunks: Optional[Collection[Datachunk]] = None,
-        datachunk_ids: Optional[Collection[int]] = None,
+    ppsd_params: Optional[PPSDParams] = None,
+    ppsd_params_id: Optional[int] = None,
+    datachunks: Optional[Collection[Datachunk]] = None,
+    datachunk_ids: Optional[Collection[int]] = None,
 ) -> int:
     """filldocs"""
     query = _query_ppsd_results(
@@ -79,23 +82,23 @@ def count_ppsd_results(
 
 
 def _query_ppsd_results(
-        ppsd_params: Optional[PPSDParams] = None,
-        ppsd_params_id: Optional[int] = None,
-        datachunks: Optional[Collection[Datachunk]] = None,
-        datachunk_ids: Optional[Collection[int]] = None,
-        load_timespan: bool = False,
-        load_datachunk: bool = False,
-        load_ppsd_params: bool = False,
+    ppsd_params: Optional[PPSDParams] = None,
+    ppsd_params_id: Optional[int] = None,
+    datachunks: Optional[Collection[Datachunk]] = None,
+    datachunk_ids: Optional[Collection[int]] = None,
+    load_timespan: bool = False,
+    load_datachunk: bool = False,
+    load_ppsd_params: bool = False,
 ) -> Query:
     """filldocs"""
     try:
         validate_maximum_one_argument_provided(ppsd_params, ppsd_params_id)
-    except ValueError:
-        raise ValueError('Maximum one of ppsd_params or ppsd_params_id can be provided')
+    except ValueError as e:
+        raise ValueError("Maximum one of ppsd_params or ppsd_params_id can be provided") from e
     try:
         validate_maximum_one_argument_provided(datachunks, datachunk_ids)
-    except ValueError:
-        raise ValueError('Maximum one of datachunks or datachunk_ids can be provided')
+    except ValueError as e:
+        raise ValueError("Maximum one of datachunks or datachunk_ids can be provided") from e
 
     filters, opts = _determine_filters_and_opts_for_datachunk(
         ppsd_params=ppsd_params,
@@ -113,15 +116,14 @@ def _query_ppsd_results(
 
 
 def _determine_filters_and_opts_for_datachunk(
-        ppsd_params: Optional[PPSDParams] = None,
-        ppsd_params_id: Optional[int] = None,
-        datachunks: Optional[Collection[Datachunk]] = None,
-        datachunk_ids: Optional[Collection[int]] = None,
-        load_timespan: bool = False,
-        load_datachunk: bool = False,
-        load_ppsd_params: bool = False,
+    ppsd_params: Optional[PPSDParams] = None,
+    ppsd_params_id: Optional[int] = None,
+    datachunks: Optional[Collection[Datachunk]] = None,
+    datachunk_ids: Optional[Collection[int]] = None,
+    load_timespan: bool = False,
+    load_datachunk: bool = False,
+    load_ppsd_params: bool = False,
 ) -> Tuple[List, List]:
-
     filters = []
     if ppsd_params is not None:
         filters.append(PPSDResult.ppsd_params_id.in_((ppsd_params.id,)))
@@ -146,28 +148,38 @@ def _determine_filters_and_opts_for_datachunk(
 
 
 def check_length_and_timepans(
-        starttime: Union[datetime.date, datetime.datetime],
-        endtime: Union[datetime.date, datetime.datetime],
+    starttime: Union[datetime.date, datetime.datetime],
+    endtime: Union[datetime.date, datetime.datetime],
 ):
+    """filldocs"""
+    if isinstance(starttime, datetime.date):
+        starttime = datetime.datetime.fromordinal(starttime.toordinal())
+    if isinstance(endtime, datetime.date):
+        endtime = datetime.datetime.fromordinal(endtime.toordinal())
+
     timespans = fetch_timespans()
+
     lenght_timespans = np.mean([t.length for t in timespans[:50]]).total_seconds() * 2
     print(lenght_timespans, (endtime - starttime).total_seconds())
     if (endtime - starttime).total_seconds() < lenght_timespans:
-        raise EmptyResultException(f"There is less than 2 timespans in the requiered processing: please increase the duration between starttime and endtime: ")
+        raise EmptyResultException(
+            "There is less than 2 timespans in the required processing: "
+            "please increase the duration between starttime and endtime."
+        )
 
 
 def run_psd_calculations(
-        ppsd_params_id: int,
-        starttime: Union[datetime.date, datetime.datetime],
-        endtime: Union[datetime.date, datetime.datetime],
-        networks: Optional[Union[Collection[str], str]] = None,
-        stations: Optional[Union[Collection[str], str]] = None,
-        components: Optional[Union[Collection[str], str]] = None,
-        component_ids: Optional[Union[Collection[int], int]] = None,
-        batch_size: int = 2000,
-        parallel: bool = True,
-        skip_existing: bool = True,
-        raise_errors: bool = False,
+    ppsd_params_id: int,
+    starttime: Union[datetime.date, datetime.datetime],
+    endtime: Union[datetime.date, datetime.datetime],
+    networks: Optional[Union[Collection[str], str]] = None,
+    stations: Optional[Union[Collection[str], str]] = None,
+    components: Optional[Union[Collection[str], str]] = None,
+    component_ids: Optional[Union[Collection[int], int]] = None,
+    batch_size: int = 2000,
+    parallel: bool = True,
+    skip_existing: bool = True,
+    raise_errors: bool = False,
 ):
     # filldocs
     calculation_inputs = _prepare_inputs_for_psd_calculation(
@@ -205,17 +217,16 @@ def run_psd_calculations(
 
 
 def _prepare_inputs_for_psd_calculation(
-        ppsd_params_id: int,
-        starttime: Union[datetime.date, datetime.datetime],
-        endtime: Union[datetime.date, datetime.datetime],
-        networks: Optional[Union[Collection[str], str]] = None,
-        stations: Optional[Union[Collection[str], str]] = None,
-        components: Optional[Union[Collection[str], str]] = None,
-        component_ids: Optional[Union[Collection[int], int]] = None,
-        batch_size: int = 2000,
-        skip_existing: bool = True,
+    ppsd_params_id: int,
+    starttime: Union[datetime.date, datetime.datetime],
+    endtime: Union[datetime.date, datetime.datetime],
+    networks: Optional[Union[Collection[str], str]] = None,
+    stations: Optional[Union[Collection[str], str]] = None,
+    components: Optional[Union[Collection[str], str]] = None,
+    component_ids: Optional[Union[Collection[int], int]] = None,
+    batch_size: int = 2000,
+    skip_existing: bool = True,
 ) -> Generator[PPSDRunnerInputs, None, None]:
-
     params = fetch_ppsd_params_by_id(params_id=ppsd_params_id)
 
     timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
@@ -254,7 +265,7 @@ def _prepare_inputs_for_psd_calculation(
             existing_results = fetch_ppsd_results(ppsd_params=params, datachunk_ids=fetched_datachunk_ids)
             existing_results_datachunk_ids = [x.datachunk_id for x in existing_results]
         else:
-            existing_results_datachunk_ids = list()
+            existing_results_datachunk_ids = []
 
         for datachunk in fetched_datachunks:
             if datachunk.id in existing_results_datachunk_ids:
@@ -283,7 +294,7 @@ def _prepare_upsert_command_ppsd(ppsd_result: PPSDResult) -> Insert:
         )
         .on_conflict_do_update(
             constraint="unique_ppsd_per_config_per_datachunk",
-            set_=dict(ppsd_file_id=ppsd_result.ppsd_file_id),
+            set_={"ppsd_file_id": ppsd_result.ppsd_file_id},
         )
     )
     return insert_command

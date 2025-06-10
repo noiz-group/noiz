@@ -20,13 +20,14 @@ Functions for Array Analysis
     GNU Lesser General Public License, Version 3
     (https://www.gnu.org/copyleft/lesser.html)
 """
+
 import math
 import warnings
 from typing import List
 
 from matplotlib.dates import datestr2num
 import numpy as np
-from scipy.integrate import cumtrapz
+from scipy.integrate import cumulative_trapezoid as cumtrapz
 
 from obspy.core import Stream
 from obspy.signal.headers import clibsignal
@@ -36,8 +37,7 @@ from obspy.signal.util import next_pow_2, util_geo_km
 from noiz.processing.signal_utils import statistical_reject
 
 
-def get_geometry(stream, coordsys='lonlat', return_center=False,
-                 verbose=False):
+def get_geometry(stream, coordsys="lonlat", return_center=False, verbose=False):
     """
     Method to calculate the array geometry and the center coordinates in km
 
@@ -56,40 +56,39 @@ def get_geometry(stream, coordsys='lonlat', return_center=False,
             return_center is true
     """
     nstat = len(stream)
-    center_lat = 0.
-    center_lon = 0.
-    center_h = 0.
+    center_lat = 0.0
+    center_lon = 0.0
+    center_h = 0.0
     geometry = np.empty((nstat, 3))
 
     if isinstance(stream, Stream):
         for i, tr in enumerate(stream):
-            if coordsys == 'lonlat':
+            if coordsys == "lonlat":
                 geometry[i, 0] = tr.stats.coordinates.longitude
                 geometry[i, 1] = tr.stats.coordinates.latitude
                 geometry[i, 2] = tr.stats.coordinates.elevation
-            elif coordsys == 'xy':
+            elif coordsys == "xy":
                 geometry[i, 0] = tr.stats.coordinates.x
                 geometry[i, 1] = tr.stats.coordinates.y
                 geometry[i, 2] = tr.stats.coordinates.elevation
     elif isinstance(stream, np.ndarray):
         geometry = stream.copy()
     else:
-        raise TypeError('only Stream or numpy.ndarray allowed')
+        raise TypeError("only Stream or numpy.ndarray allowed")
 
     if verbose:
         print("coordsys = " + coordsys)
 
-    if coordsys == 'lonlat':
+    if coordsys == "lonlat":
         center_lon = geometry[:, 0].mean()
         center_lat = geometry[:, 1].mean()
         center_h = geometry[:, 2].mean()
         for i in np.arange(nstat):
-            x, y = util_geo_km(center_lon, center_lat, geometry[i, 0],
-                               geometry[i, 1])
+            x, y = util_geo_km(center_lon, center_lat, geometry[i, 0], geometry[i, 1])
             geometry[i, 0] = x
             geometry[i, 1] = y
             geometry[i, 2] -= center_h
-    elif coordsys == 'xy':
+    elif coordsys == "xy":
         geometry[:, 0] -= geometry[:, 0].mean()
         geometry[:, 1] -= geometry[:, 1].mean()
         geometry[:, 2] -= geometry[:, 2].mean()
@@ -97,12 +96,11 @@ def get_geometry(stream, coordsys='lonlat', return_center=False,
         raise ValueError("Coordsys must be one of 'lonlat', 'xy'")
 
     if return_center:
-        return np.c_[geometry.T,
-                     np.array((center_lon, center_lat, center_h))].T
+        return np.c_[geometry.T, np.array((center_lon, center_lat, center_h))].T
     else:
         return geometry
-    
-    
+
+
 def get_timeshift_mfp(geometry, xll, yll, sl_s, grdpts_x, grdpts_y):
     # in this version sll_x, sll_y map to distance from source to array
     # for source outside the array there is an ambiguity distande / slowness
@@ -110,11 +108,11 @@ def get_timeshift_mfp(geometry, xll, yll, sl_s, grdpts_x, grdpts_y):
     nstat = len(geometry)  # last index are center coordinates
     time_shift_tbl = np.empty((nstat, grdpts_x, grdpts_y), dtype=np.float32)
     for k in range(grdpts_x):
-       x = xll + k * sl_s
-       for l in range(grdpts_y):
-           y = yll + l * sl_s
-           time_shift_tbl[:,k,l] = np.sqrt((x - geometry[:, 0])**2 + (y - geometry[:, 1])**2)
-    
+        x = xll + k * sl_s
+        for l in range(grdpts_y):
+            y = yll + l * sl_s
+            time_shift_tbl[:, k, l] = np.sqrt((x - geometry[:, 0]) ** 2 + (y - geometry[:, 1]) ** 2)
+
     return time_shift_tbl
 
 
@@ -145,9 +143,8 @@ def get_timeshift(geometry, sll_x, sll_y, sl_s, grdpts_x, grdpts_y):
     mx = np.outer(geometry[:, 0], sll_x + np.arange(grdpts_x) * sl_s)
     my = np.outer(geometry[:, 1], sll_y + np.arange(grdpts_y) * sl_s)
     return np.require(
-        mx[:, :, np.newaxis].repeat(grdpts_y, axis=2) +
-        my[:, np.newaxis, :].repeat(grdpts_x, axis=1),
-        dtype=np.float32)
+        mx[:, :, np.newaxis].repeat(grdpts_y, axis=2) + my[:, np.newaxis, :].repeat(grdpts_x, axis=1), dtype=np.float32
+    )
 
 
 def get_spoint(stream, stime, etime):
@@ -171,14 +168,12 @@ def get_spoint(stream, stime, etime):
             msg = "Specified etime %s is bigger than endtime %s in stream"
             raise ValueError(msg % (etime, tr.stats.endtime))
         # now we have to adjust to the beginning of real start time
-        spoint[i] = int((stime - tr.stats.starttime) *
-                        tr.stats.sampling_rate + .5)
-        epoint[i] = int((tr.stats.endtime - etime) *
-                        tr.stats.sampling_rate + .5)
+        spoint[i] = int((stime - tr.stats.starttime) * tr.stats.sampling_rate + 0.5)
+        epoint[i] = int((tr.stats.endtime - etime) * tr.stats.sampling_rate + 0.5)
     return spoint, epoint
 
 
-def array_transff_wavenumber(coords, klim, kstep, coordsys='lonlat'):
+def array_transff_wavenumber(coords, klim, kstep, coordsys="lonlat"):
     """
     Returns array transfer function as a function of wavenumber difference
 
@@ -204,14 +199,13 @@ def array_transff_wavenumber(coords, klim, kstep, coordsys='lonlat'):
             kymin = klim[2]
             kymax = klim[3]
     else:
-        raise TypeError('klim must either be a float or a tuple of length 4')
+        raise TypeError("klim must either be a float or a tuple of length 4")
 
-    nkx = int(np.ceil((kxmax + kstep / 10. - kxmin) / kstep))
-    nky = int(np.ceil((kymax + kstep / 10. - kymin) / kstep))
+    nkx = int(np.ceil((kxmax + kstep / 10.0 - kxmin) / kstep))
+    nky = int(np.ceil((kymax + kstep / 10.0 - kymin) / kstep))
 
     # careful with meshgrid indexing
-    kygrid, kxgrid = np.meshgrid(np.linspace(kymin, kymax, nky),
-                                 np.linspace(kxmin, kxmax, nkx))
+    kygrid, kxgrid = np.meshgrid(np.linspace(kymin, kymax, nky), np.linspace(kxmin, kxmax, nkx))
 
     ks = np.transpose(np.vstack((kxgrid.flatten(), kygrid.flatten())))
 
@@ -219,11 +213,11 @@ def array_transff_wavenumber(coords, klim, kstep, coordsys='lonlat'):
     # Bug with numpy 1.14.0 (https://github.com/numpy/numpy/issues/10343)
     # Nothing we can do.
     if np.__version__ == "1.14.0":  # pragma: no cover
-        k_dot_r = np.einsum('ni,mi->nm', ks, coords[:, :2], optimize=False)
+        k_dot_r = np.einsum("ni,mi->nm", ks, coords[:, :2], optimize=False)
     else:
-        k_dot_r = np.einsum('ni,mi->nm', ks, coords[:, :2])
+        k_dot_r = np.einsum("ni,mi->nm", ks, coords[:, :2])
 
-    transff = np.abs(np.sum(np.exp(1j * k_dot_r), axis=1))**2 / len(coords)**2
+    transff = np.abs(np.sum(np.exp(1j * k_dot_r), axis=1)) ** 2 / len(coords) ** 2
 
     return transff.reshape(nkx, nky)
 
@@ -231,25 +225,27 @@ def array_transff_wavenumber(coords, klim, kstep, coordsys='lonlat'):
 def array_transff_freqslowness_wrapper(st, array_proc_kwargs):
     geometry = get_geometry(st)
     fs = st[0].stats.sampling_rate
-    nsamp = int(array_proc_kwargs['win_len'] * fs)
+    nsamp = int(array_proc_kwargs["win_len"] * fs)
     nfft = next_pow_2(nsamp)
     deltaf = fs / float(nfft)
     avg_arf = array_transff_freqslowness(
         coords=geometry,
-        slim=(array_proc_kwargs["sll_x_arf"],
-              array_proc_kwargs["slm_x_arf"],
-              array_proc_kwargs["sll_y_arf"],
-              array_proc_kwargs["slm_y_arf"]),
+        slim=(
+            array_proc_kwargs["sll_x_arf"],
+            array_proc_kwargs["slm_x_arf"],
+            array_proc_kwargs["sll_y_arf"],
+            array_proc_kwargs["slm_y_arf"],
+        ),
         sstep=array_proc_kwargs["sl_s"],
         fmin=array_proc_kwargs["frqlow"],
         fmax=array_proc_kwargs["frqhigh"],
         fstep=deltaf,
-        coordsys="xy")
+        coordsys="xy",
+    )
     return avg_arf.T
 
 
-def array_transff_freqslowness(coords, slim, sstep, fmin, fmax, fstep,
-                               coordsys='lonlat'):
+def array_transff_freqslowness(coords, slim, sstep, fmin, fmax, fstep, coordsys="lonlat"):
     """
     Returns array transfer function as a function of slowness difference and
     frequency.
@@ -282,27 +278,25 @@ def array_transff_freqslowness(coords, slim, sstep, fmin, fmax, fstep,
             symin = slim[2]
             symax = slim[3]
     else:
-        raise TypeError('slim must either be a float or a tuple of length 4')
+        raise TypeError("slim must either be a float or a tuple of length 4")
 
-    nsx = int(np.ceil((sxmax + sstep / 10. - sxmin) / sstep))
-    nsy = int(np.ceil((symax + sstep / 10. - symin) / sstep))
-    nf = int(np.ceil((fmax + fstep / 10. - fmin) / fstep))
+    nsx = int(np.ceil((sxmax + sstep / 10.0 - sxmin) / sstep))
+    nsy = int(np.ceil((symax + sstep / 10.0 - symin) / sstep))
+    nf = int(np.ceil((fmax + fstep / 10.0 - fmin) / fstep))
 
     transff = np.empty((nsx, nsy))
     buff = np.zeros(nf)
 
-    for i, sx in enumerate(np.arange(sxmin, sxmax + sstep / 10., sstep)):
-        for j, sy in enumerate(np.arange(symin, symax + sstep / 10., sstep)):
-            for k, f in enumerate(np.arange(fmin, fmax + fstep / 10., fstep)):
+    for i, sx in enumerate(np.arange(sxmin, sxmax + sstep / 10.0, sstep)):
+        for j, sy in enumerate(np.arange(symin, symax + sstep / 10.0, sstep)):
+            for k, f in enumerate(np.arange(fmin, fmax + fstep / 10.0, fstep)):
                 _sum = 0j
                 for l in np.arange(len(coords)):  # NOQA
-                    _sum += np.exp(
-                        complex(0., (coords[l, 0] * sx + coords[l, 1] * sy) *
-                                2 * np.pi * f))
-                buff[k] = abs(_sum) ** 2 
+                    _sum += np.exp(complex(0.0, (coords[l, 0] * sx + coords[l, 1] * sy) * 2 * np.pi * f))
+                buff[k] = abs(_sum) ** 2
             ### STORENGY MODIF
             if len(buff) > 1:
-                transff[i, j] = cumtrapz(buff, dx=fstep)[-1] # original line
+                transff[i, j] = cumtrapz(buff, dx=fstep)[-1]  # original line
             else:
                 transff[i, j] = buff * fstep
             ### END OF STORENGY MODIF
@@ -316,39 +310,39 @@ def dump(pow_map, apow_map, i):
     Example function to use with `store` kwarg in
     :func:`~obspy.signal.array_analysis.array_processing`.
     """
-    np.savez('pow_map_%d.npz' % i, pow_map)
-    np.savez('apow_map_%d.npz' % i, apow_map)
+    np.savez("pow_map_%d.npz" % i, pow_map)
+    np.savez("apow_map_%d.npz" % i, apow_map)
 
 
 def array_processing(
-        stream,
-        win_len,
-        win_frac,
-        sll_x,
-        slm_x,
-        sll_y,
-        slm_y,
-        sl_s,
-        semb_thres,
-        vel_thres,
-        frqlow,
-        frqhigh,
-        stime,
-        etime,
-        prewhiten,
-        coordsys='lonlat',
-        timestamp='mlabday',
-        method=0,
-        store=None,
-        save_arf=False,
-        sll_x_arf=None,
-        slm_x_arf=None,
-        sll_y_arf=None,
-        slm_y_arf=None,
-        perform_statistical_reject=False,
-        n_sigma_stat_reject=2.5, 
-        prop_bad_freqs_stat_reject=0.5,
-        nsta_min_keep_stat_reject=3,
+    stream,
+    win_len,
+    win_frac,
+    sll_x,
+    slm_x,
+    sll_y,
+    slm_y,
+    sl_s,
+    semb_thres,
+    vel_thres,
+    frqlow,
+    frqhigh,
+    stime,
+    etime,
+    prewhiten,
+    coordsys="lonlat",
+    timestamp="mlabday",
+    method=0,
+    store=None,
+    save_arf=False,
+    sll_x_arf=None,
+    slm_x_arf=None,
+    sll_y_arf=None,
+    slm_y_arf=None,
+    perform_statistical_reject=False,
+    n_sigma_stat_reject=2.5,
+    prop_bad_freqs_stat_reject=0.5,
+    nsta_min_keep_stat_reject=3,
 ):
     """
     Method for Seismic-Array-Beamforming/FK-Analysis/Capon
@@ -409,7 +403,7 @@ def array_processing(
     # check that sampling rates do not vary
     fs = stream[0].stats.sampling_rate
     if len(stream) != len(stream.select(sampling_rate=fs)):
-        msg = 'in sonic sampling rates of traces in stream are not equal'
+        msg = "in sonic sampling rates of traces in stream are not equal"
         raise ValueError(msg)
 
     grdpts_x = int(((slm_x - sll_x) / sl_s + 0.5) + 1)
@@ -417,8 +411,7 @@ def array_processing(
 
     geometry = get_geometry(stream, coordsys=coordsys, verbose=False)
 
-    time_shift_table = get_timeshift(geometry, sll_x, sll_y,
-                                     sl_s, grdpts_x, grdpts_y)
+    time_shift_table = get_timeshift(geometry, sll_x, sll_y, sl_s, grdpts_x, grdpts_y)
     # offset of arrays
     spoint, _epoint = get_spoint(stream, stime, etime)
     #
@@ -439,13 +432,12 @@ def array_processing(
     nf = nhigh - nlow + 1  # include upper and lower frequency
     # to speed up the routine a bit we estimate all steering vectors in advance
     steer = np.empty((nf, grdpts_x, grdpts_y, nstat), dtype=np.complex128)
-    clibsignal.calcSteer(nstat, grdpts_x, grdpts_y, nf, nlow,
-                         deltaf, time_shift_table, steer)
+    clibsignal.calcSteer(nstat, grdpts_x, grdpts_y, nf, nlow, deltaf, time_shift_table, steer)
     _r = np.empty((nf, nstat, nstat), dtype=np.complex128)  # matrice interspectrale
     ft = np.empty((nstat, nf), dtype=np.complex128)
     ### ADDED CKH/ AKA 18/05/22 ###
-    f_axis = np.linspace(0, fs/2, int(nfft/2) + 1)
-    ft_full = np.empty((nstat, int(nfft/2) + 1), dtype=np.complex128)
+    f_axis = np.linspace(0, fs / 2, int(nfft / 2) + 1)
+    ft_full = np.empty((nstat, int(nfft / 2) + 1), dtype=np.complex128)
     ###
     newstart = stime
     # 0.22 matches 0.2 of historical C bbfk.c
@@ -456,8 +448,7 @@ def array_processing(
     while eotr:
         try:
             for i, tr in enumerate(stream):
-                dat = tr.data[spoint[i] + offset:
-                              spoint[i] + offset + nsamp]
+                dat = tr.data[spoint[i] + offset : spoint[i] + offset + nsamp]
                 dat = (dat - dat.mean()) * tap
                 ### ORIGINAL
                 # ft[i, :] = np.fft.rfft(dat, nfft)[nlow:nlow + nf]
@@ -471,27 +462,45 @@ def array_processing(
         if not perform_statistical_reject:
             n_sigma_stat_reject = np.inf
 
-        i_good_stations, i_st_on = statistical_reject(np.abs(ft_full), f_axis, fcut1=frqlow, fcut2=frqhigh, 
-                                                    n_thresh_std=n_sigma_stat_reject, prop_bad_freqs=prop_bad_freqs_stat_reject,
-                                                    nsta_min_keep=nsta_min_keep_stat_reject)
+        i_good_stations, i_st_on = statistical_reject(
+            np.abs(ft_full),
+            f_axis,
+            fcut1=frqlow,
+            fcut2=frqhigh,
+            n_thresh_std=n_sigma_stat_reject,
+            prop_bad_freqs=prop_bad_freqs_stat_reject,
+            nsta_min_keep=nsta_min_keep_stat_reject,
+        )
         ft[:, :] = 0
-        ft[i_st_on[i_good_stations], :] = ft_full[i_st_on[i_good_stations], nlow:nlow + nf]
+        ft[i_st_on[i_good_stations], :] = ft_full[i_st_on[i_good_stations], nlow : nlow + nf]
         ###
 
         ### AKA 19/07/2023 ###
-        arf = calculate_arf(deltaf, frqhigh, frqlow, geometry, i_good_stations, i_st_on, save_arf, sl_s, sll_x_arf,
-                            sll_y_arf, slm_x_arf, slm_y_arf)
+        arf = calculate_arf(
+            deltaf,
+            frqhigh,
+            frqlow,
+            geometry,
+            i_good_stations,
+            i_st_on,
+            save_arf,
+            sl_s,
+            sll_x_arf,
+            sll_y_arf,
+            slm_x_arf,
+            slm_y_arf,
+        )
         ######################
 
-        relpow_map.fill(0.)
-        abspow_map.fill(0.)
-        dpow, ft = Compute_covariances(_r, ft, method, nf, nstat)
+        relpow_map.fill(0.0)
+        abspow_map.fill(0.0)
+        dpow, ft = compute_covariances(_r, ft, method, nf, nstat)
 
         errcode = clibsignal.generalizedBeamformer(
-            relpow_map, abspow_map, steer, _r, nstat, prewhiten,
-            grdpts_x, grdpts_y, nf, dpow, method)
+            relpow_map, abspow_map, steer, _r, nstat, prewhiten, grdpts_x, grdpts_y, nf, dpow, method
+        )
         if errcode != 0:
-            msg = 'generalizedBeamforming exited with error %d'
+            msg = "generalizedBeamforming exited with error %d"
             raise Exception(msg % errcode)
         ix, iy = np.unravel_index(relpow_map.argmax(), relpow_map.shape)
         relpow, abspow = relpow_map[ix, iy], abspow_map[ix, iy]
@@ -503,34 +512,33 @@ def array_processing(
         slow_x = sll_x + ix * sl_s
         slow_y = sll_y + iy * sl_s
 
-        slow = np.sqrt(slow_x ** 2 + slow_y ** 2)
+        slow = np.sqrt(slow_x**2 + slow_y**2)
         if slow < 1e-8:
             slow = 1e-8
         azimut = 180 * math.atan2(slow_x, slow_y) / math.pi
         baz = azimut % -360 + 180
-        if relpow > semb_thres and 1. / slow > vel_thres:
-            res.append(np.array([newstart.timestamp, relpow, abspow, baz,
-                                 slow]))
+        if relpow > semb_thres and 1.0 / slow > vel_thres:
+            res.append(np.array([newstart.timestamp, relpow, abspow, baz, slow]))
         if (newstart + (nsamp + nstep) / fs) > etime:
             eotr = False
         offset += nstep
 
         newstart += nstep / fs
-    stacked_res: np.typing.ArrayLike = np.array(res)
-    if timestamp == 'julsec':
+    stacked_res: np.ndarray = np.array(res)
+    if timestamp == "julsec":
         pass
-    elif timestamp == 'mlabday':
-        stacked_res[:, 0] = stacked_res[:, 0] / (24. * 3600) + datestr2num('1970-01-01')
+    elif timestamp == "mlabday":
+        stacked_res[:, 0] = stacked_res[:, 0] / (24.0 * 3600) + datestr2num("1970-01-01")
     else:
         msg = "Option timestamp must be one of 'julsec', or 'mlabday'"
         raise ValueError(msg)
     return np.array(stacked_res)
 
 
-def Compute_covariances(_r, ft, method, nf, nstat):
+def compute_covariances(_r, ft, method, nf, nstat):
     # computing the covariances of the signal at different receivers
     ft = np.ascontiguousarray(ft, np.complex128)
-    dpow = 0.
+    dpow = 0.0
     for i in range(nstat):
         for j in range(i, nstat):
             _r[:, i, j] = ft[i, :] * ft[j, :].conj()
@@ -549,29 +557,23 @@ def Compute_covariances(_r, ft, method, nf, nstat):
 
 
 def calculate_arf(
-        deltaf,
-        frqhigh,
-        frqlow,
-        geometry,
-        i_good_stations,
-        i_st_on,
-        save_arf,
-        sl_s,
-        sll_x_arf,
-        sll_y_arf,
-        slm_x_arf,
-        slm_y_arf
+    deltaf,
+    frqhigh,
+    frqlow,
+    geometry,
+    i_good_stations,
+    i_st_on,
+    save_arf,
+    sl_s,
+    sll_x_arf,
+    sll_y_arf,
+    slm_x_arf,
+    slm_y_arf,
 ):
     if not save_arf:
         return None
 
     geometry_updated = geometry[i_st_on[i_good_stations], :]
     return array_transff_freqslowness(
-        geometry_updated,
-        (sll_x_arf, slm_x_arf, sll_y_arf, slm_y_arf),
-        sl_s,
-        frqlow,
-        frqhigh,
-        deltaf,
-        coordsys="xy"
+        geometry_updated, (sll_x_arf, slm_x_arf, sll_y_arf, slm_y_arf), sl_s, frqlow, frqhigh, deltaf, coordsys="xy"
     )

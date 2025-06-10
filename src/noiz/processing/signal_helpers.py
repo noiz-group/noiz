@@ -40,8 +40,10 @@ def get_min_sample_count(params: DatachunkParams, timespan: Timespan, sampling_r
     :return:
     :rtype:
     """
-    return int(get_expected_sample_count(timespan=timespan, sampling_rate=sampling_rate)
-               * (1 - params.datachunk_sample_tolerance))
+    return int(
+        get_expected_sample_count(timespan=timespan, sampling_rate=sampling_rate)
+        * (1 - params.datachunk_sample_tolerance)
+    )
 
 
 def get_max_sample_count(params: DatachunkParams, timespan: Timespan, sampling_rate: Union[float, int]):
@@ -58,8 +60,10 @@ def get_max_sample_count(params: DatachunkParams, timespan: Timespan, sampling_r
     :return:
     :rtype:
     """
-    return int(get_expected_sample_count(timespan=timespan, sampling_rate=sampling_rate)
-               * (1 + params.datachunk_sample_tolerance))
+    return int(
+        get_expected_sample_count(timespan=timespan, sampling_rate=sampling_rate)
+        * (1 + params.datachunk_sample_tolerance)
+    )
 
 
 def validate_and_fix_subsample_starttime_error(st: obspy.Stream) -> obspy.Stream:
@@ -91,8 +95,10 @@ def validate_and_fix_subsample_starttime_error(st: obspy.Stream) -> obspy.Stream
     if 0 == abs(most_common_starttime - min_starttime) and 0 == abs(most_common_starttime - max_starttime):
         return st
 
-    if abs(most_common_starttime - min_starttime) < delta / 2 and \
-            abs(most_common_starttime - max_starttime) < delta / 2:
+    if (
+        abs(most_common_starttime - min_starttime) < delta / 2
+        and abs(most_common_starttime - max_starttime) < delta / 2
+    ):
         logger.warning("Fixing the subsample time error")
         for tr in st:
             tr.stats.starttime = most_common_starttime

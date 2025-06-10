@@ -4,9 +4,9 @@ from typing import Literal
 
 class CatchWarningAsError:
     def __init__(
-            self,
-            warning_filter_action: Literal["error", "ignore", "always", "default", "module", "once"],
-            warning_filter_message: str = ""
+        self,
+        warning_filter_action: Literal["error", "ignore", "always", "default", "module", "once"],
+        warning_filter_message: str = "",
     ):
         self.warning_filter_action = warning_filter_action
         self.warning_filter_message = warning_filter_message

@@ -40,9 +40,7 @@ def plot_voltage_temp_raw_soh(df, station):
     starttime = df.index[0].strftime("%Y.%m.%d %H:%M:%S")
     endtime = df.index[-1].strftime("%Y.%m.%d %H:%M:%S")
 
-    ax0.set_title(
-        f"Supply voltage and temperature\n {station} from {starttime} to {endtime}"
-    )
+    ax0.set_title(f"Supply voltage and temperature\n {station} from {starttime} to {endtime}")
 
     return fig, (ax0, ax1)
 
@@ -51,9 +49,7 @@ def plot_voltage_temp(df, station):
     fig, ax0 = plt.subplots(figsize=(10, 2), dpi=150)
     ax1 = ax0.twinx()
 
-    ax1.plot(
-        df.loc[:, "temperature"], "-", C="C1", label="Temperature($^\circ$C)", alpha=0.5
-    )
+    ax1.plot(df.loc[:, "temperature"], "-", C="C1", label="Temperature($^\circ$C)", alpha=0.5)
     ax0.plot(df.loc[:, "voltage"], ".", C="C0", label="Supply voltage(V)")
 
     ax0.spines["right"].set_color("C0")
@@ -73,9 +69,7 @@ def plot_voltage_temp(df, station):
     starttime = df.index[0].strftime("%Y.%m.%d %H:%M:%S")
     endtime = df.index[-1].strftime("%Y.%m.%d %H:%M:%S")
 
-    ax0.set_title(
-        f"Supply voltage and temperature\n {station} from {starttime} to {endtime}"
-    )
+    ax0.set_title(f"Supply voltage and temperature\n {station} from {starttime} to {endtime}")
 
     return fig, (ax0, ax1)
 
@@ -123,9 +117,6 @@ def plot_gpstime(df, station):
     starttime = df.index[0].strftime("%Y.%m.%d %H:%M:%S")
     endtime = df.index[-1].strftime("%Y.%m.%d %H:%M:%S")
 
-    ax0.set_title(
-        f"Timing status, error and uncertainty\n"
-        f"{station} from {starttime} to {endtime}"
-    )
+    ax0.set_title(f"Timing status, error and uncertainty\n{station} from {starttime} to {endtime}")
 
     return fig, (ax0, ax1)

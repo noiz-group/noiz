@@ -53,7 +53,9 @@ class EventConfirmationFile(FileModelMixin):
     _file_model_type: str = "event_confirmed"
     _filename_extension: str = ""
 
-    def find_empty_folder_path(self, cmp: Component, ts: Timespan, params: EventConfirmationParams, time_start: str) -> Path:
+    def find_empty_folder_path(
+        self, cmp: Component, ts: Timespan, params: EventConfirmationParams, time_start: str
+    ) -> Path:
         """filldocs"""
 
         temp = self._find_empty_filepath(params=params, ts=ts, cmp=cmp)
@@ -66,9 +68,7 @@ class EventConfirmationFile(FileModelMixin):
 association_table_event_confirmation_result_event_detection_result = db.Table(
     "event_confirmation_result_association_event_detection_result",
     db.metadata,
-    db.Column(
-        "event_confirmation_result_id", db.BigInteger, db.ForeignKey("event_confirmation_result.id")
-    ),
+    db.Column("event_confirmation_result_id", db.BigInteger, db.ForeignKey("event_confirmation_result.id")),
     db.Column("event_detection_result_id", db.BigInteger, db.ForeignKey("event_detection_result.id")),
 )
 
@@ -76,9 +76,7 @@ association_table_event_confirmation_result_event_detection_result = db.Table(
 association_table_event_confirmation_run_datachunk = db.Table(
     "event_confirmation_run_association_datachunk",
     db.metadata,
-    db.Column(
-        "event_confirmation_run_id", db.BigInteger, db.ForeignKey("event_confirmation_run.id")
-    ),
+    db.Column("event_confirmation_run_id", db.BigInteger, db.ForeignKey("event_confirmation_run.id")),
     db.Column("datachunk_id", db.Integer, db.ForeignKey("datachunk.id")),
     db.UniqueConstraint("event_confirmation_run_id", "datachunk_id"),
 )
@@ -235,7 +233,8 @@ class EventConfirmationResult(db.Model):
     event_detection_results = db.relationship(
         "EventDetectionResult",
         lazy="joined",
-        secondary=association_table_event_confirmation_result_event_detection_result)
+        secondary=association_table_event_confirmation_result_event_detection_result,
+    )
 
     def load_data(self) -> obspy.Trace:
         """
@@ -279,6 +278,5 @@ class EventConfirmationRun(db.Model):
     )
 
     datachunks = db.relationship(
-        "Datachunk",
-        lazy="joined",
-        secondary=association_table_event_confirmation_run_datachunk)
+        "Datachunk", lazy="joined", secondary=association_table_event_confirmation_run_datachunk
+    )

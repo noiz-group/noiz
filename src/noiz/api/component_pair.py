@@ -52,19 +52,19 @@ def upsert_componentpairs_cartesian(component_pairs_cartesian: List[ComponentPai
             )
             .on_conflict_do_update(
                 constraint="single_component_pair",
-                set_=dict(
-                    component_code_pair=component_pair_cartesian.component_code_pair,
-                    autocorrelation=component_pair_cartesian.autocorrelation,
-                    intracorrelation=component_pair_cartesian.intracorrelation,
-                    azimuth=component_pair_cartesian.azimuth,
-                    backazimuth=component_pair_cartesian.backazimuth,
-                    distance=component_pair_cartesian.distance,
-                    arcdistance=component_pair_cartesian.arcdistance,
-                ),
+                set_={
+                    "component_code_pair": component_pair_cartesian.component_code_pair,
+                    "autocorrelation": component_pair_cartesian.autocorrelation,
+                    "intracorrelation": component_pair_cartesian.intracorrelation,
+                    "azimuth": component_pair_cartesian.azimuth,
+                    "backazimuth": component_pair_cartesian.backazimuth,
+                    "distance": component_pair_cartesian.distance,
+                    "arcdistance": component_pair_cartesian.arcdistance,
+                },
             )
         )
         db.session.execute(insert_command)
-        if i % int(no/10) == 0:
+        if i % int(no / 10) == 0:
             logger.info(f"Inserted {i}/{no - 1} component_pairs_cartesian")
 
     logger.info("Commiting changes")
@@ -91,7 +91,7 @@ def create_all_componentpairs_cartesian(cp_optimization) -> None:
 
 
 def fetch_componentpairs_cartesian_by_id(
-        component_pair_cartesian_id: Union[Collection[int], int]
+    component_pair_cartesian_id: Union[Collection[int], int],
 ) -> List[ComponentPairCartesian]:
     """
     Fetches :py:class:`~noiz.models.component_pair_cartesian.ComponentPairCartesian` from the database by id.
@@ -106,9 +106,7 @@ def fetch_componentpairs_cartesian_by_id(
 
     component_pairs_cartesian = (
         db.session.query(ComponentPairCartesian)
-        .filter(
-            ComponentPairCartesian.id.in_(pair_ids)
-        )
+        .filter(ComponentPairCartesian.id.in_(pair_ids))
         .options(
             subqueryload(ComponentPairCartesian.component_a),
             subqueryload(ComponentPairCartesian.component_b),
@@ -123,17 +121,17 @@ def fetch_componentpairs_cartesian_by_id(
 
 
 def fetch_componentpairs_cartesian(
-        network_codes_a: Optional[Union[Collection[str], str]] = None,
-        station_codes_a: Optional[Union[Collection[str], str]] = None,
-        component_codes_a: Optional[Union[Collection[str], str]] = None,
-        network_codes_b: Optional[Union[Collection[str], str]] = None,
-        station_codes_b: Optional[Union[Collection[str], str]] = None,
-        component_codes_b: Optional[Union[Collection[str], str]] = None,
-        accepted_component_code_pairs: Optional[Union[Collection[str], str]] = None,
-        include_autocorrelation: Optional[bool] = False,
-        include_intracorrelation: Optional[bool] = False,
-        only_autocorrelation: Optional[bool] = False,
-        only_intracorrelation: Optional[bool] = False,
+    network_codes_a: Optional[Union[Collection[str], str]] = None,
+    station_codes_a: Optional[Union[Collection[str], str]] = None,
+    component_codes_a: Optional[Union[Collection[str], str]] = None,
+    network_codes_b: Optional[Union[Collection[str], str]] = None,
+    station_codes_b: Optional[Union[Collection[str], str]] = None,
+    component_codes_b: Optional[Union[Collection[str], str]] = None,
+    accepted_component_code_pairs: Optional[Union[Collection[str], str]] = None,
+    include_autocorrelation: Optional[bool] = False,
+    include_intracorrelation: Optional[bool] = False,
+    only_autocorrelation: Optional[bool] = False,
+    only_intracorrelation: Optional[bool] = False,
 ) -> List[ComponentPairCartesian]:
     """
     Fetched requested component pairs.
@@ -197,26 +195,26 @@ def fetch_componentpairs_cartesian(
     if include_autocorrelation:
         autocorr_filter = ComponentPairCartesian.autocorrelation.in_((True, False))
     elif only_autocorrelation:
-        autocorr_filter = ComponentPairCartesian.autocorrelation.in_((True, ))
+        autocorr_filter = ComponentPairCartesian.autocorrelation.in_((True,))
     else:
-        autocorr_filter = ComponentPairCartesian.autocorrelation.in_((False, ))
+        autocorr_filter = ComponentPairCartesian.autocorrelation.in_((False,))
     filters.append(autocorr_filter)
 
     if include_intracorrelation:
         intracorr_filter = ComponentPairCartesian.intracorrelation.in_((True, False))
     elif only_intracorrelation:
-        intracorr_filter = ComponentPairCartesian.intracorrelation.in_((True, ))
+        intracorr_filter = ComponentPairCartesian.intracorrelation.in_((True,))
     else:
-        intracorr_filter = ComponentPairCartesian.intracorrelation.in_((False, ))
+        intracorr_filter = ComponentPairCartesian.intracorrelation.in_((False,))
     filters.append(intracorr_filter)
 
     component_pairs_cartesian = (
         db.session.query(ComponentPairCartesian)
-          .join(cmp_a, ComponentPairCartesian.component_a)
-          .join(cmp_b, ComponentPairCartesian.component_b)
-          .options(
-              subqueryload(ComponentPairCartesian.component_a),
-              subqueryload(ComponentPairCartesian.component_b),
+        .join(cmp_a, ComponentPairCartesian.component_a)
+        .join(cmp_b, ComponentPairCartesian.component_b)
+        .options(
+            subqueryload(ComponentPairCartesian.component_a),
+            subqueryload(ComponentPairCartesian.component_b),
         )
         .filter(*filters)
         .all()
@@ -229,7 +227,7 @@ def fetch_componentpairs_cartesian(
 
 
 def fetch_componentpairs_cylindrical_by_id(
-        component_pair_cylindrical_id: Union[Collection[int], int]
+    component_pair_cylindrical_id: Union[Collection[int], int],
 ) -> List[ComponentPairCylindrical]:
     """
     Fetches :py:class:`~noiz.models.component_pair_cylindrical.ComponentPairCylindrical` from the database by id.
@@ -244,11 +242,7 @@ def fetch_componentpairs_cylindrical_by_id(
     pair_ids = validate_to_tuple(component_pair_cylindrical_id, int)
 
     component_pairs_cylindrical = (
-        db.session.query(ComponentPairCylindrical)
-        .filter(
-            ComponentPairCylindrical.id.in_(pair_ids)
-        )
-        .all()
+        db.session.query(ComponentPairCylindrical).filter(ComponentPairCylindrical.id.in_(pair_ids)).all()
     )
 
     if len(component_pairs_cylindrical) == 0:
@@ -258,15 +252,15 @@ def fetch_componentpairs_cylindrical_by_id(
 
 
 def fetch_componentpairs_cylindrical(
-        network_codes_a: Optional[Union[Collection[str], str]] = None,
-        station_codes_a: Optional[Union[Collection[str], str]] = None,
-        component_codes_a: Optional[Union[Collection[str], str]] = None,
-        network_codes_b: Optional[Union[Collection[str], str]] = None,
-        station_codes_b: Optional[Union[Collection[str], str]] = None,
-        component_codes_b: Optional[Union[Collection[str], str]] = None,
-        accepted_component_code_pairs_cylindrical: Optional[Union[Collection[str], str]] = None,
-        starttime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
-        endtime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
+    network_codes_a: Optional[Union[Collection[str], str]] = None,
+    station_codes_a: Optional[Union[Collection[str], str]] = None,
+    component_codes_a: Optional[Union[Collection[str], str]] = None,
+    network_codes_b: Optional[Union[Collection[str], str]] = None,
+    station_codes_b: Optional[Union[Collection[str], str]] = None,
+    component_codes_b: Optional[Union[Collection[str], str]] = None,
+    accepted_component_code_pairs_cylindrical: Optional[Union[Collection[str], str]] = None,
+    starttime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
+    endtime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
 ) -> List[ComponentPairCylindrical]:
     """
     Fetched requested cylindrical component pairs.
@@ -322,13 +316,14 @@ def fetch_componentpairs_cylindrical(
             endtime=endtime,
         )
 
-    if (accepted_component_code_pairs_cylindrical is None) and \
-            (component_codes_a is not None and component_codes_b is not None):
+    if (accepted_component_code_pairs_cylindrical is None) and (
+        component_codes_a is not None and component_codes_b is not None
+    ):
         accepted_component_code_pairs_cylindrical = tuple(
             [ca + cb for (ca, cb) in zip(component_codes_a, component_codes_b)]
         )
 
-    if accepted_component_code_pairs_cylindrical is not None :
+    if accepted_component_code_pairs_cylindrical is not None:
         accepted_component_code_pairs_cylindrical = validate_to_tuple(accepted_component_code_pairs_cylindrical, str)
         filters.append(
             ComponentPairCylindrical.component_cylindrical_code_pair.in_(accepted_component_code_pairs_cylindrical)
@@ -338,27 +333,23 @@ def fetch_componentpairs_cylindrical(
     cmp_b_ids = extract_object_ids(components_b)
 
     filters.append(
-        ComponentPairCylindrical.component_aE_id.in_(cmp_a_ids) |
-        ComponentPairCylindrical.component_aE_id.in_(cmp_b_ids) |
-        ComponentPairCylindrical.component_aN_id.in_(cmp_a_ids) |
-        ComponentPairCylindrical.component_aN_id.in_(cmp_b_ids) |
-        ComponentPairCylindrical.component_aZ_id.in_(cmp_a_ids) |
-        ComponentPairCylindrical.component_aZ_id.in_(cmp_b_ids)
+        ComponentPairCylindrical.component_aE_id.in_(cmp_a_ids)
+        | ComponentPairCylindrical.component_aE_id.in_(cmp_b_ids)
+        | ComponentPairCylindrical.component_aN_id.in_(cmp_a_ids)
+        | ComponentPairCylindrical.component_aN_id.in_(cmp_b_ids)
+        | ComponentPairCylindrical.component_aZ_id.in_(cmp_a_ids)
+        | ComponentPairCylindrical.component_aZ_id.in_(cmp_b_ids)
     )
     filters.append(
-        ComponentPairCylindrical.component_bE_id.in_(cmp_a_ids) |
-        ComponentPairCylindrical.component_bE_id.in_(cmp_b_ids) |
-        ComponentPairCylindrical.component_bN_id.in_(cmp_a_ids) |
-        ComponentPairCylindrical.component_bN_id.in_(cmp_b_ids) |
-        ComponentPairCylindrical.component_bZ_id.in_(cmp_a_ids) |
-        ComponentPairCylindrical.component_bZ_id.in_(cmp_b_ids)
+        ComponentPairCylindrical.component_bE_id.in_(cmp_a_ids)
+        | ComponentPairCylindrical.component_bE_id.in_(cmp_b_ids)
+        | ComponentPairCylindrical.component_bN_id.in_(cmp_a_ids)
+        | ComponentPairCylindrical.component_bN_id.in_(cmp_b_ids)
+        | ComponentPairCylindrical.component_bZ_id.in_(cmp_a_ids)
+        | ComponentPairCylindrical.component_bZ_id.in_(cmp_b_ids)
     )
 
-    component_pairs_cylindrical = (
-        db.session.query(ComponentPairCylindrical)
-        .filter(*filters)
-        .all()
-    )
+    component_pairs_cylindrical = db.session.query(ComponentPairCylindrical).filter(*filters).all()
 
     if len(component_pairs_cylindrical) == 0:
         raise EmptyResultException("There were no pairs in database that fit this query.")
@@ -376,7 +367,7 @@ def create_all_componentpairs_cylindrical() -> None:
     :rtype: None
     """
     components = fetch_components()
-    station_unique = list(set([cp.station for cp in components]))
+    station_unique = list({cp.station for cp in components})
     station_unique.sort()
     logger.info("Station fetch done")
     check_sta = []  # type: list
@@ -384,9 +375,13 @@ def create_all_componentpairs_cylindrical() -> None:
         componentpair = fetch_componentpairs_cartesian(station_codes_a=sta, station_codes_b=tuple(station_unique))
         componentpair += fetch_componentpairs_cartesian(station_codes_a=tuple(station_unique), station_codes_b=sta)
         if sta == station_unique[0]:
-            component_pairs_cylindrical = prepare_componentpairs_cylindrical(componentpair, station_unique, sta, check_sta)
+            component_pairs_cylindrical = prepare_componentpairs_cylindrical(
+                componentpair, station_unique, sta, check_sta
+            )
         else:
-            component_pairs_cylindrical += prepare_componentpairs_cylindrical(componentpair, station_unique, sta, check_sta)
+            component_pairs_cylindrical += prepare_componentpairs_cylindrical(
+                componentpair, station_unique, sta, check_sta
+            )
         check_sta.append(sta)
     upsert_componentpairs_cylindrical(component_pairs_cylindrical)
     return
@@ -408,23 +403,20 @@ def upsert_componentpairs_cylindrical(component_pairs_cylindrical: List[Componen
     logger.info(f"There are {no} component pairs to process")
 
     for i, component_pair_cylindrical in enumerate(component_pairs_cylindrical):
-        insert_command = (
-            insert(ComponentPairCylindrical)
-            .values(
-                component_aE_id=component_pair_cylindrical.component_aE_id,
-                component_bE_id=component_pair_cylindrical.component_bE_id,
-                component_aN_id=component_pair_cylindrical.component_aN_id,
-                component_bN_id=component_pair_cylindrical.component_bN_id,
-                component_aZ_id=component_pair_cylindrical.component_aZ_id,
-                component_bZ_id=component_pair_cylindrical.component_bZ_id,
-                component_cylindrical_code_pair=component_pair_cylindrical.component_cylindrical_code_pair,
-                autocorrelation=component_pair_cylindrical.autocorrelation,
-                intracorrelation=component_pair_cylindrical.intracorrelation,
-                azimuth=component_pair_cylindrical.azimuth,
-                backazimuth=component_pair_cylindrical.backazimuth,
-                distance=component_pair_cylindrical.distance,
-                arcdistance=component_pair_cylindrical.arcdistance,
-            )
+        insert_command = insert(ComponentPairCylindrical).values(
+            component_aE_id=component_pair_cylindrical.component_aE_id,
+            component_bE_id=component_pair_cylindrical.component_bE_id,
+            component_aN_id=component_pair_cylindrical.component_aN_id,
+            component_bN_id=component_pair_cylindrical.component_bN_id,
+            component_aZ_id=component_pair_cylindrical.component_aZ_id,
+            component_bZ_id=component_pair_cylindrical.component_bZ_id,
+            component_cylindrical_code_pair=component_pair_cylindrical.component_cylindrical_code_pair,
+            autocorrelation=component_pair_cylindrical.autocorrelation,
+            intracorrelation=component_pair_cylindrical.intracorrelation,
+            azimuth=component_pair_cylindrical.azimuth,
+            backazimuth=component_pair_cylindrical.backazimuth,
+            distance=component_pair_cylindrical.distance,
+            arcdistance=component_pair_cylindrical.arcdistance,
         )
         db.session.execute(insert_command)
         logger.info(f"Inserted {i}/{no - 1} component_pairs_cylindrical")

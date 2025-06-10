@@ -35,15 +35,38 @@ run_system_tests: prepare_dotenv
     rm {{env_file_system_test}}
 
 submodule cmd="":
-	#! /bin/bash
-	set -euf -o pipefail
-	if [[ "{{cmd}}" == "pull" ]]
-	then
-		git submodule foreach git pull origin main
-	elif [[ "{{cmd}}" == "update" ]]
-	then
-		git submodule init
-		git submodule update
-	else
-		echo "The command {{cmd}} does not exist."
-	fi
+    #! /bin/bash
+    set -euf -o pipefail
+    if [[ "{{cmd}}" == "pull" ]]
+    then
+        git submodule foreach git pull origin main
+    elif [[ "{{cmd}}" == "update" ]]
+    then
+        git submodule init
+        git submodule update
+    else
+        echo "The command {{cmd}} does not exist."
+    fi
+
+unit_tests:
+    SQLALCHEMY_WARN_20=1 uv run pytest --cov=noiz
+
+sync:
+    uv sync --all-groups
+
+mypy:
+    uv run mypy --install-types --non-interactive src/noiz
+
+ruff_check:
+    uv run ruff check --unsafe-fixes --fix .
+
+ruff_format:
+    uv run ruff format .
+
+ruff: ruff_check ruff_format
+
+docs:
+    uv run sphinx-build -M html docs/ docs/_build
+
+lint_docs:
+    uv run doc8 docs/content

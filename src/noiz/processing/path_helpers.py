@@ -11,22 +11,11 @@ from typing import Union, Optional
 from noiz.models import Component, Timespan
 
 
-def assembly_preprocessing_filename(
-        component: Component,
-        timespan: Timespan,
-        count: int = 0
-) -> str:
+def assembly_preprocessing_filename(component: Component, timespan: Timespan, count: int = 0) -> str:
     year = str(timespan.starttime.year)
     doy_time = timespan.starttime.strftime("%j.%H%M")
 
-    fname = ".".join([
-        component.network,
-        component.station,
-        component.component,
-        year,
-        doy_time,
-        str(count)
-    ])
+    fname = ".".join([component.network, component.station, component.component, year, doy_time, str(count)])
 
     return fname
 
@@ -130,20 +119,20 @@ def increment_filename_counter(filepath: Path, extension: bool) -> Path:
 
         try:
             if extension:
-                name_parts[-2] = str(int(name_parts[-2])+1)
+                name_parts[-2] = str(int(name_parts[-2]) + 1)
             else:
-                name_parts[-1] = str(int(name_parts[-1])+1)
-        except ValueError:
-            raise ValueError(f"The filepath's {filepath} suffix cannot be casted to int. "
-                             f"Check if filename has extension and try to pass "
-                             f"argument extension {not extension}")
+                name_parts[-1] = str(int(name_parts[-1]) + 1)
+        except ValueError as e:
+            raise ValueError(
+                f"The filepath's {filepath} suffix cannot be casted to int. "
+                f"Check if filename has extension and try to pass "
+                f"argument extension {not extension}"
+            ) from e
 
         filepath = filepath.with_name(os.extsep.join(name_parts))
 
 
-def _assembly_stationxml_filename(
-    network: Network, station: Station, component: str, counter: int = 0
-) -> str:
+def _assembly_stationxml_filename(network: Network, station: Station, component: str, counter: int = 0) -> str:
     """
     Assembles a filename of a single component StationXML file.
 
@@ -162,10 +151,7 @@ def _assembly_stationxml_filename(
 
 
 def _assembly_single_component_invenontory_path(
-        network: Network,
-        station: Station,
-        component: str,
-        inventory_dir: Path
+    network: Network, station: Station, component: str, inventory_dir: Path
 ) -> Path:
     """
     Creates a filepath for a new inventory file based on standard schema.
@@ -189,12 +175,8 @@ def _assembly_single_component_invenontory_path(
     single_cmp_inv_path = inventory_dir.joinpath(filename)
 
     if single_cmp_inv_path.exists():
-        logger.info(f'Filepath {single_cmp_inv_path} exists. '
-                    f'Trying to find next free one.')
+        logger.info(f"Filepath {single_cmp_inv_path} exists. Trying to find next free one.")
         single_cmp_inv_path = increment_filename_counter(filepath=single_cmp_inv_path, extension=False)
-        logger.info(f"Free filepath found. "
-                    f"Inventory will be saved to {single_cmp_inv_path}")
-    logger.info(
-        f"Inventory for component {component} will be saved to {single_cmp_inv_path}"
-    )
+        logger.info(f"Free filepath found. Inventory will be saved to {single_cmp_inv_path}")
+    logger.info(f"Inventory for component {component} will be saved to {single_cmp_inv_path}")
     return single_cmp_inv_path

@@ -28,19 +28,27 @@ def prepare_componentpairs_cartesian(components: List[Component], cp_optimizatio
     no = len(potential_pairs)
     logger.info(f"There are {no} potential pairs to be checked.")
     for i, (cmp_a, cmp_b) in enumerate(potential_pairs):
-        if i % int(no/10) == 0:
+        if i % int(no / 10) == 0:
             logger.info(f"Processed already {i}/{no} pairs")
         if cp_optimization:
-            cmpa_start_date = datetime(cmp_a.start_date.year, cmp_a.start_date.month, cmp_a.start_date.day, cmp_a.start_date.hour)
-            cmpb_start_date = datetime(cmp_b.start_date.year, cmp_b.start_date.month, cmp_b.start_date.day, cmp_b.start_date.hour)
-            cmpa_end_date = datetime(cmp_a.end_date.year, cmp_a.end_date.month, cmp_a.end_date.day, cmp_a.end_date.hour)
-            cmpb_end_date = datetime(cmp_b.end_date.year, cmp_b.end_date.month, cmp_b.end_date.day, cmp_b.end_date.hour)
+            cmpa_start_date = datetime(
+                cmp_a.start_date.year, cmp_a.start_date.month, cmp_a.start_date.day, cmp_a.start_date.hour
+            )
+            cmpb_start_date = datetime(
+                cmp_b.start_date.year, cmp_b.start_date.month, cmp_b.start_date.day, cmp_b.start_date.hour
+            )
+            cmpa_end_date = datetime(
+                cmp_a.end_date.year, cmp_a.end_date.month, cmp_a.end_date.day, cmp_a.end_date.hour
+            )
+            cmpb_end_date = datetime(
+                cmp_b.end_date.year, cmp_b.end_date.month, cmp_b.end_date.day, cmp_b.end_date.hour
+            )
 
             working_time_a = np.arange(cmpa_start_date, cmpa_end_date, timedelta(minutes=60)).astype(datetime)
             working_time_b = np.arange(cmpb_start_date, cmpb_end_date, timedelta(minutes=60)).astype(datetime)
             a_set = set(working_time_a)
             b_set = set(working_time_b)
-            if (a_set & b_set):
+            if a_set & b_set:
                 bool_cp = 1
             else:
                 bool_cp = 0
@@ -53,7 +61,7 @@ def prepare_componentpairs_cartesian(components: List[Component], cp_optimizatio
             component_pair_cartesian = ComponentPairCartesian(
                 component_a_id=cmp_a.id,
                 component_b_id=cmp_b.id,
-                component_code_pair=f"{cmp_a.component}{cmp_b.component}"
+                component_code_pair=f"{cmp_a.component}{cmp_b.component}",
             )
 
             if is_autocorrelation(cmp_a, cmp_b):
@@ -72,9 +80,7 @@ def prepare_componentpairs_cartesian(components: List[Component], cp_optimizatio
                 logger.debug(f"Pair {component_pair_cartesian} is not east to west, skipping")
                 continue
 
-            logger.debug(
-                f"Pair {component_pair_cartesian} is east to west, calculating distance and backazimuths"
-            )
+            logger.debug(f"Pair {component_pair_cartesian} is east to west, calculating distance and backazimuths")
             distaz = calculate_distance_azimuths(cmp_a, cmp_b)
             component_pair_cartesian.set_params_from_distaz(distaz)
             component_pairs_cartesian.append(component_pair_cartesian)
@@ -94,11 +100,7 @@ def is_autocorrelation(cmp_a: Component, cmp_b: Component) -> bool:
     :return: If Component belong to the same station and component
     :rtype: bool
     """
-    if (
-        cmp_a.station == cmp_b.station
-        and cmp_a.network == cmp_b.network
-        and cmp_a.component == cmp_b.component
-    ):
+    if cmp_a.station == cmp_b.station and cmp_a.network == cmp_b.network and cmp_a.component == cmp_b.component:
         return True
     else:
         return False
@@ -115,11 +117,7 @@ def is_intrastation_correlation(cmp_a: Component, cmp_b: Component) -> bool:
     :return: If Components belong to the same station ut have different component letter
     :rtype: bool
     """
-    if (
-        cmp_a.station == cmp_b.station
-        and cmp_a.network == cmp_b.network
-        and cmp_a.component != cmp_b.component
-    ):
+    if cmp_a.station == cmp_b.station and cmp_a.network == cmp_b.network and cmp_a.component != cmp_b.component:
         return True
     else:
         return False
@@ -151,10 +149,7 @@ def _calculate_distance_backazimuth(lat_a, lon_a, lat_b, lon_b):
     lon_b = np.deg2rad(lon_b)
     lat_b = np.deg2rad(lat_b)
 
-    arc_distance = np.arccos(
-        np.sin(lat_b) * np.sin(lat_a)
-        + np.cos(lat_b) * np.cos(lat_a) * np.cos(lon_b - lon_a)
-    )
+    arc_distance = np.arccos(np.sin(lat_b) * np.sin(lat_a) + np.cos(lat_b) * np.cos(lat_a) * np.cos(lon_b - lon_a))
     distance_km = arc_distance * 6371.0
 
     if np.isnan(distance_km):
@@ -167,9 +162,7 @@ def _calculate_distance_backazimuth(lat_a, lon_a, lat_b, lon_b):
         }
         return results
 
-    cosa = (np.sin(lat_b) - np.sin(lat_a) * np.cos(arc_distance)) / (
-        np.cos(lat_a) * np.sin(arc_distance)
-    )
+    cosa = (np.sin(lat_b) - np.sin(lat_a) * np.cos(arc_distance)) / (np.cos(lat_a) * np.sin(arc_distance))
     sina = np.cos(lat_b) * np.sin(lon_b - lon_a) / np.sin(arc_distance)
     sina = np.clip(sina, -1.0, 1.0)
 
@@ -177,9 +170,7 @@ def _calculate_distance_backazimuth(lat_a, lon_a, lat_b, lon_b):
     if cosa < 0.0:
         backazimuth = np.pi - backazimuth
 
-    cosb = (np.sin(lat_a) - np.sin(lat_b) * np.cos(arc_distance)) / (
-        np.cos(lat_b) * np.sin(arc_distance)
-    )
+    cosb = (np.sin(lat_a) - np.sin(lat_b) * np.cos(arc_distance)) / (np.cos(lat_b) * np.sin(arc_distance))
     sinb = -np.cos(lat_a) * sina / np.cos(lat_b)
     sinb = np.clip(sinb, -1.0, 1.0)
 
@@ -225,9 +216,7 @@ def is_east_to_west(cmp_a: Component, cmp_b: Component) -> bool:
     return east_west
 
 
-def calculate_distance_azimuths(
-    cmp_a: Component, cmp_b: Component, iris: bool = False
-) -> dict:
+def calculate_distance_azimuths(cmp_a: Component, cmp_b: Component, iris: bool = False) -> dict:
     """
     Calculates a distance (arc), distancemeters, backazimuth, azimuth either with use of inhouse method or iris.
     Method developed my Max, refactored by Damian.
@@ -251,14 +240,14 @@ def calculate_distance_azimuths(
         logger.debug("Calculation successful!")
     else:
         logger.debug("Calculating distance and azimuths with local method")
-        distaz = _calculate_distance_backazimuth(
-            cmp_a.lat, cmp_a.lon, cmp_b.lat, cmp_b.lon
-        )
+        distaz = _calculate_distance_backazimuth(cmp_a.lat, cmp_a.lon, cmp_b.lat, cmp_b.lon)
         logger.debug("Calculation successful!")
     return distaz
 
 
-def prepare_componentpairs_cylindrical(componentpair_cartesian, station_unique, sta, check_sta) -> List[ComponentPairCylindrical]:
+def prepare_componentpairs_cylindrical(
+    componentpair_cartesian, station_unique, sta, check_sta
+) -> List[ComponentPairCylindrical]:
     """
     Takes cartesian component pairs and creates all possible cylindrical component pairs excluding autocorrelations
     and intrastation correlations.
@@ -280,58 +269,82 @@ def prepare_componentpairs_cylindrical(componentpair_cartesian, station_unique, 
     component_cyndrical_pair = ["RR", "TT", "RT", "TR", "ZR", "RZ", "ZT", "TZ"]
 
     cpair_cartesienne = [
-        [cpair.component_a,
-         cpair.component_a_id,
-         cpair.component_b,
-         cpair.component_b_id,
-         cpair.distance,
-         cpair.azimuth,
-         cpair.backazimuth,
-         cpair.arcdistance,
-         cpair.autocorrelation,
-         cpair.intracorrelation,
-         ]
+        [
+            cpair.component_a,
+            cpair.component_a_id,
+            cpair.component_b,
+            cpair.component_b_id,
+            cpair.distance,
+            cpair.azimuth,
+            cpair.backazimuth,
+            cpair.arcdistance,
+            cpair.autocorrelation,
+            cpair.intracorrelation,
+        ]
         for cpair in componentpair_cartesian
     ]
-    df_cpair = pd.DataFrame(cpair_cartesienne, columns=['comp_a', 'comp_a_id', 'comp_b', 'comp_b_id', 'distance', 'azimuth', 'backazimuth', 'arcdistance', 'autocorrelation', 'intracorrelation'])
+    df_cpair = pd.DataFrame(
+        cpair_cartesienne,
+        columns=[
+            "comp_a",
+            "comp_a_id",
+            "comp_b",
+            "comp_b_id",
+            "distance",
+            "azimuth",
+            "backazimuth",
+            "arcdistance",
+            "autocorrelation",
+            "intracorrelation",
+        ],
+    )
     cpair_cartesienne_station_info = [
-        [compa_sta.station,
-         compa_comp.component,
-         compb_sta.station,
-         compb_comp.component
-         ]
-        for compa_sta, compa_comp, compb_sta, compb_comp in zip(df_cpair["comp_a"], df_cpair["comp_a"], df_cpair["comp_b"], df_cpair["comp_b"])
+        [compa_sta.station, compa_comp.component, compb_sta.station, compb_comp.component]
+        for compa_sta, compa_comp, compb_sta, compb_comp in zip(
+            df_cpair["comp_a"], df_cpair["comp_a"], df_cpair["comp_b"], df_cpair["comp_b"]
+        )
     ]
-    df_cpair = df_cpair.merge(pd.DataFrame(cpair_cartesienne_station_info, columns=['stationa', 'comp_a_code', 'stationb', 'comp_b_code']), left_index=True, right_index=True)
+    df_cpair = df_cpair.merge(
+        pd.DataFrame(cpair_cartesienne_station_info, columns=["stationa", "comp_a_code", "stationb", "comp_b_code"]),
+        left_index=True,
+        right_index=True,
+    )
 
     for stab in station_unique:
         if stab in check_sta:  # if stab not in check_sta:
             continue
-        pair_station_info = df_cpair[((df_cpair["stationa"] == sta) & (df_cpair["stationb"] == stab)) | ((df_cpair["stationa"] == stab) & (df_cpair["stationb"] == sta))]
+        pair_station_info = df_cpair[
+            ((df_cpair["stationa"] == sta) & (df_cpair["stationb"] == stab))
+            | ((df_cpair["stationa"] == stab) & (df_cpair["stationb"] == sta))
+        ]
         if len(pair_station_info) != 0:
             comp_a_to_ckeck = np.unique(pair_station_info["comp_a_code"])
             comp_b_to_ckeck = np.unique(pair_station_info["comp_b_code"])
             if not ((comp_cart_list == comp_a_to_ckeck).all()) and not ((comp_cart_list == comp_b_to_ckeck).all()):
                 logger.info(f"not all components were load {sta}-{stab}")
                 continue
-            azimuth, backazimuth, distance, arcdistance, autocorrelation, intracorrelation = _read_station_pair_information(pair_station_info)
+            azimuth, backazimuth, distance, arcdistance, autocorrelation, intracorrelation = (
+                _read_station_pair_information(pair_station_info)
+            )
             for cp_cylindrical in component_cyndrical_pair:
-                component_aE, component_bE, component_aN, component_bN, component_aZ, component_bZ = _component_cylindrical(pair_station_info, cp_cylindrical)
+                component_aE, component_bE, component_aN, component_bN, component_aZ, component_bZ = (
+                    _component_cylindrical(pair_station_info, cp_cylindrical)
+                )
                 component_pair_cylindrical = ComponentPairCylindrical(
-                                            component_cylindrical_code_pair=cp_cylindrical,
-                                            component_aE_id=component_aE,
-                                            component_bE_id=component_bE,
-                                            component_aN_id=component_aN,
-                                            component_bN_id=component_bN,
-                                            component_aZ_id=component_aZ,
-                                            component_bZ_id=component_bZ,
-                                            distance=distance,
-                                            azimuth=azimuth,
-                                            backazimuth=backazimuth,
-                                            arcdistance=arcdistance,
-                                            autocorrelation=autocorrelation,
-                                            intracorrelation=intracorrelation,
-                                            )
+                    component_cylindrical_code_pair=cp_cylindrical,
+                    component_aE_id=component_aE,
+                    component_bE_id=component_bE,
+                    component_aN_id=component_aN,
+                    component_bN_id=component_bN,
+                    component_aZ_id=component_aZ,
+                    component_bZ_id=component_bZ,
+                    distance=distance,
+                    azimuth=azimuth,
+                    backazimuth=backazimuth,
+                    arcdistance=arcdistance,
+                    autocorrelation=autocorrelation,
+                    intracorrelation=intracorrelation,
+                )
                 component_pairs_cylindrical.append(component_pair_cylindrical)
             logger.info(f"Cylindrical component pair found for {sta}-{stab}")
 
@@ -375,14 +388,14 @@ def _component_cylindrical(pair_station_info, comp):
         component_bN = int(pair_station_info["comp_b_id"][pair_station_info["comp_b_code"] == "N"].unique()[0])
         component_aZ = None  # type: ignore
         component_bZ = None  # type: ignore
-    elif (comp in ["ZR", "ZT"]):
+    elif comp in ["ZR", "ZT"]:
         component_aE = None  # type: ignore
         component_bE = int(pair_station_info["comp_b_id"][pair_station_info["comp_b_code"] == "E"].unique()[0])
         component_aN = None  # type: ignore
         component_bN = int(pair_station_info["comp_b_id"][pair_station_info["comp_b_code"] == "N"].unique()[0])
         component_aZ = int(pair_station_info["comp_a_id"][pair_station_info["comp_a_code"] == "Z"].unique()[0])
         component_bZ = None  # type: ignore
-    elif (comp in ["RZ", "TZ"]):
+    elif comp in ["RZ", "TZ"]:
         component_aE = int(pair_station_info["comp_a_id"][pair_station_info["comp_a_code"] == "E"].unique()[0])
         component_bE = None  # type: ignore
         component_aN = int(pair_station_info["comp_a_id"][pair_station_info["comp_a_code"] == "N"].unique()[0])

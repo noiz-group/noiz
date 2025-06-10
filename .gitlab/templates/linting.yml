@@ -4,15 +4,25 @@
 
 .linting-parent:
   stage: linting
-  before_script:
-    - python -m pip install -U pip hatch
+
+.ruff-parent:
+  extends: .linting-parent
+  image: ghcr.io/astral-sh/ruff:0.11.13-alpine
 
 type-check:
   extends: .linting-parent
   script:
-    - hatch run lint:run_mypy
+    - uv run mypy src/noiz
 
-flake8:
-  extends: .linting-parent
+ruff_check:
+  extends: .ruff-parent
   script:
-    - hatch run lint:run_flake8
+    - ruff check --output-format=gitlab > code-quality-report.json
+  artifacts:
+    reports:
+      codequality: $CI_PROJECT_DIR/code-quality-report.json
+
+ruff_format:
+  extends: .ruff-parent
+  script:
+    - ruff format --diff

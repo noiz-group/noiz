@@ -9,15 +9,15 @@ from pathlib import Path
 
 
 def run_mseedindex_on_passed_dir(
-        basedir: Union[Path, Collection[Path]],
-        current_dir: Path,
-        mseedindex_executable: str,
-        postgres_host: str,
-        postgres_user: str,
-        postgres_password: str,
-        postgres_db: str,
-        filename_pattern: str = "*",
-        parallel: bool = True,
+    basedir: Union[Path, Collection[Path]],
+    current_dir: Path,
+    mseedindex_executable: str,
+    postgres_host: str,
+    postgres_user: str,
+    postgres_password: str,
+    postgres_db: str,
+    filename_pattern: str = "*",
+    parallel: bool = True,
 ) -> None:
     """
     Recursively globs a provided directory in search of files that could be passed to Mseedindex and scanned for
@@ -57,6 +57,7 @@ def run_mseedindex_on_passed_dir(
 
     if parallel:
         import multiprocessing
+
         p = multiprocessing.Pool(multiprocessing.cpu_count())
         p.map(_call_mseedindex_to_file_wrapper, inputs_to_process)
     else:
@@ -74,14 +75,14 @@ class MseedIndexRunnerInputs(TypedDict):
 
 
 def _mseedindex_input_generator(
-        basedir: Union[Path, Collection[Path]],
-        current_dir: Path,
-        mseedindex_executable: str,
-        postgres_host: str,
-        postgres_user: str,
-        postgres_password: str,
-        postgres_db: str,
-        filename_pattern: str = "*",
+    basedir: Union[Path, Collection[Path]],
+    current_dir: Path,
+    mseedindex_executable: str,
+    postgres_host: str,
+    postgres_user: str,
+    postgres_password: str,
+    postgres_db: str,
+    filename_pattern: str = "*",
 ) -> Generator[MseedIndexRunnerInputs, None, None]:
     if isinstance(basedir, Path):
         filepaths = list(basedir.absolute().rglob(filename_pattern))
@@ -108,7 +109,7 @@ def _mseedindex_input_generator(
 
 
 def _call_mseedindex_to_file_wrapper(
-        inputs: MseedIndexRunnerInputs,
+    inputs: MseedIndexRunnerInputs,
 ):
     _call_mseedindex_to_file(
         filepath=inputs["filepath"],
@@ -122,13 +123,13 @@ def _call_mseedindex_to_file_wrapper(
 
 
 def _call_mseedindex_to_file(
-        filepath: Path,
-        current_dir: Path,
-        mseedindex_executable: str,
-        postgres_host: str,
-        postgres_user: str,
-        postgres_password: str,
-        postgres_db: str,
+    filepath: Path,
+    current_dir: Path,
+    mseedindex_executable: str,
+    postgres_host: str,
+    postgres_user: str,
+    postgres_password: str,
+    postgres_db: str,
 ):
     """
     Runs mseedindex with set of provided parameters on a provided file.
@@ -161,16 +162,16 @@ def _call_mseedindex_to_file(
         # boolean options have a value of None
         cmd = [c for c in cmd if c is not None]
         logger.debug(f"Running mseedindex command for file {filepath}")
-        proc = subprocess.Popen(cmd,
-                                cwd=str(current_dir.absolute()),
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE,
-                                )
+        proc = subprocess.Popen(
+            cmd,
+            cwd=str(current_dir.absolute()),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
         out, err = proc.communicate()
 
         for stdout_line in out.splitlines():
             logger.info(f"mseedindex STDOUT: {stdout_line.strip().decode()}")
-        return (mseedindex_executable, proc.returncode,
-                out.strip(), err.strip())
+        return (mseedindex_executable, proc.returncode, out.strip(), err.strip())
     except Exception as err:
-        raise OSError(f"Error running command `{mseedindex_executable}` - {err}")
+        raise OSError(f"Error running command `{mseedindex_executable}` - {err}") from err

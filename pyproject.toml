@@ -1,23 +1,14 @@
-# SPDX-License-Identifier: CECILL-B
-# Copyright © 2015-2019 EOST UNISTRA, Storengy SAS, Damian Kula
-# Copyright © 2019-2023 Contributors to the Noiz project.
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
 name = "noiz"
-dynamic = ["version"]
-readme = "README.rst"
-license = {text = "CECILL-B"}
+version = "0.7.0"
 authors = [
-#    List ordered by time of joining the project
     { name = "Damian Kula", email = "heavelock@gmail.com" },
     { name = "Alexandre Kazantsev", email = "alexandre.kazantsev@storengy.com" },
     { name = "Arthur Dartois", email = "arthur.dartois@storengy.com" },
     { name = "Laure Duboeuf", email = "laure.duboeuf@external.storengy.com" },
 ]
+readme = "README.rst"
+license = { text = "CECILL-B" }
 classifiers = [
     "Development Status :: 4 - Beta",
     "License :: CeCILL-B Free Software License Agreement (CECILL-B)",
@@ -25,6 +16,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
 ]
+requires-python = ">= 3.10, < 3.11"
 dependencies = [
     "more-itertools >=8.11",
     "sqlalchemy >=1.4.0, <2.0",
@@ -35,30 +27,29 @@ dependencies = [
     "flask-migrate ==3.1.0",
     "loguru >=0.5.3",
     "matplotlib ==3.5.0",
-    "numpy ==1.21.4",
-    "obspy ==1.2.2",
+    "numpy ==1.23.5",
+    "obspy ==1.4.2",
     "pandas ==1.3.4",
     "psycopg2-binary ==2.9.2",
     "pydantic ~=1.8",
-    "scipy ==1.7.2",
+    "scipy ==1.15.3",
     "tqdm >=4.62.3",
     "toml>=0.10.2",
     "utm >=0.7.0",
     "dask[complete] ==2021.11.2",
-    "pendulum ~=2.1",
-    "werkzeug == 2.3.3", # flask doesn't pin properly this dependency
+    "pendulum ~=3.0",
+    "werkzeug == 2.3.3",
 ]
-[project.optional-dependencies]
-test = [
+[dependency-groups]
+dev = [
     "pytest ==6.2.5",
     "pytest-check ==1.0.4",
     "pytest-cov ==3.0.0",
     "pytest-dependency ==0.5.1",
     "pytest-mock ==3.6.1",
     "mock==4.0.3",
-    "mypy ==0.910",
+    "mypy ==0.981",
     "sqlalchemy-stubs ==0.4",
-    "flake8 ==4.0.1",
     "types-python-dateutil ==2.8.2",
     "types-toml ==0.10.1",
 ]
@@ -70,8 +61,14 @@ docs = [
     "furo ~=2023.9.10",
 ]
 
-[project.scripts]
-noiz = "noiz.cli:cli"
+lint = [
+    "ruff ~=0.11.13",
+    "sqlalchemy-stubs ==0.4",
+    "types-python-dateutil ==2.8.2",
+    "types-toml ==0.10.1",
+    "pydantic ~=1.8",
+    "doc8 ==0.10.1",
+]
 
 [project.urls]
 Homepage = "https://noiz-group.gitlab.io/"
@@ -79,22 +76,18 @@ Documentation = "https://noiz-group.gitlab.io/noiz/"
 Repository = "https://gitlab.com/noiz-group/noiz.git"
 Changelog = "https://gitlab.com/noiz-group/noiz/-/blob/master/CHANGELOG.rst"
 
-[tool.hatch.envs.test]
-features = [
-    "test",
-]
+[project.scripts]
+noiz = "noiz.cli:cli"
 
-[[tool.hatch.envs.test.matrix]]
-python = [
-    "3.9",
-    "3.10",
-#    "3.11", pinned numpy 1.21.4 is incompatible
-#    "3.12", pinned numpy 1.21.4 is incompatible
-]
+[build-system]
+requires = ["uv_build>=0.7.6,<0.8.0"]
+build-backend = "uv_build"
+
+[tool.uv]
+package = true
 
 [tool.hatch.envs.test.scripts]
 cov = 'SQLALCHEMY_WARN_20=1 pytest --cov=noiz'
-#system_tests = 'SQLALCHEMY_WARN_20=1 pytest --cov=noiz --runcli'
 
 [tool.hatch.envs.docs]
 features = [
@@ -106,31 +99,12 @@ build_html = [
     "sphinx-build -M html docs/ docs/_build ",
 ]
 
-[tool.hatch.envs.lint]
-detached = true
-dependencies = [
-    "flake8 ==4.0.1",
-    "mypy ==0.910",
-    "sqlalchemy-stubs ==0.4",
-    "types-python-dateutil ==2.8.2",
-    "types-toml ==0.10.1",
-    "pydantic ~=1.8",
-    "doc8 ==0.10.1",
-]
 
 [tool.hatch.envs.lint.scripts]
-run_flake8 = [
-    "flake8 .",
-]
-run_mypy = [
-    "mypy --install-types --non-interactive src/noiz",
-]
 run_doc8 = [
     "doc8 docs/content"
 ]
 
-[tool.hatch.version]
-path = "src/noiz/__init__.py"
 
 [tool.hatch.build.targets.sdist]
 include = [

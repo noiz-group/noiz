@@ -36,9 +36,7 @@ class BeamformingFile(FileModelMixin):
 association_table_beamforming_results_datachunks = db.Table(
     "beamforming_association_datachunks",
     db.metadata,
-    db.Column(
-        "datachunk_id", db.BigInteger, db.ForeignKey("datachunk.id")
-    ),
+    db.Column("datachunk_id", db.BigInteger, db.ForeignKey("datachunk.id")),
     db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
     db.UniqueConstraint("beamforming_result_id", "datachunk_id"),
 )
@@ -69,9 +67,7 @@ association_table_beamforming_result_avg_relpower = db.Table(
 association_table_beamforming_result_all_abspower = db.Table(
     "beamforming_result_association_all_abspower",
     db.metadata,
-    db.Column(
-        "beamforming_peak_all_abspower_id", db.BigInteger, db.ForeignKey("beamforming_peak_all_abspower.id")
-    ),
+    db.Column("beamforming_peak_all_abspower_id", db.BigInteger, db.ForeignKey("beamforming_peak_all_abspower.id")),
     db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
     db.UniqueConstraint("beamforming_result_id", "beamforming_peak_all_abspower_id"),
 )
@@ -80,9 +76,7 @@ association_table_beamforming_result_all_abspower = db.Table(
 association_table_beamforming_result_all_relpower = db.Table(
     "beamforming_result_association_all_relpower",
     db.metadata,
-    db.Column(
-        "beamforming_peak_all_relpower_id", db.BigInteger, db.ForeignKey("beamforming_peak_all_relpower.id")
-    ),
+    db.Column("beamforming_peak_all_relpower_id", db.BigInteger, db.ForeignKey("beamforming_peak_all_relpower.id")),
     db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
     db.UniqueConstraint("beamforming_result_id", "beamforming_peak_all_relpower_id"),
 )
@@ -91,9 +85,7 @@ association_table_beamforming_result_all_relpower = db.Table(
 class BeamformingResult(db.Model):
     __tablename__ = "beamforming_result"
     __table_args__ = (
-        db.UniqueConstraint(
-            "timespan_id", "beamforming_params_id", name="unique_beam_per_config_per_timespan"
-        ),
+        db.UniqueConstraint("timespan_id", "beamforming_params_id", name="unique_beam_per_config_per_timespan"),
     )
     id = db.Column("id", db.Integer, primary_key=True)
     beamforming_params_id = db.Column(
@@ -134,17 +126,29 @@ class BeamformingResult(db.Model):
         lazy="joined",
     )
 
-    average_abspower_peaks = db.relationship("BeamformingPeakAverageAbspower", lazy="joined",
-                                             secondary=lambda: association_table_beamforming_result_avg_abspower)
-    average_relpower_peaks = db.relationship("BeamformingPeakAverageRelpower", lazy="joined",
-                                             secondary=lambda: association_table_beamforming_result_avg_relpower)
-    all_abspower_peaks = db.relationship("BeamformingPeakAllAbspower", lazy="joined",
-                                         secondary=lambda: association_table_beamforming_result_all_abspower)
-    all_relpower_peaks = db.relationship("BeamformingPeakAllRelpower", lazy="joined",
-                                         secondary=lambda: association_table_beamforming_result_all_relpower)
+    average_abspower_peaks = db.relationship(
+        "BeamformingPeakAverageAbspower",
+        lazy="joined",
+        secondary=lambda: association_table_beamforming_result_avg_abspower,
+    )
+    average_relpower_peaks = db.relationship(
+        "BeamformingPeakAverageRelpower",
+        lazy="joined",
+        secondary=lambda: association_table_beamforming_result_avg_relpower,
+    )
+    all_abspower_peaks = db.relationship(
+        "BeamformingPeakAllAbspower",
+        lazy="joined",
+        secondary=lambda: association_table_beamforming_result_all_abspower,
+    )
+    all_relpower_peaks = db.relationship(
+        "BeamformingPeakAllRelpower",
+        lazy="joined",
+        secondary=lambda: association_table_beamforming_result_all_relpower,
+    )
 
     datachunks = db.relationship("Datachunk", secondary=lambda: association_table_beamforming_results_datachunks)
-    datachunk_ids = association_proxy('datachunks', 'id')
+    datachunk_ids = association_proxy("datachunks", "id")
 
     def load_data(self):
         filepath = Path(self.file.filepath)

@@ -23,18 +23,19 @@ def get_year_doy(date: datetime.datetime) -> Tuple[int, int]:
 
 
 def calculate_window_step_or_overlap(
-        stacking_length: Union[pd.Timedelta, datetime.timedelta],
-        stacking_step_or_overlap: Union[pd.Timedelta, datetime.timedelta],
+    stacking_length: Union[pd.Timedelta, datetime.timedelta],
+    stacking_step_or_overlap: Union[pd.Timedelta, datetime.timedelta],
 ) -> datetime.timedelta:
-    return validate_timedelta_as_pytimedelta(stacking_length) - \
-           validate_timedelta_as_pytimedelta(stacking_step_or_overlap)
+    return validate_timedelta_as_pytimedelta(stacking_length) - validate_timedelta_as_pytimedelta(
+        stacking_step_or_overlap
+    )
 
 
 def check_if_two_timeperiods_have_any_overlap(
-        first_starttime: datetime.datetime,
-        first_endtime: datetime.datetime,
-        second_starttime: datetime.datetime,
-        second_endtime: datetime.datetime,
+    first_starttime: datetime.datetime,
+    first_endtime: datetime.datetime,
+    second_starttime: datetime.datetime,
+    second_endtime: datetime.datetime,
 ) -> bool:
     """
     Checks if two time periods have any overlap.

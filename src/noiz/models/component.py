@@ -26,11 +26,7 @@ else:
 
 class Device(db.Model):
     __tablename__ = "device"
-    __table_args__ = (
-        db.UniqueConstraint(
-            "network", "station", name="unique_device_per_station"
-        ),
-    )
+    __table_args__ = (db.UniqueConstraint("network", "station", name="unique_device_per_station"),)
 
     id = db.Column("id", db.Integer, primary_key=True)
     network = db.Column("network", db.UnicodeText)
@@ -41,11 +37,7 @@ class Device(db.Model):
 
 class Component(db.Model):
     __tablename__ = "component"
-    __table_args__ = (
-        db.UniqueConstraint(
-            "network", "station", "component", name="unique_component_per_station"
-        ),
-    )
+    __table_args__ = (db.UniqueConstraint("network", "station", "component", name="unique_component_per_station"),)
     id = db.Column("id", db.Integer, primary_key=True)
     network = db.Column("network", db.UnicodeText)
     station = db.Column("station", db.UnicodeText)
@@ -83,13 +75,9 @@ class Component(db.Model):
         lazy="joined",
     )
 
-    start_date: datetime.datetime = db.Column(
-        "start_date", db.TIMESTAMP(timezone=True), nullable=False
-    )
+    start_date: datetime.datetime = db.Column("start_date", db.TIMESTAMP(timezone=True), nullable=False)
 
-    end_date: datetime.datetime = db.Column(
-        "end_date", db.TIMESTAMP(timezone=True), nullable=False
-    )
+    end_date: datetime.datetime = db.Column("end_date", db.TIMESTAMP(timezone=True), nullable=False)
 
     def __init__(self, **kwargs):
         super(Component, self).__init__(**kwargs)
@@ -103,16 +91,16 @@ class Component(db.Model):
             self.start_date: datetime.datetime = validate_timestamp_as_pydatetime(kwargs["start_date"])
             self.end_date: datetime.datetime = validate_timestamp_as_pydatetime(kwargs["end_date"])
         except KeyError as e:
-            raise KeyError(f"Both `start_date` and `end_date` needs to be provided to initialize Component. "
-                           f"{e} was not provided. Please add it.")
+            raise KeyError(
+                f"Both `start_date` and `end_date` needs to be provided to initialize Component. "
+                f"{e} was not provided. Please add it."
+            ) from e
 
         if not all((lat, lon)):
             if not all((x, y, zone)):
                 raise ValueError("You need to provide location either in UTM or latlon")
             else:
-                zone, northern = self.__validate_zone_hemisphere(
-                    zone=zone, northern=northern
-                )
+                zone, northern = self.__validate_zone_hemisphere(zone=zone, northern=northern)
                 self._set_latlon_from_xy(x, y, zone, northern)
         else:
             self._set_xy_from_latlon(lat, lon)
@@ -136,9 +124,7 @@ class Component(db.Model):
         return
 
     def _set_latlon_from_xy(self, x, y, zone, northern):
-        lat, lon = utm.to_latlon(
-            easting=x, northing=y, zone_number=zone, northern=northern
-        )
+        lat, lon = utm.to_latlon(easting=x, northing=y, zone_number=zone, northern=northern)
         self.lat = lat
         self.lon = lon
 
@@ -158,18 +144,14 @@ class Component(db.Model):
             raise MissingDataFileException(f"Inventory file for component {self} is missing")
 
     def get_location_as_attribdict(self):
-        return AttribDict(
-            {"latitude": self.lat, "longitude": self.lon, "elevation": self.elevation}
-        )
+        return AttribDict({"latitude": self.lat, "longitude": self.lon, "elevation": self.elevation})
 
     @staticmethod
     def __checkif_zone_letter_in_northern(zone_letter: str) -> bool:
         return zone_letter in ("X", "W", "V", "U", "T", "S", "R", "Q", "P", "N")
 
     @staticmethod
-    def __validate_zone_hemisphere(
-        zone: Optional[int], northern: Optional[bool]
-    ) -> Tuple[int, bool]:
+    def __validate_zone_hemisphere(zone: Optional[int], northern: Optional[bool]) -> Tuple[int, bool]:
         if zone is None:
             logger.warning("Zone is not set, using default 32.")
             zone = 32

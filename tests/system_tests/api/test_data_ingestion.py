@@ -3,6 +3,7 @@
 # Copyright © 2019-2023 Contributors to the Noiz project.
 
 import pytest
+
 pytestmark = [pytest.mark.system, pytest.mark.api]
 
 from pathlib import Path
@@ -40,19 +41,19 @@ class TestDataIngestionRoutines:
 
     @pytest.mark.xfail
     def test_fetch_componentpairs_cartesian(self, noiz_app):
-        kwargs = dict(
-            network_codes_a=None,
-            station_codes_a=None,
-            component_codes_a=None,
-            network_codes_b=None,
-            station_codes_b=None,
-            component_codes_b=None,
-            accepted_component_code_pairs=None,
-            include_autocorrelation=False,
-            include_intracorrelation=False,
-            only_autocorrelation=False,
-            only_intracorrelation=False,
-        )
+        kwargs = {
+            "network_codes_a": None,
+            "station_codes_a": None,
+            "component_codes_a": None,
+            "network_codes_b": None,
+            "station_codes_b": None,
+            "component_codes_b": None,
+            "accepted_component_code_pairs": None,
+            "include_autocorrelation": False,
+            "include_intracorrelation": False,
+            "only_autocorrelation": False,
+            "only_intracorrelation": False,
+        }
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
@@ -60,85 +61,85 @@ class TestDataIngestionRoutines:
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['include_autocorrelation'] = True
-            kwargs_mod['include_intracorrelation'] = True
+            kwargs_mod["include_autocorrelation"] = True
+            kwargs_mod["include_intracorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 54
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['only_autocorrelation'] = True
+            kwargs_mod["only_autocorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 9
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['only_intracorrelation'] = True
+            kwargs_mod["only_intracorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 18
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11", "TD05")
+            kwargs_mod["station_codes_a"] = ("TD11", "TD05")
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 9
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11", "TD05")
-            kwargs_mod['only_autocorrelation'] = True
+            kwargs_mod["station_codes_a"] = ("TD11", "TD05")
+            kwargs_mod["only_autocorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 6
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11",)
-            kwargs_mod['only_autocorrelation'] = True
+            kwargs_mod["station_codes_a"] = ("TD11",)
+            kwargs_mod["only_autocorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 3
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11",)
-            kwargs_mod['only_intracorrelation'] = True
+            kwargs_mod["station_codes_a"] = ("TD11",)
+            kwargs_mod["only_intracorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 6
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11", "TD05")
-            kwargs_mod['only_intracorrelation'] = True
+            kwargs_mod["station_codes_a"] = ("TD11", "TD05")
+            kwargs_mod["only_intracorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 12
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11",)
-            kwargs_mod['include_autocorrelation'] = True
+            kwargs_mod["station_codes_a"] = ("TD11",)
+            kwargs_mod["include_autocorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 3
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11",)
-            kwargs_mod['include_intracorrelation'] = True
+            kwargs_mod["station_codes_a"] = ("TD11",)
+            kwargs_mod["include_intracorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 6
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11",)
-            kwargs_mod['include_autocorrelation'] = True
-            kwargs_mod['include_intracorrelation'] = True
+            kwargs_mod["station_codes_a"] = ("TD11",)
+            kwargs_mod["include_autocorrelation"] = True
+            kwargs_mod["include_intracorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 9
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11", "TD05")
-            kwargs_mod['include_autocorrelation'] = True
+            kwargs_mod["station_codes_a"] = ("TD11", "TD05")
+            kwargs_mod["include_autocorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 15
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11", "TD05")
-            kwargs_mod['include_intracorrelation'] = True
+            kwargs_mod["station_codes_a"] = ("TD11", "TD05")
+            kwargs_mod["include_intracorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 21
 
         with noiz_app.app_context():
             kwargs_mod = kwargs.copy()
-            kwargs_mod['station_codes_a'] = ("TD11", "TD05")
-            kwargs_mod['include_autocorrelation'] = True
-            kwargs_mod['include_intracorrelation'] = True
+            kwargs_mod["station_codes_a"] = ("TD11", "TD05")
+            kwargs_mod["include_autocorrelation"] = True
+            kwargs_mod["include_intracorrelation"] = True
             assert len(fetch_componentpairs_cartesian(**kwargs_mod)) == 27
 
     @pytest.mark.xfail

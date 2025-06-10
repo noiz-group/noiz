@@ -24,7 +24,7 @@ def create_and_insert_timespans_to_db(
     window_overlap: Optional[Union[float, int]] = None,
     generate_over_midnight: bool = False,
     bulk_insert: bool = True,
-    add_to_db: bool = False
+    add_to_db: bool = False,
 ) -> Optional[Generator[Timespan, Any, Any]]:
     """
     Creates instances of :class:`noiz.models.timespan.Timespan` according to passed specifications.
@@ -94,27 +94,19 @@ def insert_timespans_into_db(timespans: Iterable[Timespan], bulk_insert: bool) -
             .values(starttime=ts.starttime, midtime=ts.midtime, endtime=ts.endtime)
             .on_conflict_do_update(
                 constraint="unique_starttime",
-                set_=dict(
-                    starttime=ts.starttime, midtime=ts.midtime, endtime=ts.endtime
-                ),
+                set_={"starttime": ts.starttime, "midtime": ts.midtime, "endtime": ts.endtime},
             )
             .on_conflict_do_update(
                 constraint="unique_midtime",
-                set_=dict(
-                    starttime=ts.starttime, midtime=ts.midtime, endtime=ts.endtime
-                ),
+                set_={"starttime": ts.starttime, "midtime": ts.midtime, "endtime": ts.endtime},
             )
             .on_conflict_do_update(
                 constraint="unique_endtime",
-                set_=dict(
-                    starttime=ts.starttime, midtime=ts.midtime, endtime=ts.endtime
-                ),
+                set_={"starttime": ts.starttime, "midtime": ts.midtime, "endtime": ts.endtime},
             )
             .on_conflict_do_update(
                 constraint="unique_times",
-                set_=dict(
-                    starttime=ts.starttime, midtime=ts.midtime, endtime=ts.endtime
-                ),
+                set_={"starttime": ts.starttime, "midtime": ts.midtime, "endtime": ts.endtime},
             )
         )
         db.session.execute(insert_command)
@@ -136,15 +128,13 @@ def fetch_timespans_for_doy(year: int, doy: int) -> List[Timespan]:
     :return: List of all timespans on given day
     :rtype: List[Timespan]
     """
-    timespans = Timespan.query.filter(
-        Timespan.midtime_year == year, Timespan.midtime_doy == doy
-    ).all()
+    timespans = Timespan.query.filter(Timespan.midtime_year == year, Timespan.midtime_doy == doy).all()
     return timespans
 
 
 def fetch_timespans_between_dates(
-        starttime: Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str],
-        endtime: Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str],
+    starttime: Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str],
+    endtime: Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str],
 ) -> List[Timespan]:
     """
     Fetches all timespans between two times.
@@ -167,23 +157,22 @@ def fetch_timespans_between_dates(
     timespans = Timespan.query.filter(
         Timespan.starttime >= py_starttime,
         Timespan.endtime <= py_endtime,
-        ).all()
+    ).all()
     return timespans
 
 
 def fetch_timespans(
-        starttime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
-        endtime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
-        accepted_timespan_ids: Optional[Collection[int]] = None,
-        rejected_timespan_ids: Optional[Collection[int]] = None,
-        accepted_midtime_iso_dayofweek: Optional[Collection[int]] = None,
-        rejected_midtime_iso_dayofweek: Optional[Collection[int]] = None,
-        accepted_midtime_hours: Optional[Collection[int]] = None,
-        rejected_midtime_hours: Optional[Collection[int]] = None,
-        order_by_id: bool = True,
-        query_just_id: bool = False
+    starttime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
+    endtime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
+    accepted_timespan_ids: Optional[Collection[int]] = None,
+    rejected_timespan_ids: Optional[Collection[int]] = None,
+    accepted_midtime_iso_dayofweek: Optional[Collection[int]] = None,
+    rejected_midtime_iso_dayofweek: Optional[Collection[int]] = None,
+    accepted_midtime_hours: Optional[Collection[int]] = None,
+    rejected_midtime_hours: Optional[Collection[int]] = None,
+    order_by_id: bool = True,
+    query_just_id: bool = False,
 ) -> List[Timespan]:
-
     return _query_timespans(
         starttime=starttime,
         endtime=endtime,
@@ -199,17 +188,16 @@ def fetch_timespans(
 
 
 def count_timespans(
-        starttime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
-        endtime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
-        accepted_timespan_ids: Optional[Collection[int]] = None,
-        rejected_timespan_ids: Optional[Collection[int]] = None,
-        accepted_midtime_iso_dayofweek: Optional[Collection[int]] = None,
-        rejected_midtime_iso_dayofweek: Optional[Collection[int]] = None,
-        accepted_midtime_hours: Optional[Collection[int]] = None,
-        rejected_midtime_hours: Optional[Collection[int]] = None,
-        order_by_id: bool = True,
+    starttime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
+    endtime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
+    accepted_timespan_ids: Optional[Collection[int]] = None,
+    rejected_timespan_ids: Optional[Collection[int]] = None,
+    accepted_midtime_iso_dayofweek: Optional[Collection[int]] = None,
+    rejected_midtime_iso_dayofweek: Optional[Collection[int]] = None,
+    accepted_midtime_hours: Optional[Collection[int]] = None,
+    rejected_midtime_hours: Optional[Collection[int]] = None,
+    order_by_id: bool = True,
 ) -> int:
-
     return _query_timespans(
         starttime=starttime,
         endtime=endtime,
@@ -225,16 +213,16 @@ def count_timespans(
 
 
 def _query_timespans(
-        starttime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
-        endtime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
-        accepted_timespan_ids: Optional[Collection[int]] = None,
-        rejected_timespan_ids: Optional[Collection[int]] = None,
-        accepted_midtime_iso_dayofweek: Optional[Collection[int]] = None,
-        rejected_midtime_iso_dayofweek: Optional[Collection[int]] = None,
-        accepted_midtime_hours: Optional[Collection[int]] = None,
-        rejected_midtime_hours: Optional[Collection[int]] = None,
-        order_by_id: bool = True,
-        query_just_id: bool = False
+    starttime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
+    endtime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
+    accepted_timespan_ids: Optional[Collection[int]] = None,
+    rejected_timespan_ids: Optional[Collection[int]] = None,
+    accepted_midtime_iso_dayofweek: Optional[Collection[int]] = None,
+    rejected_midtime_iso_dayofweek: Optional[Collection[int]] = None,
+    accepted_midtime_hours: Optional[Collection[int]] = None,
+    rejected_midtime_hours: Optional[Collection[int]] = None,
+    order_by_id: bool = True,
+    query_just_id: bool = False,
 ) -> Query:
     filters = _determine_filters_and_opts_for_timespan(
         starttime=starttime,
@@ -258,14 +246,14 @@ def _query_timespans(
 
 
 def _determine_filters_and_opts_for_timespan(
-        starttime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
-        endtime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
-        accepted_timespan_ids: Optional[Collection[int]] = None,
-        rejected_timespan_ids: Optional[Collection[int]] = None,
-        accepted_midtime_iso_dayofweek: Optional[Collection[int]] = None,
-        rejected_midtime_iso_dayofweek: Optional[Collection[int]] = None,
-        accepted_midtime_hours: Optional[Collection[int]] = None,
-        rejected_midtime_hours: Optional[Collection[int]] = None,
+    starttime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
+    endtime: Optional[Union[pd.Timestamp, datetime.datetime, np.datetime64, UTCDateTime, str]] = None,
+    accepted_timespan_ids: Optional[Collection[int]] = None,
+    rejected_timespan_ids: Optional[Collection[int]] = None,
+    accepted_midtime_iso_dayofweek: Optional[Collection[int]] = None,
+    rejected_midtime_iso_dayofweek: Optional[Collection[int]] = None,
+    accepted_midtime_hours: Optional[Collection[int]] = None,
+    rejected_midtime_hours: Optional[Collection[int]] = None,
 ) -> Union[List[BinaryExpression], List[bool]]:
     filters = []
     if starttime is not None:
@@ -279,11 +267,17 @@ def _determine_filters_and_opts_for_timespan(
     if rejected_timespan_ids is not None:
         filters.append(~Timespan.id.in_(validate_to_tuple(rejected_timespan_ids, int)))  # type: ignore
     if accepted_midtime_iso_dayofweek is not None:
-        filters.append(Timespan.midtime_isoweekday.in_(  # type: ignore
-            validate_to_tuple(accepted_midtime_iso_dayofweek, int)))  # type: ignore
+        filters.append(
+            Timespan.midtime_isoweekday.in_(  # type: ignore
+                validate_to_tuple(accepted_midtime_iso_dayofweek, int)
+            )
+        )  # type: ignore
     if rejected_midtime_iso_dayofweek is not None:
-        filters.append(~Timespan.midtime_isoweekday.in_(  # type: ignore
-            validate_to_tuple(rejected_midtime_iso_dayofweek, int)))  # type: ignore
+        filters.append(
+            ~Timespan.midtime_isoweekday.in_(  # type: ignore
+                validate_to_tuple(rejected_midtime_iso_dayofweek, int)
+            )
+        )  # type: ignore
     if accepted_midtime_hours is not None:
         filters.append(Timespan.midtime_hour.in_(validate_to_tuple(accepted_midtime_hours, int)))  # type: ignore
     if rejected_midtime_hours is not None:

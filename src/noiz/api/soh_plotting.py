@@ -25,16 +25,16 @@ munits.registry[datetime] = converter
 
 
 def plot_raw_gps_data_availability(
-        networks: Optional[Collection[str]] = None,
-        stations: Optional[Collection[str]] = None,
-        starttime: datetime = datetime(2000, 1, 1),
-        endtime: datetime = datetime(2030, 1, 1),
-        filepath: Optional[Path] = None,
-        showfig: bool = False,
-        show_legend: bool = True,
-        keep_empty: bool = True,
-        minticks: int = 5,
-        maxticks: int = 8,
+    networks: Optional[Collection[str]] = None,
+    stations: Optional[Collection[str]] = None,
+    starttime: datetime = datetime(2000, 1, 1),
+    endtime: datetime = datetime(2030, 1, 1),
+    filepath: Optional[Path] = None,
+    showfig: bool = False,
+    show_legend: bool = True,
+    keep_empty: bool = True,
+    minticks: int = 5,
+    maxticks: int = 8,
 ) -> matplotlib.pyplot.Figure:
     """
     Method that allows for selection and plotting of raw GPS SOH data that are stored in the DB for given set of
@@ -66,16 +66,16 @@ def plot_raw_gps_data_availability(
 
     fetched_components = fetch_components(networks=networks, stations=stations)
 
-    z_components = [cmp for cmp in fetched_components if cmp.component == 'Z']
+    z_components = [cmp for cmp in fetched_components if cmp.component == "Z"]
 
     df = fetch_raw_soh_gps_df(components=fetched_components, starttime=starttime, endtime=endtime)
 
     fig_title = "Raw GPS SOH data"
 
-    df.index = df['datetime']
+    df.index = df["datetime"]
 
     if not keep_empty:
-        present_component_ids = df['z_component_id'].unique()
+        present_component_ids = df["z_component_id"].unique()
         z_components = [cmp for cmp in z_components if cmp.id in present_component_ids]
 
     fig = __plot_gps_data_soh(
@@ -90,7 +90,7 @@ def plot_raw_gps_data_availability(
     )
 
     if filepath is not None:
-        fig.savefig(filepath, bbox_inches='tight')
+        fig.savefig(filepath, bbox_inches="tight")
 
     if showfig is True:
         fig.show()
@@ -99,16 +99,16 @@ def plot_raw_gps_data_availability(
 
 
 def plot_averaged_gps_data_availability(
-        networks: Optional[Collection[str]] = None,
-        stations: Optional[Collection[str]] = None,
-        starttime: datetime = datetime(2000, 1, 1),
-        endtime: datetime = datetime(2030, 1, 1),
-        filepath: Optional[Path] = None,
-        showfig: bool = False,
-        show_legend: bool = True,
-        keep_empty: bool = True,
-        minticks: int = 5,
-        maxticks: int = 8,
+    networks: Optional[Collection[str]] = None,
+    stations: Optional[Collection[str]] = None,
+    starttime: datetime = datetime(2000, 1, 1),
+    endtime: datetime = datetime(2030, 1, 1),
+    filepath: Optional[Path] = None,
+    showfig: bool = False,
+    show_legend: bool = True,
+    keep_empty: bool = True,
+    minticks: int = 5,
+    maxticks: int = 8,
 ) -> matplotlib.pyplot.Figure:
     """
     Method that allows for selection and plotting of raw GPS SOH data that are stored in the DB for given set of
@@ -141,15 +141,15 @@ def plot_averaged_gps_data_availability(
     fetched_components = fetch_components(networks=networks, stations=stations)
     fetched_timespans = fetch_timespans_between_dates(starttime=starttime, endtime=endtime)
 
-    z_components = [cmp for cmp in fetched_components if cmp.component == 'Z']
+    z_components = [cmp for cmp in fetched_components if cmp.component == "Z"]
 
     df = fetch_averaged_soh_gps_df(components=fetched_components, timespans=fetched_timespans)
 
     fig_title = "Averaged GPS SOH data"
 
-    df.index = df['midtime']
+    df.index = df["midtime"]
     if not keep_empty:
-        present_component_ids = df['z_component_id'].unique()
+        present_component_ids = df["z_component_id"].unique()
         z_components = [cmp for cmp in z_components if cmp.id in present_component_ids]
 
     fig = __plot_gps_data_soh(
@@ -164,7 +164,7 @@ def plot_averaged_gps_data_availability(
     )
 
     if filepath is not None:
-        fig.savefig(filepath, bbox_inches='tight')
+        fig.savefig(filepath, bbox_inches="tight")
 
     if showfig is True:
         fig.show()
@@ -173,14 +173,14 @@ def plot_averaged_gps_data_availability(
 
 
 def __plot_gps_data_soh(
-        df: pd.DataFrame,
-        z_components: Collection[Component],
-        starttime: datetime,
-        endtime: datetime,
-        fig_title: str,
-        show_legend: bool = True,
-        minticks: int = 5,
-        maxticks: int = 8,
+    df: pd.DataFrame,
+    z_components: Collection[Component],
+    starttime: datetime,
+    endtime: datetime,
+    fig_title: str,
+    show_legend: bool = True,
+    minticks: int = 5,
+    maxticks: int = 8,
 ) -> matplotlib.pyplot.Figure:
     """
      Plots content provided pd.DataFrame on a plot with n subplots where n = len(z_components)
@@ -219,15 +219,14 @@ def __plot_gps_data_soh(
     axes[0].xaxis.set_major_formatter(formatter)
 
     for ax, cmp in zip(axes, z_components):
-        subdf = df.loc[df.loc[:, 'z_component_id'] == cmp.id, :].sort_index()
-        ax.plot(subdf.index, subdf.loc[:, ['time_uncertainty']], label='Uncertainty [ms]')
-        ax.plot(subdf.index, subdf.loc[:, ['time_error']], label='Error [ms]')
+        subdf = df.loc[df.loc[:, "z_component_id"] == cmp.id, :].sort_index()
+        ax.plot(subdf.index, subdf.loc[:, ["time_uncertainty"]], label="Uncertainty [ms]")
+        ax.plot(subdf.index, subdf.loc[:, ["time_error"]], label="Error [ms]")
         ax.set_ylabel(str(cmp), rotation=0, labelpad=30)
         ax.yaxis.set_label_position("right")
 
     axes[0].set_title(fig_title)
-    axes[0].set_xlim(starttime - timedelta(days=1),
-                     endtime + timedelta(days=1))
+    axes[0].set_xlim(starttime - timedelta(days=1), endtime + timedelta(days=1))
 
     days = (starttime - endtime).days
 
@@ -235,11 +234,11 @@ def __plot_gps_data_soh(
     height = max(4, height)
     fig.set_figheight(height)
 
-    width = max(6, days / 30.)
+    width = max(6, days / 30.0)
     width = min(width, height * 4)
     fig.set_figwidth(width)
 
     if show_legend:
-        axes[-1].legend(loc='upper center', ncol=2, bbox_to_anchor=(0.5, -0.15), fancybox=True)
+        axes[-1].legend(loc="upper center", ncol=2, bbox_to_anchor=(0.5, -0.15), fancybox=True)
 
     return fig

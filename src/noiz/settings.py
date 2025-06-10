@@ -21,17 +21,16 @@ POSTGRES_PASSWORD = env.str("POSTGRES_PASSWORD", default="")
 POSTGRES_DB = env.str("POSTGRES_DB", default="")
 SQLALCHEMY_DATABASE_URI = env.str("DATABASE_URL", default="")
 
-postgres_params_empty = all((x in ("", None) for x in (POSTGRES_DB,
-                                                       POSTGRES_HOST,
-                                                       POSTGRES_PORT,
-                                                       POSTGRES_USER,
-                                                       POSTGRES_PASSWORD)))
+postgres_params_empty = all(
+    (x in ("", None) for x in (POSTGRES_DB, POSTGRES_HOST, POSTGRES_PORT, POSTGRES_USER, POSTGRES_PASSWORD))
+)
 
 db_uri_empty = SQLALCHEMY_DATABASE_URI in ("", None)
 
 if not postgres_params_empty and db_uri_empty:
-    SQLALCHEMY_DATABASE_URI = f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@" \
-                              f"{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+    SQLALCHEMY_DATABASE_URI = (
+        f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+    )
 
 if postgres_params_empty and db_uri_empty:
     raise ConnectionError("You have to specify either all POSTGRES_ connection variables or a SQLALCHEMY_DATABASE_URI")

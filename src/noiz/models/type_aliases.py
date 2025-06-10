@@ -5,16 +5,53 @@
 from sqlalchemy.sql import Insert
 from typing import Union, TypedDict, Collection, Callable, Optional, List, Tuple, Dict, FrozenSet
 
-from noiz.models import CCFStack, DatachunkStats, ProcessedDatachunk, QCOneResults, QCTwoResults, \
-    Datachunk, DatachunkFile, QCOneConfig, AveragedSohGps, ComponentPairCartesian, StackingSchema, StackingTimespan, Component, \
-    Timespan, Tsindex, DatachunkParams, ProcessedDatachunkParams, CrosscorrelationCartesianParams, ProcessedDatachunkFile, \
-    BeamformingFile, BeamformingResult, PPSDParams, CrosscorrelationCartesian, CrosscorrelationCartesianFile, PPSDFile, PPSDResult, \
-    BeamformingParams, EventDetectionParams, EventDetectionResult, EventDetectionFile, EventConfirmationParams, EventConfirmationResult, \
-    EventConfirmationFile, EventConfirmationRun, ComponentPairCylindrical, \
-    CrosscorrelationCylindrical, CrosscorrelationCylindricalFile, \
-    CrosscorrelationCylindricalParams, CrosscorrelationCylindricalParamsHolder
-from noiz.models.beamforming import BeamformingPeakAverageAbspower, BeamformingPeakAverageRelpower, \
-    BeamformingPeakAllAbspower, BeamformingPeakAllRelpower
+from noiz.models import (
+    CCFStack,
+    DatachunkStats,
+    ProcessedDatachunk,
+    QCOneResults,
+    QCTwoResults,
+    Datachunk,
+    DatachunkFile,
+    QCOneConfig,
+    AveragedSohGps,
+    ComponentPairCartesian,
+    StackingSchema,
+    StackingTimespan,
+    Component,
+    Timespan,
+    Tsindex,
+    DatachunkParams,
+    ProcessedDatachunkParams,
+    CrosscorrelationCartesianParams,
+    ProcessedDatachunkFile,
+    BeamformingFile,
+    BeamformingResult,
+    PPSDParams,
+    CrosscorrelationCartesian,
+    CrosscorrelationCartesianFile,
+    PPSDFile,
+    PPSDResult,
+    BeamformingParams,
+    EventDetectionParams,
+    EventDetectionResult,
+    EventDetectionFile,
+    EventConfirmationParams,
+    EventConfirmationResult,
+    EventConfirmationFile,
+    EventConfirmationRun,
+    ComponentPairCylindrical,
+    CrosscorrelationCylindrical,
+    CrosscorrelationCylindricalFile,
+    CrosscorrelationCylindricalParams,
+    CrosscorrelationCylindricalParamsHolder,
+)
+from noiz.models.beamforming import (
+    BeamformingPeakAverageAbspower,
+    BeamformingPeakAverageRelpower,
+    BeamformingPeakAllAbspower,
+    BeamformingPeakAllRelpower,
+)
 
 BulkAddableObjects = Union[
     Datachunk,
@@ -33,8 +70,8 @@ BulkAddableObjects = Union[
     ProcessedDatachunkFile,
     EventDetectionResult,
     EventConfirmationResult,
-    EventConfirmationRun
-    ]
+    EventConfirmationRun,
+]
 
 BulkAddableFileObjects = Union[
     DatachunkFile,
@@ -56,6 +93,7 @@ class CalculateDatachunkStatsInputs(TypedDict):
     """
     TypedDict class that describes inputs required for :py:func:`noiz.processing.datachunk.calculate_datachunk_stats`
     """
+
     datachunk: Datachunk
     datachunk_file: Optional[DatachunkFile]
 
@@ -64,6 +102,7 @@ class ProcessDatachunksInputs(TypedDict):
     """
     TypedDict class that describes inputs required for :py:func:`noiz.processing.datachunk.calculate_datachunk_stats`
     """
+
     datachunk: Datachunk
     datachunk_file: Optional[DatachunkFile]
     params: ProcessedDatachunkParams

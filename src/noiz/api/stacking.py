@@ -17,33 +17,43 @@ from typing import Collection, Union, List, Optional, Tuple, Generator
 from noiz.api.component_pair import fetch_componentpairs_cartesian
 from noiz.api.qc import fetch_qctwo_config_single, count_qctwo_results
 from noiz.database import db
-from noiz.models import CrosscorrelationCartesian, StackingTimespan, Timespan, CCFStack, \
-    QCTwoResults, ComponentPairCartesian, StackingSchema
+from noiz.models import (
+    CrosscorrelationCartesian,
+    StackingTimespan,
+    Timespan,
+    CCFStack,
+    QCTwoResults,
+    ComponentPairCartesian,
+    StackingSchema,
+)
 from noiz.api.processing_config import fetch_stacking_schema_by_id
 from noiz.processing.stacking import _generate_stacking_timespans, do_linear_stack_of_crosscorrelations_cartesian
 
 
 def fetch_stacking_timespans(
-        stacking_schema_id: int,
-        starttime: Optional[Union[datetime.date, datetime.datetime, UTCDateTime]] = None,
-        endtime: Optional[Union[datetime.date, datetime.datetime, UTCDateTime]] = None,
+    stacking_schema_id: int,
+    starttime: Optional[Union[datetime.date, datetime.datetime, UTCDateTime]] = None,
+    endtime: Optional[Union[datetime.date, datetime.datetime, UTCDateTime]] = None,
 ) -> List[StackingTimespan]:
-
     if starttime is not None:
         if isinstance(starttime, UTCDateTime):
             starttime = starttime.datetime
         elif not isinstance(starttime, (datetime.date, datetime.datetime)):
-            raise ValueError(f"And starttime was expecting either "
-                             f"datetime.date, datetime.datetime or UTCDateTime objects."
-                             f"Got instance of {type(starttime)}")
+            raise ValueError(
+                f"And starttime was expecting either "
+                f"datetime.date, datetime.datetime or UTCDateTime objects."
+                f"Got instance of {type(starttime)}"
+            )
 
     if endtime is not None:
         if isinstance(endtime, UTCDateTime):
             endtime = endtime.datetime
         elif not isinstance(endtime, (datetime.date, datetime.datetime)):
-            raise ValueError(f"And endtime was expecting either "
-                             f"datetime.date, datetime.datetime or UTCDateTime objects."
-                             f"Got instance of {type(endtime)}")
+            raise ValueError(
+                f"And endtime was expecting either "
+                f"datetime.date, datetime.datetime or UTCDateTime objects."
+                f"Got instance of {type(endtime)}"
+            )
 
     filters = []
 
@@ -57,8 +67,8 @@ def fetch_stacking_timespans(
 
 
 def create_stacking_timespans_add_to_db(
-        stacking_schema_id: int,
-        bulk_insert: bool = True,
+    stacking_schema_id: int,
+    bulk_insert: bool = True,
 ) -> None:
     """
     Fetches a :py:class:`~noiz.models.stacking.StackingSchema` with provided
@@ -89,8 +99,8 @@ def create_stacking_timespans_add_to_db(
 
 
 def _insert_upsert_stacking_timespans_into_db(
-        timespans: Collection[StackingTimespan],
-        bulk_insert: bool = True,
+    timespans: Collection[StackingTimespan],
+    bulk_insert: bool = True,
 ) -> None:
     """
     Inserts a collection of  :py:class:`~noiz.models.stacking.StackingSchema` objects to database.
@@ -111,12 +121,12 @@ def _insert_upsert_stacking_timespans_into_db(
     else:
         con = db.session.connection()
         for ts in timespans:
-            update_dict = dict(
-                starttime=ts.starttime,
-                midtime=ts.midtime,
-                endtime=ts.endtime,
-                stacking_schema_id=ts.stacking_schema_id,
-            )
+            update_dict = {
+                "starttime": ts.starttime,
+                "midtime": ts.midtime,
+                "endtime": ts.endtime,
+                "stacking_schema_id": ts.stacking_schema_id,
+            }
             insert_command = (
                 insert(StackingTimespan)
                 .values(
@@ -125,40 +135,32 @@ def _insert_upsert_stacking_timespans_into_db(
                     endtime=ts.endtime,
                     stacking_schema_id=ts.stacking_schema_id,
                 )
-                .on_conflict_do_update(
-                    constraint="unique_stack_starttime", set_=update_dict
-                )
-                .on_conflict_do_update(
-                    constraint="unique_stack_midtime", set_=update_dict
-                )
-                .on_conflict_do_update(
-                    constraint="unique_stack_endtime", set_=update_dict
-                )
-                .on_conflict_do_update(
-                    constraint="unique_stack_times", set_=update_dict
-                )
+                .on_conflict_do_update(constraint="unique_stack_starttime", set_=update_dict)
+                .on_conflict_do_update(constraint="unique_stack_midtime", set_=update_dict)
+                .on_conflict_do_update(constraint="unique_stack_endtime", set_=update_dict)
+                .on_conflict_do_update(constraint="unique_stack_times", set_=update_dict)
             )
             con.execute(insert_command)
 
 
 def stack_crosscorrelation_cartesian(
-        stacking_schema_id: int,
-        starttime: Optional[Union[datetime.date, datetime.datetime]] = None,
-        endtime: Optional[Union[datetime.date, datetime.datetime]] = None,
-        network_codes_a: Optional[Union[Collection[str], str]] = None,
-        station_codes_a: Optional[Union[Collection[str], str]] = None,
-        component_codes_a: Optional[Union[Collection[str], str]] = None,
-        network_codes_b: Optional[Union[Collection[str], str]] = None,
-        station_codes_b: Optional[Union[Collection[str], str]] = None,
-        component_codes_b: Optional[Union[Collection[str], str]] = None,
-        accepted_component_code_pairs: Optional[Union[Collection[str], str]] = None,
-        include_autocorrelation: Optional[bool] = False,
-        include_intracorrelation: Optional[bool] = False,
-        only_autocorrelation: Optional[bool] = False,
-        only_intracorrelation: Optional[bool] = False,
-        raise_errors: bool = False,
-        batch_size: int = 5000,
-        parallel: bool = True,
+    stacking_schema_id: int,
+    starttime: Optional[Union[datetime.date, datetime.datetime]] = None,
+    endtime: Optional[Union[datetime.date, datetime.datetime]] = None,
+    network_codes_a: Optional[Union[Collection[str], str]] = None,
+    station_codes_a: Optional[Union[Collection[str], str]] = None,
+    component_codes_a: Optional[Union[Collection[str], str]] = None,
+    network_codes_b: Optional[Union[Collection[str], str]] = None,
+    station_codes_b: Optional[Union[Collection[str], str]] = None,
+    component_codes_b: Optional[Union[Collection[str], str]] = None,
+    accepted_component_code_pairs: Optional[Union[Collection[str], str]] = None,
+    include_autocorrelation: Optional[bool] = False,
+    include_intracorrelation: Optional[bool] = False,
+    only_autocorrelation: Optional[bool] = False,
+    only_intracorrelation: Optional[bool] = False,
+    raise_errors: bool = False,
+    batch_size: int = 5000,
+    parallel: bool = True,
 ) -> None:
     calculation_inputs = _prepare_inputs_for_stacking_ccfs(
         stacking_schema_id=stacking_schema_id,
@@ -198,22 +200,21 @@ def stack_crosscorrelation_cartesian(
 
 
 def _prepare_inputs_for_stacking_ccfs(
-        stacking_schema_id: int,
-        starttime: Optional[Union[datetime.date, datetime.datetime]] = None,
-        endtime: Optional[Union[datetime.date, datetime.datetime]] = None,
-        network_codes_a: Optional[Union[Collection[str], str]] = None,
-        station_codes_a: Optional[Union[Collection[str], str]] = None,
-        component_codes_a: Optional[Union[Collection[str], str]] = None,
-        network_codes_b: Optional[Union[Collection[str], str]] = None,
-        station_codes_b: Optional[Union[Collection[str], str]] = None,
-        component_codes_b: Optional[Union[Collection[str], str]] = None,
-        accepted_component_code_pairs: Optional[Union[Collection[str], str]] = None,
-        include_autocorrelation: Optional[bool] = False,
-        include_intracorrelation: Optional[bool] = False,
-        only_autocorrelation: Optional[bool] = False,
-        only_intracorrelation: Optional[bool] = False,
+    stacking_schema_id: int,
+    starttime: Optional[Union[datetime.date, datetime.datetime]] = None,
+    endtime: Optional[Union[datetime.date, datetime.datetime]] = None,
+    network_codes_a: Optional[Union[Collection[str], str]] = None,
+    station_codes_a: Optional[Union[Collection[str], str]] = None,
+    component_codes_a: Optional[Union[Collection[str], str]] = None,
+    network_codes_b: Optional[Union[Collection[str], str]] = None,
+    station_codes_b: Optional[Union[Collection[str], str]] = None,
+    component_codes_b: Optional[Union[Collection[str], str]] = None,
+    accepted_component_code_pairs: Optional[Union[Collection[str], str]] = None,
+    include_autocorrelation: Optional[bool] = False,
+    include_intracorrelation: Optional[bool] = False,
+    only_autocorrelation: Optional[bool] = False,
+    only_intracorrelation: Optional[bool] = False,
 ) -> Generator[StackingInputs, None, None]:
-
     stacking_schema = fetch_stacking_schema_by_id(id=stacking_schema_id)
     stacking_timespans = fetch_stacking_timespans(
         stacking_schema_id=stacking_schema.id,
@@ -239,14 +240,17 @@ def _prepare_inputs_for_stacking_ccfs(
     logger.info(f"There are {len(componentpairs_cartesian)} componentpairs_cartesian to stack for")
 
     if count_qctwo_results(qctwo_config=qctwo_config) == 0:
-        raise MissingProcessingStepError("There are no QCTwo results for that QCTwoConfig. Are you sure you ran QCTwo "
-                                         "before?")
+        raise MissingProcessingStepError(
+            "There are no QCTwo results for that QCTwoConfig. Are you sure you ran QCTwo before?"
+        )
 
     for stacking_timespan, componentpair_cartesian in itertools.product(stacking_timespans, componentpairs_cartesian):
         fetched_qc_ccfs = (
             db.session.query(QCTwoResults, CrosscorrelationCartesian)
             .filter(QCTwoResults.qctwo_config_id == qctwo_config.id)
-            .join(CrosscorrelationCartesian, QCTwoResults.crosscorrelation_cartesian_id == CrosscorrelationCartesian.id)
+            .join(
+                CrosscorrelationCartesian, QCTwoResults.crosscorrelation_cartesian_id == CrosscorrelationCartesian.id
+            )
             .join(Timespan, CrosscorrelationCartesian.timespan_id == Timespan.id)
             .filter(
                 CrosscorrelationCartesian.componentpair_id == componentpair_cartesian.id,
@@ -264,12 +268,12 @@ def _prepare_inputs_for_stacking_ccfs(
             qctwo_ccfs_container=fetched_qc_ccfs,
             componentpair_cartesian=componentpair_cartesian,
             stacking_schema=stacking_schema,
-            stacking_timespan=stacking_timespan
+            stacking_timespan=stacking_timespan,
         )
 
 
 def _validate_and_stack_ccfs_wrapper(
-        inputs: StackingInputs,
+    inputs: StackingInputs,
 ) -> Tuple[Optional[CCFStack], ...]:
     return (
         _validate_and_stack_ccfs(
@@ -282,10 +286,10 @@ def _validate_and_stack_ccfs_wrapper(
 
 
 def _validate_and_stack_ccfs(
-        qctwo_ccfs_container: List[Tuple[QCTwoResults, CrosscorrelationCartesian]],
-        componentpair_cartesian: ComponentPairCartesian,
-        stacking_schema: StackingSchema,
-        stacking_timespan: StackingTimespan,
+    qctwo_ccfs_container: List[Tuple[QCTwoResults, CrosscorrelationCartesian]],
+    componentpair_cartesian: ComponentPairCartesian,
+    stacking_schema: StackingSchema,
+    stacking_timespan: StackingTimespan,
 ) -> Optional[CCFStack]:
     """
     Takes container of tuples with QCTwoResults and CrosscorrelationCartesian (the same crosscorrelation_cartesian_id),
@@ -335,7 +339,7 @@ def _validate_and_stack_ccfs(
 
 
 def _validate_crosscorrelations_cartesian_with_qctwo(
-        qctwo_ccfs_container: Collection[Tuple[QCTwoResults, CrosscorrelationCartesian]]
+    qctwo_ccfs_container: Collection[Tuple[QCTwoResults, CrosscorrelationCartesian]],
 ) -> Tuple[CrosscorrelationCartesian, ...]:
     """
     Checks if which CrosscorrelationCartesians are passing QCTwo.
@@ -357,9 +361,7 @@ def _validate_crosscorrelations_cartesian_with_qctwo(
     return tuple(valid_ccfs)
 
 
-def _generate_ccfstack_upsert_command(
-        stack: CCFStack
-) -> Insert:
+def _generate_ccfstack_upsert_command(stack: CCFStack) -> Insert:
     """
     Generates Upsert commands for provided CCFStacks
 
@@ -380,10 +382,10 @@ def _generate_ccfstack_upsert_command(
         )
         .on_conflict_do_update(
             constraint="unique_stack_per_pair_per_config",
-            set_=dict(
-                stack=stack.stack,
-                no_ccfs=stack.no_ccfs,
-            ),
+            set_={
+                "stack": stack.stack,
+                "no_ccfs": stack.no_ccfs,
+            },
         )
     )
     return insert_command

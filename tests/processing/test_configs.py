@@ -29,15 +29,15 @@ def test_parse_single_config_toml_datachunkparams_datachunk_params_type_defined_
         },
     }
 
-    test_file = tmp_path.joinpath('test_file.toml')
-    with open(test_file, 'w') as f:
+    test_file = tmp_path.joinpath("test_file.toml")
+    with open(test_file, "w") as f:
         toml.dump(o=params, f=f)
 
     parsed_config = parse_single_config_toml(filepath=test_file)
 
     assert isinstance(parsed_config, DatachunkParamsHolder)
-    for key in params['DatachunkParams'].keys():
-        assert params['DatachunkParams'][key] == parsed_config.__getattribute__(key)
+    for key in params["DatachunkParams"].keys():
+        assert params["DatachunkParams"][key] == parsed_config.__getattribute__(key)
 
 
 def test_parse_single_config_toml_datachunkparams_datachunk_params_provided(tmp_path):
@@ -58,8 +58,8 @@ def test_parse_single_config_toml_datachunkparams_datachunk_params_provided(tmp_
         "padding_taper_max_percentage": 0.0,
     }
 
-    test_file = tmp_path.joinpath('test_file.toml')
-    with open(test_file, 'w') as f:
+    test_file = tmp_path.joinpath("test_file.toml")
+    with open(test_file, "w") as f:
         toml.dump(o=params, f=f)
 
     parsed_config = parse_single_config_toml(filepath=test_file, config_type="DatachunkParams")
@@ -89,15 +89,15 @@ def test_parse_single_config_toml_datachunkparams_datachunk_params_both(tmp_path
         },
     }
 
-    test_file = tmp_path.joinpath('test_file.toml')
-    with open(test_file, 'w') as f:
+    test_file = tmp_path.joinpath("test_file.toml")
+    with open(test_file, "w") as f:
         toml.dump(o=params, f=f)
 
     parsed_config = parse_single_config_toml(filepath=test_file, config_type="DatachunkParams")
 
     assert isinstance(parsed_config, DatachunkParamsHolder)
-    for key in params['DatachunkParams'].keys():
-        assert params['DatachunkParams'][key] == parsed_config.__getattribute__(key)
+    for key in params["DatachunkParams"].keys():
+        assert params["DatachunkParams"][key] == parsed_config.__getattribute__(key)
 
 
 @pytest.mark.xfail
@@ -120,8 +120,8 @@ def test_parse_single_config_toml_raise_on_no_type_provided(tmp_path):
         "value1": 24,
         "value2": 24,
     }
-    test_file = tmp_path.joinpath('test_file.toml')
-    with open(test_file, 'w') as f:
+    test_file = tmp_path.joinpath("test_file.toml")
+    with open(test_file, "w") as f:
         toml.dump(o=params, f=f)
 
     with pytest.raises(ValueError):
@@ -133,8 +133,8 @@ def test_parse_single_config_toml_raise_on_wrong_type_provided(tmp_path):
         "value1": 24,
         "value2": 24,
     }
-    test_file = tmp_path.joinpath('test_file.toml')
-    with open(test_file, 'w') as f:
+    test_file = tmp_path.joinpath("test_file.toml")
+    with open(test_file, "w") as f:
         toml.dump(o=params, f=f)
 
     with pytest.raises(ValueError):
@@ -148,8 +148,8 @@ def test_parse_single_config_toml_raise_on_wrong_type_read(tmp_path):
             "value2": 24,
         },
     }
-    test_file = tmp_path.joinpath('test_file.toml')
-    with open(test_file, 'w') as f:
+    test_file = tmp_path.joinpath("test_file.toml")
+    with open(test_file, "w") as f:
         toml.dump(o=params, f=f)
 
     with pytest.raises(ValueError):
@@ -158,6 +158,7 @@ def test_parse_single_config_toml_raise_on_wrong_type_read(tmp_path):
 
 def test_parse_single_config_toml_raise_on_different_types_provided_and_read(tmp_path):
     from noiz.processing.configs import DefinedConfigs
+
     params = {
         f"{DefinedConfigs.DATACHUNKPARAMS.value}": {
             "value1": 24,
@@ -165,8 +166,8 @@ def test_parse_single_config_toml_raise_on_different_types_provided_and_read(tmp
         },
     }
 
-    test_file = tmp_path.joinpath('test_file.toml')
-    with open(test_file, 'w') as f:
+    test_file = tmp_path.joinpath("test_file.toml")
+    with open(test_file, "w") as f:
         toml.dump(o=params, f=f)
 
     with pytest.raises(ValueError):

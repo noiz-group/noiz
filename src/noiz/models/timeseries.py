@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: CECILL-B
 # Copyright © 2015-2019 EOST UNISTRA, Storengy SAS, Damian Kula
 # Copyright © 2019-2023 Contributors to the Noiz project.
+from pathlib import Path
+
 from numpy import deprecate_with_doc
 from sqlalchemy.dialects.postgresql import HSTORE, ARRAY, NUMRANGE
 from sqlalchemy import func
@@ -50,9 +52,9 @@ class Tsindex(db.Model):
         :rtype: obspy.Stream
         """
         try:
-            st = _read_single_miniseed(filename=self.filename, format=self.format)
-        except MissingDataFileException:
-            raise MissingDataFileException(f"Data file for chunk {self} is missing")
+            st = _read_single_miniseed(filename=Path(self.filename), format=self.format)
+        except MissingDataFileException as e:
+            raise MissingDataFileException(f"Data file for chunk {self} is missing") from e
         return st
 
     @hybrid_property  # type: ignore

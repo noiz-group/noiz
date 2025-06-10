@@ -38,9 +38,7 @@ def _assembly_single_component_inventory(
     station_new = station_to_clean.copy()
     station_new.channels = components
     network_new.stations = [station_new]
-    inventory_single_component = Inventory(
-        networks=[network_new], source=inventory_to_clean.source
-    )
+    inventory_single_component = Inventory(networks=[network_new], source=inventory_to_clean.source)
     return inventory_single_component
 
 
@@ -82,9 +80,9 @@ def read_inventory(filepath: Path, filetype: str = "stationxml") -> Inventory:
 
 
 def parse_inventory_for_single_component_db_entries(
-        inventory_path: Path,
-        inventory_dir: Path,
-        filetype: str = "STATIONXML",
+    inventory_path: Path,
+    inventory_dir: Path,
+    filetype: str = "STATIONXML",
 ) -> Tuple[Tuple[Component, ...], Tuple[Device, ...]]:
     """
     Reads provided inventory file and tries to split it into a single component files that will be saved
@@ -128,12 +126,11 @@ def parse_inventory_for_single_component_db_entries(
                     inventory, network, station, channels
                 )
 
-                single_cmp_inv_path = _assembly_single_component_invenontory_path(network, station, component,
-                                                                                  inventory_dir)
-
-                inventory_single_component.write(
-                    str(single_cmp_inv_path), format="stationxml"
+                single_cmp_inv_path = _assembly_single_component_invenontory_path(
+                    network, station, component, inventory_dir
                 )
+
+                inventory_single_component.write(str(single_cmp_inv_path), format="stationxml")
                 logger.info("Saving of the inventory file successful!")
 
                 cmp_file = ComponentFile(filepath=str(single_cmp_inv_path))
@@ -168,7 +165,7 @@ def parse_inventory_for_single_component_db_entries(
                                 if delta < 0:
                                     enddate = channel.end_date
                         else:
-                            enddate = startdate + 10*365*24*60*60
+                            enddate = startdate + 10 * 365 * 24 * 60 * 60
 
                 db_component = Component(
                     network=network.code,

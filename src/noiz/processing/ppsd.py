@@ -20,26 +20,30 @@ from noiz.models import Timespan, Datachunk, Component, PPSDParams, PPSDResult, 
 
 def calculate_ppsd_wrapper(inputs: PPSDRunnerInputs) -> Tuple[PPSDResult, ...]:
     """filldocs"""
-    return (calculate_ppsd(
-        ppsd_params=inputs["ppsd_params"],
-        timespan=inputs["timespan"],
-        datachunk=inputs["datachunk"],
-        component=inputs["component"],
-    ), )
+    return (
+        calculate_ppsd(
+            ppsd_params=inputs["ppsd_params"],
+            timespan=inputs["timespan"],
+            datachunk=inputs["datachunk"],
+            component=inputs["component"],
+        ),
+    )
 
 
 def calculate_ppsd(
-        ppsd_params: PPSDParams,
-        timespan: Timespan,
-        datachunk: Datachunk,
-        component: Component,
+    ppsd_params: PPSDParams,
+    timespan: Timespan,
+    datachunk: Datachunk,
+    component: Component,
 ) -> PPSDResult:
     """filldocs"""
 
     st = datachunk.load_data()
     if len(st) != 1:
-        raise InconsistentDataException(f"Expected that in the stream from Datachunk there will be exactly one trace. "
-                                        f"There are {len(st)} traces instead")
+        raise InconsistentDataException(
+            f"Expected that in the stream from Datachunk there will be exactly one trace. "
+            f"There are {len(st)} traces instead"
+        )
     tr = st[0]
 
     from obspy.core.util.misc import get_window_times
@@ -51,7 +55,8 @@ def calculate_ppsd(
             window_length=ppsd_params.segment_length,
             step=ppsd_params.segment_step,
             offset=0,
-            include_partial_windows=False)
+            include_partial_windows=False,
+        )
     )
 
     if ppsd_params.resample:
@@ -65,15 +70,16 @@ def calculate_ppsd(
         window_length=ppsd_params.segment_length,
         step=ppsd_params.segment_step,
         nearest_sample=False,
-        include_partial_windows=False
+        include_partial_windows=False,
     )
     starttimes = []
 
     for i, tr_segment in enumerate(subwindow_generator):
-        if tr_segment.stats.npts == ppsd_params.expected_signal_sample_count+1:
+        if tr_segment.stats.npts == ppsd_params.expected_signal_sample_count + 1:
             tr_segment.data = tr_segment.data[:-1]
-        elif (tr_segment.stats.npts != ppsd_params.expected_signal_sample_count + 1) and \
-                (tr_segment.stats.npts != ppsd_params.expected_signal_sample_count):
+        elif (tr_segment.stats.npts != ppsd_params.expected_signal_sample_count + 1) and (
+            tr_segment.stats.npts != ppsd_params.expected_signal_sample_count
+        ):
             continue
 
         if ppsd_params.taper_type is not None:
@@ -89,13 +95,14 @@ def calculate_ppsd(
 
         starttimes.append(tr_segment.stats.starttime)
 
-    all_ffts = 2*(1/ppsd_params.sampling_rate)**2*(1/ppsd_params.segment_length)*np.abs(all_ffts**2)
+    all_ffts = 2 * (1 / ppsd_params.sampling_rate) ** 2 * (1 / ppsd_params.segment_length) * np.abs(all_ffts**2)
 
     energy_list = np.nansum(all_ffts, axis=1)
 
     acc_windows_by_energy = np.where(
-        (energy_list < np.nanquantile(energy_list, 1 - ppsd_params.rejected_windows_quantile)) &
-        (energy_list > np.nanquantile(energy_list, ppsd_params.rejected_windows_quantile)))[0]
+        (energy_list < np.nanquantile(energy_list, 1 - ppsd_params.rejected_windows_quantile))
+        & (energy_list > np.nanquantile(energy_list, ppsd_params.rejected_windows_quantile))
+    )[0]
     accepted_windows = all_ffts[acc_windows_by_energy, :]
 
     psd_file = PPSDFile()
@@ -110,7 +117,7 @@ def calculate_ppsd(
         psd_file=psd_file,
         all_ffts=all_ffts,
         accepted_windows=accepted_windows,
-        starttimes=starttimes
+        starttimes=starttimes,
     )
 
     ret = PPSDResult(
@@ -123,45 +130,39 @@ def calculate_ppsd(
 
 
 def _save_psd_results(
-        ppsd_params: PPSDParams,
-        psd_file: PPSDFile,
-        all_ffts: npt.ArrayLike,
-        accepted_windows: npt.ArrayLike,
-        starttimes: List[UTCDateTime]
+    ppsd_params: PPSDParams,
+    psd_file: PPSDFile,
+    all_ffts: npt.ArrayLike,
+    accepted_windows: npt.ArrayLike,
+    starttimes: List[UTCDateTime],
 ) -> None:
     """filldocs"""
-    results_to_save = dict(
-        fft_mean=np.nanmean(accepted_windows, axis=0),
-        fft_std=np.nanstd(accepted_windows, axis=0)
-    )
+    results_to_save = {
+        "fft_mean": np.nanmean(np.array(accepted_windows, dtype=np.float64), axis=0),
+        "fft_std": np.nanstd(np.array(accepted_windows, dtype=np.float64), axis=0),
+    }
     if ppsd_params.save_all_windows:
-        step_delta = pd.Timedelta(ppsd_params.segment_step, 'seconds') / 2
+        step_delta = pd.Timedelta(ppsd_params.segment_step, "seconds") / 2
         midtimes = [(pd.Timestamp(stt.datetime) + step_delta).to_numpy() for stt in starttimes]
 
-        results_to_save['all_windows'] = all_ffts
-        results_to_save['window_midtimes'] = midtimes
+        results_to_save["all_windows"] = all_ffts
+        results_to_save["window_midtimes"] = midtimes
     if ppsd_params.save_compressed:
-        np.savez_compressed(
-            file=psd_file.filepath,
-            **results_to_save
-        )
+        np.savez_compressed(file=psd_file.filepath, **results_to_save)
     else:
-        np.savez(
-            file=psd_file.filepath,
-            **results_to_save
-        )
+        np.savez(file=psd_file.filepath, **results_to_save)
     return
 
 
 def _plot_avg_psds(
-        avg_psds: GroupedAvgPSDs,
-        fetched_psd_params: PPSDParams,
-        fig_title: Optional[str] = None,
-        filepath: Optional[Path] = None,
-        show_legend: bool = True,
-        showfig: bool = False,
-        xlims: Optional[Tuple[float, float]] = None,
-        ylims: Optional[Tuple[float, float]] = None,
+    avg_psds: GroupedAvgPSDs,
+    fetched_psd_params: PPSDParams,
+    fig_title: Optional[str] = None,
+    filepath: Optional[Path] = None,
+    show_legend: bool = True,
+    showfig: bool = False,
+    xlims: Optional[Tuple[float, float]] = None,
+    ylims: Optional[Tuple[float, float]] = None,
 ) -> plt.Figure:
     """
     Plots PSDs passed in a dictionary where key is :py:class:`~noiz.models.Component` and value is an array to plot.
@@ -208,7 +209,7 @@ def _plot_avg_psds(
     if ylims is not None:
         ax.set_yxlim(ylims)
     if filepath is not None:
-        fig.savefig(filepath, bbox_inches='tight')
+        fig.savefig(filepath, bbox_inches="tight")
     if showfig:
         fig.show()
     return fig
@@ -234,34 +235,34 @@ def average_psd_by_component(psd_params: PPSDParams, grouped_psds: GroupedPSDs) 
     else:
         freq_vector = psd_params.expected_fft_freq
 
-    avg_psds = dict()
+    avg_psds = {}
     for component, fetched_psds_cmp in grouped_psds.items():
         average_fft = np.zeros(len(freq_vector))
-        i = 0
-        for i, psd in enumerate(fetched_psds_cmp):
+        _i = 0
+        for _i, psd in enumerate(fetched_psds_cmp):
             loaded_file = psd.load_data()
-            fft_mean = loaded_file['fft_mean']
+            fft_mean = loaded_file["fft_mean"]
             average_fft += fft_mean
 
-        average_fft /= i + 1
+        average_fft /= _i + 1
         avg_psds[component] = average_fft
 
     return avg_psds
 
 
 def plot_spectrogram_for_component_and_psds(
-        component: Component,
-        fetched_psd_params: PPSDParams,
-        fetched_psds: Collection[PPSDResult],
-        rolling_window: Optional[str] = None,
-        fig_title: Optional[str] = None,
-        log_freq_scale: bool = True,
-        filepath: Optional[Path] = None,
-        showfig: bool = False,
-        vmin: Union[int, float] = -180,
-        vmax: Union[int, float] = -120,
-        xlims: Optional[Tuple[float, float]] = None,
-        ylims: Optional[Tuple[float, float]] = None,
+    component: Component,
+    fetched_psd_params: PPSDParams,
+    fetched_psds: Collection[PPSDResult],
+    rolling_window: Optional[str] = None,
+    fig_title: Optional[str] = None,
+    log_freq_scale: bool = True,
+    filepath: Optional[Path] = None,
+    showfig: bool = False,
+    vmin: Union[int, float] = -180,
+    vmax: Union[int, float] = -120,
+    xlims: Optional[Tuple[float, float]] = None,
+    ylims: Optional[Tuple[float, float]] = None,
 ) -> plt.Figure:
     """filldocs"""
 
@@ -291,15 +292,15 @@ def plot_spectrogram_for_component_and_psds(
 
 
 def _plot_spectrogram(
-        df: pd.DataFrame,
-        fig_title: Optional[str] = None,
-        log_freq_scale: bool = True,
-        filepath: Optional[Path] = None,
-        showfig: bool = False,
-        vmin: Union[int, float] = -180,
-        vmax: Union[int, float] = -120,
-        xlims: Optional[Tuple[float, float]] = None,
-        ylims: Optional[Tuple[float, float]] = None,
+    df: pd.DataFrame,
+    fig_title: Optional[str] = None,
+    log_freq_scale: bool = True,
+    filepath: Optional[Path] = None,
+    showfig: bool = False,
+    vmin: Union[int, float] = -180,
+    vmax: Union[int, float] = -120,
+    xlims: Optional[Tuple[float, float]] = None,
+    ylims: Optional[Tuple[float, float]] = None,
 ) -> plt.Figure:
     """filldocs"""
     fig, ax = plt.subplots(dpi=150, constrained_layout=True)
@@ -311,7 +312,7 @@ def _plot_spectrogram(
         label.set_rotation(45)
 
     if log_freq_scale:
-        ax.set_yscale('log')
+        ax.set_yscale("log")
 
     ax.set_ylabel("Frequency [Hz]")
 
@@ -322,7 +323,7 @@ def _plot_spectrogram(
     if ylims is not None:
         ax.set_yxlim(ylims)
     if filepath is not None:
-        fig.savefig(filepath, bbox_inches='tight')
+        fig.savefig(filepath, bbox_inches="tight")
     if showfig:
         fig.show()
 
@@ -332,9 +333,7 @@ def _plot_spectrogram(
 
 
 def process_fetched_psds_for_spectrogram(
-        fetched_psd_params: PPSDParams,
-        fetched_psds: Collection[PPSDResult],
-        rolling_window: Optional[str] = None
+    fetched_psd_params: PPSDParams, fetched_psds: Collection[PPSDResult], rolling_window: Optional[str] = None
 ) -> pd.DataFrame:
     """filldocs"""
 
@@ -348,11 +347,11 @@ def process_fetched_psds_for_spectrogram(
 
     for i, psd in enumerate(fetched_psds):
         time_vector[i] = psd.timespan.midtime_np
-        fft_mean = np.load(psd.file.filepath)['fft_mean']
-        psd_array[i, :] = 10*np.log10(fft_mean)
+        fft_mean = np.load(psd.file.filepath)["fft_mean"]
+        psd_array[i, :] = 10 * np.log10(fft_mean)
 
     df = pd.DataFrame(columns=freq_vector, index=time_vector, data=psd_array).sort_index()
-    timespan_frequency = (df.index[1:]-df.index[:-1]).dropna().min()
+    timespan_frequency = (df.index[1:] - df.index[:-1]).dropna().min()
     df = df.asfreq(timespan_frequency)
 
     if rolling_window is not None:

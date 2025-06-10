@@ -13,13 +13,30 @@ from typing import Dict, Optional, Union, List
 from pathlib import Path
 
 from noiz.globals import ExtendedEnum
-from noiz.models.processing_params import DatachunkParams, DatachunkParamsHolder, ProcessedDatachunkParamsHolder, \
-    ProcessedDatachunkParams, CrosscorrelationCartesianParamsHolder, CrosscorrelationCartesianParams, BeamformingParamsHolder, \
-    CrosscorrelationCylindricalParams, CrosscorrelationCylindricalParamsHolder, \
-    BeamformingParams, PPSDParamsHolder, PPSDParams, EventDetectionParamsHolder, EventDetectionParams, EventConfirmationParamsHolder, \
-    EventConfirmationParams
-from noiz.models.qc import QCOneConfigRejectedTimeHolder, QCOneConfigHolder, QCTwoConfigHolder, \
-    QCTwoConfigRejectedTimeHolder
+from noiz.models.processing_params import (
+    DatachunkParams,
+    DatachunkParamsHolder,
+    ProcessedDatachunkParamsHolder,
+    ProcessedDatachunkParams,
+    CrosscorrelationCartesianParamsHolder,
+    CrosscorrelationCartesianParams,
+    BeamformingParamsHolder,
+    CrosscorrelationCylindricalParams,
+    CrosscorrelationCylindricalParamsHolder,
+    BeamformingParams,
+    PPSDParamsHolder,
+    PPSDParams,
+    EventDetectionParamsHolder,
+    EventDetectionParams,
+    EventConfirmationParamsHolder,
+    EventConfirmationParams,
+)
+from noiz.models.qc import (
+    QCOneConfigRejectedTimeHolder,
+    QCOneConfigHolder,
+    QCTwoConfigHolder,
+    QCTwoConfigRejectedTimeHolder,
+)
 from noiz.models.stacking import StackingSchemaHolder, StackingSchema
 
 
@@ -78,14 +95,16 @@ def parse_single_config_toml(filepath: Path, config_type: Optional[Union[str, De
     if not filepath.exists() or not filepath.is_file():
         raise ValueError("Provided filepath has to be a path to existing file")
 
-    with open(file=filepath, mode='r') as f:
+    with open(file=filepath, mode="r") as f:
         loaded_dict: Dict = toml.load(f=f)  # type: ignore
 
     single_keyed_dict = len(loaded_dict.keys()) == 1
 
     if not single_keyed_dict and config_type is None:
-        raise ValueError(f"You have to provide either a config_type argument or indicate in your toml type of config."
-                         f"Allowed config types are: {list(DefinedConfigs)}")
+        raise ValueError(
+            f"You have to provide either a config_type argument or indicate in your toml type of config."
+            f"Allowed config types are: {list(DefinedConfigs)}"
+        )
 
     if config_type is not None:
         if isinstance(config_type, DefinedConfigs):
@@ -93,24 +112,30 @@ def parse_single_config_toml(filepath: Path, config_type: Optional[Union[str, De
         else:
             try:
                 config_type_provided = DefinedConfigs(config_type)
-            except ValueError:
-                raise ValueError(f"Wrong config_type value provided. You provided `{config_type}`. "
-                                 f"Only accepted ones are: {list(DefinedConfigs)}")
+            except ValueError as e:
+                raise ValueError(
+                    f"Wrong config_type value provided. You provided `{config_type}`. "
+                    f"Only accepted ones are: {list(DefinedConfigs)}"
+                ) from e
 
     if single_keyed_dict:
         read_value = list(loaded_dict.keys())[0]
         try:
             config_type_read = DefinedConfigs(read_value)
-        except ValueError:
-            raise ValueError(f"Your TOML file contained wrong section header name. Value read from file `{read_value}`."
-                             f" Only accepted ones are: {list(DefinedConfigs)}")
+        except ValueError as e:
+            raise ValueError(
+                f"Your TOML file contained wrong section header name. Value read from file `{read_value}`."
+                f" Only accepted ones are: {list(DefinedConfigs)}"
+            ) from e
         loaded_dict = loaded_dict[config_type_read.value]
 
     if single_keyed_dict and config_type is not None:
         if config_type_provided != config_type_read:
-            raise ValueError(f"Config type read from TOML file and provided by user are different."
-                             f"Read: {config_type_read} "
-                             f"Provided by user: {config_type_read} ")
+            raise ValueError(
+                f"Config type read from TOML file and provided by user are different."
+                f"Read: {config_type_read} "
+                f"Provided by user: {config_type_read} "
+            )
 
     config_type_selected = [x for x in (config_type_read, config_type_provided) if x is not None][0]
 
@@ -153,9 +178,9 @@ def validate_dict_as_qctwo_holder(loaded_dict: Dict) -> QCTwoConfigHolder:
     processed_dict = loaded_dict.copy()
 
     validated_forbidden_channels = []
-    for forb_chn in loaded_dict['rejected_times']:
+    for forb_chn in loaded_dict["rejected_times"]:
         validated_forbidden_channels.append(QCTwoConfigRejectedTimeHolder(**forb_chn))
-    processed_dict['rejected_times'] = validated_forbidden_channels
+    processed_dict["rejected_times"] = validated_forbidden_channels
 
     return QCTwoConfigHolder(**processed_dict)
 
@@ -180,12 +205,16 @@ def validate_config_dict_as_ppsdparams(loaded_dict: Dict) -> PPSDParamsHolder:
     return PPSDParamsHolder(**loaded_dict)
 
 
-def validate_config_dict_as_crosscorrelation_cartesianparams(loaded_dict: Dict) -> CrosscorrelationCartesianParamsHolder:
+def validate_config_dict_as_crosscorrelation_cartesianparams(
+    loaded_dict: Dict,
+) -> CrosscorrelationCartesianParamsHolder:
     # filldocs
     return CrosscorrelationCartesianParamsHolder(**loaded_dict)
 
 
-def validate_config_dict_as_crosscorrelation_cylindricalparams(loaded_dict: Dict) -> CrosscorrelationCylindricalParamsHolder:
+def validate_config_dict_as_crosscorrelation_cylindricalparams(
+    loaded_dict: Dict,
+) -> CrosscorrelationCylindricalParamsHolder:
     # filldocs
     return CrosscorrelationCylindricalParamsHolder(**loaded_dict)
 
@@ -206,8 +235,8 @@ def validate_config_dict_as_stacking_schema(loaded_dict: Dict) -> StackingSchema
 
 
 def create_datachunkparams(
-        params_holder: Optional[DatachunkParamsHolder] = None,
-        **kwargs,
+    params_holder: Optional[DatachunkParamsHolder] = None,
+    **kwargs,
 ) -> DatachunkParams:
     """
     This method takes a :class:`~noiz.models.processing_params.DatachunkParamsHolder` instance and based on it creates
@@ -247,8 +276,8 @@ def create_datachunkparams(
 
 
 def create_processed_datachunk_params(
-        params_holder: Optional[ProcessedDatachunkParamsHolder] = None,
-        **kwargs,
+    params_holder: Optional[ProcessedDatachunkParamsHolder] = None,
+    **kwargs,
 ) -> ProcessedDatachunkParams:
     """
     This method takes a :py:class:`~noiz.models.processing_params.ProcessedDatachunkParamsHolder` instance and based on
@@ -282,14 +311,14 @@ def create_processed_datachunk_params(
         quefrency_filter_taper_length_ratio_to_length_cepstrum=params_holder.quefrency_filter_taper_length_ratio_to_length_cepstrum,
         spectral_whitening=params_holder.spectral_whitening,
         one_bit=params_holder.one_bit,
-        quefrency=params_holder.quefrency
+        quefrency=params_holder.quefrency,
     )
     return params
 
 
 def create_beamforming_params(
-        params_holder: Optional[BeamformingParamsHolder] = None,
-        **kwargs,
+    params_holder: Optional[BeamformingParamsHolder] = None,
+    **kwargs,
 ) -> BeamformingParams:
     """
     This method takes a :py:class:`~noiz.models.processing_params.BeamformingParamsHolder` instance and based on
@@ -368,8 +397,8 @@ def create_beamforming_params(
 
 
 def create_ppsd_params(
-        params_holder: PPSDParamsHolder,
-        datachunk_params: DatachunkParams,
+    params_holder: PPSDParamsHolder,
+    datachunk_params: DatachunkParams,
 ) -> PPSDParams:
     """
     This method takes a :py:class:`~noiz.models.processing_params.PPSDParamsHolder` instance and based on
@@ -384,8 +413,10 @@ def create_ppsd_params(
     """
 
     if (params_holder.datachunk_params_id != datachunk_params.id) or not isinstance(datachunk_params, DatachunkParams):
-        raise ValueError("Expected DatachunkParams that have the same id as passed within the PPSDParamsHolder. "
-                         "Got something different.")
+        raise ValueError(
+            "Expected DatachunkParams that have the same id as passed within the PPSDParamsHolder. "
+            "Got something different."
+        )
 
     params = PPSDParams(
         datachunk_params_id=params_holder.datachunk_params_id,
@@ -408,8 +439,8 @@ def create_ppsd_params(
 
 
 def create_crosscorrelation_cartesian_params(
-        params_holder: CrosscorrelationCartesianParamsHolder,
-        processed_params: ProcessedDatachunkParams,
+    params_holder: CrosscorrelationCartesianParamsHolder,
+    processed_params: ProcessedDatachunkParams,
 ) -> CrosscorrelationCartesianParams:
     """
     This method takes a :py:class:`~noiz.models.processing_params.CrosscorrelationCartesianParamsHolder` instance and based on
@@ -433,7 +464,7 @@ def create_crosscorrelation_cartesian_params(
 
 
 def create_crosscorrelation_cylindrical_params(
-        params_holder: CrosscorrelationCylindricalParamsHolder,
+    params_holder: CrosscorrelationCylindricalParamsHolder,
 ) -> CrosscorrelationCylindricalParams:
     """
     This method takes a :py:class:`~noiz.models.processing_params.CrosscorrelationCylindricalParamsHolder` instance and based on
@@ -451,7 +482,7 @@ def create_crosscorrelation_cylindrical_params(
 
 
 def create_stacking_params(
-        params_holder: StackingSchemaHolder,
+    params_holder: StackingSchemaHolder,
 ) -> StackingSchema:
     """
     This method takes a :py:class:`~noiz.models.processing_params.CrosscorrelationCartesianParamsHolder` instance and based on
@@ -479,7 +510,7 @@ def create_stacking_params(
 
 
 def create_event_detection_params(
-        params_holder: EventDetectionParamsHolder,
+    params_holder: EventDetectionParamsHolder,
 ) -> EventDetectionParams:
     """
     This method takes a :py:class:`~noiz.models.processing_params.EventDetectionParamsHolder` instance and based on
@@ -503,13 +534,12 @@ def create_event_detection_params(
         maximum_frequency=params_holder.maximum_frequency,
         output_margin_length_sec=params_holder.output_margin_length_sec,
         trace_trimming_sec=params_holder.trace_trimming_sec,
-
     )
     return params
 
 
 def create_event_confirmation_params(
-        params_holder: EventConfirmationParamsHolder,
+    params_holder: EventConfirmationParamsHolder,
 ) -> EventConfirmationParams:
     """
     This method takes a :py:class:`~noiz.models.processing_params.EventConfirmationParamsHolder` instance and based on
@@ -538,36 +568,26 @@ def interpolate_slowness_limits_on_freq_axis(data, freq_axis_in):
         data["frequency"],
         data["smin"],
         bounds_error=False,
-        fill_value=np.nan  # Will produce NaN for out-of-bounds values
+        fill_value=np.nan,  # Will produce NaN for out-of-bounds values
     )
 
-    smax_interp = interp1d(
-        data["frequency"],
-        data["smax"],
-        bounds_error=False,
-        fill_value=np.nan
-    )
+    smax_interp = interp1d(data["frequency"], data["smax"], bounds_error=False, fill_value=np.nan)
 
     thetamin_interp = interp1d(
         data["frequency"],
         data["thetamin"],
         bounds_error=False,
-        fill_value=np.nan  # Will produce NaN for out-of-bounds values
+        fill_value=np.nan,  # Will produce NaN for out-of-bounds values
     )
 
-    thetamax_interp = interp1d(
-        data["frequency"],
-        data["thetamax"],
-        bounds_error=False,
-        fill_value=np.nan
-    )
+    thetamax_interp = interp1d(data["frequency"], data["thetamax"], bounds_error=False, fill_value=np.nan)
 
     # Interpolate onto the window_starts frequency vector
     smin_interpolated = smin_interp(freq_axis_in)
     smax_interpolated = smax_interp(freq_axis_in)
     thetamin_interpolated = thetamin_interp(freq_axis_in)
     thetamax_interpolated = thetamax_interp(freq_axis_in)
-    thetamax_interpolated[thetamax_interpolated==360] -= 1e-6
+    thetamax_interpolated[thetamax_interpolated == 360] -= 1e-6
     return smin_interpolated, smax_interpolated, thetamin_interpolated, thetamax_interpolated
 
 
@@ -608,15 +628,14 @@ def merge_angular_intervals(xmin1, xmax1, ymin1, ymax1):
         else:
             print("thatamin = " + str(start))
             print("thatamax = " + str(end))
-            raise Exception('thetamin should be smaller than thetamax')
+            raise Exception("thetamin should be smaller than thetamax")
 
     # Check if the intervals intersect
-    if (is_within_interval(xmax1, ymin1, ymax1) or
-        is_within_interval(ymax1, xmin1, xmax1)):
+    if is_within_interval(xmax1, ymin1, ymax1) or is_within_interval(ymax1, xmin1, xmax1):
         # Combine intervals
         points = [xmin1, xmax1, ymin1, ymax1]
-        merged_min = min(points)#, key=lambda x: not in_interval(x))
-        merged_max = max(points)#, key=lambda x: in_interval(x))
+        merged_min = min(points)  # , key=lambda x: not in_interval(x))
+        merged_max = max(points)  # , key=lambda x: in_interval(x))
 
         return (merged_min % 360, merged_max % 360), True  # Return the merged interval and indication of intersection
     else:
@@ -624,13 +643,13 @@ def merge_angular_intervals(xmin1, xmax1, ymin1, ymax1):
 
 
 def generate_multiple_beamforming_configs_based_on_single_holder(
-        params_holder: BeamformingParamsHolder,
-        freq_min: Optional[float],
-        freq_max: Optional[float],
-        freq_step: Optional[float],
-        freq_window_width: Optional[float],
-        rounding_precision: int = 4,
-        slowness_limits_folder: Optional[Path] = None,
+    params_holder: BeamformingParamsHolder,
+    freq_min: Optional[float],
+    freq_max: Optional[float],
+    freq_step: Optional[float],
+    freq_window_width: Optional[float],
+    rounding_precision: int = 4,
+    slowness_limits_folder: Optional[Path] = None,
 ) -> List[BeamformingParamsHolder]:
     """
     Generates multiple :py:class:`~noiz.models.processing_params.BeamformingParamsHolder` based on single
@@ -658,17 +677,26 @@ def generate_multiple_beamforming_configs_based_on_single_holder(
     :rtype: List[BeamformingParamsHolder]
     """
 
-    if any([x is None for x in (freq_min, freq_max, freq_step, freq_window_width)]):
-        raise ValueError("If you want to generate multiple params you have to provide freq_min, freq_max, "
-                         "freq_step, freq_window_width. ")
+    # This more compact None check is not supported by mypy, it's currently evaluated as a feature request:
+    # https://github.com/python/mypy/issues/17149
+    # If it gets implemented, we can use it instead of the following line
+    # if None in (freq_min, freq_max, freq_step, freq_window_width):
 
-    if freq_window_width is not None and freq_window_width < 0.:  # This None check is for mypy to be satisfied
-        raise ValueError('The freq_window_width has to be a positive value.')
+    if freq_min is None or freq_max is None or freq_step is None or freq_window_width is None:
+        raise ValueError(
+            "If you want to generate multiple params you have to provide freq_min, freq_max, "
+            "freq_step, freq_window_width. "
+        )
 
-    window_starts = np.arange(start=freq_min, stop=freq_max, step=freq_step)
+    if freq_window_width < 0.0:  # This None check is for mypy to be satisfied
+        raise ValueError("The freq_window_width has to be a positive value.")
+
+    window_starts: np.ndarray = np.arange(start=freq_min, stop=freq_max, step=freq_step)
     if len(window_starts) < 1:
-        raise ValueError("Based on provided freq_min, freq_max, freq_step method `np.arange` produced less than"
-                         "one result. Provide proper values.")
+        raise ValueError(
+            "Based on provided freq_min, freq_max, freq_step method `np.arange` produced less than one result. "
+            "Provide proper values."
+        )
 
     smin1_interpolated = np.nan * window_starts
     smin2_interpolated = np.nan * window_starts
@@ -681,7 +709,6 @@ def generate_multiple_beamforming_configs_based_on_single_holder(
     thetamax2_interpolated = np.nan * window_starts
 
     if slowness_limits_folder is not None:
-
         # Get a list of all CSV files in the directory and its subdirectories
         csv_files = list(slowness_limits_folder.glob("**/*.csv"))
 
@@ -689,21 +716,28 @@ def generate_multiple_beamforming_configs_based_on_single_holder(
         if len(csv_files) > 0:
             data1 = pd.read_csv(csv_files[0], header=None, names=["frequency", "smin", "smax", "thetamin", "thetamax"])
             # interpolate on frequencies window_starts + freq_window_width/2
-            smin1_interpolated, smax1_interpolated, thetamin1_interpolated, thetamax1_interpolated = interpolate_slowness_limits_on_freq_axis(
-                data1, window_starts + freq_window_width/2)
+            smin1_interpolated, smax1_interpolated, thetamin1_interpolated, thetamax1_interpolated = (
+                interpolate_slowness_limits_on_freq_axis(data1, window_starts + freq_window_width / 2)
+            )
 
         # Check if there is a second file and read it
         if len(csv_files) == 2:
             data2 = pd.read_csv(csv_files[1], header=None, names=["frequency", "smin", "smax", "thetamin", "thetamax"])
             # interpolate on frequencies window_starts + freq_window_width/2
-            smin2_interpolated, smax2_interpolated, thetamin2_interpolated, thetamax2_interpolated = interpolate_slowness_limits_on_freq_axis(
-                data2, window_starts + freq_window_width/2)
+            smin2_interpolated, smax2_interpolated, thetamin2_interpolated, thetamax2_interpolated = (
+                interpolate_slowness_limits_on_freq_axis(data2, window_starts + freq_window_width / 2)
+            )
 
         if (len(csv_files) == 0) | (len(csv_files) > 2):
-            raise Exception(slowness_limits_folder + 'should contain 1 or 2 csv files')
+            # FIXME: what the hell is slowness_limits_folder?
+            # This sort of stuff should be held in the DB, not in the filesystem
+            raise ValueError(
+                f"Provided slowness limit directory should contain 1 or 2 csv files. "
+                f"Provided dir: {slowness_limits_folder} contains {len(csv_files)} files."
+            )
 
     param_holders = []
-    for (i_f, start) in enumerate(window_starts):
+    for i_f, start in enumerate(window_starts):
         min_freq = np.round(start, rounding_precision)
         max_freq = np.round(start + freq_window_width, rounding_precision)
         logger.debug(f"Generating beamforming params for {min_freq}-{max_freq}Hz. ")
@@ -720,11 +754,15 @@ def generate_multiple_beamforming_configs_based_on_single_holder(
             new_param_holder.thetamax1 = thetamax1_interpolated[i_f]
         # if 2 slowness limits folder assign smin2, smax2
         if not np.isnan(smin2_interpolated[i_f]):
-            result, intersects = merge_intervals(smin1_interpolated[i_f], smax1_interpolated[i_f],
-                                                 smin2_interpolated[i_f], smax2_interpolated[i_f])
+            result, intersects = merge_intervals(
+                smin1_interpolated[i_f], smax1_interpolated[i_f], smin2_interpolated[i_f], smax2_interpolated[i_f]
+            )
             result_theta, intersects_theta = merge_angular_intervals(
-                thetamin1_interpolated[i_f], thetamax1_interpolated[i_f],
-                thetamin2_interpolated[i_f], thetamax2_interpolated[i_f])
+                thetamin1_interpolated[i_f],
+                thetamax1_interpolated[i_f],
+                thetamin2_interpolated[i_f],
+                thetamax2_interpolated[i_f],
+            )
 
             if intersects & intersects_theta:
                 new_param_holder.smin1 = result[0]

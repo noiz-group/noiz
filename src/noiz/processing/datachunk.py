@@ -18,8 +18,13 @@ from noiz.models.datachunk import Datachunk, DatachunkFile, DatachunkStats
 from noiz.models.processing_params import DatachunkParams, ZeroPaddingMethod
 from noiz.models.timeseries import Tsindex
 from noiz.models.timespan import Timespan
-from noiz.processing.path_helpers import assembly_filepath, assembly_sds_like_dir, assembly_preprocessing_filename, \
-    increment_filename_counter, parent_directory_exists_or_create
+from noiz.processing.path_helpers import (
+    assembly_filepath,
+    assembly_sds_like_dir,
+    assembly_preprocessing_filename,
+    increment_filename_counter,
+    parent_directory_exists_or_create,
+)
 from noiz.processing.signal_helpers import get_min_sample_count, get_expected_sample_count, get_max_sample_count
 from noiz.validation_helpers import count_consecutive_trues, validate_stream_with_single_trace
 
@@ -37,9 +42,7 @@ def next_pow_2(number: Union[int, float]) -> int:
     return int(np.ceil(np.log2(number)))
 
 
-def resample_with_padding(
-    st: obspy.Stream, sampling_rate: Union[int, float]
-) -> obspy.Stream:
+def resample_with_padding(st: obspy.Stream, sampling_rate: Union[int, float]) -> obspy.Stream:
     """
     Pads data of trace (assumes that stream has only one trace) with zeros up to next power of two
     and resamples it down to provided sampling rate. In the end it trims it to original starttime and endtime.
@@ -64,7 +67,7 @@ def resample_with_padding(
     tr.data = np.concatenate((tr.data, np.zeros(deficit)))
 
     logger.debug("Resampling")
-    factor = tr.stats.sampling_rate/sampling_rate
+    factor = tr.stats.sampling_rate / sampling_rate
     while factor > 16:
         if factor.is_integer():
             logger.debug("Decimation with factor 2 (within while loop resample_with_padding)")
@@ -75,7 +78,7 @@ def resample_with_padding(
         factor /= 2
 
     if tr.stats.sampling_rate != sampling_rate:
-        factor = tr.stats.sampling_rate/sampling_rate
+        factor = tr.stats.sampling_rate / sampling_rate
         if factor.is_integer():
             logger.debug(f"Decimation with factor {factor} resample_with_padding")
             tr.decimate(factor=int(factor), no_filter=False)
@@ -87,18 +90,14 @@ def resample_with_padding(
         raise ValueError("Sampling rate is not the same than required in the parameter!")
     logger.info(f"New sampling: {tr.stats.sampling_rate}")
 
-    logger.debug(
-        f"Slicing data to fit them between starttime {starttime} and endtime {endtime}"
-    )
+    logger.debug(f"Slicing data to fit them between starttime {starttime} and endtime {endtime}")
     st = obspy.Stream(tr.slice(starttime=starttime, endtime=endtime))
 
     logger.debug("Resampling done!")
     return st
 
 
-def preprocess_whole_day(
-    st: obspy.Stream, preprocessing_config: DatachunkParams
-) -> obspy.Stream:
+def preprocess_whole_day(st: obspy.Stream, preprocessing_config: DatachunkParams) -> obspy.Stream:
     logger.info("Trying to merge traces if more than 1")
     st.merge()
 
@@ -106,9 +105,7 @@ def preprocess_whole_day(
         logger.error("There are more than one trace in the stream, raising error.")
         raise ValueError(f"There are {len(st)} traces in the stream!")
 
-    logger.info(
-        f"Resampling stream to {preprocessing_config.sampling_rate} Hz with padding to next power of 2"
-    )
+    logger.info(f"Resampling stream to {preprocessing_config.sampling_rate} Hz with padding to next power of 2")
     st = resample_with_padding(st=st, sampling_rate=preprocessing_config.sampling_rate)
     logger.info(
         f"Filtering with bandpass to "
@@ -138,7 +135,7 @@ def merge_traces_fill_zeros(st: obspy.Stream) -> obspy.Stream:
     try:
         st.merge(fill_value=0)
     except Exception as e:
-        raise ValueError(f"Cannot merge traces. {e}")
+        raise ValueError(f"Cannot merge traces. {e}") from e
     return st
 
 
@@ -156,9 +153,9 @@ def merge_traces_under_conditions(st: obspy.Stream, params: DatachunkParams) -> 
     """
     try:
         _check_if_gaps_short_enough(st, params)
-        st.merge(method=1, interpolation_samples=-1, fill_value='interpolate')
+        st.merge(method=1, interpolation_samples=-1, fill_value="interpolate")
     except ValueError as e:
-        raise ValueError(f"Cannot merge traces. {e}")
+        raise ValueError(f"Cannot merge traces. {e}") from e
     return st
 
 
@@ -193,15 +190,15 @@ def _check_if_gaps_short_enough(st: obspy.Stream, params: DatachunkParams) -> bo
     gap_counts = count_consecutive_trues(gaps_mask)
     # noinspection PyTypeChecker
     if any(gap_counts > max_gap):
-        raise ValueError(f"Some of the gaps or overlaps are longer than set maximum of {max_gap} samples. "
-                         f"Found gaps have {gap_counts!r} samples.")
+        raise ValueError(
+            f"Some of the gaps or overlaps are longer than set maximum of {max_gap} samples. "
+            f"Found gaps have {gap_counts!r} samples."
+        )
     else:
         return True
 
 
-def _pad_zeros_to_timespan(
-        st: obspy.Stream, timespan: Timespan, expected_no_samples: int
-) -> obspy.Stream:
+def _pad_zeros_to_timespan(st: obspy.Stream, timespan: Timespan, expected_no_samples: int) -> obspy.Stream:
     """
     Takes a obspy Stream and trims it with Stream.trim to starttime and endtime of provided Timespan.
     It also verifies if resulting number of samples is as expected.
@@ -235,10 +232,10 @@ def _pad_zeros_to_timespan(
 
 
 def _taper_and_pad_zeros_to_timespan(
-        st: obspy.Stream,
-        timespan: Timespan,
-        expected_no_samples: int,
-        params: DatachunkParams,
+    st: obspy.Stream,
+    timespan: Timespan,
+    expected_no_samples: int,
+    params: DatachunkParams,
 ) -> obspy.Stream:
     """
     Takes a :class:`obspy.Stream` containing a single :class:`obspy.Trace` and trims it with
@@ -259,17 +256,17 @@ def _taper_and_pad_zeros_to_timespan(
     """
     sides = []
     if st[0].stats.starttime > timespan.starttime:
-        sides.append('left')
+        sides.append("left")
     if st[0].stats.endtime < timespan.endtime:
-        sides.append('right')
+        sides.append("right")
     if len(sides) == 2:
-        sides = ['both']
+        sides = ["both"]
 
     st.taper(
         type=params.padding_taper_type,
         max_length=params.padding_taper_max_length,
         max_percentage=params.padding_taper_max_percentage,
-        side=sides[0]
+        side=sides[0],
     )
 
     st.trim(
@@ -336,7 +333,7 @@ def _interpolate_ends_to_zero_to_timespan(
         trace_list.append(tr_end)
 
     st_temp = obspy.Stream(traces=trace_list)
-    st_temp.merge(method=1, fill_value='interpolate')
+    st_temp.merge(method=1, fill_value="interpolate")
 
     st_res = _check_and_remove_extra_samples_on_the_end(st=st_temp, expected_no_samples=expected_no_samples)
 
@@ -366,19 +363,21 @@ def _check_and_remove_extra_samples_on_the_end(st: obspy.Stream, expected_no_sam
     if len(tr.data) > expected_no_samples:
         tr.data = tr.data[:expected_no_samples]
     elif len(tr.data) < expected_no_samples:
-        raise ValueError(f'Provided stream has less than expected number of samples. '
-                         f'Expected {expected_no_samples}, found {len(tr.data)}. ')
+        raise ValueError(
+            f"Provided stream has less than expected number of samples. "
+            f"Expected {expected_no_samples}, found {len(tr.data)}. "
+        )
     else:
         return st
     return obspy.Stream(traces=tr)
 
 
-def preprocess_sliced_stream_for_datachunk( # noqa: max-complexity: 22
-        trimmed_st: obspy.Stream,
-        inventory: obspy.Inventory,
-        processing_params: DatachunkParams,
-        timespan: Timespan,
-        verbose_output: bool = False
+def preprocess_sliced_stream_for_datachunk(
+    trimmed_st: obspy.Stream,
+    inventory: obspy.Inventory,
+    processing_params: DatachunkParams,
+    timespan: Timespan,
+    verbose_output: bool = False,
 ) -> Tuple[obspy.Stream, Dict[str, obspy.Stream]]:
     """
     Applies standard preprocessing to a :class:`~obspy.Stream`.
@@ -401,34 +400,30 @@ def preprocess_sliced_stream_for_datachunk( # noqa: max-complexity: 22
     steps_dict: OrderedDict[str, obspy.Stream] = OrderedDict()
 
     if verbose_output:
-        steps_dict['original'] = trimmed_st.copy()
+        steps_dict["original"] = trimmed_st.copy()
 
     logger.debug("Detrending")
     trimmed_st.detrend(type="polynomial", order=3)
 
     if verbose_output:
-        steps_dict['detrended'] = trimmed_st.copy()
+        steps_dict["detrended"] = trimmed_st.copy()
 
     logger.debug("Demeaning")
     trimmed_st.detrend(type="demean")
     if verbose_output:
-        steps_dict['demeaned'] = trimmed_st.copy()
+        steps_dict["demeaned"] = trimmed_st.copy()
 
-    logger.debug(
-        f"Resampling stream to {processing_params.sampling_rate} Hz with padding to next power of 2"
-    )
-    trimmed_st = resample_with_padding(
-        st=trimmed_st, sampling_rate=processing_params.sampling_rate
-    )  # type: ignore
+    logger.debug(f"Resampling stream to {processing_params.sampling_rate} Hz with padding to next power of 2")
+    trimmed_st = resample_with_padding(st=trimmed_st, sampling_rate=processing_params.sampling_rate)  # type: ignore
     if verbose_output:
-        steps_dict['resampled'] = trimmed_st.copy()
+        steps_dict["resampled"] = trimmed_st.copy()
 
     expected_samples = get_expected_sample_count(timespan=timespan, sampling_rate=processing_params.sampling_rate)
 
     if trimmed_st[0].stats.npts > expected_samples:
         trimmed_st[0].data = trimmed_st[0].data[:expected_samples]
         if verbose_output:
-            steps_dict['trimmed_last_sample'] = trimmed_st.copy()
+            steps_dict["trimmed_last_sample"] = trimmed_st.copy()
 
     logger.debug(f"Tapering stream with {processing_params.preprocessing_taper_type} taper ")
     trimmed_st.taper(
@@ -439,7 +434,7 @@ def preprocess_sliced_stream_for_datachunk( # noqa: max-complexity: 22
     )
 
     if verbose_output:
-        steps_dict['tapered'] = trimmed_st.copy()
+        steps_dict["tapered"] = trimmed_st.copy()
 
     logger.debug(
         f"Filtering with bandpass to "
@@ -453,38 +448,39 @@ def preprocess_sliced_stream_for_datachunk( # noqa: max-complexity: 22
         freqmax=processing_params.prefiltering_high,
         corners=processing_params.prefiltering_order,
     )
-        
+
     if verbose_output:
-        steps_dict['filtered'] = trimmed_st.copy()
+        steps_dict["filtered"] = trimmed_st.copy()
 
     if processing_params.remove_response:
         logger.debug("Removing response")
 
         taper_percentage = processing_params.preprocessing_taper_max_length / (
-                           trimmed_st[0].stats.npts / trimmed_st[0].stats.sampling_rate)
-        taper_percentage = min(
-                               taper_percentage,
-                               processing_params.preprocessing_taper_max_percentage*0.01,
-                               0.05
-                            )
+            trimmed_st[0].stats.npts / trimmed_st[0].stats.sampling_rate
+        )
+        taper_percentage = min(taper_percentage, processing_params.preprocessing_taper_max_percentage * 0.01, 0.05)
 
         try:
             trimmed_st.remove_response(inventory, taper_fraction=taper_percentage)
         except ValueError as e:
-            raise ResponseRemovalError(f"There was a problem with response removal from slice {trimmed_st} that was "
-                                       f"prepared for Timespan {timespan}. Original exception: {e}")
+            raise ResponseRemovalError(
+                f"There was a problem with response removal from slice {trimmed_st} that was "
+                f"prepared for Timespan {timespan}. Original exception: {e}"
+            ) from e
         if verbose_output:
-            steps_dict['removed_response'] = trimmed_st.copy()
+            steps_dict["removed_response"] = trimmed_st.copy()
 
     if processing_params.response_constant_coefficient is not None:
         logger.debug("Response calibration")
         try:
             trimmed_st = _response_constant_calibration(trimmed_st, inventory, processing_params)
         except ValueError as e:
-            raise ResponseRemovalError(f"There was a problem with response removal from slice {trimmed_st} that was "
-                                       f"prepared for Timespan {timespan}. Original exception: {e}")
+            raise ResponseRemovalError(
+                f"There was a problem with response removal from slice {trimmed_st} that was "
+                f"prepared for Timespan {timespan}. Original exception: {e}"
+            ) from e
         if verbose_output:
-            steps_dict['response_calibrated'] = trimmed_st.copy()
+            steps_dict["response_calibrated"] = trimmed_st.copy()
 
     logger.debug(
         f"Filtering with bandpass;"
@@ -492,7 +488,7 @@ def preprocess_sliced_stream_for_datachunk( # noqa: max-complexity: 22
         f"high: {processing_params.prefiltering_high}; "
         f"order: {processing_params.prefiltering_order};"
     )
-    
+
     trimmed_st.filter(
         type="bandpass",
         freqmin=processing_params.prefiltering_low,
@@ -500,9 +496,9 @@ def preprocess_sliced_stream_for_datachunk( # noqa: max-complexity: 22
         corners=processing_params.prefiltering_order,
         zerophase=True,
     )
-        
+
     if verbose_output:
-        steps_dict['filtered_second_time'] = trimmed_st.copy()
+        steps_dict["filtered_second_time"] = trimmed_st.copy()
 
     logger.debug("Finished preprocessing with success")
 
@@ -540,7 +536,7 @@ def validate_slice(
     timespan: Timespan,
     processing_params: DatachunkParams,
     original_samplerate: Union[float, int],
-    verbose_output: bool = False
+    verbose_output: bool = False,
 ) -> Tuple[obspy.Stream, int, Dict[str, obspy.Stream]]:
     # py39 This method should return in annotation OrderedDict but there is issue. It's fixed in Python 3.9
 
@@ -556,7 +552,7 @@ def validate_slice(
         validate_sample_count_in_stream(trimmed_st, processing_params, timespan)
     except ValueError as e:
         logger.error(e)
-        raise ValueError(e)
+        raise ValueError(e) from e
 
     if len(trimmed_st) > 1:
         logger.warning(
@@ -565,22 +561,18 @@ def validate_slice(
             f"samples to pass minimum_no_samples criterion."
         )
         if verbose_output:
-            steps_dict['original'] = trimmed_st.copy()
+            steps_dict["original"] = trimmed_st.copy()
         try:
             trimmed_st = merge_traces_under_conditions(st=trimmed_st, params=processing_params)
         except ValueError as e:
             logger.error(e)
-            raise ValueError(e)
+            raise ValueError(e) from e
 
         if verbose_output:
-            steps_dict['merged'] = trimmed_st.copy()
+            steps_dict["merged"] = trimmed_st.copy()
 
         if len(trimmed_st) > 1:
-            message = (
-                f"Merging not successfull. "
-                f"There are still {len(trimmed_st)} traces in the "
-                f"stream!"
-            )
+            message = f"Merging not successfull. There are still {len(trimmed_st)} traces in the stream!"
             logger.error(message)
             raise ValueError(message)
 
@@ -590,7 +582,7 @@ def validate_slice(
     if samples_in_stream == expected_no_samples + 1:
         trimmed_st = _check_and_remove_extra_samples_on_the_end(st=trimmed_st, expected_no_samples=expected_no_samples)
         if verbose_output:
-            steps_dict['last_sample_removed'] = trimmed_st.copy()
+            steps_dict["last_sample_removed"] = trimmed_st.copy()
 
     if samples_in_stream < expected_no_samples:
         deficit = expected_no_samples - samples_in_stream
@@ -599,23 +591,21 @@ def validate_slice(
             f"It will be padded with {deficit} zeros to match exact length."
         )
         try:
-            trimmed_st = perform_padding_according_to_config(trimmed_st, timespan, expected_no_samples, processing_params)
+            trimmed_st = perform_padding_according_to_config(
+                trimmed_st, timespan, expected_no_samples, processing_params
+            )
             if verbose_output:
-                steps_dict['padded'] = trimmed_st.copy()
+                steps_dict["padded"] = trimmed_st.copy()
         except ValueError as e:
             logger.error(f"Padding was not successful. {e}")
-            raise ValueError(f"Datachunk padding unsuccessful. {e}")
+            raise ValueError(f"Datachunk padding unsuccessful. {e}") from e
 
     return trimmed_st, deficit, steps_dict
 
 
 def perform_padding_according_to_config(
-        st: obspy.Stream,
-        timespan: Timespan,
-        expected_no_samples: int,
-        params: DatachunkParams
+    st: obspy.Stream, timespan: Timespan, expected_no_samples: int, params: DatachunkParams
 ) -> obspy.Stream:
-
     selected_method = params.zero_padding_method
 
     if selected_method is ZeroPaddingMethod.PADDED:
@@ -638,7 +628,7 @@ def perform_padding_according_to_config(
             expected_no_samples=expected_no_samples,
         )
     else:
-        raise NotImplementedError('Selected zero padding method not supported. ')
+        raise NotImplementedError("Selected zero padding method not supported. ")
 
 
 def validate_sample_count_in_stream(st: obspy.Stream, params: DatachunkParams, timespan: Timespan) -> bool:
@@ -659,10 +649,8 @@ def validate_sample_count_in_stream(st: obspy.Stream, params: DatachunkParams, t
 
     sampling_rate = st[0].stats.sampling_rate
 
-    min_no_samples = get_min_sample_count(timespan=timespan, params=params,
-                                          sampling_rate=sampling_rate)
-    max_no_samples = get_max_sample_count(timespan=timespan, params=params,
-                                          sampling_rate=sampling_rate)
+    min_no_samples = get_min_sample_count(timespan=timespan, params=params, sampling_rate=sampling_rate)
+    max_no_samples = get_max_sample_count(timespan=timespan, params=params, sampling_rate=sampling_rate)
 
     if min_no_samples > samples_in_stream > max_no_samples:
         message = (
@@ -689,8 +677,7 @@ def sum_samples_in_stream(st: obspy.Stream) -> int:
 
 
 def validate_timebounds_agains_timespan(st, timespan):
-
-    st.sort(keys=['starttime'])
+    st.sort(keys=["starttime"])
     if st[0].stats.starttime < timespan.starttime:
         message = (
             f"Provided stream has starttime before timespan starts. "
@@ -708,7 +695,7 @@ def validate_timebounds_agains_timespan(st, timespan):
 
 
 def validate_sample_rate(original_samplerate, trimmed_st):
-    sample_rates = list(set([x.stats.sampling_rate for x in trimmed_st]))
+    sample_rates = list({x.stats.sampling_rate for x in trimmed_st})
     if len(sample_rates) != 1:
         raise ValueError("The sampling rate in the stream is not uniform!")
     if sample_rates[0] != original_samplerate:
@@ -720,19 +707,18 @@ def validate_sample_rate(original_samplerate, trimmed_st):
 
 
 def create_datachunks_for_component_wrapper(inputs: RunDatachunkPreparationInputs) -> Tuple[Datachunk, ...]:
-    return tuple(create_datachunks_for_component(
-        component=inputs["component"],
-        timespans=inputs["timespans"],
-        time_series=inputs["time_series"],
-        processing_params=inputs["processing_params"],
-    ))
+    return tuple(
+        create_datachunks_for_component(
+            component=inputs["component"],
+            timespans=inputs["timespans"],
+            time_series=inputs["time_series"],
+            processing_params=inputs["processing_params"],
+        )
+    )
 
 
 def create_datachunks_for_component(
-        component: Component,
-        timespans: Collection[Timespan],
-        time_series: Tsindex,
-        processing_params: DatachunkParams
+    component: Component, timespans: Collection[Timespan], time_series: Tsindex, processing_params: DatachunkParams
 ) -> Collection[Datachunk]:
     """
     All around method that is takes prepared Component, Tsindex,
@@ -759,7 +745,8 @@ def create_datachunks_for_component(
 
     logger.info("Reading timeseries and inventory")
     import warnings
-    warnings.filterwarnings("error", message='(?s).* Data integrity check for Steim1 failed')
+
+    warnings.filterwarnings("error", message="(?s).* Data integrity check for Steim1 failed")
     try:
         st: obspy.Stream = time_series.read_file()
     except MissingDataFileException as e:
@@ -769,8 +756,7 @@ def create_datachunks_for_component(
         logger.error(f"Data integrity check for Steim1 failed. Skipping file. {e}")
         return []
     except Exception as e:
-        logger.error("There was some general exception from "
-                     f"obspy.Stream.read function. Here it is: {e} ")
+        logger.error(f"There was some general exception from obspy.Stream.read function. Here it is: {e} ")
         return []
     warnings.resetwarnings()
 
@@ -780,7 +766,6 @@ def create_datachunks_for_component(
 
     logger.info(f"Splitting full day into timespans for {component}")
     for timespan in timespans:
-
         logger.info(f"Slicing timespan {timespan}")
         trimmed_st: obspy.Stream = st.copy().slice(
             starttime=timespan.starttime_obspy,
@@ -797,8 +782,7 @@ def create_datachunks_for_component(
                 verbose_output=False,
             )
         except ValueError as e:
-            logger.warning(f"There was a problem with trace validation. "
-                           f"There was raised exception {e}")
+            logger.warning(f"There was a problem with trace validation. There was raised exception {e}")
             continue
 
         logger.debug("Preprocessing timespan")
@@ -808,13 +792,15 @@ def create_datachunks_for_component(
                 inventory=inventory,
                 processing_params=processing_params,
                 timespan=timespan,
-                verbose_output=False
+                verbose_output=False,
             )
         except ResponseRemovalError as e:
-            logger.error(f"There was an error raised during response removal. This slice will be skipped. "
-                         f"Occured for timespan.id: {timespan.id}, component: {component} "
-                         f"and tsindex.id {time_series.id}."
-                         f": {e}")
+            logger.error(
+                f"There was an error raised during response removal. This slice will be skipped. "
+                f"Occured for timespan.id: {timespan.id}, component: {component} "
+                f"and tsindex.id {time_series.id}."
+                f": {e}"
+            )
             continue
         except Exception as e:
             logger.error(f"{e}")
@@ -823,20 +809,15 @@ def create_datachunks_for_component(
         filepath = assembly_filepath(
             PROCESSED_DATA_DIR,  # type: ignore
             "datachunk",
-            assembly_sds_like_dir(component, timespan) \
-                                 .joinpath(assembly_preprocessing_filename(
-                                     component=component,
-                                     timespan=timespan,
-                                     count=0
-                                 )),
+            assembly_sds_like_dir(component, timespan).joinpath(
+                assembly_preprocessing_filename(component=component, timespan=timespan, count=0)
+            ),
         )
 
         if filepath.exists():
-            logger.debug(f"Filepath {filepath} exists. "
-                         f"Trying to find next free one.")
+            logger.debug(f"Filepath {filepath} exists. Trying to find next free one.")
             filepath = increment_filename_counter(filepath=filepath, extension=False)
-            logger.debug(f"Free filepath found. "
-                         f"Datachunk will be saved to {filepath}")
+            logger.debug(f"Free filepath found. Datachunk will be saved to {filepath}")
 
         logger.info(f"Chunk will be written to {str(filepath)}")
         parent_directory_exists_or_create(filepath)
@@ -855,7 +836,7 @@ def create_datachunks_for_component(
             npts=npts,
             file=datachunk_file,
             padded_npts=padded_npts,
-            device_id=component.device_id
+            device_id=component.device_id,
         )
 
         finished_datachunks.append(datachunk)
@@ -864,15 +845,17 @@ def create_datachunks_for_component(
 
 
 def calculate_datachunk_stats_wrapper(inputs: CalculateDatachunkStatsInputs) -> Tuple[DatachunkStats, ...]:
-    return (calculate_datachunk_stats(
-        datachunk=inputs["datachunk"],
-        datachunk_file=inputs["datachunk_file"],
-    ), )
+    return (
+        calculate_datachunk_stats(
+            datachunk=inputs["datachunk"],
+            datachunk_file=inputs["datachunk_file"],
+        ),
+    )
 
 
 def calculate_datachunk_stats(
-        datachunk: Datachunk,
-        datachunk_file: Optional[DatachunkFile],
+    datachunk: Datachunk,
+    datachunk_file: Optional[DatachunkFile],
 ) -> DatachunkStats:
     """
     Calculates statistics of the signal associated with provided :class:`~noiz.models.datachunk.Datachunk`.

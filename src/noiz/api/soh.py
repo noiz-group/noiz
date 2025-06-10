@@ -24,18 +24,28 @@ from noiz.validation_helpers import validate_exactly_one_argument_provided
 from noiz.database import db
 from noiz.models.component import Component
 from noiz.models.timespan import Timespan
-from noiz.models.soh import SohInstrument, SohGps, association_table_soh_instr, association_table_soh_gps, \
-    AveragedSohGps, association_table_averaged_soh_gps_components
-from noiz.processing.soh import load_parsing_parameters, read_multiple_soh, _glob_soh_directory, \
-    __calculate_mean_gps_soh
+from noiz.models.soh import (
+    SohInstrument,
+    SohGps,
+    association_table_soh_instr,
+    association_table_soh_gps,
+    AveragedSohGps,
+    association_table_averaged_soh_gps_components,
+)
+from noiz.processing.soh import (
+    load_parsing_parameters,
+    read_multiple_soh,
+    _glob_soh_directory,
+    __calculate_mean_gps_soh,
+)
 
 
 def fetch_raw_soh_gps_df(
-        components: Collection[Component],
-        starttime: datetime.datetime,
-        endtime: datetime.datetime,
-        load_z_component: bool = False,
-        load_components: bool = False,
+    components: Collection[Component],
+    starttime: datetime.datetime,
+    endtime: datetime.datetime,
+    load_z_component: bool = False,
+    load_components: bool = False,
 ) -> pd.DataFrame:
     query = __fetch_raw_soh_gps_query(
         components=components,
@@ -51,35 +61,28 @@ def fetch_raw_soh_gps_df(
 
 
 def fetch_raw_soh_gps_all(
-        components: Collection[Component],
-        starttime: datetime.datetime,
-        endtime: datetime.datetime
+    components: Collection[Component], starttime: datetime.datetime, endtime: datetime.datetime
 ) -> Collection[SohGps]:
-
     query = __fetch_raw_soh_gps_query(components=components, starttime=starttime, endtime=endtime)
 
     return query.all()
 
 
 def count_raw_soh_gps(
-        components: Collection[Component],
-        starttime: datetime.datetime,
-        endtime: datetime.datetime
+    components: Collection[Component], starttime: datetime.datetime, endtime: datetime.datetime
 ) -> int:
-
     query = __fetch_raw_soh_gps_query(components=components, starttime=starttime, endtime=endtime)
 
     return query.count()
 
 
 def __fetch_raw_soh_gps_query(
-        components: Optional[Collection[Component]] = None,
-        starttime: Optional[datetime.datetime] = None,
-        endtime: Optional[datetime.datetime] = None,
-        load_z_component: bool = False,
-        load_components: bool = False,
+    components: Optional[Collection[Component]] = None,
+    starttime: Optional[datetime.datetime] = None,
+    endtime: Optional[datetime.datetime] = None,
+    load_z_component: bool = False,
+    load_components: bool = False,
 ) -> Query:
-
     filters = []
 
     if components is not None:
@@ -103,11 +106,10 @@ def __fetch_raw_soh_gps_query(
 
 
 def fetch_averaged_soh_gps_df(
-        timespans: Optional[Collection[Timespan]] = None,
-        components: Optional[Collection[Component]] = None,
-        load_timespan: bool = True,
+    timespans: Optional[Collection[Timespan]] = None,
+    components: Optional[Collection[Component]] = None,
+    load_timespan: bool = True,
 ) -> pd.DataFrame:
-
     query = __fetch_averaged_soh_gps_query(
         timespans=timespans,
         components=components,
@@ -118,33 +120,30 @@ def fetch_averaged_soh_gps_df(
 
 
 def fetch_averaged_soh_gps_all(
-        timespans: Collection[Timespan],
-        components: Collection[Component],
+    timespans: Collection[Timespan],
+    components: Collection[Component],
 ) -> Collection[AveragedSohGps]:
-
     query = __fetch_averaged_soh_gps_query(timespans=timespans, components=components)
 
     return query.all()
 
 
 def count_averaged_soh_gps(
-        timespans: Collection[Timespan],
-        components: Collection[Component],
+    timespans: Collection[Timespan],
+    components: Collection[Component],
 ) -> int:
-
     query = __fetch_averaged_soh_gps_query(timespans=timespans, components=components)
 
     return query.count()
 
 
 def __fetch_averaged_soh_gps_query(
-        timespans: Optional[Collection[Timespan]],
-        components: Optional[Collection[Component]],
-        load_z_component: bool = False,
-        load_timespan: bool = False,
-        load_components: bool = False,
+    timespans: Optional[Collection[Timespan]],
+    components: Optional[Collection[Component]],
+    load_z_component: bool = False,
+    load_timespan: bool = False,
+    load_components: bool = False,
 ) -> Query:
-
     filters = []
 
     if components is not None:
@@ -169,12 +168,12 @@ def __fetch_averaged_soh_gps_query(
 
 
 def ingest_soh_files(
-        station: str,
-        station_type: str,
-        soh_type: str,
-        main_filepath: Optional[Path] = None,
-        filepaths: Optional[Collection[Path]] = None,
-        network: Optional[str] = None,
+    station: str,
+    station_type: str,
+    soh_type: str,
+    main_filepath: Optional[Path] = None,
+    filepaths: Optional[Collection[Path]] = None,
+    network: Optional[str] = None,
 ) -> None:
     """
     Method that take either a directory or collection of paths and parses it according to predefined rules for
@@ -202,13 +201,12 @@ def ingest_soh_files(
 
     try:
         validate_exactly_one_argument_provided(filepaths, main_filepath)
-    except ValueError:
-        raise ValueError("Exactly one of filepath or main_filepath arguments has to be provided.")
+    except ValueError as e:
+        raise ValueError("Exactly one of filepath or main_filepath arguments has to be provided.") from e
 
     if main_filepath is not None:
-        filepaths: Generator[Path, None, None] = _glob_soh_directory(   # type: ignore
-            parsing_parameters=parsing_parameters,
-            main_filepath=main_filepath
+        filepaths: Generator[Path, None, None] = _glob_soh_directory(  # type: ignore
+            parsing_parameters=parsing_parameters, main_filepath=main_filepath
         )
 
     df = read_multiple_soh(filepaths=filepaths, parsing_params=parsing_parameters)  # type: ignore
@@ -217,16 +215,18 @@ def ingest_soh_files(
     elif soh_type in ("gpstime", "gnsstime", "miniseed_gpstime"):
         __upsert_into_db_soh_gps(df=df, station=station, network=network)
     else:
-        raise ValueError(f'Provided soh_type not supported for database insertion. '
-                         f'Supported types: instrument, gpstime, gnsstime. '
-                         f'You provided {soh_type}')
+        raise ValueError(
+            f"Provided soh_type not supported for database insertion. "
+            f"Supported types: instrument, gpstime, gnsstime. "
+            f"You provided {soh_type}"
+        )
     return
 
 
 def __upsert_into_db_soh_instrument(
-        df: pd.DataFrame,
-        station: str,
-        network: Optional[str] = None,
+    df: pd.DataFrame,
+    station: str,
+    network: Optional[str] = None,
 ) -> None:
     """
     Internal method that is used for upserting instrument SOH data into the DB.
@@ -249,7 +249,7 @@ def __upsert_into_db_soh_instrument(
     fetched_components_ids = []
     for cmp in fetched_components:
         fetched_components_ids.append(cmp.id)
-        if cmp.component == 'Z':
+        if cmp.component == "Z":
             z_component_id = cmp.id
     comp: Component = fetched_components[0]
 
@@ -266,15 +266,15 @@ def __upsert_into_db_soh_instrument(
                 voltage=row["Supply voltage(V)"],
                 current=row["Total current(A)"],
                 temperature=row["Temperature(C)"],
-                device_id=comp.device_id
+                device_id=comp.device_id,
             )
             .on_conflict_do_update(
                 constraint="unique_timestamp_per_station_in_sohinstrument",
-                set_=dict(
-                    voltage=row["Supply voltage(V)"],
-                    current=row["Total current(A)"],
-                    temperature=row["Temperature(C)"],
-                ),
+                set_={
+                    "voltage": row["Supply voltage(V)"],
+                    "current": row["Total current(A)"],
+                    "temperature": row["Temperature(C)"],
+                },
             )
         )
         insert_commands.append(insert_command)
@@ -284,14 +284,15 @@ def __upsert_into_db_soh_instrument(
             logger.info(f"Inserted already {i}/{command_count} rows")
         db.session.execute(insert_command)
 
-    logger.info('Commiting to db')
+    logger.info("Commiting to db")
     db.session.commit()
-    logger.info('Commit succesfull')
+    logger.info("Commit succesfull")
 
-    logger.info('Preparing to insert information about db relationship/')
+    logger.info("Preparing to insert information about db relationship/")
 
-    soh_env_inserted = SohInstrument.query.filter(SohInstrument.z_component_id.in_(fetched_components_ids),
-                                                  SohInstrument.datetime.in_(df.index.to_list())).all()
+    soh_env_inserted = SohInstrument.query.filter(
+        SohInstrument.z_component_id.in_(fetched_components_ids), SohInstrument.datetime.in_(df.index.to_list())
+    ).all()
 
     command_count = len(soh_env_inserted) * len(fetched_components)
 
@@ -302,10 +303,7 @@ def __upsert_into_db_soh_instrument(
 
         insert_command = (
             insert(association_table_soh_instr)
-            .values(
-                soh_instrument_id=inserted_soh.id,
-                component_id=component_id
-            )
+            .values(soh_instrument_id=inserted_soh.id, component_id=component_id)
             .on_conflict_do_nothing()
         )
         insert_commands.append(insert_command)
@@ -315,38 +313,38 @@ def __upsert_into_db_soh_instrument(
             logger.info(f"Inserted already {i}/{command_count} rows")
         db.session.execute(insert_command)
 
-    logger.info('Commiting to db')
+    logger.info("Commiting to db")
     db.session.commit()
-    logger.info('Commit succesfull')
+    logger.info("Commit succesfull")
 
     return
 
 
 def __upsert_into_db_soh_gps(
-        df: pd.DataFrame,
-        station: str,
-        network: Optional[str] = None,
+    df: pd.DataFrame,
+    station: str,
+    network: Optional[str] = None,
 ) -> None:
     """
-        Internal method that is used for upserting GPS SOH data into the DB.
-        The passed pd.DataFrame has to be indexed with datetime index, and contain columns named as:
-        "Time error(ms)" and "Time uncertainty(ms)"
+    Internal method that is used for upserting GPS SOH data into the DB.
+    The passed pd.DataFrame has to be indexed with datetime index, and contain columns named as:
+    "Time error(ms)" and "Time uncertainty(ms)"
 
-        :param df: Dataframe containing SOH information that should be upserted into DB.
-        :type df: pd.DataFrame
-        :param station: Station to associate all SOH with.
-        :type station: str
-        :param network: Network that station belongs to
-        :type network: str
-        :return: None
-        :rtype: NoneType
-        """
+    :param df: Dataframe containing SOH information that should be upserted into DB.
+    :type df: pd.DataFrame
+    :param station: Station to associate all SOH with.
+    :type station: str
+    :param network: Network that station belongs to
+    :type network: str
+    :return: None
+    :rtype: NoneType
+    """
     fetched_components = fetch_components(networks=network, stations=station)
     z_component_id = None
     fetched_components_ids = []
     for cmp in fetched_components:
         fetched_components_ids.append(cmp.id)
-        if cmp.component == 'Z':
+        if cmp.component == "Z":
             z_component_id = cmp.id
     comp: Component = fetched_components[0]
     command_count = len(df)
@@ -362,14 +360,14 @@ def __upsert_into_db_soh_gps(
                 datetime=timestamp,
                 time_error=row["Time error(ms)"],
                 time_uncertainty=row["Time uncertainty(ms)"],
-                device_id=comp.device_id
+                device_id=comp.device_id,
             )
             .on_conflict_do_update(
                 constraint="unique_timestamp_per_station_in_sohgps",
-                set_=dict(
-                    time_error=row["Time error(ms)"],
-                    time_uncertainty=row["Time uncertainty(ms)"],
-                ),
+                set_={
+                    "time_error": row["Time error(ms)"],
+                    "time_uncertainty": row["Time uncertainty(ms)"],
+                },
             )
         )
         insert_commands.append(insert_command)
@@ -379,14 +377,15 @@ def __upsert_into_db_soh_gps(
             logger.info(f"Inserted already {i}/{command_count} rows")
         db.session.execute(insert_command)
 
-    logger.info('Commiting to db')
+    logger.info("Commiting to db")
     db.session.commit()
-    logger.info('Commit succesfull')
+    logger.info("Commit succesfull")
 
-    logger.info('Preparing to insert information about db relationship/')
+    logger.info("Preparing to insert information about db relationship/")
 
-    fetched_soh = SohGps.query.filter(SohGps.z_component_id.in_(fetched_components_ids),
-                                      SohGps.datetime.in_(df.index.to_list())).all()
+    fetched_soh = SohGps.query.filter(
+        SohGps.z_component_id.in_(fetched_components_ids), SohGps.datetime.in_(df.index.to_list())
+    ).all()
 
     command_count = len(fetched_soh) * len(fetched_components)
 
@@ -397,10 +396,7 @@ def __upsert_into_db_soh_gps(
 
         insert_command = (
             insert(association_table_soh_gps)
-            .values(
-                soh_gps_id=inserted_soh.id,
-                component_id=component_id
-            )
+            .values(soh_gps_id=inserted_soh.id, component_id=component_id)
             .on_conflict_do_nothing()
         )
         insert_commands.append(insert_command)
@@ -410,18 +406,18 @@ def __upsert_into_db_soh_gps(
             logger.info(f"Inserted already {i}/{command_count} rows")
         db.session.execute(insert_command)
 
-    logger.info('Commiting to db')
+    logger.info("Commiting to db")
     db.session.commit()
-    logger.info('Commit succesfull')
+    logger.info("Commit succesfull")
 
     return
 
 
 def average_raw_gps_soh(
-        starttime: datetime.datetime,
-        endtime: datetime.datetime,
-        stations: Optional[Union[Collection[str], str]] = None,
-        networks: Optional[Union[Collection[str], str]] = None,
+    starttime: datetime.datetime,
+    endtime: datetime.datetime,
+    stations: Optional[Union[Collection[str], str]] = None,
+    networks: Optional[Union[Collection[str], str]] = None,
 ) -> None:
     """
     Method that averages the data from SohGps according between starttime and endtime along with
@@ -442,8 +438,7 @@ def average_raw_gps_soh(
     fetched_components = fetch_components(stations=stations, networks=networks)
 
     averaged_results = __calculate_averages_of_gps_soh(
-        fetched_timespans=fetched_timespans,
-        fetched_components=fetched_components
+        fetched_timespans=fetched_timespans, fetched_components=fetched_components
     )
 
     __insert_averaged_gps_soh_into_db(avg_results=averaged_results)
@@ -452,8 +447,8 @@ def average_raw_gps_soh(
 
 
 def __calculate_averages_of_gps_soh(
-        fetched_timespans: Collection[Timespan],
-        fetched_components: Collection[Component],
+    fetched_timespans: Collection[Timespan],
+    fetched_components: Collection[Component],
 ) -> pd.DataFrame:
     """
     Private method that fetched raw SohGps data and calculates average of it for each of the Timespans.
@@ -470,15 +465,13 @@ def __calculate_averages_of_gps_soh(
 
     averaged_results = []
     for timespan in fetched_timespans:
-
         query = (
-            db.session
-            .query(SohGps, (Component.id).label('component_id'))
+            db.session.query(SohGps, (Component.id).label("component_id"))
             .join((SohGps.components, Component))
             .filter(
                 SohGps.datetime >= timespan.starttime,
                 SohGps.datetime <= timespan.endtime,
-                Component.id.in_(component_ids)
+                Component.id.in_(component_ids),
             )
         )
 
@@ -509,7 +502,7 @@ def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
     avg_results = avg_results
 
     insert_commands = []
-    for i, (timestamp, row) in enumerate(avg_results.iterrows()):
+    for i, (_timestamp, row) in enumerate(avg_results.iterrows()):
         if i % (1 + int(command_count / 10)) == 0:
             logger.info(f"Prepared already {i}/{command_count} commands")
         insert_command = (
@@ -523,10 +516,10 @@ def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
             )
             .on_conflict_do_update(
                 constraint="unique_tispan_per_station_in_avgsohgps",
-                set_=dict(
-                    time_error=row["time_error"],
-                    time_uncertainty=row["time_uncertainty"],
-                ),
+                set_={
+                    "time_error": row["time_error"],
+                    "time_uncertainty": row["time_uncertainty"],
+                },
             )
         )
         insert_commands.append(insert_command)
@@ -536,11 +529,11 @@ def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
             logger.info(f"Inserted already {i}/{command_count} rows")
         db.session.execute(insert_command)
 
-    logger.info('Commiting to db')
+    logger.info("Commiting to db")
     db.session.commit()
-    logger.info('Commit succesfull')
+    logger.info("Commit succesfull")
 
-    logger.info('Preparing to insert information about db relationship/')
+    logger.info("Preparing to insert information about db relationship/")
 
     unique_z_cmp_ids = avg_results.loc[:, "z_component_id"].drop_duplicates().values.astype(pd.Int64Dtype)
 
@@ -550,21 +543,19 @@ def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
 
     for z_cmp in unique_z_cmp_ids:
         all_components = np.unique(
-            np.vstack(
-                avg_results.loc[avg_results.loc[:, 'z_component_id'] == z_cmp, "all_components"].values)
+            np.vstack(avg_results.loc[avg_results.loc[:, "z_component_id"] == z_cmp, "all_components"].values)
             .flatten()
             .astype(pd.Int64Dtype)
         )
         used_timespan_ids = np.unique(
-            np.vstack(
-                avg_results.loc[avg_results.loc[:, 'z_component_id'] == z_cmp, "timespan_id"].values)
+            np.vstack(avg_results.loc[avg_results.loc[:, "z_component_id"] == z_cmp, "timespan_id"].values)
             .flatten()
             .astype(pd.Int64Dtype)
         )
 
         fetched_soh = AveragedSohGps.query.filter(
-            AveragedSohGps.z_component_id.in_(unique_z_cmp_ids),
-            AveragedSohGps.timespan_id.in_(used_timespan_ids)).all()
+            AveragedSohGps.z_component_id.in_(unique_z_cmp_ids), AveragedSohGps.timespan_id.in_(used_timespan_ids)
+        ).all()
 
         for i, (inserted_soh, component_id) in enumerate(itertools.product(fetched_soh, all_components)):
             if i % (1 + int(command_count / 10)) == 0:
@@ -572,10 +563,7 @@ def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
 
             insert_command = (
                 insert(association_table_averaged_soh_gps_components)
-                .values(
-                    averaged_soh_gps_id=inserted_soh.id,
-                    component_id=component_id
-                )
+                .values(averaged_soh_gps_id=inserted_soh.id, component_id=component_id)
                 .on_conflict_do_nothing()
             )
             insert_commands.append(insert_command)
@@ -585,58 +573,43 @@ def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
             logger.info(f"Inserted already {i}/{command_count} rows")
         db.session.execute(insert_command)
 
-    logger.info('Commiting to db')
+    logger.info("Commiting to db")
     db.session.commit()
-    logger.info('Commit succesfull')
+    logger.info("Commit succesfull")
 
     return
 
 
 @deprecate_with_doc(msg="This function is deprecated. use official API methods.")
-def parse_soh_insert_into_db(
-    station, station_type, saint_illiers_fulldir, single_day, execution_date
-):
+def parse_soh_insert_into_db(station, station_type, saint_illiers_fulldir, single_day, execution_date):
     """
     DEPRECATED. Do not use.
     It's a wrapped just to preserve compatibility with current code.
     """
 
     soh_path = (
-        Path(saint_illiers_fulldir)
-        .joinpath("STI-soh")
-        .joinpath(station)
-        .joinpath(execution_date.strftime("%Y/%m"))
+        Path(saint_illiers_fulldir).joinpath("STI-soh").joinpath(station).joinpath(execution_date.strftime("%Y/%m"))
     )
     if single_day:
         glob_instrument_soh = f"*Instrument*{execution_date.strftime('%Y%m%d')}*.csv"
         soh_files = list(soh_path.rglob(glob_instrument_soh))
 
-        ingest_soh_files(
-            station=station,
-            station_type=station_type,
-            filepaths=soh_files,
-            soh_type='instrument'
-        )
+        ingest_soh_files(station=station, station_type=station_type, filepaths=soh_files, soh_type="instrument")
     else:
-        ingest_soh_files(
-            station=station,
-            station_type=station_type,
-            main_filepath=soh_path,
-            soh_type='instrument'
-        )
+        ingest_soh_files(station=station, station_type=station_type, main_filepath=soh_path, soh_type="instrument")
     return
 
 
 def export_raw_soh_gps_data_to_csv(
-        networks: Optional[Collection[str]] = None,
-        stations: Optional[Collection[str]] = None,
-        starttime: datetime.datetime = datetime.datetime(2000, 1, 1),
-        endtime: datetime.datetime = datetime.datetime(2030, 1, 1),
-        filepath: Optional[Path] = None,
+    networks: Optional[Collection[str]] = None,
+    stations: Optional[Collection[str]] = None,
+    starttime: datetime.datetime = datetime.datetime(2000, 1, 1),
+    endtime: datetime.datetime = datetime.datetime(2030, 1, 1),
+    filepath: Optional[Path] = None,
 ):
     cmps = fetch_components(networks=networks, stations=stations, components=("Z",))
     df = fetch_raw_soh_gps_df(components=cmps, starttime=starttime, endtime=endtime, load_z_component=True)
 
-    df = df.loc[:, ['station', 'datetime', 'time_error', 'time_uncertainty']]
-    df.set_index('datetime', inplace=True)
+    df = df.loc[:, ["station", "datetime", "time_error", "time_uncertainty"]]
+    df.set_index("datetime", inplace=True)
     df.to_csv(path_or_buf=filepath)
