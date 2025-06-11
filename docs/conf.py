@@ -17,19 +17,23 @@
 import os
 import sys
 from datetime import date
+import tomli
+
+# Add the project root directory to the Python path
+sys.path.insert(0, os.path.abspath(".."))
+
+# Read pyproject.toml
+with open("../pyproject.toml", "rb") as f:
+    pyproject = tomli.load(f)
+
+# Get version and authors from pyproject.toml
+version = pyproject["project"]["version"]
+authors = pyproject["project"]["authors"]
+author = ", ".join(a["name"] for a in authors)
 
 file_loc = os.path.split(__file__)[0]
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(file_loc), ".")))
 sys.path.insert(0, os.path.abspath('../src/noiz'))
-
-try:
-    import noiz
-    author = noiz.__author__
-    version = noiz.__version__
-except ImportError:
-    author = "Damian Kula, dkula@unistra.fr"
-    version = f"0.5.{date.today().strftime('%Y%M%D')}"
-
 
 # -- Project information -----------------------------------------------------
 

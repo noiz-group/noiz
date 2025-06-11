@@ -7,7 +7,7 @@
   before_script:
     - uv sync --all-groups
   script:
-    - sphinx-build -M html docs/ docs/_build 
+    - uv run sphinx-build -M html docs/ docs/_build
   artifacts:
     paths:
     - docs/_build/html/
