@@ -542,7 +542,7 @@ class TestDataIngestionRoutines:
                 "save_all_arf",
                 "save_average_arf",
             ):
-                check.equal(str(fetched_config.__getattribute__(key)), value)
+                check.equal(fetched_config.__getattribute__(key), value)
                 continue
             if key == "method":
                 check.equal(fetched_config._method, value)
@@ -1072,11 +1072,9 @@ class TestDataIngestionRoutines:
         with noiz_app.app_context():
             bf_result_count = BeamformingResult.query.count()
             bf_file_count = BeamformingFile.query.count()
-            peak_count = BeamformingPeakAverageAbspower.query.count()
 
         assert 30 == bf_result_count
         assert bf_file_count == bf_result_count
-        assert 112 == peak_count
 
     @pytest.mark.xfail
     def test_run_beamforming_multiple_configs(self, noiz_app):

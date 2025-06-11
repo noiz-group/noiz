@@ -421,13 +421,14 @@ def _generate_datachunk_preparation_inputs(
     processing_config_id: int,
     skip_existing: bool = True,
 ) -> Generator[RunDatachunkPreparationInputs, None, None]:
-    date_period = pendulum.period(startdate, enddate)  # type: ignore
+    date_period = pendulum.Interval(startdate, enddate)  # type: ignore
 
     logger.info("Fetching processing config, timespans and components from db. ")
     processing_params = fetch_datachunkparams_by_id(id=processing_config_id)
 
     all_timespans = [
-        (date, fetch_timespans_for_doy(year=date.year, doy=date.day_of_year)) for date in date_period.range("days")
+        (date, fetch_timespans_for_doy(year=date.year, doy=date.timetuple().tm_yday))
+        for date in date_period.range("days")
     ]
 
     if len(all_timespans) == 0:
