@@ -58,14 +58,14 @@ test-noiz:
 test_build:
   extends: .image_building_parent
   script:
-    - docker build -f docker/noiz-image/Dockerfile --cache-from $LATEST_IMAGE_TAG -t $BRANCH_IMAGE_TAG .
+    - docker build --platform linux/amd64 -f docker/noiz-image/Dockerfile --cache-from $LATEST_IMAGE_TAG -t $BRANCH_IMAGE_TAG .
   after_script:
     - docker push $BRANCH_IMAGE_TAG
 
 latest_build:
   extends: .image_building_parent
   script:
-    - docker build -f docker/noiz-image/Dockerfile -t $LATEST_IMAGE_TAG .
+    - docker build --platform linux/amd64 -f docker/noiz-image/Dockerfile -t $LATEST_IMAGE_TAG .
   after_script:
     - docker push $LATEST_IMAGE_TAG
   rules:
@@ -74,7 +74,7 @@ latest_build:
 stable_build:
   extends: .image_building_parent
   script:
-    - docker build -f docker/noiz-image/Dockerfile -t $LATEST_IMAGE_TAG -t $STABLE_IMAGE_TAG .
+    - docker build --platform linux/amd64 -f docker/noiz-image/Dockerfile -t $LATEST_IMAGE_TAG -t $STABLE_IMAGE_TAG .
   after_script:
     - docker push $LATEST_IMAGE_TAG $STABLE_IMAGE_TAG
   rules:
@@ -83,7 +83,7 @@ stable_build:
 build_postgres:
   extends: .image_building_parent
   script:
-    - docker build -f docker/postgres-image/Dockerfile -t $POSTGRES_IMAGE_TAG .
+    - docker build --platform linux/amd64 -f docker/postgres-image/Dockerfile -t $POSTGRES_IMAGE_TAG .
   after_script:
     - docker push $POSTGRES_IMAGE_TAG
   rules:
