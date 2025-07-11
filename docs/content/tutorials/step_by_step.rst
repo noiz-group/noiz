@@ -455,3 +455,21 @@ Thus, componentpair_cylindrical table will be filled.
 
 .. image:: _images/39_componentpair_cylindrical.PNG
 
+
+The following command has to be run to set the parameters:
+::
+
+    noiz configs add_crosscorrelation_cylindrical_params -f /SDS/param_toml/crosscorrelation_cylindrical_params.toml
+
+This step requires user interaction. He must answer the API question with Y (yes) or N (no).
+
+.. image:: _images/40_crosscorrelation_cylindrical_params.PNG
+
+
+
+To compute the cylindrical cross-correleration according to the selected parameters, the user runs the following command
+::
+
+    noiz processing run_crosscorrelations_cylindrical -sd 2019-10-01 -ed 2019-10-08 -p1 -b25
+
+
