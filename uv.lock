@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = "==3.10.*"
 
 [[package]]
@@ -781,7 +781,7 @@ requires-dist = [
     { name = "pendulum", specifier = "~=3.0" },
     { name = "psycopg2-binary", specifier = "==2.9.2" },
     { name = "pydantic", specifier = "~=1.8" },
-    { name = "scipy", specifier = "==1.15.3" },
+    { name = "scipy", specifier = ">=1.13.0,<2.0" },
     { name = "sqlalchemy", specifier = ">=1.4.0,<2.0" },
     { name = "toml", specifier = ">=0.10.2" },
     { name = "tqdm", specifier = ">=4.62.3" },
