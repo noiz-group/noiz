@@ -40,6 +40,11 @@ sys.path.insert(0, os.path.abspath('../src/noiz'))
 project = "noiz"
 copyright = f"Copyright 2019 -- {date.today().year}, {author}"
 
+# The short X.Y version
+version_parts = version.split('.')
+version_short = f"{version_parts[0]}.{version_parts[1]}"
+
+# The full version, including alpha/beta/rc tags
 release = version
 
 # -- General configuration ---------------------------------------------------
@@ -60,31 +65,21 @@ extensions = [
     'autoapi.extension',
 ]
 
+# -- Options for autoapi extension ------------------------------------------
+
 autoapi_type = 'python'
 autoapi_dirs = ['../src/noiz']
 autoapi_root = "content/autoapi"
 autoapi_keep_files = True
-# autoapi_member_order = 'groupwise'
-# autoapi_python_use_implicit_namespaces = True
-# autoapi_generate_api_docs = True
-# autoapi_add_toctree_entry = True
-#
-#
-# # autodoc_default_options = {
-# #     'private-members': True,
-# # }
-# autodoc_typehints = "description"
-# # autosummary_generate = True
+autoapi_python_use_implicit_namespaces = True
+autoapi_generate_api_docs = True
 
-#To de deleted beginning
-# autoapi_member_order = ''
-autoapi_python_use_implicit_namespaces=True
-autoapi_generate_api_docs=True
+# -- Options for autodoc extension ------------------------------------------
+
 autodoc_default_options = {
     'private-members': True,
 }
 autodoc_typehints = "description"
-#to be deleted end
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -97,18 +92,33 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # -- Options for HTML output -------------------------------------------------
 
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
-
-# html_theme = "pydata_sphinx_theme"
-# html_theme = 'sphinx_rtd_theme'
-# html_theme = 'press'
+# The theme to use for HTML and HTML Help pages.
+# Using Furo theme for modern, clean documentation appearance.
 html_theme = 'furo'
+
+# Theme options for Furo
+html_theme_options = {
+    "source_repository": "https://gitlab.com/noiz-group/noiz",
+    "source_branch": "main",
+    "source_directory": "docs/",
+    "footer_icons": [
+        {
+            "name": "GitLab",
+            "url": "https://gitlab.com/noiz-group/noiz",
+            "html": "",
+            "class": "fa-brands fa-solid fa-gitlab",
+        },
+    ],
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+
+# Additional HTML output options
+html_title = f"{project} {version}"
+html_show_sourcelink = True
 
 # The suffix of source filenames.
 source_suffix = '.rst'

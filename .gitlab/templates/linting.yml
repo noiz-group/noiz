@@ -4,25 +4,30 @@
 
 .linting-parent:
   stage: linting
-
-.ruff-parent:
-  extends: .linting-parent
-  image: ghcr.io/astral-sh/ruff:0.11.13-alpine
+  before_script:
+    - uv tool install rust-just
+    - uv sync --all-groups
 
 type-check:
   extends: .linting-parent
   script:
-    - uv run mypy src/noiz
+    - just mypy
 
 ruff_check:
-  extends: .ruff-parent
+  extends: .linting-parent
   script:
-    - ruff check --output-format=gitlab > code-quality-report.json
+    - just ruff_check_ci
   artifacts:
     reports:
       codequality: $CI_PROJECT_DIR/code-quality-report.json
 
 ruff_format:
-  extends: .ruff-parent
+  extends: .linting-parent
   script:
-    - ruff format --diff
+    - just ruff_format_check
+
+# Disabled temporarily - will be fixed in separate MR
+# doc8_lint:
+#   extends: .linting-parent
+#   script:
+#     - just lint_docs

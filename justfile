@@ -57,16 +57,41 @@ sync:
 mypy:
     uv run mypy --install-types --non-interactive src/noiz
 
+# Check ruff linting and auto-fix issues
 ruff_check:
     uv run ruff check --unsafe-fixes --fix .
+
+# Check ruff linting without fixing (for CI)
+ruff_check_ci:
+    uv run ruff check --output-format=gitlab > code-quality-report.json
+
+# Check ruff format without modifying files (for CI)
+ruff_format_check:
+    uv run ruff format --diff .
 
 ruff_format:
     uv run ruff format .
 
 ruff: ruff_check ruff_format
 
+# Documentation build targets
+
+# Build HTML documentation
 docs:
     uv run sphinx-build -M html docs/ docs/_build
 
+# Build documentation with specific target (html, latexpdf, pdf, etc.)
+docs-build target="html":
+    uv run sphinx-build -M {{target}} docs/ docs/_build
+
+# Clean documentation build artifacts
+docs-clean:
+    rm -rf docs/_build
+
+# Lint documentation with doc8
 lint_docs:
     uv run doc8 docs/content
+
+# Build and open documentation in browser (macOS)
+docs-open: docs
+    open docs/_build/html/index.html

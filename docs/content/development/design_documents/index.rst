@@ -214,6 +214,57 @@ No way to distribute custom processing as separate package.
 
 See: :doc:`plugin_architecture` for complete design
 
+Semantic Commits and Automated Changelog
+=========================================
+
+:doc:`semantic_versioning` - Conventional Commits and automated release management
+
+**Goal**: Standardize commit messages and automate changelog generation for releases
+
+**Key Features**:
+
+* **Conventional Commits**: Standard format for all commits
+* **Automated Changelog**: Generate CHANGELOG.md from commits
+* **Semantic Versioning**: Automatic version bumps based on commit types
+* **Commit Validation**: Pre-commit hooks enforce format
+* **Interactive Tool**: Commitizen for guided commit creation
+
+**Commit Format**:
+
+::
+
+    <type>[optional scope]: <description>
+
+    feat(beamforming): add FK analysis
+    fix(api): correct time window overlap
+    docs(tutorials): add beamforming guide
+
+**Problem Solved**:
+
+Inconsistent commit messages prevent automation.
+Manual changelog maintenance is error-prone and time-consuming.
+Cannot determine semantic version bumps automatically.
+
+**Implementation Phases**:
+
+1. **Setup** (Week 1) - Tool installation and configuration
+2. **Team Training** (Week 1) - Documentation and workshop
+3. **Enforcement** (Week 2) - Gradual rollout with validation
+4. **Automation** (Week 2) - Release workflow integration
+
+**Benefits**:
+
+* Automatic changelog generation
+* Clear commit history
+* Semantic version automation
+* Time savings on releases
+
+**Timeline**: 1-2 weeks
+
+**Priority**: Medium (improves development workflow)
+
+See: :doc:`semantic_versioning` for complete design
+
 Roadmap Integration
 ===================
 
@@ -439,6 +490,7 @@ These design documents provide:
 * Cloud deployment: Review :doc:`s3_storage` for storage options
 * Scientific reproducibility: Review :doc:`config_system` for transferrable configs
 * Platform extensibility: Review :doc:`plugin_architecture` for plugin system
+* Release management: Review :doc:`semantic_versioning` for commit standards
 
 .. toctree::
    :maxdepth: 1
@@ -449,6 +501,7 @@ These design documents provide:
    s3_storage
    config_system
    plugin_architecture
+   semantic_versioning
 
 See Also
 ========
