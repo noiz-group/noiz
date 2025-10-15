@@ -5,9 +5,10 @@
 .build-docs-parent:
   stage: documentation
   before_script:
+    - uv tool install rust-just
     - uv sync --all-groups
   script:
-    - uv run sphinx-build -M html docs/ docs/_build
+    - just docs
   artifacts:
     paths:
     - docs/_build/html/

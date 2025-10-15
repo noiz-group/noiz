@@ -42,9 +42,10 @@ test-noiz:
   image: ghcr.io/astral-sh/uv:python3.10-bookworm
   stage: testing
   before_script:
+    - uv tool install rust-just
     - uv sync --all-groups
   script:
-    - uv run pytest --cov=noiz
+    - just unit_tests
 
 .image_building_parent:
   stage: image-building
@@ -106,7 +107,8 @@ build_postgres:
     PROCESSED_DATA_DIR: /processed-data-dir
     GIT_SUBMODULE_STRATEGY: recursive
   before_script:
-    - uv sync --all-groups
+    - uv tool install rust-just
+    - just sync
     - uv pip install --no-cache-dir -e .
     - mkdir -p $PROCESSED_DATA_DIR
 #    - uv run noiz db init

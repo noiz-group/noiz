@@ -33,22 +33,25 @@ This is a new paragraph.
 
 **Why**: This approach makes version control diffs much cleaner, easier to review changes, and simplifies collaborative editing.
 
-### Design Decisions and Implementation Plans
+### Design Documents and Implementation Plans
 
-**ALL future implementation plans, design decisions, and architectural proposals MUST be created as RST documentation** in `docs/content/development/design_decisions/`.
+**ALL future implementation plans, design documents, and architectural proposals MUST be created as RST documentation** in `docs/content/development/design_documents/`.
 
-**Location**: `docs/content/development/design_decisions/`
+**Location**: `docs/content/development/design_documents/`
 
 **Existing design documents**:
 - `refactoring_roadmap.rst` - Complete refactoring plan (13-17 weeks, Phases 0-5)
 - `architecture.rst` - Code quality and architecture analysis (18-26 weeks roadmap)
 - `s3_storage.rst` - S3-compatible storage implementation (4-week plan)
-- `index.rst` - Design decisions index with integration roadmap
+- `config_system.rst` - Transferrable configuration system (8-10 weeks)
+- `plugin_architecture.rst` - Pluggable module system (16-20 weeks)
+- `semantic_versioning.rst` - Conventional commits and automated changelog (1-2 weeks)
+- `index.rst` - Design documents index with integration roadmap
 
 **When creating new plans or proposals**:
-1. Create a new `.rst` file in `docs/content/development/design_decisions/`
+1. Create a new `.rst` file in `docs/content/development/design_documents/`
 2. Follow the existing document structure (problem statement, proposed solution, implementation plan, etc.)
-3. Add the document to `design_decisions/index.rst` toctree
+3. Add the document to `design_documents/index.rst` toctree
 4. Cross-reference with related documents using `:doc:` directives
 5. Ensure it builds correctly with Sphinx
 
@@ -85,6 +88,9 @@ Required environment variables (see `src/noiz/settings.py`):
 ```bash
 # Install dependencies using uv
 uv sync --all-groups
+
+# Or use just
+just sync
 ```
 
 ### Database Migrations
@@ -94,12 +100,74 @@ uv sync --all-groups
 uv run flask db upgrade
 ```
 
+## Just Command Runner
+
+**This project uses [just](https://github.com/casey/just) as a command runner** to provide consistent commands across local development and CI environments.
+
+### Available Commands
+
+Run `just --list` to see all available commands:
+
+```bash
+just --list
+```
+
+### Common Just Recipes
+
+**Development tasks:**
+```bash
+just sync                # Install/sync dependencies
+just unit_tests          # Run unit tests with coverage
+just mypy                # Run type checking
+```
+
+**Code quality:**
+```bash
+just ruff                # Run ruff check and format (with fixes)
+just ruff_check          # Run ruff linting with auto-fix
+just ruff_format         # Format code with ruff
+```
+
+**CI-specific recipes:**
+```bash
+just ruff_check_ci       # Check linting without fixing (for CI)
+just ruff_format_check   # Check formatting without modifying (for CI)
+```
+
+**Documentation:**
+```bash
+just docs                # Build HTML documentation
+just docs-clean          # Clean documentation build artifacts
+just docs-open           # Build and open docs in browser
+just lint_docs           # Run doc8 linting on docs
+```
+
+**System tests:**
+```bash
+just run_system_tests    # Run full system test suite
+```
+
+### Why Just?
+
+The project uses `just` to:
+- Ensure consistent commands between local development and CI
+- Simplify complex command invocations
+- Provide discoverable, self-documenting commands
+- Reduce "works on my machine" issues
+
+### CI Integration
+
+The GitLab CI pipeline uses the same `just` commands as local development. The CI configuration automatically installs `just` using `uv tool install rust-just` and then executes the same recipes you use locally.
+
 ## Running Tests
 
 ### Basic Test Commands
 
 ```bash
-# Run all tests with coverage
+# Using just (recommended)
+just unit_tests          # Run all tests with coverage
+
+# Or using uv directly
 uv run pytest --cov=noiz
 
 # Run specific test file
@@ -108,6 +176,9 @@ uv run pytest tests/processing/test_configs.py
 # Run tests with specific markers
 uv run pytest --runcli  # Run CLI system tests
 uv run pytest --runapi  # Run API system tests
+
+# Run full system tests
+just run_system_tests
 ```
 
 ### Test Structure
@@ -119,13 +190,17 @@ uv run pytest --runapi  # Run API system tests
 ## Linting and Code Quality
 
 ```bash
-# Run ruff for linting
+# Using just (recommended)
+just ruff                # Run check and format with fixes
+just ruff_check          # Run linting with auto-fix
+just ruff_format         # Format code
+just mypy                # Run type checking
+just lint_docs           # Lint documentation
+
+# Or using uv directly
 uv run ruff check .
-
-# Run ruff with auto-fix
 uv run ruff check --fix .
-
-# Run doc8 for documentation linting
+uv run mypy src/noiz
 uv run doc8 docs/content
 ```
 
@@ -134,7 +209,12 @@ Configuration in `ruff.toml` - line length is 119 characters.
 ## Building Documentation
 
 ```bash
-# Build HTML documentation
+# Using just (recommended)
+just docs                # Build HTML documentation
+just docs-clean          # Clean build artifacts
+just docs-open           # Build and open in browser
+
+# Or using uv directly
 uv run sphinx-build -M html docs/ docs/_build
 ```
 
@@ -226,6 +306,18 @@ GitLab CI configuration in `.gitlab-ci.yml`:
 - Uses `ghcr.io/astral-sh/uv:python3.10-bookworm` as base image
 - Docker images built for linux/amd64 platform
 - Coverage reports generated via pytest-cov
+- **Uses `just` command runner** - CI automatically installs `just` via `uv tool install rust-just` and executes the same recipes used in local development
+
+### CI Command Mapping
+
+The CI uses the following `just` commands:
+- `just unit_tests` - Run unit tests with coverage
+- `just mypy` - Run type checking
+- `just ruff_check_ci` - Check linting (produces GitLab code quality report)
+- `just ruff_format_check` - Check formatting without modifying files
+- `just lint_docs` - Lint documentation with doc8
+- `just docs` - Build HTML documentation
+- `just sync` - Install dependencies
 
 ## Important Notes
 

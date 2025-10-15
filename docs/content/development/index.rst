@@ -20,9 +20,9 @@ including design decisions, refactoring plans, and development standards.
 
 .. toctree::
     :maxdepth: 2
-    :caption: Design Decisions
+    :caption: Design Documents
 
-    design_decisions/index
+    design_documents/index
 
 .. toctree::
     :maxdepth: 1
@@ -62,7 +62,7 @@ Documentation
 All documentation must be in **reStructuredText (RST)** format:
 
 * Public API: Sphinx docstrings in RST
-* Design decisions: ``docs/content/development/design_decisions/``
+* Design documents: ``docs/content/development/design_documents/``
 * Development guides: ``docs/content/development/``
 
 **Important**: Do not use emojis in any documentation.
@@ -105,7 +105,7 @@ Quick Start for New Contributors
 
 4. **Understand Architecture**
 
-   Read :doc:`design_decisions/architecture` to understand the codebase structure.
+   Read :doc:`design_documents/architecture` to understand the codebase structure.
 
 5. **Find an Issue**
 
@@ -208,7 +208,7 @@ Understanding the codebase:
     ├── migrations/            # Database migrations
     └── docker/                # Docker configurations
 
-See :doc:`design_decisions/architecture` for detailed architecture.
+See :doc:`design_documents/architecture` for detailed architecture.
 
 Key Concepts
 ============
@@ -256,7 +256,7 @@ Active Development Work
 Ongoing Refactoring
 -------------------
 
-See :doc:`design_decisions/refactoring_roadmap` for the complete refactoring plan.
+See :doc:`design_documents/refactoring_roadmap` for the complete refactoring plan.
 
 **Priority items:**
 
@@ -269,7 +269,7 @@ See :doc:`design_decisions/refactoring_roadmap` for the complete refactoring pla
 Architecture Improvements
 -------------------------
 
-See :doc:`design_decisions/architecture` for detailed architectural issues.
+See :doc:`design_documents/architecture` for detailed architectural issues.
 
 **Focus areas:**
 
@@ -282,7 +282,7 @@ See :doc:`design_decisions/architecture` for detailed architectural issues.
 S3 Storage Support
 ------------------
 
-See :doc:`design_decisions/s3_storage` for S3-compatible filesystem support.
+See :doc:`design_documents/s3_storage` for S3-compatible filesystem support.
 
 **Goals:**
 
@@ -375,6 +375,6 @@ Start contributing:
 2. Read coding standards: :doc:`coding_standards`
 3. Understand type checking: :doc:`type_checking`
 4. Configure pre-commit hooks: :doc:`pre_commit_hooks`
-5. Review architecture: :doc:`design_decisions/architecture`
+5. Review architecture: :doc:`design_documents/architecture`
 6. Find an issue to work on
 7. Submit your first contribution!
