@@ -111,9 +111,7 @@ build_postgres:
     - just sync
     - uv pip install --no-cache-dir -e .
     - mkdir -p $PROCESSED_DATA_DIR
-#    - uv run noiz db init
-    - uv run noiz db migrate
-    - uv run noiz db upgrade
+    - uv run noiz db upgrade  # Apply existing migrations to database
 #
 #api_system_tests:
 #  extends: .system_test_parent
