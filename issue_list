@@ -1,0 +1,103 @@
+Showing 100 open issues in noiz-group/noiz that match your search. (Page 1)
+
+ID	Title	Labels	Created at
+#302	Add a word-identifiers for the config steps	(Configs)	about 2 years ago
+#301	Draw a tree of all data structures in the Noiz		about 2 years ago
+#300	Add example config files to repo and show them in the docs too	(Documentation)	about 2 years ago
+#299	Extend precommit and linting		about 2 years ago
+#297	Migrate away from current toml lib		about 2 years ago
+#296	Strange number of inserted object in the database.		about 2 years ago
+#295	Datachunks with variable length		about 2 years ago
+#289	PPSDParams class, property .resampled_frequency_vector does not work if resampling is not performed	(Data processing, PSD computation, bug)	about 4 years ago
+#288	Add check if timespans are added when running datachunk creation		about 4 years ago
+#287	Add detailed option description to api		about 4 years ago
+#286	Add taper to PSD calculations together with values for the PSDConfig	(Data processing, Database, Release blocker)	about 4 years ago
+#285	Add hybrid property to QCOneResults that will be returning if the QCOne is valid	(QC1, QC2, refactoring)	about 4 years ago
+#284	Validate QCOneConfig times	(Testing, refactoring)	about 4 years ago
+#283	Add QCOneConfig init	(refactoring)	about 4 years ago
+#282	Remove datachunk_params_id from config of ProcessedDatachunk	(bug, refactoring)	about 4 years ago
+#281	Check if any of the configs still has default values used	(bug)	about 4 years ago
+#280	Fix `..npz` in filenames of ccf files	(Data processing, bug)	about 4 years ago
+#279	Add ability of selecting encoding with which the data are saved for datachunk and processed datachunk	(Data processing, bug, refactoring)	about 4 years ago
+#278	Add chunking of main datachunk query in the datachunk_processing	(Calculation runner, Data processing, refactoring)	about 4 years ago
+#277	Remove lazy loading of the device with Component	(Release blocker, bug)	about 4 years ago
+#276	ValueError when plotting beamforming when no data present	(API, CLI, Visualization, bug)	about 4 years ago
+#275	Adds switches to query just ids of elements to save on queries in all query builders	(API, refactoring)	about 4 years ago
+#274	Add possibility of generating psd resampled freq vector with different np method	(Database, Release blocker)	about 4 years ago
+#273	Explore idea if refactoring cli options with limited values  using enums where values are defined makes sense	(refactoring)	about 4 years ago
+#272	Rename PPSD -> PSD	(Release blocker, refactoring)	about 4 years ago
+#271	FileExists error being thrown for PSD calculations	(bug)	about 4 years ago
+#270	Explore less basic calls to query such as one_or_none	(API, refactoring)	about 4 years ago
+#269	Add lower limit for beamforming minimum trace count to be at least 3		about 4 years ago
+#268	Add validation of subsample starttime differences for datachunk preparation	(API, Data processing, bug)	about 4 years ago
+#267	Add new models to imports in the __init__ of noiz.models	(refactoring)	about 4 years ago
+#266	Fix SOH times not being properly parsed on non UTC systems	(bug)	about 4 years ago
+#265	Add validator for `both values or none`	(refactoring)	about 4 years ago
+#264	Upgrade fetch_datachunks	(API, refactoring)	about 4 years ago
+#263	Unify fetch_config_single vs fetch_config_by_id	(refactoring)	about 4 years ago
+#262	Split CLI definition into pieces	(CLI, refactoring)	about 4 years ago
+#261	Add phase weighted stacking with obspy	(Data processing)	about 4 years ago
+#260	Add test case for datachunk preparation when inventory does not hold response for a channel	(Testing)	about 4 years ago
+#258	Expose `skip_existing` in CLI for datachunk preparation	(CLI, refactoring)	about 4 years ago
+#257	Exception on double file for a day		about 4 years ago
+#256	Redesign datachunk preparation not to be assuming that the files are SDS	(refactoring)	about 4 years ago
+#255	QCTwo cannot be added without rejected times	(bug)	about 4 years ago
+#253	Add default values to BeamformingParams		about 4 years ago
+#252	Figure out how to properly perform upsert when using many-to-many	(Data processing)	about 4 years ago
+#251	Add possibility of skipping errors when using sequential task runner	(Data processing)	about 4 years ago
+#249	Add possibility of creating a dict with all processing parameters chain at once	(API, IO, Internals)	about 4 years ago
+#248	Use validate as pydatetime in noiz.api.timespan.fetch_timespans_between_dates	(refactoring)	about 4 years ago
+#247	Add CLI call to export CCFs	(API, CLI)	about 4 years ago
+#246	Add catching empty result exception during config insertion and reraising it as meaningful message		about 4 years ago
+#245	Add checking if parent of a config with provided ID exists	(API)	about 4 years ago
+#244	Add processing config id on top of folder structure of each saved file tree	(Data processing, Database)	about 4 years ago
+#242	Add method fetch_componentpair_by_id		about 4 years ago
+#241	Rename last instances of datachunk_processing_config to datachunk_params	(refactoring)	about 4 years ago
+#239	Add order_by to all the input preparation queries	(API, refactoring)	about 4 years ago
+#238	Separate selection logic from preparation of ProcessedDatachunk inputs and write tests to it	(Testing, refactoring)	about 4 years ago
+#237	Use location code as additional identifier for the Component objects	(Database, refactoring)	about 4 years ago
+#236	Add chunking of query and offseting for the runner of ProcessedDatachunk	(Database, refactoring)	about 4 years ago
+#235	Fix problem of incremental counter of the end of filename and .npy suffix	(Calculation runner, bug)	about 4 years ago
+#234	Cleanup of legacy ccf table	(Database, refactoring)	about 4 years ago
+#233	Add possibility of skipping existing qcone result entries	(API, CLI, QC1)	about 4 years ago
+#232	Add tests for QCOneConfig variants	(QC1, Testing)	about 4 years ago
+#231	Catch obspy warnings to logger	(Calculation runner, logging)	about 4 years ago
+#230	Think about adding sorting to processing input querries	(Calculation runner, Optimization)	about 4 years ago
+#229	Add a method to cleanup processed_data_dir of data that are not in the db	(Database)	about 4 years ago
+#228	Add a log file for exceptions	(logging)	about 4 years ago
+#227	Add catching exceptions from workers and passing it to logs	(Calculation runner)	about 4 years ago
+#225	Add more logging messages to timespan adder	(logging)	about 4 years ago
+#223	Add to upsert commands for ProcessedDatachunk ProcessedDatachunkFIle	(Database)	about 4 years ago
+#222	Add to upsert commands for Datachunk DatachunkFIle	(Database)	about 4 years ago
+#220	Unify runners for all calculations	(Deployment, refactoring)	about 4 years ago
+#218	Remove strict_gps from api and put it in the QCOneConfig itself	(API, bug)	about 4 years ago
+#217	Fix upserts of all models with Files so the files are also upserted	(Database, bug)	about 4 years ago
+#213	Add stack fetcher	(API, Database)	about 4 years ago
+#212	Unify QCTwo runner api with the rest	(CLI)	about 4 years ago
+#211	Explore adding zsh suggestions	(CLI)	about 4 years ago
+#210	Add help as default option to the CLI	(CLI)	about 4 years ago
+#209	Sometimes there is an issue with sizes of arrays in ccf	(Data processing, bug)	about 4 years ago
+#208	Optimize insert of processed_datachunk to db	(Database, Optimization)	about 4 years ago
+#207	Unify param letter for config id between datachunk and qcone	(CLI, refactoring)	about 4 years ago
+#206	Make qcone runner asyncronous		about 4 years ago
+#202	If any error during parsing of configs, explicitely say what are the keys that are required.	(Documentation)	about 4 years ago
+#200	Cannot add QCOneParams without RejectedTimes	(bug)	about 4 years ago
+#199	Consider posibility of adding casting to certain type array of datachunk	(Data processing, Optimization)	about 4 years ago
+#196	Add catching obspy warnings	(logging)	about 4 years ago
+#193	In cli add_timespans add value to window length and overllap (seconds)	(CLI, refactoring)	about 4 years ago
+#192	Decrease logging level of noiz app init	(logging)	about 4 years ago
+#190	Decrease logging level for component pair calculations	(logging)	about 4 years ago
+#189	Fix upsert command for StackingTimespan	(Database, bug)	about 4 years ago
+#188	Add possibility of using different types of stack than only linear stack for CCF	(Data processing)	about 4 years ago
+#186	Decrease logging level of messages in upserter for qctwo	(refactoring)	about 4 years ago
+#185	Remove else path from `noiz.api.datachunk._select_datachunks_for_processing`	(refactoring)	about 4 years ago
+#184	Add possibility to pass id of config itself in the toml	(API, refactoring)	about 4 years ago
+#183	Make linear version of noiz.api.datachunk.run_stats_calculation, use it in testing	(Testing, refactoring)	about 4 years ago
+#182	Move noiz.models.stacking._validate_timedelta to validation helpers	(refactoring)	about 4 years ago
+#180	Simplify QCOne so It is just being run on all datachunks with given datachunk_params_id	(QC1, refactoring)	about 4 years ago
+#179	Add `accepted_time` field fo upserter for QCOne	(bug)	about 4 years ago
+#178	Add DatachunkParams_id field to QCOneConfig	(bug)	about 4 years ago
+#176	Make noiz.api.stacking._insert_upsert_stacking_timespans_into_db builk_insert resistant to exceptions	(Database, refactoring)	about 4 years ago
+#174	Merge fetchers for different configs by id	(API, refactoring)	about 4 years ago
+#173	Add basic API system tests	(API, Testing)	about 4 years ago
+#172	make noiz.api.crosscorrelations._prepare_inputs_for_crosscorrelating return the full dict for direct ingestion by runner	(refactoring)	about 4 years ago
