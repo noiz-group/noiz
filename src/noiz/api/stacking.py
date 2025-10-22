@@ -4,6 +4,7 @@
 
 import datetime
 import itertools
+import numpy as np
 from loguru import logger
 from sqlalchemy.sql import Insert
 from ulid import ULID
@@ -331,11 +332,14 @@ def _validate_and_stack_ccfs(
     # T075: Generate ULID for CCFStack
     stack_ulid = ULID()
 
+    # Convert numpy array to list for JSON storage (SQLite compatibility)
+    stack_as_list = np.asarray(mean_ccf).tolist()
+
     stack = CCFStack(
         ulid=str(stack_ulid),
         stacking_timespan_id=stacking_timespan.id,
         stacking_schema_id=stacking_schema.id,
-        stack=mean_ccf,
+        stack=stack_as_list,
         componentpair_id=componentpair_cartesian.id,
         no_ccfs=no_ccfs,
         ccfs=list(valid_ccfs),

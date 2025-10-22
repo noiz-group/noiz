@@ -2,8 +2,11 @@
 # Copyright © 2015-2019 EOST UNISTRA, Storengy SAS, Damian Kula
 # Copyright © 2019-2023 Contributors to the Noiz project.
 
-from typing import Union, Collection, Generator, TypedDict
+from typing import Union, Collection, Generator, TypedDict, List, Dict, Any
 import subprocess
+import json
+import tempfile
+from datetime import datetime
 from loguru import logger
 from pathlib import Path
 
@@ -18,10 +21,13 @@ def run_mseedindex_on_passed_dir(
     postgres_db: str,
     filename_pattern: str = "*",
     parallel: bool = True,
-) -> None:
+) -> int:
     """
-    Recursively globs a provided directory in search of files that could be passed to Mseedindex and scanned for
-    seismic data.
+    Processes all miniSEED files with mseedindex in a single bulk operation.
+
+    Uses mseedindex JSON mode to process all files at once, then inserts metadata
+    into raw_data_index table in bulk. This is much more efficient than processing
+    files individually.
 
     :param basedir: Directory to rglob for files
     :type basedir: Union[Path, Collection[Path]]
@@ -29,61 +35,26 @@ def run_mseedindex_on_passed_dir(
     :type current_dir:  Path
     :param mseedindex_executable: Path to mseedindex executable
     :type mseedindex_executable:  str
-    :param postgres_host: Address of PostgreSQL
+    :param postgres_host: Address of PostgreSQL (unused in JSON mode, kept for compatibility)
     :type postgres_host:  str
-    :param postgres_user: Database username
+    :param postgres_user: Database username (unused in JSON mode, kept for compatibility)
     :type postgres_user:  str
-    :param postgres_password: Database password
+    :param postgres_password: Database password (unused in JSON mode, kept for compatibility)
     :type postgres_password:  str
-    :param postgres_db: Name of database in the PostgreSQL
+    :param postgres_db: Name of database in the PostgreSQL (unused in JSON mode, kept for compatibility)
     :type postgres_db:  str
-    :param filename_pattern: Patter to rglob with
+    :param filename_pattern: Pattern to rglob with
     :type filename_pattern:  str
-    :return: None
-    :rtype: NoneType
+    :param parallel: Whether to process files in parallel (unused, kept for compatibility)
+    :type parallel: bool
+    :return: Number of entries inserted
+    :rtype: int
     """
-    # TODO change typing of mseedindex_executable to Path
+    # Import here to avoid circular dependencies
+    from noiz.models.timeseries import Tsindex
+    from noiz.database import db
 
-    inputs_to_process = _mseedindex_input_generator(
-        basedir=basedir,
-        current_dir=current_dir,
-        mseedindex_executable=mseedindex_executable,
-        postgres_host=postgres_host,
-        postgres_user=postgres_user,
-        postgres_password=postgres_password,
-        postgres_db=postgres_db,
-        filename_pattern=filename_pattern,
-    )
-
-    if parallel:
-        import multiprocessing
-
-        p = multiprocessing.Pool(multiprocessing.cpu_count())
-        p.map(_call_mseedindex_to_file_wrapper, inputs_to_process)
-    else:
-        map(_call_mseedindex_to_file_wrapper, inputs_to_process)
-
-
-class MseedIndexRunnerInputs(TypedDict):
-    filepath: Path
-    current_dir: Path
-    mseedindex_executable: str
-    postgres_host: str
-    postgres_user: str
-    postgres_password: str
-    postgres_db: str
-
-
-def _mseedindex_input_generator(
-    basedir: Union[Path, Collection[Path]],
-    current_dir: Path,
-    mseedindex_executable: str,
-    postgres_host: str,
-    postgres_user: str,
-    postgres_password: str,
-    postgres_db: str,
-    filename_pattern: str = "*",
-) -> Generator[MseedIndexRunnerInputs, None, None]:
+    # Collect all file paths
     if isinstance(basedir, Path):
         filepaths = list(basedir.absolute().rglob(filename_pattern))
     elif isinstance(basedir, str):
@@ -94,84 +65,174 @@ def _mseedindex_input_generator(
             dirpath = Path(dirpath)
             filepaths.extend(list(dirpath.absolute().rglob(filename_pattern)))
 
-    for filepath in filepaths:
-        if not filepath.is_file():
-            continue
-        yield MseedIndexRunnerInputs(
-            filepath=filepath,
-            current_dir=current_dir,
-            mseedindex_executable=mseedindex_executable,
-            postgres_host=postgres_host,
-            postgres_user=postgres_user,
-            postgres_password=postgres_password,
-            postgres_db=postgres_db,
-        )
+    # Filter to only files
+    filepaths = [f for f in filepaths if f.is_file()]
 
+    if not filepaths:
+        logger.warning("No files found to index")
+        return 0
 
-def _call_mseedindex_to_file_wrapper(
-    inputs: MseedIndexRunnerInputs,
-):
-    _call_mseedindex_to_file(
-        filepath=inputs["filepath"],
-        current_dir=inputs["current_dir"],
-        mseedindex_executable=inputs["mseedindex_executable"],
-        postgres_host=inputs["postgres_host"],
-        postgres_user=inputs["postgres_user"],
-        postgres_password=inputs["postgres_password"],
-        postgres_db=inputs["postgres_db"],
+    logger.info(f"Found {len(filepaths)} files to index")
+
+    # Process all files in a single mseedindex call
+    all_entries = _call_mseedindex_bulk(
+        filepaths=filepaths,
+        current_dir=current_dir,
+        mseedindex_executable=mseedindex_executable,
     )
 
+    # Bulk insert all entries into database
+    logger.info(f"Inserting {len(all_entries)} entries into raw_data_index table")
 
-def _call_mseedindex_to_file(
-    filepath: Path,
+    # Use bulk insert for better performance
+    if all_entries:
+        db.session.bulk_insert_mappings(Tsindex, all_entries)
+        db.session.commit()
+        logger.info(f"Successfully inserted {len(all_entries)} entries")
+    else:
+        logger.warning("No entries to insert")
+
+    return len(all_entries)
+
+
+def _call_mseedindex_bulk(
+    filepaths: List[Path],
     current_dir: Path,
     mseedindex_executable: str,
-    postgres_host: str,
-    postgres_user: str,
-    postgres_password: str,
-    postgres_db: str,
-):
+) -> List[Dict[str, Any]]:
     """
-    Runs mseedindex with set of provided parameters on a provided file.
+    Runs mseedindex in JSON mode on multiple files at once (bulk operation).
 
-    :param filepath: Filepath to a file that will be passed for scan
-    :type filepath: Path
+    This is much more efficient than processing files individually as it:
+    - Makes a single mseedindex call for all files
+    - Parses one JSON output
+    - Returns all entries for bulk database insertion
+
+    :param filepaths: List of file paths to process
+    :type filepaths: List[Path]
     :param current_dir: Current directory for execution
     :type current_dir:  Path
     :param mseedindex_executable: Path to mseedindex executable
     :type mseedindex_executable:  str
-    :param postgres_host: Address of PostgreSQL
-    :type postgres_host:  str
-    :param postgres_user: Database username
-    :type postgres_user:  str
-    :param postgres_password: Database password
-    :type postgres_password:  str
-    :param postgres_db: Name of database in the PostgreSQL
-    :type postgres_db:  str
-    :return: None
-    :rtype: NoneType
+    :return: List of parsed index entries for all files
+    :rtype: List[Dict[str, Any]]
     """
     try:
-        cmd = [mseedindex_executable]
-        cmd.extend(["-pghost", postgres_host])
-        cmd.extend(["-dbuser", postgres_user])
-        cmd.extend(["-dbpass", postgres_password])
-        cmd.extend(["-dbname", postgres_db])
-        cmd.append("-v")
-        cmd.append(str(filepath))
-        # boolean options have a value of None
-        cmd = [c for c in cmd if c is not None]
-        logger.debug(f"Running mseedindex command for file {filepath}")
-        proc = subprocess.Popen(
-            cmd,
-            cwd=str(current_dir.absolute()),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        out, err = proc.communicate()
+        # Create temporary JSON output file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp_file:
+            json_output_path = tmp_file.name
 
-        for stdout_line in out.splitlines():
-            logger.info(f"mseedindex STDOUT: {stdout_line.strip().decode()}")
-        return (mseedindex_executable, proc.returncode, out.strip(), err.strip())
+        try:
+            cmd = [mseedindex_executable]
+            cmd.extend(["-json", json_output_path])
+            cmd.append("-ns")  # No sync - don't try to connect to database
+            cmd.append("-v")
+
+            # Add all file paths
+            for filepath in filepaths:
+                cmd.append(str(filepath.absolute()))
+
+            logger.debug(f"Running mseedindex command on {len(filepaths)} files")
+            proc = subprocess.Popen(
+                cmd,
+                cwd=str(current_dir.absolute()),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            out, err = proc.communicate()
+
+            if proc.returncode != 0:
+                logger.error(f"mseedindex failed with return code {proc.returncode}")
+                logger.error(f"STDERR: {err.decode()}")
+                return []
+
+            # Parse JSON output
+            with open(json_output_path, "r") as f:
+                json_data = json.load(f)
+
+            # Convert JSON data to database-ready format
+            return _parse_mseedindex_json(json_data)
+
+        finally:
+            # Clean up temporary file
+            Path(json_output_path).unlink(missing_ok=True)
+
     except Exception as err:
+        logger.error(f"Error running command `{mseedindex_executable}` - {err}")
         raise OSError(f"Error running command `{mseedindex_executable}` - {err}") from err
+
+
+def _parse_mseedindex_json(json_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Parse mseedindex JSON output into database-ready format.
+
+    :param json_data: JSON output from mseedindex
+    :type json_data: Dict[str, Any]
+    :return: List of parsed entries for raw_data_index table
+    :rtype: List[Dict[str, Any]]
+    """
+    entries = []
+
+    for file_path, file_data in json_data.items():
+        # file_data contains metadata for one file
+        # file_path is the key (absolute path to the file)
+        for content_entry in file_data.get("content", []):
+            # Parse source_id: "FDSN:TD_TD11_00_C_H_N" -> network, station, location, band, instrument, component
+            source_id = content_entry.get("source_id", "")
+            if source_id.startswith("FDSN:"):
+                source_id = source_id[5:]  # Remove "FDSN:" prefix
+
+            # Split source_id into parts
+            parts = source_id.split("_")
+            if len(parts) >= 6:
+                network = parts[0]
+                station = parts[1]
+                location = parts[2]
+                # Channel is band + instrument + component (e.g., "CHN")
+                channel = parts[3] + parts[4] + parts[5]
+            else:
+                logger.warning(f"Could not parse source_id: {source_id}")
+                continue
+
+            # Convert timestamps from nanoseconds to datetime (UTC)
+            start_ns = content_entry.get("start")
+            end_ns = content_entry.get("end")
+            starttime = datetime.utcfromtimestamp(start_ns / 1e9) if start_ns else None
+            endtime = datetime.utcfromtimestamp(end_ns / 1e9) if end_ns else None
+
+            # Extract sample rate from timespans
+            samplerate = None
+            timespans = content_entry.get("ts_timespans", [])
+            if timespans and len(timespans) > 0:
+                samplerate = timespans[0].get("sample_rate")
+
+            # Parse filemodtime
+            filemodtime_str = file_data.get("path_modtime")
+            filemodtime = datetime.fromisoformat(filemodtime_str.replace("Z", "+00:00")) if filemodtime_str else None
+
+            # Parse updated time
+            updated_str = content_entry.get("updated")
+            updated = datetime.fromisoformat(updated_str.replace("Z", "+00:00")) if updated_str else None
+
+            entry = {
+                "network": network,
+                "station": station,
+                "location": location,
+                "channel": channel,
+                "starttime": starttime,
+                "endtime": endtime,
+                "samplerate": samplerate,
+                "filename": file_path,  # Use the file path from JSON key
+                "quality": None,  # Not in JSON output
+                "version": content_entry.get("publication_version"),
+                "byteoffset": content_entry.get("byte_offset"),
+                "bytes": content_entry.get("byte_count"),
+                "hash": content_entry.get("md5"),
+                "format": file_data.get("content_type"),
+                "filemodtime": filemodtime,
+                "updated": updated,
+                "scanned": datetime.utcnow(),
+            }
+            entries.append(entry)
+
+    return entries

@@ -4,7 +4,6 @@
 from pathlib import Path
 
 from numpy import deprecate_with_doc
-from sqlalchemy.dialects.postgresql import HSTORE, ARRAY, NUMRANGE
 from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_property
 import obspy
@@ -15,28 +14,41 @@ from noiz.processing.miniseed_helpers import _read_single_miniseed
 
 
 class Tsindex(db.Model):
-    __tablename__ = "tsindex"
+    """
+    Seismic data file index.
+
+    Stores metadata about miniSEED files for efficient data location and loading.
+    Populated from mseedindex JSON output (database-agnostic approach).
+    """
+
+    __tablename__ = "raw_data_index"
     id = db.Column("id", db.BigInteger, primary_key=True)
+
+    # Required fields (used by Noiz queries)
     network = db.Column("network", db.UnicodeText, nullable=False)
     station = db.Column("station", db.UnicodeText, nullable=False)
     location = db.Column("location", db.UnicodeText, nullable=False)
     channel = db.Column("channel", db.UnicodeText, nullable=False)
-    quality = db.Column("quality", db.UnicodeText)
-    version = db.Column("version", db.Integer)
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
     samplerate = db.Column("samplerate", db.NUMERIC, nullable=False)
     filename = db.Column("filename", db.UnicodeText, nullable=False)
-    byteoffset = db.Column("byteoffset", db.BigInteger, nullable=False)
+
+    # Optional metadata fields
+    quality = db.Column("quality", db.UnicodeText)
+    version = db.Column("version", db.Integer)
+    byteoffset = db.Column("byteoffset", db.BigInteger)
     bytes = db.Column("bytes", db.BigInteger)
     hash = db.Column("hash", db.UnicodeText)
-    timeindex = db.Column("timeindex", HSTORE)
-    timespans = db.Column("timespans", ARRAY(NUMRANGE))
-    timerates = db.Column("timerates", ARRAY(db.NUMERIC))
     format = db.Column("format", db.UnicodeText)
-    filemodtime = db.Column("filemodtime", db.TIMESTAMP(timezone=True), nullable=False)
-    updated = db.Column("updated", db.TIMESTAMP(timezone=True), nullable=False)
-    scanned = db.Column("scanned", db.TIMESTAMP(timezone=True), nullable=False)
+    filemodtime = db.Column("filemodtime", db.TIMESTAMP(timezone=True))
+    updated = db.Column("updated", db.TIMESTAMP(timezone=True))
+    scanned = db.Column("scanned", db.TIMESTAMP(timezone=True))
+
+    # REMOVED: PostgreSQL-specific types that blocked SQLite
+    # - timeindex (HSTORE) - never used in queries
+    # - timespans (ARRAY(NUMRANGE)) - never used in queries
+    # - timerates (ARRAY(NUMERIC)) - never used in queries
 
     @deprecate_with_doc(msg="This function is deprecated. use load_data instead.")
     def read_file(self) -> obspy.Stream:

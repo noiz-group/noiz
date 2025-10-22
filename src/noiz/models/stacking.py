@@ -6,7 +6,6 @@ import datetime
 import pandas as pd
 from typing import Union, Optional
 from pydantic.dataclasses import dataclass
-from sqlalchemy.dialects.postgresql import ARRAY
 
 from noiz.models.timespan import TimespanMixin
 from noiz.models.mixins import ULIDMixin
@@ -152,7 +151,7 @@ class CCFStack(ULIDMixin, db.Model):
         db.ForeignKey("componentpair_cartesian.id"),
         nullable=False,
     )
-    stack = db.Column("stack", ARRAY(db.Float), nullable=False)
+    stack = db.Column("stack", db.JSON, nullable=False)
     no_ccfs = db.Column("no_ccfs", db.Integer, nullable=False)
 
     ccfs = db.relationship(
