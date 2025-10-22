@@ -6,6 +6,9 @@ import os
 from typing import Optional, Union
 from pathlib import Path
 
+from sqlalchemy.ext.declarative import declared_attr
+from ulid import ULID
+
 from noiz.database import db
 from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models import Component, Timespan, ComponentPairCartesian
@@ -13,6 +16,29 @@ from noiz.models.custom_db_types import PathInDB
 from noiz.processing.path_helpers import directory_exists_or_create, increment_filename_counter
 
 from noiz.models.processing_params import ParamsLike
+
+
+class ULIDMixin:
+    """Mixin to add ULID field to models for parallel processing safety.
+
+    ULIDs (Universally Unique Lexicographically Sortable Identifiers) are generated
+    before database insert, enabling workers to create objects with stable unique
+    identifiers that can be referenced before database commits.
+
+    This fixes the parallel processing data loss bug where foreign key relationships
+    failed because objects were created without IDs.
+    """
+
+    @declared_attr
+    def ulid(cls):
+        """ULID field: 26-character unique identifier.
+
+        Format: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+        - Globally unique (80 bits randomness)
+        - Human-readable (no hyphens)
+        - Lexicographically sortable by creation time
+        """
+        return db.Column(db.String(26), unique=True, nullable=False, default=lambda: str(ULID()))
 
 
 class FileModelMixin(db.Model):

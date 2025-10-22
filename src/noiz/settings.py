@@ -3,11 +3,13 @@
 # Copyright © 2019-2023 Contributors to the Noiz project.
 
 from environs import Env
+from noiz.database_backends import DatabaseBackend
 
 env = Env()
 env.read_env()
 
 FLASK_ENV = env.str("FLASK_ENV", default="development")
+DATABASE_BACKEND = env.str("DATABASE_BACKEND", default=DatabaseBackend.POSTGRESQL.value)
 
 if FLASK_ENV == "development":
     DEBUG = True
@@ -27,13 +29,24 @@ postgres_params_empty = all(
 
 db_uri_empty = SQLALCHEMY_DATABASE_URI in ("", None)
 
-if not postgres_params_empty and db_uri_empty:
-    SQLALCHEMY_DATABASE_URI = (
-        f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
-    )
+# Handle database backend selection
+if DATABASE_BACKEND == DatabaseBackend.SQLITE.value:
+    # SQLite backend - use default path if not specified
+    if db_uri_empty:
+        SQLALCHEMY_DATABASE_URI = "sqlite:///noiz.db"
+elif DATABASE_BACKEND == DatabaseBackend.POSTGRESQL.value:
+    # PostgreSQL backend - existing logic
+    if not postgres_params_empty and db_uri_empty:
+        SQLALCHEMY_DATABASE_URI = (
+            f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+        )
 
-if postgres_params_empty and db_uri_empty:
-    raise ConnectionError("You have to specify either all POSTGRES_ connection variables or a SQLALCHEMY_DATABASE_URI")
+    if postgres_params_empty and db_uri_empty:
+        raise ConnectionError(
+            "You have to specify either all POSTGRES_ connection variables or a SQLALCHEMY_DATABASE_URI"
+        )
+else:
+    raise ValueError(f"Invalid DATABASE_BACKEND: {DATABASE_BACKEND}. Must be 'sqlite' or 'postgresql'.")
 
 PROCESSED_DATA_DIR = env.str("PROCESSED_DATA_DIR", default="")
 if PROCESSED_DATA_DIR == "":
