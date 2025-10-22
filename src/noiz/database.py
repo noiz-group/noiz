@@ -12,9 +12,28 @@ from typing import Type
 
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
 
 db = SQLAlchemy()
 migrate = Migrate()
+
+
+@event.listens_for(Engine, "connect")
+def _configure_sqlite_connection(dbapi_connection, connection_record):
+    """Configure SQLite connections with required PRAGMA settings."""
+    # Only apply to SQLite connections
+    if hasattr(dbapi_connection, "execute"):
+        try:
+            cursor = dbapi_connection.cursor()
+            # Enable foreign key constraints (disabled by default in SQLite)
+            cursor.execute("PRAGMA foreign_keys=ON")
+            # Enable Write-Ahead Logging for better concurrency
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.close()
+        except Exception:
+            # Ignore if not SQLite or if PRAGMAs not supported
+            pass
 
 
 Column = db.Column

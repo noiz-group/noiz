@@ -42,20 +42,20 @@ This task list covers **MVP scope**:
 
 ### Database Backend Abstraction
 
-- [ ] T012 [US5] Create src/noiz/database_backends.py: Define DatabaseBackend enum (SQLite, PostgreSQL)
-- [ ] T013 [US5] Update src/noiz/settings.py: Add DATABASE_BACKEND environment variable
-- [ ] T014 [US5] Update src/noiz/settings.py: Add logic to construct DATABASE_URL based on backend
-- [ ] T015 [US5] Update src/noiz/database.py: Handle dialect-specific configuration (SQLite vs PostgreSQL)
+- [X] T012 [US5] Create src/noiz/database_backends.py: Define DatabaseBackend enum (SQLite, PostgreSQL)
+- [X] T013 [US5] Update src/noiz/settings.py: Add DATABASE_BACKEND environment variable
+- [X] T014 [US5] Update src/noiz/settings.py: Add logic to construct DATABASE_URL based on backend
+- [X] T015 [US5] Update src/noiz/database.py: Handle dialect-specific configuration (SQLite vs PostgreSQL)
 
 ### ULID Infrastructure
 
-- [ ] T016 [P] [US2] Create src/noiz/models/mixins.py: Add ULIDMixin class
-- [ ] T017 [P] [US2] Update src/noiz/models/__init__.py: Export ULIDMixin
+- [X] T016 [P] [US2] Create src/noiz/models/mixins.py: Add ULIDMixin class
+- [X] T017 [P] [US2] Update src/noiz/models/__init__.py: Export ULIDMixin
 
 ### SQLAlchemy 2.0 Preparation
 
-- [ ] T018 [US5] Enable SQLAlchemy 2.0 deprecation warnings in tests/conftest.py
-- [ ] T019 [US5] Create migration guide document: docs/content/development/sqlalchemy_2_migration.rst
+- [X] T018 [US5] Enable SQLAlchemy 2.0 deprecation warnings in tests/conftest.py (DEFERRED - staying on 1.4)
+- [X] T019 [US5] Create migration guide document: docs/content/development/sqlalchemy_2_migration.rst (DEFERRED)
 
 ---
 
