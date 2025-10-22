@@ -1,17 +1,17 @@
-"""Initial migration: baseline schema with all models
+"""baseline_with_ulid_sqlite_compatible
 
-Revision ID: 8c9b2ea10904
+Revision ID: 61bee3b59594
 Revises:
-Create Date: 2025-10-16 07:13:04.486058
+Create Date: 2025-10-21 08:32:41.323312
 
 """
 from alembic import op
 import sqlalchemy as sa
 import noiz
-from sqlalchemy.dialects import postgresql
+
 
 # revision identifiers, used by Alembic.
-revision = '8c9b2ea10904'
+revision = '61bee3b59594'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -22,7 +22,9 @@ def upgrade():
     op.create_table('beamforming_file',
     sa.Column('id', sa.BigInteger(), nullable=False),
     sa.Column('filepath', noiz.models.custom_db_types.PathInDB(), nullable=False),
-    sa.PrimaryKeyConstraint('id')
+    sa.Column('ulid', sa.String(length=26), nullable=False),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('ulid')
     )
     op.create_table('beamforming_peak_all_abspower',
     sa.Column('id', sa.BigInteger(), nullable=False),
@@ -72,17 +74,23 @@ def upgrade():
     op.create_table('crosscorrelation_cartesian_file',
     sa.Column('id', sa.BigInteger(), nullable=False),
     sa.Column('filepath', sa.UnicodeText(), nullable=False),
-    sa.PrimaryKeyConstraint('id')
+    sa.Column('ulid', sa.String(length=26), nullable=False),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('ulid')
     )
     op.create_table('crosscorrelation_cylindrical_file',
     sa.Column('id', sa.BigInteger(), nullable=False),
     sa.Column('filepath', sa.UnicodeText(), nullable=False),
-    sa.PrimaryKeyConstraint('id')
+    sa.Column('ulid', sa.String(length=26), nullable=False),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('ulid')
     )
     op.create_table('datachunk_file',
     sa.Column('id', sa.BigInteger(), nullable=False),
     sa.Column('filepath', sa.UnicodeText(), nullable=False),
-    sa.PrimaryKeyConstraint('id')
+    sa.Column('ulid', sa.String(length=26), nullable=False),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('ulid')
     )
     op.create_table('datachunk_params',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -127,11 +135,36 @@ def upgrade():
     op.create_table('ppsd_file',
     sa.Column('id', sa.BigInteger(), nullable=False),
     sa.Column('filepath', noiz.models.custom_db_types.PathInDB(), nullable=False),
-    sa.PrimaryKeyConstraint('id')
+    sa.Column('ulid', sa.String(length=26), nullable=False),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('ulid')
     )
     op.create_table('processed_datachunk_file',
     sa.Column('id', sa.BigInteger(), nullable=False),
     sa.Column('filepath', sa.UnicodeText(), nullable=False),
+    sa.Column('ulid', sa.String(length=26), nullable=False),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('ulid')
+    )
+    op.create_table('raw_data_index',
+    sa.Column('id', sa.BigInteger(), nullable=False),
+    sa.Column('network', sa.UnicodeText(), nullable=False),
+    sa.Column('station', sa.UnicodeText(), nullable=False),
+    sa.Column('location', sa.UnicodeText(), nullable=False),
+    sa.Column('channel', sa.UnicodeText(), nullable=False),
+    sa.Column('starttime', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('endtime', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('samplerate', sa.NUMERIC(), nullable=False),
+    sa.Column('filename', sa.UnicodeText(), nullable=False),
+    sa.Column('quality', sa.UnicodeText(), nullable=True),
+    sa.Column('version', sa.Integer(), nullable=True),
+    sa.Column('byteoffset', sa.BigInteger(), nullable=True),
+    sa.Column('bytes', sa.BigInteger(), nullable=True),
+    sa.Column('hash', sa.UnicodeText(), nullable=True),
+    sa.Column('format', sa.UnicodeText(), nullable=True),
+    sa.Column('filemodtime', sa.TIMESTAMP(timezone=True), nullable=True),
+    sa.Column('updated', sa.TIMESTAMP(timezone=True), nullable=True),
+    sa.Column('scanned', sa.TIMESTAMP(timezone=True), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('timespan',
@@ -144,30 +177,6 @@ def upgrade():
     sa.UniqueConstraint('midtime', name='unique_midtime'),
     sa.UniqueConstraint('starttime', 'midtime', 'endtime', name='unique_times'),
     sa.UniqueConstraint('starttime', name='unique_starttime')
-    )
-    op.create_table('tsindex',
-    sa.Column('id', sa.BigInteger(), nullable=False),
-    sa.Column('network', sa.UnicodeText(), nullable=False),
-    sa.Column('station', sa.UnicodeText(), nullable=False),
-    sa.Column('location', sa.UnicodeText(), nullable=False),
-    sa.Column('channel', sa.UnicodeText(), nullable=False),
-    sa.Column('quality', sa.UnicodeText(), nullable=True),
-    sa.Column('version', sa.Integer(), nullable=True),
-    sa.Column('starttime', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('endtime', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('samplerate', sa.NUMERIC(), nullable=False),
-    sa.Column('filename', sa.UnicodeText(), nullable=False),
-    sa.Column('byteoffset', sa.BigInteger(), nullable=False),
-    sa.Column('bytes', sa.BigInteger(), nullable=True),
-    sa.Column('hash', sa.UnicodeText(), nullable=True),
-    sa.Column('timeindex', postgresql.HSTORE(text_type=sa.Text()), nullable=True),
-    sa.Column('timespans', postgresql.ARRAY(postgresql.NUMRANGE()), nullable=True),
-    sa.Column('timerates', postgresql.ARRAY(sa.NUMERIC()), nullable=True),
-    sa.Column('format', sa.UnicodeText(), nullable=True),
-    sa.Column('filemodtime', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('updated', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('scanned', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.PrimaryKeyConstraint('id')
     )
     op.create_table('component',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -372,14 +381,18 @@ def upgrade():
     sa.Column('npts', sa.Integer(), nullable=False),
     sa.Column('padded_npts', sa.Integer(), nullable=True),
     sa.Column('datachunk_file_id', sa.BigInteger(), nullable=True),
+    sa.Column('file_ulid', sa.String(length=26), nullable=True),
     sa.Column('device_id', sa.Integer(), nullable=True),
+    sa.Column('ulid', sa.String(length=26), nullable=False),
     sa.ForeignKeyConstraint(['component_id'], ['component.id'], ),
     sa.ForeignKeyConstraint(['datachunk_file_id'], ['datachunk_file.id'], ),
     sa.ForeignKeyConstraint(['datachunk_params_id'], ['datachunk_params.id'], ),
     sa.ForeignKeyConstraint(['device_id'], ['device.id'], ),
+    sa.ForeignKeyConstraint(['file_ulid'], ['datachunk_file.ulid'], ),
     sa.ForeignKeyConstraint(['timespan_id'], ['timespan.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('timespan_id', 'component_id', 'datachunk_params_id', name='unique_datachunk_per_timespan_per_station_per_processing')
+    sa.UniqueConstraint('timespan_id', 'component_id', 'datachunk_params_id', name='unique_datachunk_per_timespan_per_station_per_processing'),
+    sa.UniqueConstraint('ulid')
     )
     op.create_table('event_confirmation_params',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -463,11 +476,15 @@ def upgrade():
     sa.Column('timespan_id', sa.Integer(), nullable=False),
     sa.Column('used_component_count', sa.Integer(), nullable=False),
     sa.Column('beamforming_file_id', sa.BigInteger(), nullable=True),
+    sa.Column('file_ulid', sa.String(length=26), nullable=True),
+    sa.Column('ulid', sa.String(length=26), nullable=False),
     sa.ForeignKeyConstraint(['beamforming_file_id'], ['beamforming_file.id'], ),
     sa.ForeignKeyConstraint(['beamforming_params_id'], ['beamforming_params.id'], ),
+    sa.ForeignKeyConstraint(['file_ulid'], ['beamforming_file.ulid'], ),
     sa.ForeignKeyConstraint(['timespan_id'], ['timespan.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('timespan_id', 'beamforming_params_id', name='unique_beam_per_config_per_timespan')
+    sa.UniqueConstraint('timespan_id', 'beamforming_params_id', name='unique_beam_per_config_per_timespan'),
+    sa.UniqueConstraint('ulid')
     )
     op.create_table('crosscorrelation_cartesian_params',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -525,23 +542,31 @@ def upgrade():
     sa.Column('timespan_id', sa.Integer(), nullable=False),
     sa.Column('datachunk_id', sa.Integer(), nullable=False),
     sa.Column('ppsd_file_id', sa.BigInteger(), nullable=True),
+    sa.Column('file_ulid', sa.String(length=26), nullable=True),
+    sa.Column('ulid', sa.String(length=26), nullable=False),
     sa.ForeignKeyConstraint(['datachunk_id'], ['datachunk.id'], ),
+    sa.ForeignKeyConstraint(['file_ulid'], ['ppsd_file.ulid'], ),
     sa.ForeignKeyConstraint(['ppsd_file_id'], ['ppsd_file.id'], ),
     sa.ForeignKeyConstraint(['ppsd_params_id'], ['ppsd_params.id'], ),
     sa.ForeignKeyConstraint(['timespan_id'], ['timespan.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('datachunk_id', 'ppsd_params_id', name='unique_ppsd_per_config_per_datachunk')
+    sa.UniqueConstraint('datachunk_id', 'ppsd_params_id', name='unique_ppsd_per_config_per_datachunk'),
+    sa.UniqueConstraint('ulid')
     )
     op.create_table('processeddatachunk',
     sa.Column('id', sa.BigInteger(), nullable=False),
     sa.Column('processed_datachunk_params_id', sa.Integer(), nullable=False),
     sa.Column('datachunk_id', sa.Integer(), nullable=False),
     sa.Column('processed_datachunk_file_id', sa.BigInteger(), nullable=True),
+    sa.Column('file_ulid', sa.String(length=26), nullable=True),
+    sa.Column('ulid', sa.String(length=26), nullable=False),
     sa.ForeignKeyConstraint(['datachunk_id'], ['datachunk.id'], ),
+    sa.ForeignKeyConstraint(['file_ulid'], ['processed_datachunk_file.ulid'], ),
     sa.ForeignKeyConstraint(['processed_datachunk_file_id'], ['processed_datachunk_file.id'], ),
     sa.ForeignKeyConstraint(['processed_datachunk_params_id'], ['processed_datachunk_params.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('datachunk_id', 'processed_datachunk_params_id', name='unique_processing_per_datachunk_per_config')
+    sa.UniqueConstraint('datachunk_id', 'processed_datachunk_params_id', name='unique_processing_per_datachunk_per_config'),
+    sa.UniqueConstraint('ulid')
     )
     op.create_table('qcone_results',
     sa.Column('id', sa.BigInteger(), nullable=False),
@@ -635,12 +660,16 @@ def upgrade():
     sa.Column('timespan_id', sa.BigInteger(), nullable=False),
     sa.Column('crosscorrelation_cartesian_params_id', sa.Integer(), nullable=False),
     sa.Column('crosscorrelation_cartesian_file_id', sa.BigInteger(), nullable=True),
+    sa.Column('file_ulid', sa.String(length=26), nullable=True),
+    sa.Column('ulid', sa.String(length=26), nullable=False),
     sa.ForeignKeyConstraint(['componentpair_id'], ['componentpair_cartesian.id'], ),
     sa.ForeignKeyConstraint(['crosscorrelation_cartesian_file_id'], ['crosscorrelation_cartesian_file.id'], ),
     sa.ForeignKeyConstraint(['crosscorrelation_cartesian_params_id'], ['crosscorrelation_cartesian_params.id'], ),
+    sa.ForeignKeyConstraint(['file_ulid'], ['crosscorrelation_cartesian_file.ulid'], ),
     sa.ForeignKeyConstraint(['timespan_id'], ['timespan.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('timespan_id', 'componentpair_id', 'crosscorrelation_cartesian_params_id', name='unique_ccfn_per_timespan_per_componentpair_per_config')
+    sa.UniqueConstraint('timespan_id', 'componentpair_id', 'crosscorrelation_cartesian_params_id', name='unique_ccfn_per_timespan_per_componentpair_per_config'),
+    sa.UniqueConstraint('ulid')
     )
     op.create_table('crosscorrelation_cylindrical_params',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -696,6 +725,8 @@ def upgrade():
     sa.Column('crosscorrelation_cartesian_4_code_pair', sa.UnicodeText(), nullable=True),
     sa.Column('crosscorrelation_cylindrical_params_id', sa.Integer(), nullable=False),
     sa.Column('crosscorrelation_cylindrical_file_id', sa.BigInteger(), nullable=True),
+    sa.Column('file_ulid', sa.String(length=26), nullable=True),
+    sa.Column('ulid', sa.String(length=26), nullable=False),
     sa.ForeignKeyConstraint(['componentpair_cylindrical_id'], ['componentpair_cylindrical.id'], ),
     sa.ForeignKeyConstraint(['crosscorrelation_cartesian_1_id'], ['crosscorrelation_cartesian.id'], ),
     sa.ForeignKeyConstraint(['crosscorrelation_cartesian_2_id'], ['crosscorrelation_cartesian.id'], ),
@@ -703,9 +734,11 @@ def upgrade():
     sa.ForeignKeyConstraint(['crosscorrelation_cartesian_4_id'], ['crosscorrelation_cartesian.id'], ),
     sa.ForeignKeyConstraint(['crosscorrelation_cylindrical_file_id'], ['crosscorrelation_cylindrical_file.id'], ),
     sa.ForeignKeyConstraint(['crosscorrelation_cylindrical_params_id'], ['crosscorrelation_cylindrical_params.id'], ),
+    sa.ForeignKeyConstraint(['file_ulid'], ['crosscorrelation_cylindrical_file.ulid'], ),
     sa.ForeignKeyConstraint(['timespan_id'], ['timespan.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('timespan_id', 'componentpair_cylindrical_id', 'crosscorrelation_cylindrical_params_id', name='unique_ccfcylindrical_per_timespan_cylindrical_per_config')
+    sa.UniqueConstraint('timespan_id', 'componentpair_cylindrical_id', 'crosscorrelation_cylindrical_params_id', name='unique_ccfcylindrical_per_timespan_cylindrical_per_config'),
+    sa.UniqueConstraint('ulid')
     )
     op.create_table('event_confirmation_result_association_event_detection_result',
     sa.Column('event_confirmation_result_id', sa.BigInteger(), nullable=True),
@@ -767,13 +800,15 @@ def upgrade():
     sa.Column('stacking_timespan_id', sa.BigInteger(), nullable=False),
     sa.Column('stacking_schema_id', sa.Integer(), nullable=False),
     sa.Column('componentpair_id', sa.Integer(), nullable=False),
-    sa.Column('stack', postgresql.ARRAY(sa.Float()), nullable=False),
+    sa.Column('stack', sa.JSON(), nullable=False),
     sa.Column('no_ccfs', sa.Integer(), nullable=False),
+    sa.Column('ulid', sa.String(length=26), nullable=False),
     sa.ForeignKeyConstraint(['componentpair_id'], ['componentpair_cartesian.id'], ),
     sa.ForeignKeyConstraint(['stacking_schema_id'], ['stacking_schema.id'], ),
     sa.ForeignKeyConstraint(['stacking_timespan_id'], ['stacking_timespan.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('stacking_timespan_id', 'stacking_schema_id', 'componentpair_id', name='unique_stack_per_pair_per_config')
+    sa.UniqueConstraint('stacking_timespan_id', 'stacking_schema_id', 'componentpair_id', name='unique_stack_per_pair_per_config'),
+    sa.UniqueConstraint('ulid')
     )
     op.create_table('stacking_association',
     sa.Column('crosscorrelation_cartesian_id', sa.BigInteger(), nullable=True),
@@ -830,8 +865,8 @@ def downgrade():
     op.drop_table('ppsd_params')
     op.drop_table('event_detection_params')
     op.drop_table('component')
-    op.drop_table('tsindex')
     op.drop_table('timespan')
+    op.drop_table('raw_data_index')
     op.drop_table('processed_datachunk_file')
     op.drop_table('ppsd_file')
     op.drop_table('event_detection_file')

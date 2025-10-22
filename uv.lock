@@ -654,6 +654,24 @@ wheels = [
 ]
 
 [[package]]
+name = "mseedindex"
+version = "3.0.8"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/cd/44/7db3ef5af00935a96ea492a5d7bd6917eec93c68bfb4442a9bf7a290ccb5/mseedindex-3.0.8.tar.gz", hash = "sha256:30255cff7a7619a2942b521db7701e2842c969aa1a08e52ee448973702ce89e0", size = 2886592, upload-time = "2025-08-22T23:24:28.071Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/27/04/42e26b0a501b79804438ca8c2ba05040d7835e766a7d9e46a12c0c346ebb/mseedindex-3.0.8-py3-none-macosx_13_0_x86_64.whl", hash = "sha256:8633dcef95dc3e917b6c15ab208d55111bd61f34b7d81428cff195d7e9bb3e8e", size = 827438, upload-time = "2025-08-22T23:24:09.359Z" },
+    { url = "https://files.pythonhosted.org/packages/c6/35/4ad146cfcf83d2a2a15b56e4185343b5098292b96b72ff764110a3961cfe/mseedindex-3.0.8-py3-none-macosx_14_0_arm64.whl", hash = "sha256:14b507671891926e609e64f006af3fa891636205f2daaafe6206fe343ae89b01", size = 769251, upload-time = "2025-08-22T23:24:11.338Z" },
+    { url = "https://files.pythonhosted.org/packages/77/0c/737048e0ba311a50729a9cf3d632ac044912862f1f5546fc0d18854e05ea/mseedindex-3.0.8-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4efca59d922065aba951175288d4dace45c2c25a5fac75d262d7661eb7a58005", size = 783015, upload-time = "2025-08-22T23:24:13.301Z" },
+    { url = "https://files.pythonhosted.org/packages/1c/0a/0c7c233bbd6bf53a5d80bf663eeb8d8b41dd5aa6c37145fb0f5a8ca22fd5/mseedindex-3.0.8-py3-none-manylinux_2_17_i686.manylinux_2_12_i686.manylinux2010_i686.manylinux2014_i686.whl", hash = "sha256:51a61e9d6d16878cb4f581860383364553e98b572fed84fe9d36946371c5a6dd", size = 837559, upload-time = "2025-08-22T23:24:15.095Z" },
+    { url = "https://files.pythonhosted.org/packages/d0/91/8c4fd3a720a693f477a28754002a6de290e54bd17c74e30b09c0b877e5d4/mseedindex-3.0.8-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:60e784b6f051a45b3c742e943dc89b32b0ad7b6a4c9bf1ec49f91640dff5d149", size = 777776, upload-time = "2025-08-22T23:24:16.87Z" },
+    { url = "https://files.pythonhosted.org/packages/d9/c2/8d872ab884bc4ca1cb9590d80dea43cd0ec943432b1055dd9fd26a459bb0/mseedindex-3.0.8-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:f6e321113d84905a5f459c1a06813c6761d6e96127210c56f088f14f633766f1", size = 813896, upload-time = "2025-08-22T23:24:18.9Z" },
+    { url = "https://files.pythonhosted.org/packages/f5/df/b21882f27ac32eb440e8b2faa303e3dfabf42fc36060408e9961f9789ce1/mseedindex-3.0.8-py3-none-musllinux_1_2_i686.whl", hash = "sha256:e13e5abd15a5ae34b31c9342c5f6955453d83959470312d58bb65d6e41957666", size = 902798, upload-time = "2025-08-22T23:24:20.726Z" },
+    { url = "https://files.pythonhosted.org/packages/b2/21/4a0a16ab8fdcbf48a00440a47c6397f9d774346ecfd5509870c1cfb9a6fd/mseedindex-3.0.8-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:63190fe59b6ac2812754ef2f13b1bfb658ff42f4a4a46724f08565f91ae966c1", size = 817252, upload-time = "2025-08-22T23:24:22.162Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/9a/ea3018125609e8db4fb933adef70d038d67cb00dbe2d465a75cd51585a40/mseedindex-3.0.8-py3-none-win32.whl", hash = "sha256:3471faaf505608268df8c2dce23b4b48fb9c646d06a677aa61ec0f6fd3871fc0", size = 692607, upload-time = "2025-08-22T23:24:23.961Z" },
+    { url = "https://files.pythonhosted.org/packages/ad/31/7a38ed19d0fae82b35363ecdba62f2d8846adcbec44adedf49757d0f685d/mseedindex-3.0.8-py3-none-win_amd64.whl", hash = "sha256:28ca8795550e7a08716e65de3d6eb4930bab1b5d37b922547635fc943c9b7374", size = 692611, upload-time = "2025-08-22T23:24:26.049Z" },
+]
+
+[[package]]
 name = "msgpack"
 version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -721,6 +739,7 @@ dependencies = [
     { name = "loguru" },
     { name = "matplotlib" },
     { name = "more-itertools" },
+    { name = "mseedindex" },
     { name = "numpy" },
     { name = "obspy" },
     { name = "pandas" },
@@ -776,6 +795,7 @@ requires-dist = [
     { name = "loguru", specifier = ">=0.5.3" },
     { name = "matplotlib", specifier = "==3.5.0" },
     { name = "more-itertools", specifier = ">=8.11" },
+    { name = "mseedindex", specifier = ">=3.0.8" },
     { name = "numpy", specifier = "==1.23.5" },
     { name = "obspy", specifier = "==1.4.2" },
     { name = "pandas", specifier = "==1.3.4" },
