@@ -9,7 +9,7 @@ from noiz.database import db
 from noiz.exceptions import MissingDataFileException
 from noiz.globals import ExtendedEnum
 from noiz.models import Timespan, BeamformingParams, FileModelMixin
-from noiz.models.mixins import BeamformingPeakExtractMixin
+from noiz.models.mixins import BeamformingPeakExtractMixin, ULIDMixin
 
 import numpy as np
 
@@ -21,9 +21,10 @@ class BeamformingResultType(ExtendedEnum):
     ALLRELPOWER = "all_relpower"
 
 
-class BeamformingFile(FileModelMixin):
+class BeamformingFile(ULIDMixin, FileModelMixin):
     __tablename__ = "beamforming_file"
 
+    # ulid field from ULIDMixin
     _file_model_type: str = "beamforming"
     _filename_extension: str = "npz"
 
@@ -82,12 +83,13 @@ association_table_beamforming_result_all_relpower = db.Table(
 )
 
 
-class BeamformingResult(db.Model):
+class BeamformingResult(ULIDMixin, db.Model):
     __tablename__ = "beamforming_result"
     __table_args__ = (
         db.UniqueConstraint("timespan_id", "beamforming_params_id", name="unique_beam_per_config_per_timespan"),
     )
     id = db.Column("id", db.Integer, primary_key=True)
+    # ulid field from ULIDMixin
     beamforming_params_id = db.Column(
         "beamforming_params_id",
         db.Integer,
@@ -102,6 +104,12 @@ class BeamformingResult(db.Model):
         "beamforming_file_id",
         db.BigInteger,
         db.ForeignKey("beamforming_file.id"),
+        nullable=True,
+    )
+    file_ulid = db.Column(
+        "file_ulid",
+        db.String(26),
+        db.ForeignKey("beamforming_file.ulid"),
         nullable=True,
     )
 

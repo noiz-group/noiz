@@ -6,6 +6,7 @@ import datetime
 import itertools
 from loguru import logger
 from sqlalchemy.sql import Insert
+from ulid import ULID
 
 from noiz.api.helpers import _run_calculate_and_upsert_on_dask, _run_calculate_and_upsert_sequentially
 from noiz.models.type_aliases import StackingInputs
@@ -327,7 +328,11 @@ def _validate_and_stack_ccfs(
     logger.debug(f"Calculating linear stack for {componentpair_cartesian} {stacking_schema} {stacking_timespan}")
     mean_ccf = do_linear_stack_of_crosscorrelations_cartesian(ccfs=valid_ccfs)
 
+    # T075: Generate ULID for CCFStack
+    stack_ulid = ULID()
+
     stack = CCFStack(
+        ulid=str(stack_ulid),
         stacking_timespan_id=stacking_timespan.id,
         stacking_schema_id=stacking_schema.id,
         stack=mean_ccf,
@@ -371,9 +376,11 @@ def _generate_ccfstack_upsert_command(stack: CCFStack) -> Insert:
     :rtype: Generator[insert_type, None, None]
     """
 
+    # T083: Update upsert to include ULID
     insert_command = (
         insert(CCFStack)
         .values(
+            ulid=stack.ulid,
             stacking_timespan_id=stack.stacking_timespan_id,
             stacking_schema_id=stack.stacking_schema_id,
             componentpair_id=stack.componentpair_id,

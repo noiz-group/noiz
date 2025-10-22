@@ -11,6 +11,7 @@ from pathlib import Path
 from scipy import interpolate
 from scipy.fft import fft
 from typing import Tuple, List, Union, Optional, Collection
+from ulid import ULID
 
 from noiz.models.type_aliases import PPSDRunnerInputs
 from noiz.models.ppsd import GroupedPSDs, GroupedAvgPSDs
@@ -105,7 +106,11 @@ def calculate_ppsd(
     )[0]
     accepted_windows = all_ffts[acc_windows_by_energy, :]
 
-    psd_file = PPSDFile()
+    # T074: Generate ULIDs
+    file_ulid = ULID()
+    result_ulid = ULID()
+
+    psd_file = PPSDFile(ulid=str(file_ulid))
     psd_file.find_empty_filepath(
         cmp=component,
         ts=timespan,
@@ -121,10 +126,12 @@ def calculate_ppsd(
     )
 
     ret = PPSDResult(
+        ulid=str(result_ulid),
         ppsd_params_id=ppsd_params.id,
         timespan_id=timespan.id,
         datachunk_id=datachunk.id,
         file=psd_file,
+        file_ulid=str(file_ulid),
     )
     return ret
 

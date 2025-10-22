@@ -7,16 +7,18 @@ from typing import Optional
 
 from noiz.database import db
 from noiz.exceptions import MissingDataFileException
+from noiz.models.mixins import ULIDMixin
 from noiz.models.stacking import ccf_ccfstack_association_table
 
 
-class CrosscorrelationCartesianFile(db.Model):
+class CrosscorrelationCartesianFile(ULIDMixin, db.Model):
     __tablename__ = "crosscorrelation_cartesian_file"
     id = db.Column("id", db.BigInteger, primary_key=True)
+    # ulid field from ULIDMixin
     filepath = db.Column("filepath", db.UnicodeText, nullable=False)
 
 
-class CrosscorrelationCartesian(db.Model):
+class CrosscorrelationCartesian(ULIDMixin, db.Model):
     __tablename__ = "crosscorrelation_cartesian"
     __table_args__ = (
         db.UniqueConstraint(
@@ -28,6 +30,7 @@ class CrosscorrelationCartesian(db.Model):
     )
 
     id = db.Column("id", db.BigInteger, primary_key=True)
+    # ulid field from ULIDMixin
     componentpair_id = db.Column(
         "componentpair_id",
         db.Integer,
@@ -46,6 +49,12 @@ class CrosscorrelationCartesian(db.Model):
         "crosscorrelation_cartesian_file_id",
         db.BigInteger,
         db.ForeignKey("crosscorrelation_cartesian_file.id"),
+        nullable=True,
+    )
+    file_ulid = db.Column(
+        "file_ulid",
+        db.String(26),
+        db.ForeignKey("crosscorrelation_cartesian_file.ulid"),
         nullable=True,
     )
 
@@ -90,14 +99,15 @@ class CrosscorrelationCartesian(db.Model):
         return self.load_data()
 
 
-class CrosscorrelationCylindricalFile(db.Model):
+class CrosscorrelationCylindricalFile(ULIDMixin, db.Model):
     __tablename__ = "crosscorrelation_cylindrical_file"
 
     id = db.Column("id", db.BigInteger, primary_key=True)
+    # ulid field from ULIDMixin
     filepath = db.Column("filepath", db.UnicodeText, nullable=False)
 
 
-class CrosscorrelationCylindrical(db.Model):
+class CrosscorrelationCylindrical(ULIDMixin, db.Model):
     __tablename__ = "crosscorrelation_cylindrical"
     __table_args__ = (
         db.UniqueConstraint(
@@ -109,6 +119,7 @@ class CrosscorrelationCylindrical(db.Model):
     )
 
     id = db.Column("id", db.BigInteger, primary_key=True)
+    # ulid field from ULIDMixin
     componentpair_cylindrical_id = db.Column(
         "componentpair_cylindrical_id",
         db.Integer,
@@ -162,6 +173,12 @@ class CrosscorrelationCylindrical(db.Model):
         "crosscorrelation_cylindrical_file_id",
         db.BigInteger,
         db.ForeignKey("crosscorrelation_cylindrical_file.id"),
+        nullable=True,
+    )
+    file_ulid = db.Column(
+        "file_ulid",
+        db.String(26),
+        db.ForeignKey("crosscorrelation_cylindrical_file.ulid"),
         nullable=True,
     )
 

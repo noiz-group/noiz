@@ -9,6 +9,7 @@ from pydantic.dataclasses import dataclass
 from sqlalchemy.dialects.postgresql import ARRAY
 
 from noiz.models.timespan import TimespanMixin
+from noiz.models.mixins import ULIDMixin
 from noiz.database import db
 from noiz.processing.time_utils import calculate_window_step_or_overlap
 from noiz.validation_helpers import validate_as_pytimedelta_or_none
@@ -123,7 +124,7 @@ ccf_ccfstack_association_table = db.Table(
 )
 
 
-class CCFStack(db.Model):
+class CCFStack(ULIDMixin, db.Model):
     __tablename__ = "ccfstack"
     __table_args__ = (
         db.UniqueConstraint(
@@ -132,6 +133,7 @@ class CCFStack(db.Model):
     )
 
     id = db.Column("id", db.BigInteger, primary_key=True)
+    # ulid field from ULIDMixin
     stacking_timespan_id = db.Column(
         "stacking_timespan_id",
         db.BigInteger,

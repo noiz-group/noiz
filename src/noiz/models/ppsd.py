@@ -11,12 +11,13 @@ from pathlib import Path
 from noiz.database import db
 from noiz.exceptions import MissingDataFileException
 from noiz.models import Timespan, Component, PPSDParams
-from noiz.models.mixins import FileModelMixin
+from noiz.models.mixins import FileModelMixin, ULIDMixin
 
 
-class PPSDFile(FileModelMixin):
+class PPSDFile(ULIDMixin, FileModelMixin):
     __tablename__ = "ppsd_file"
 
+    # ulid field from ULIDMixin
     _file_model_type: str = "psd"
     _filename_extension: str = "npz"
 
@@ -26,12 +27,13 @@ class PPSDFile(FileModelMixin):
         return self.filepath
 
 
-class PPSDResult(db.Model):
+class PPSDResult(ULIDMixin, db.Model):
     __tablename__ = "ppsd_result"
     __table_args__ = (
         db.UniqueConstraint("datachunk_id", "ppsd_params_id", name="unique_ppsd_per_config_per_datachunk"),
     )
     id = db.Column("id", db.Integer, primary_key=True)
+    # ulid field from ULIDMixin
     ppsd_params_id = db.Column("ppsd_params_id", db.Integer, db.ForeignKey("ppsd_params.id"), nullable=False)
     timespan_id = db.Column("timespan_id", db.Integer, db.ForeignKey("timespan.id"), nullable=False)
     datachunk_id = db.Column("datachunk_id", db.Integer, db.ForeignKey("datachunk.id"), nullable=False)
@@ -40,6 +42,12 @@ class PPSDResult(db.Model):
         "ppsd_file_id",
         db.BigInteger,
         db.ForeignKey("ppsd_file.id"),
+        nullable=True,
+    )
+    file_ulid = db.Column(
+        "file_ulid",
+        db.String(26),
+        db.ForeignKey("ppsd_file.ulid"),
         nullable=True,
     )
 

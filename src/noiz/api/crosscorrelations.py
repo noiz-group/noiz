@@ -12,6 +12,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import subqueryload, Query
 from sqlalchemy.sql import Insert
 from typing import List, Union, Optional, Collection, Dict, Generator, Tuple, Any, FrozenSet
+from ulid import ULID
 
 from noiz.api.component import fetch_components_by_id
 from noiz.api.component_pair import (
@@ -146,17 +147,25 @@ def _query_crosscorrelation_cartesian(
 
 
 def _prepare_upsert_command_crosscorrelation_cartesian(xcorr: CrosscorrelationCartesian) -> Insert:
+    # T079: Update upsert to include ULID fields
     insert_command = (
         insert(CrosscorrelationCartesian)
         .values(
+            ulid=xcorr.ulid,
             crosscorrelation_cartesian_params_id=xcorr.crosscorrelation_cartesian_params_id,
             componentpair_id=xcorr.componentpair_id,
             timespan_id=xcorr.timespan_id,
+            crosscorrelation_cartesian_file_id=xcorr.file.id if xcorr.file else None,
+            file_ulid=xcorr.file_ulid,
             ccf=xcorr.ccf,
         )
         .on_conflict_do_update(
-            constraint="unique_ccf_per_timespan_per_componentpair_per_config",
-            set_={"ccf": xcorr.ccf},
+            constraint="unique_ccfn_per_timespan_per_componentpair_per_config",
+            set_={
+                "crosscorrelation_cartesian_file_id": xcorr.file.id if xcorr.file else None,
+                "file_ulid": xcorr.file_ulid,
+                "ccf": xcorr.ccf,
+            },
         )
     )
     return insert_command
@@ -499,15 +508,22 @@ def _crosscorrelate_for_timespan(
         logger.info(f"CCF will be written to {str(filepath)}")
         parent_directory_exists_or_create(filepath)
 
-        ccf_file = CrosscorrelationCartesianFile(filepath=str(filepath))
+        # T071: Generate ULIDs BEFORE creating objects
+        file_ulid = ULID()
+        xcorr_ulid = ULID()
+
+        # T072: Create file and xcorr with ULIDs
+        ccf_file = CrosscorrelationCartesianFile(ulid=str(file_ulid), filepath=str(filepath))
 
         np.save(file=ccf_file.filepath, arr=ccf_data)
 
         xcorr = CrosscorrelationCartesian(
+            ulid=str(xcorr_ulid),
             crosscorrelation_cartesian_params_id=params.id,
             componentpair_id=pair.id,
             timespan_id=timespan.id,
             file=ccf_file,
+            file_ulid=str(file_ulid),
         )
 
         xcorrs.append(xcorr)
