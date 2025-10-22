@@ -258,18 +258,22 @@ def _prepare_upsert_command_beamforming(results: BeamformingResult) -> Insert:
     :return: Postgres-specific upsert command
     :rtype: sqlalchemy.dialects.postgresql.Insert
     """
+    # T080: Update upsert to include ULID fields
     insert_command = (
         insert(BeamformingResult)
         .values(
+            ulid=results.ulid,
             beamforming_params_id=results.beamforming_params_id,
             timespan_id=results.timespan_id,
             beamforming_file_id=results.beamforming_file_id,
+            file_ulid=results.file_ulid if hasattr(results, "file_ulid") else None,
             used_component_count=results.used_component_count,
         )
         .on_conflict_do_update(
             constraint="unique_beam_per_config_per_timespan",
             set_={
                 "beamforming_file_id": results.beamforming_file_id,
+                "file_ulid": results.file_ulid if hasattr(results, "file_ulid") else None,
                 "used_component_count": results.used_component_count,
             },
         )

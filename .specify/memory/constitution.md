@@ -151,6 +151,32 @@ Commits MUST be small, incremental, and well-documented:
 
 **Rationale**: Small, well-named commits enable bisect debugging, easier code review, and clear project history. Scientific code requires traceable changes for reproducibility.
 
+### Testing Discipline
+
+Tests MUST be run frequently during development:
+
+- **After each logical unit** - Run relevant tests after completing related changes
+- **Before each commit** - Verify changes don't break existing functionality
+- **Test selection** - Run unit tests for code changes, integration tests for API/workflow changes
+- **CI validates all** - Full test suite runs in CI, but local testing catches issues early
+- **No untested commits** - Every commit should have been validated by at least unit tests
+
+**Test frequency by change type**:
+- Model changes: Run unit tests immediately
+- API changes: Run unit + integration tests
+- Migration changes: Test upgrade/downgrade before commit
+- Worker/processing changes: Run relevant processing tests
+- Multi-file changes: Run full test suite before committing
+
+**Rationale**: Untested changes accumulate technical debt and risk. Frequent testing catches bugs immediately when context is fresh, not hours later. Scientific code demands reliability.
+
+### No Emojis
+
+Documentation and code MUST NOT contain emojis:
+
+- **Prohibited in**: Code comments, docstrings, commit messages, RST files, markdown docs, all documentation
+- **Rationale**: Professional scientific software requires clarity. Emojis reduce professionalism and may cause encoding issues
+
 ## Constraints
 
 ### Technology Stack

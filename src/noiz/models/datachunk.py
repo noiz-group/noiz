@@ -6,19 +6,21 @@ from typing import Optional
 
 from noiz.exceptions import MissingDataFileException
 from noiz.database import db
+from noiz.models.mixins import ULIDMixin
 
 from pathlib import Path
 import obspy
 
 
-class DatachunkFile(db.Model):
+class DatachunkFile(ULIDMixin, db.Model):
     __tablename__ = "datachunk_file"
 
     id = db.Column("id", db.BigInteger, primary_key=True)
+    # ulid field from ULIDMixin
     filepath = db.Column("filepath", db.UnicodeText, nullable=False)
 
 
-class Datachunk(db.Model):
+class Datachunk(ULIDMixin, db.Model):
     __tablename__ = "datachunk"
     __table_args__ = (
         db.UniqueConstraint(
@@ -30,6 +32,7 @@ class Datachunk(db.Model):
     )
 
     id = db.Column("id", db.BigInteger, primary_key=True)
+    # ulid field from ULIDMixin
     component_id = db.Column("component_id", db.Integer, db.ForeignKey("component.id"), nullable=False)
     datachunk_params_id = db.Column(
         "datachunk_params_id",
@@ -45,6 +48,12 @@ class Datachunk(db.Model):
         "datachunk_file_id",
         db.BigInteger,
         db.ForeignKey("datachunk_file.id"),
+        nullable=True,
+    )
+    file_ulid = db.Column(
+        "file_ulid",
+        db.String(26),
+        db.ForeignKey("datachunk_file.ulid"),
         nullable=True,
     )
     device_id = db.Column("device_id", db.Integer, db.ForeignKey("device.id"), nullable=True)
@@ -116,7 +125,7 @@ class DatachunkStats(db.Model):
         return f"Stats of Datachunk no.{self.datachunk_id}"
 
 
-class ProcessedDatachunk(db.Model):
+class ProcessedDatachunk(ULIDMixin, db.Model):
     __tablename__ = "processeddatachunk"
     __table_args__ = (
         db.UniqueConstraint(
@@ -127,6 +136,7 @@ class ProcessedDatachunk(db.Model):
     )
 
     id = db.Column("id", db.BigInteger, primary_key=True)
+    # ulid field from ULIDMixin
     processed_datachunk_params_id = db.Column(
         "processed_datachunk_params_id",
         db.Integer,
@@ -138,6 +148,12 @@ class ProcessedDatachunk(db.Model):
         "processed_datachunk_file_id",
         db.BigInteger,
         db.ForeignKey("processed_datachunk_file.id"),
+        nullable=True,
+    )
+    file_ulid = db.Column(
+        "file_ulid",
+        db.String(26),
+        db.ForeignKey("processed_datachunk_file.ulid"),
         nullable=True,
     )
 
@@ -162,8 +178,9 @@ class ProcessedDatachunk(db.Model):
             raise MissingDataFileException(f"Data file for chunk {self} is missing")
 
 
-class ProcessedDatachunkFile(db.Model):
+class ProcessedDatachunkFile(ULIDMixin, db.Model):
     __tablename__ = "processed_datachunk_file"
 
     id = db.Column("id", db.BigInteger, primary_key=True)
+    # ulid field from ULIDMixin
     filepath = db.Column("filepath", db.UnicodeText, nullable=False)

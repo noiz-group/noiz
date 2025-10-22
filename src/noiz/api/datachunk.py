@@ -388,11 +388,14 @@ def _determine_filters_and_opts_for_datachunk(
 
 
 def _prepare_upsert_command_datachunk(datachunk: Datachunk) -> Insert:
+    # T078: Update upsert to use ULID
     insert_datachunk = (
         insert(Datachunk)
         .values(
+            ulid=datachunk.ulid,
             processing_config_id=datachunk.datachunk_params_id,
-            datachunk_file_id=datachunk.file.id,
+            datachunk_file_id=datachunk.file.id if datachunk.file else None,
+            file_ulid=datachunk.file_ulid,
             component_id=datachunk.component_id,
             timespan_id=datachunk.timespan_id,
             sampling_rate=datachunk.sampling_rate,
@@ -403,7 +406,8 @@ def _prepare_upsert_command_datachunk(datachunk: Datachunk) -> Insert:
         .on_conflict_do_update(
             constraint="unique_datachunk_per_timespan_per_station_per_processing",
             set_={
-                "datachunk_file_id": datachunk.file.id,
+                "datachunk_file_id": datachunk.file.id if datachunk.file else None,
+                "file_ulid": datachunk.file_ulid,
                 "padded_npts": datachunk.padded_npts,
                 "sampling_rate": datachunk.sampling_rate,
                 "npts": datachunk.npts,

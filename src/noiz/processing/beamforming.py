@@ -16,6 +16,7 @@ from scipy.ndimage import filters as filters
 from itertools import combinations
 from scipy import ndimage as ndimage
 from typing import Tuple, Collection, Optional, List, Any
+from ulid import ULID
 
 import itertools
 import math
@@ -594,8 +595,13 @@ def calculate_beamforming_results(
     for beamforming_params in beamforming_params_collection:
         logger.debug(f"Calculating beamforming for timespan {timespan} and params {beamforming_params}")
 
+        # T073: Generate ULID for BeamformingResult
+        result_ulid = ULID()
+
         logger.debug("Creating an empty BeamformingResult")
-        res = BeamformingResult(timespan_id=timespan.id, beamforming_params_id=beamforming_params.id)
+        res = BeamformingResult(
+            ulid=str(result_ulid), timespan_id=timespan.id, beamforming_params_id=beamforming_params.id
+        )
 
         if len(st) < beamforming_params.minimum_trace_count:
             logger.error(
@@ -779,9 +785,10 @@ def calculate_beamforming_results(
                 bool_use_deconv=beamforming_params.perform_deconvolution_all,
             )
 
-        beamforming_file = bk.save_beamforming_file(params=beamforming_params, ts=timespan)
+        beamforming_file = bk.save_beamforming_file(params=beamforming_params, ts=timespan, result_ulid=result_ulid)
         if beamforming_file is not None:
             res.file = beamforming_file
+            res.file_ulid = beamforming_file.ulid
 
         res.used_component_count = len(st)
         res.datachunks = list(datachunks)
@@ -858,8 +865,12 @@ class BeamformerKeeper:
         #################
         # self.average_abspow: Optional[npt.ArrayLike] = None
 
-    def save_beamforming_file(self, params: BeamformingParams, ts: Timespan) -> Optional[BeamformingFile]:
-        bf = BeamformingFile()
+    def save_beamforming_file(
+        self, params: BeamformingParams, ts: Timespan, result_ulid: ULID
+    ) -> Optional[BeamformingFile]:
+        # Generate file ULID
+        file_ulid = ULID()
+        bf = BeamformingFile(ulid=str(file_ulid))
         fpath = bf.find_empty_filepath(ts=ts, params=params)
 
         res_to_save = {}
