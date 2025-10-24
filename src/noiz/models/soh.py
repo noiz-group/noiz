@@ -18,9 +18,7 @@ association_table_soh_instr = db.Table(
 
 class SohInstrument(ULIDMixin, db.Model):
     __tablename__ = "soh_instrument"
-    __table_args__ = (
-        db.UniqueConstraint("datetime", "z_component_id", name="unique_timestamp_per_station_in_sohinstrument"),
-    )
+    __table_args__ = (db.UniqueConstraint("datetime", "z_component_id"),)  # formerly: unique_soh_instrument
 
     # id field from ULIDMixin (ULID primary key)
     z_component_id = db.Column("z_component_id", db.String(26), db.ForeignKey("component.id"))
@@ -54,9 +52,7 @@ association_table_soh_gps = db.Table(
 
 class SohGps(ULIDMixin, db.Model):
     __tablename__ = "soh_gps"
-    __table_args__ = (
-        db.UniqueConstraint("datetime", "z_component_id", name="unique_timestamp_per_station_in_sohgps"),
-    )
+    __table_args__ = (db.UniqueConstraint("datetime", "z_component_id"),)  # formerly: unique_soh_gps
 
     # id field from ULIDMixin (ULID primary key)
     z_component_id = db.Column("z_component_id", db.String(26), db.ForeignKey("component.id"))
@@ -88,9 +84,7 @@ association_table_averaged_soh_gps_components = db.Table(
 
 class AveragedSohGps(ULIDMixin, db.Model):
     __tablename__ = "averaged_soh_gps"
-    __table_args__ = (
-        db.UniqueConstraint("timespan_id", "z_component_id", name="unique_tispan_per_station_in_avgsohgps"),
-    )
+    __table_args__ = (db.UniqueConstraint("timespan_id", "z_component_id"),)  # formerly: unique_averaged_soh_gps
 
     # id field from ULIDMixin (ULID primary key)
     timespan_id = db.Column("timespan_id", db.String(26), db.ForeignKey("timespan.id"), nullable=False)

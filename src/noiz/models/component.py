@@ -27,7 +27,9 @@ else:
 
 class Device(ULIDMixin, db.Model):
     __tablename__ = "device"
-    __table_args__ = (db.UniqueConstraint("network", "station", name="unique_device_per_station"),)
+    __table_args__ = (
+        db.UniqueConstraint("network", "station"),  # formerly: unique_device_per_station
+    )
 
     # id field from ULIDMixin (ULID primary key)
     network = db.Column("network", db.UnicodeText)
@@ -38,7 +40,9 @@ class Device(ULIDMixin, db.Model):
 
 class Component(ULIDMixin, db.Model):
     __tablename__ = "component"
-    __table_args__ = (db.UniqueConstraint("network", "station", "component", name="unique_component_per_station"),)
+    __table_args__ = (
+        db.UniqueConstraint("network", "station", "component"),  # formerly: unique_component_per_station
+    )
     # id field from ULIDMixin (ULID primary key)
     network = db.Column("network", db.UnicodeText)
     station = db.Column("station", db.UnicodeText)

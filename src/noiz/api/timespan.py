@@ -10,7 +10,7 @@ from sqlalchemy.orm import Query
 from sqlalchemy.sql.elements import BinaryExpression
 from typing import Iterable, List, Union, Optional, Generator, Any, Collection
 
-from noiz.database import db, get_dialect_insert, dialect_agnostic_on_conflict
+from noiz.database import db, get_dialect_insert
 from noiz.models.timespan import Timespan
 from noiz.processing.timespan import generate_timespans
 from noiz.validation_helpers import validate_timestamp_as_pydatetime, validate_to_tuple
@@ -97,9 +97,8 @@ def insert_timespans_into_db(timespans: Iterable[Timespan], bulk_insert: bool) -
             midtime=ts.midtime,
             endtime=ts.endtime,
         )
-        insert_command = dialect_agnostic_on_conflict(
-            insert_stmt,
-            constraint_name="unique_times",
+        insert_command = insert_stmt.on_conflict_do_update(
+            index_elements=["starttime", "midtime", "endtime"],
             set_={"starttime": ts.starttime, "midtime": ts.midtime, "endtime": ts.endtime},
         )
         db.session.execute(insert_command)

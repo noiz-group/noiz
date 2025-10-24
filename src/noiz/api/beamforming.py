@@ -22,7 +22,7 @@ from noiz.api.helpers import (
 from noiz.api.qc import fetch_qcone_config_single
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.models.type_aliases import BeamformingRunnerInputs
-from noiz.database import db, get_dialect_insert, dialect_agnostic_on_conflict
+from noiz.database import db, get_dialect_insert
 from noiz.exceptions import EmptyResultException
 from noiz.models import Timespan, Datachunk, QCOneResults, BeamformingParams
 from noiz.models.beamforming import (
@@ -268,9 +268,8 @@ def _prepare_upsert_command_beamforming(results: BeamformingResult) -> Insert:
         used_component_count=results.used_component_count,
     )
 
-    insert_command = dialect_agnostic_on_conflict(
-        insert_stmt,
-        constraint_name="unique_beam_per_config_per_timespan",
+    insert_command = insert_stmt.on_conflict_do_update(
+        index_elements=["timespan_id", "beamforming_params_id"],
         set_={
             "beamforming_file_id": results.beamforming_file_id,
             "used_component_count": results.used_component_count,

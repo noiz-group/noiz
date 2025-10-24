@@ -109,7 +109,7 @@ def upgrade():
     sa.Column('station', sa.UnicodeText(), nullable=True),
     sa.Column('id', sa.String(length=26), nullable=False),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('network', 'station', name='unique_device_per_station')
+    sa.UniqueConstraint('network', 'station')
     )
     op.create_table('event_confirmation_file',
     sa.Column('filepath', noiz.models.custom_db_types.PathInDB(), nullable=False),
@@ -161,10 +161,10 @@ def upgrade():
     sa.Column('endtime', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('id', sa.String(length=26), nullable=False),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('endtime', name='unique_endtime'),
-    sa.UniqueConstraint('midtime', name='unique_midtime'),
-    sa.UniqueConstraint('starttime', 'midtime', 'endtime', name='unique_times'),
-    sa.UniqueConstraint('starttime', name='unique_starttime')
+    sa.UniqueConstraint('endtime'),
+    sa.UniqueConstraint('midtime'),
+    sa.UniqueConstraint('starttime', 'midtime', 'endtime'),
+    sa.UniqueConstraint('starttime')
     )
     op.create_table('component',
     sa.Column('network', sa.UnicodeText(), nullable=True),
@@ -186,7 +186,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['component_file_id'], ['component_file.id'], ),
     sa.ForeignKeyConstraint(['device_id'], ['device.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('network', 'station', 'component', name='unique_component_per_station')
+    sa.UniqueConstraint('network', 'station', 'component')
     )
     op.create_table('event_detection_params',
     sa.Column('datachunk_params_id', sa.Integer(), nullable=False),
@@ -263,7 +263,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['timespan_id'], ['timespan.id'], ),
     sa.ForeignKeyConstraint(['z_component_id'], ['component.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('timespan_id', 'z_component_id', name='unique_tispan_per_station_in_avgsohgps')
+    sa.UniqueConstraint('timespan_id', 'z_component_id')
     )
     op.create_table('beamforming_params',
     sa.Column('qcone_config_id', sa.Integer(), nullable=True),
@@ -335,7 +335,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['component_a_id'], ['component.id'], ),
     sa.ForeignKeyConstraint(['component_b_id'], ['component.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('component_a_id', 'component_b_id', name='single_component_pair')
+    sa.UniqueConstraint('component_a_id', 'component_b_id')
     )
     op.create_table('componentpair_cylindrical',
     sa.Column('component_aE_id', sa.String(length=26), nullable=True),
@@ -376,7 +376,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['device_id'], ['device.id'], ),
     sa.ForeignKeyConstraint(['timespan_id'], ['timespan.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('timespan_id', 'component_id', 'datachunk_params_id', name='unique_datachunk_per_timespan_per_station_per_processing')
+    sa.UniqueConstraint('timespan_id', 'component_id', 'datachunk_params_id')
     )
     op.create_table('event_confirmation_params',
     sa.Column('datachunk_params_id', sa.Integer(), nullable=False),
@@ -431,7 +431,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['device_id'], ['device.id'], ),
     sa.ForeignKeyConstraint(['z_component_id'], ['component.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('datetime', 'z_component_id', name='unique_timestamp_per_station_in_sohgps')
+    sa.UniqueConstraint('datetime', 'z_component_id')
     )
     op.create_table('soh_instrument',
     sa.Column('z_component_id', sa.String(length=26), nullable=True),
@@ -444,7 +444,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['device_id'], ['device.id'], ),
     sa.ForeignKeyConstraint(['z_component_id'], ['component.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('datetime', 'z_component_id', name='unique_timestamp_per_station_in_sohinstrument')
+    sa.UniqueConstraint('datetime', 'z_component_id')
     )
     op.create_table('averaged_soh_gps_association_components',
     sa.Column('component_id', sa.String(length=26), nullable=True),
@@ -464,7 +464,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['beamforming_params_id'], ['beamforming_params.id'], ),
     sa.ForeignKeyConstraint(['timespan_id'], ['timespan.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('timespan_id', 'beamforming_params_id', name='unique_beam_per_config_per_timespan')
+    sa.UniqueConstraint('timespan_id', 'beamforming_params_id')
     )
     op.create_table('crosscorrelation_cartesian_params',
     sa.Column('processed_datachunk_params_id', sa.Integer(), nullable=False),
@@ -486,7 +486,7 @@ def upgrade():
     sa.Column('id', sa.String(length=26), nullable=False),
     sa.ForeignKeyConstraint(['datachunk_id'], ['datachunk.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('datachunk_id', name='unique_stats_per_datachunk')
+    sa.UniqueConstraint('datachunk_id')
     )
     op.create_table('event_confirmation_run',
     sa.Column('specific_stations_params', sa.UnicodeText(), nullable=True),
@@ -514,7 +514,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['event_detection_params_id'], ['event_detection_params.id'], ),
     sa.ForeignKeyConstraint(['timespan_id'], ['timespan.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('timespan_id', 'datachunk_id', 'event_detection_params_id', 'time_start', name='unique_detection_per_timespan_per_datachunk_per_param_per_time')
+    sa.UniqueConstraint('timespan_id', 'datachunk_id', 'event_detection_params_id', 'time_start')
     )
     op.create_table('ppsd_result',
     sa.Column('ppsd_params_id', sa.Integer(), nullable=False),
@@ -527,7 +527,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['ppsd_params_id'], ['ppsd_params.id'], ),
     sa.ForeignKeyConstraint(['timespan_id'], ['timespan.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('datachunk_id', 'ppsd_params_id', name='unique_ppsd_per_config_per_datachunk')
+    sa.UniqueConstraint('datachunk_id', 'ppsd_params_id')
     )
     op.create_table('processeddatachunk',
     sa.Column('processed_datachunk_params_id', sa.Integer(), nullable=False),
@@ -538,7 +538,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['processed_datachunk_file_id'], ['processed_datachunk_file.id'], ),
     sa.ForeignKeyConstraint(['processed_datachunk_params_id'], ['processed_datachunk_params.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('datachunk_id', 'processed_datachunk_params_id', name='unique_processing_per_datachunk_per_config')
+    sa.UniqueConstraint('datachunk_id', 'processed_datachunk_params_id')
     )
     op.create_table('qcone_results',
     sa.Column('qcone_config_id', sa.Integer(), nullable=True),
@@ -568,7 +568,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['datachunk_id'], ['datachunk.id'], ),
     sa.ForeignKeyConstraint(['qcone_config_id'], ['qcone_config.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('datachunk_id', 'qcone_config_id', name='unique_qcone_results_per_config_per_datachunk')
+    sa.UniqueConstraint('datachunk_id', 'qcone_config_id')
     )
     op.create_table('soh_gps_association',
     sa.Column('component_id', sa.String(length=26), nullable=True),
@@ -637,7 +637,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['crosscorrelation_cartesian_params_id'], ['crosscorrelation_cartesian_params.id'], ),
     sa.ForeignKeyConstraint(['timespan_id'], ['timespan.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('timespan_id', 'componentpair_id', 'crosscorrelation_cartesian_params_id', name='unique_ccfn_per_timespan_per_componentpair_per_config')
+    sa.UniqueConstraint('timespan_id', 'componentpair_id', 'crosscorrelation_cartesian_params_id')
     )
     op.create_table('crosscorrelation_cylindrical_params',
     sa.Column('crosscorrelation_cartesian_params_id', sa.Integer(), nullable=False),
@@ -660,7 +660,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['event_confirmation_run_id'], ['event_confirmation_run.id'], ),
     sa.ForeignKeyConstraint(['timespan_id'], ['timespan.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('timespan_id', 'event_confirmation_params_id', 'time_start', 'time_stop', 'peak_ground_velocity', 'number_station_triggered', name='unique_confirmation_per_timespan_per_param_per_time')
+    sa.UniqueConstraint('timespan_id', 'event_confirmation_params_id', 'time_start', 'time_stop', 'peak_ground_velocity', 'number_station_triggered')
     )
     op.create_table('event_confirmation_run_association_datachunk',
     sa.Column('event_confirmation_run_id', sa.String(length=26), nullable=True),
@@ -702,7 +702,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['crosscorrelation_cylindrical_params_id'], ['crosscorrelation_cylindrical_params.id'], ),
     sa.ForeignKeyConstraint(['timespan_id'], ['timespan.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('timespan_id', 'componentpair_cylindrical_id', 'crosscorrelation_cylindrical_params_id', name='unique_ccfcylindrical_per_timespan_cylindrical_per_config')
+    sa.UniqueConstraint('timespan_id', 'componentpair_cylindrical_id', 'crosscorrelation_cylindrical_params_id')
     )
     op.create_table('event_confirmation_result_association_event_detection_result',
     sa.Column('event_confirmation_result_id', sa.String(length=26), nullable=True),
@@ -731,7 +731,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['crosscorrelation_cartesian_id'], ['crosscorrelation_cartesian.id'], ),
     sa.ForeignKeyConstraint(['qctwo_config_id'], ['qctwo_config.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('crosscorrelation_cartesian_id', 'qctwo_config_id', name='unique_qctwo_results_per_config_per_ccf')
+    sa.UniqueConstraint('crosscorrelation_cartesian_id', 'qctwo_config_id')
     )
     op.create_table('stacking_schema',
     sa.Column('crosscorrelation_cartesian_params_id', sa.Integer(), nullable=False),
@@ -754,10 +754,10 @@ def upgrade():
     sa.Column('id', sa.String(length=26), nullable=False),
     sa.ForeignKeyConstraint(['stacking_schema_id'], ['stacking_schema.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('stacking_schema_id', 'endtime', name='unique_stack_endtime_per_config'),
-    sa.UniqueConstraint('stacking_schema_id', 'midtime', name='unique_stack_midtime_per_config'),
-    sa.UniqueConstraint('stacking_schema_id', 'starttime', 'midtime', 'endtime', name='unique_stack_times_per_config'),
-    sa.UniqueConstraint('stacking_schema_id', 'starttime', name='unique_stack_starttime_per_config')
+    sa.UniqueConstraint('stacking_schema_id', 'endtime'),
+    sa.UniqueConstraint('stacking_schema_id', 'midtime'),
+    sa.UniqueConstraint('stacking_schema_id', 'starttime', 'midtime', 'endtime'),
+    sa.UniqueConstraint('stacking_schema_id', 'starttime')
     )
     op.create_table('ccfstack',
     sa.Column('stacking_timespan_id', sa.String(length=26), nullable=False),
@@ -770,7 +770,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['stacking_schema_id'], ['stacking_schema.id'], ),
     sa.ForeignKeyConstraint(['stacking_timespan_id'], ['stacking_timespan.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('stacking_timespan_id', 'stacking_schema_id', 'componentpair_id', name='unique_stack_per_pair_per_config')
+    sa.UniqueConstraint('stacking_timespan_id', 'stacking_schema_id', 'componentpair_id')
     )
     op.create_table('stacking_association',
     sa.Column('crosscorrelation_cartesian_id', sa.String(length=26), nullable=True),

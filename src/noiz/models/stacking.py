@@ -17,12 +17,12 @@ from noiz.validation_helpers import validate_as_pytimedelta_or_none
 class StackingTimespan(TimespanMixin):
     __tablename__ = "stacking_timespan"
     __table_args__ = (
-        db.UniqueConstraint("stacking_schema_id", "starttime", name="unique_stack_starttime_per_config"),
-        db.UniqueConstraint("stacking_schema_id", "midtime", name="unique_stack_midtime_per_config"),
-        db.UniqueConstraint("stacking_schema_id", "endtime", name="unique_stack_endtime_per_config"),
+        db.UniqueConstraint("stacking_schema_id", "starttime"),  # formerly: unique_stack_starttime_per_config
+        db.UniqueConstraint("stacking_schema_id", "midtime"),  # formerly: unique_stack_midtime_per_config
+        db.UniqueConstraint("stacking_schema_id", "endtime"),  # formerly: unique_stack_endtime_per_config
         db.UniqueConstraint(
-            "stacking_schema_id", "starttime", "midtime", "endtime", name="unique_stack_times_per_config"
-        ),
+            "stacking_schema_id", "starttime", "midtime", "endtime"
+        ),  # formerly: unique_stack_times_per_config
     )
     stacking_schema_id = db.Column(
         "stacking_schema_id",
@@ -126,10 +126,8 @@ ccf_ccfstack_association_table = db.Table(
 class CCFStack(ULIDMixin, db.Model):
     __tablename__ = "ccfstack"
     __table_args__ = (
-        db.UniqueConstraint(
-            "stacking_timespan_id", "stacking_schema_id", "componentpair_id", name="unique_stack_per_pair_per_config"
-        ),
-    )
+        db.UniqueConstraint("stacking_timespan_id", "stacking_schema_id", "componentpair_id"),
+    )  # formerly: unique_stack_per_pair_per_config
 
     # id field from ULIDMixin (ULID primary key)
     stacking_timespan_id = db.Column(

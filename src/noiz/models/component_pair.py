@@ -10,7 +10,7 @@ from noiz.models import Component
 
 class ComponentPairCartesian(ULIDMixin, db.Model):
     __tablename__ = "componentpair_cartesian"
-    __table_args__ = (db.UniqueConstraint("component_a_id", "component_b_id", name="single_component_pair"),)
+    __table_args__ = (db.UniqueConstraint("component_a_id", "component_b_id"),)  # formerly: single_component_pair
 
     # id field from ULIDMixin (ULID primary key)
     component_a_id = db.Column("component_a_id", db.String(26), db.ForeignKey("component.id"), nullable=False)

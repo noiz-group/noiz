@@ -86,8 +86,8 @@ association_table_beamforming_result_all_relpower = db.Table(
 class BeamformingResult(ULIDMixin, db.Model):
     __tablename__ = "beamforming_result"
     __table_args__ = (
-        db.UniqueConstraint("timespan_id", "beamforming_params_id", name="unique_beam_per_config_per_timespan"),
-    )
+        db.UniqueConstraint("timespan_id", "beamforming_params_id"),
+    )  # formerly: unique_beam_per_config_per_timespan
     # id field from ULIDMixin (ULID primary key)
     beamforming_params_id = db.Column(
         "beamforming_params_id",
