@@ -5,6 +5,7 @@ import os
 from typing import Optional
 
 import pytest
+from loguru import logger
 
 from noiz.api.ppsd import fetch_ppsd_params_by_id
 
@@ -72,12 +73,6 @@ def run_sequential() -> Optional[str]:
 def empty_workdir(tmp_path_factory) -> Path:
     test_workdir = tmp_path_factory.mktemp("workdir")
     return test_workdir
-
-
-@pytest.fixture(scope="class")
-def noiz_app():
-    app = create_app(verbosity=5)
-    return app
 
 
 @pytest.mark.system
@@ -317,6 +312,9 @@ class TestDataIngestionRoutines:
             cli, ["data", "add_seismic_data", "--filename_pattern", "*.???.resampled", str(basedir)]
         )
 
+        # Log CLI output for debugging
+        logger.debug("CLI output:\n{}", result.output)
+
         if result.exit_code != 0:
             raise result.exception
         assert result.exit_code == 0
@@ -325,7 +323,7 @@ class TestDataIngestionRoutines:
 
         with noiz_app.app_context():
             found_in_db = db.session.query(Tsindex).all()
-        assert len(found_in_db) == 18
+        assert len(found_in_db) == 18, f"Expected 18 entries but found {len(found_in_db)}. CLI output: {result.output}"
         assert isinstance(found_in_db[0], Tsindex)
 
     def test_insert_datachunk_params(self, workdir_with_content, noiz_app):

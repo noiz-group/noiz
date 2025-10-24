@@ -8,12 +8,14 @@ from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_property
 import obspy
 
-from noiz.exceptions import MissingDataFileException
 from noiz.database import db
+from noiz.database_agnostic_functions import ExtractYear, ExtractDOY, ExtractMonth, ExtractDay, RightSubstring
+from noiz.exceptions import MissingDataFileException
+from noiz.models.mixins import ULIDMixin
 from noiz.processing.miniseed_helpers import _read_single_miniseed
 
 
-class Tsindex(db.Model):
+class Tsindex(ULIDMixin, db.Model):
     """
     Seismic data file index.
 
@@ -22,7 +24,7 @@ class Tsindex(db.Model):
     """
 
     __tablename__ = "raw_data_index"
-    id = db.Column("id", db.BigInteger, primary_key=True)
+    # id field from ULIDMixin (ULID primary key)
 
     # Required fields (used by Noiz queries)
     network = db.Column("network", db.UnicodeText, nullable=False)
@@ -75,7 +77,7 @@ class Tsindex(db.Model):
 
     @component.expression  # type: ignore
     def component(cls):
-        return func.right(cls.channel, 1)
+        return RightSubstring(cls.channel, 1)
 
     @hybrid_property  # type: ignore
     def starttime_year(self):
@@ -83,7 +85,7 @@ class Tsindex(db.Model):
 
     @starttime_year.expression  # type: ignore
     def starttime_year(cls):
-        return func.date_part("year", cls.starttime)
+        return ExtractYear(cls.starttime)
 
     @hybrid_property  # type: ignore
     def starttime_doy(self):
@@ -91,7 +93,7 @@ class Tsindex(db.Model):
 
     @starttime_doy.expression  # type: ignore
     def starttime_doy(cls):
-        return func.date_part("doy", cls.starttime)
+        return ExtractDOY(cls.starttime)
 
     @hybrid_property  # type: ignore
     def starttime_month(self):
@@ -99,7 +101,7 @@ class Tsindex(db.Model):
 
     @starttime_month.expression  # type: ignore
     def starttime_month(cls):
-        return func.date_part("month", cls.starttime)
+        return ExtractMonth(cls.starttime)
 
     @hybrid_property  # type: ignore
     def starttime_day(self):
@@ -107,7 +109,7 @@ class Tsindex(db.Model):
 
     @starttime_day.expression  # type: ignore
     def starttime_day(cls):
-        return func.date_part("day", cls.starttime)
+        return ExtractDay(cls.starttime)
 
     @hybrid_property  # type: ignore
     def endtime_year(self):
@@ -115,7 +117,7 @@ class Tsindex(db.Model):
 
     @endtime_year.expression  # type: ignore
     def endtime_year(cls):
-        return func.date_part("year", cls.endtime)
+        return ExtractYear(cls.endtime)
 
     @hybrid_property  # type: ignore
     def endtime_doy(self):
@@ -123,7 +125,7 @@ class Tsindex(db.Model):
 
     @endtime_doy.expression  # type: ignore
     def endtime_doy(cls):
-        return func.date_part("doy", cls.endtime)
+        return ExtractDOY(cls.endtime)
 
     @hybrid_property  # type: ignore
     def endtime_month(self):
@@ -131,7 +133,7 @@ class Tsindex(db.Model):
 
     @endtime_month.expression  # type: ignore
     def endtime_month(cls):
-        return func.date_part("month", cls.endtime)
+        return ExtractMonth(cls.endtime)
 
     @hybrid_property  # type: ignore
     def endtime_day(self):
@@ -139,4 +141,4 @@ class Tsindex(db.Model):
 
     @endtime_day.expression  # type: ignore
     def endtime_day(cls):
-        return func.date_part("day", cls.endtime)
+        return ExtractDay(cls.endtime)

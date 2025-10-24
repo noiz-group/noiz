@@ -2,26 +2,29 @@
 # Copyright © 2015-2019 EOST UNISTRA, Storengy SAS, Damian Kula
 # Copyright © 2019-2023 Contributors to the Noiz project.
 
+import os
 from environs import Env
 from noiz.database_backends import DatabaseBackend
 
+# Read from .env file if it exists (for development)
 env = Env()
 env.read_env()
 
-FLASK_ENV = env.str("FLASK_ENV", default="development")
-DATABASE_BACKEND = env.str("DATABASE_BACKEND", default=DatabaseBackend.POSTGRESQL.value)
+# But always read current values from os.environ (for testing/runtime changes)
+FLASK_ENV = os.environ.get("FLASK_ENV", "development")
+DATABASE_BACKEND = os.environ.get("DATABASE_BACKEND", DatabaseBackend.POSTGRESQL.value)
 
 if FLASK_ENV == "development":
     DEBUG = True
 else:
     DEBUG = False
 
-POSTGRES_HOST = env.str("POSTGRES_HOST", default="")
-POSTGRES_PORT = env.str("POSTGRES_PORT", default="")
-POSTGRES_USER = env.str("POSTGRES_USER", default="")
-POSTGRES_PASSWORD = env.str("POSTGRES_PASSWORD", default="")
-POSTGRES_DB = env.str("POSTGRES_DB", default="")
-SQLALCHEMY_DATABASE_URI = env.str("DATABASE_URL", default="")
+POSTGRES_HOST = os.environ.get("POSTGRES_HOST", "")
+POSTGRES_PORT = os.environ.get("POSTGRES_PORT", "")
+POSTGRES_USER = os.environ.get("POSTGRES_USER", "")
+POSTGRES_PASSWORD = os.environ.get("POSTGRES_PASSWORD", "")
+POSTGRES_DB = os.environ.get("POSTGRES_DB", "")
+SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "")
 
 postgres_params_empty = all(
     (x in ("", None) for x in (POSTGRES_DB, POSTGRES_HOST, POSTGRES_PORT, POSTGRES_USER, POSTGRES_PASSWORD))

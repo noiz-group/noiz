@@ -14,11 +14,17 @@ def _read_single_miniseed(
     if not Path(filename).exists():
         raise MissingDataFileException("Data file is missing")
 
+    # TODO: Parse MIME types from mseedindex (e.g., "application/vnd.fdsn.mseed;version=2")
+    # into ObsPy-expected format names (e.g., "MSEED"). For now, let ObsPy auto-detect
+    # the format by not passing the format parameter.
+    # See: https://docs.obspy.org/packages/autogen/obspy.core.stream.read.html
+
     with CatchWarningAsError(
         warning_filter_action="error", warning_filter_message="(?s).* Data integrity check for Steim1 failed"
     ):
         try:
-            return obspy.read(filename, format)
+            # Don't pass format parameter - let ObsPy auto-detect
+            return obspy.read(filename)
         except Warning as e:
             logger.warning("Data integrity check for Steim1 failed")
             raise CorruptedMiniseedFileException(

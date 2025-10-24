@@ -127,3 +127,11 @@ env_system_tests
 system_test_processed_data_dir*/
 *.ipynb
 docs/content/autoapi
+ccf/
+datachunk/
+inventory/
+beamforming/
+processed_datachunk/
+psd/
+tmp_beamforming_deconv/
+**/*.db

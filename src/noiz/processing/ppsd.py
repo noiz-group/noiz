@@ -110,7 +110,7 @@ def calculate_ppsd(
     file_ulid = ULID()
     result_ulid = ULID()
 
-    psd_file = PPSDFile(ulid=str(file_ulid))
+    psd_file = PPSDFile(id=str(file_ulid))
     psd_file.find_empty_filepath(
         cmp=component,
         ts=timespan,
@@ -126,12 +126,12 @@ def calculate_ppsd(
     )
 
     ret = PPSDResult(
-        ulid=str(result_ulid),
+        id=str(result_ulid),
         ppsd_params_id=ppsd_params.id,
         timespan_id=timespan.id,
         datachunk_id=datachunk.id,
         file=psd_file,
-        file_ulid=str(file_ulid),
+        ppsd_file_id=str(file_ulid),
     )
     return ret
 

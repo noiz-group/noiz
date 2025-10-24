@@ -828,22 +828,22 @@ def create_datachunks_for_component(
         datachunk_ulid = ULID()
 
         # T070: Create file with ULID
-        datachunk_file = DatachunkFile(ulid=str(file_ulid), filepath=str(filepath))
+        datachunk_file = DatachunkFile(id=str(file_ulid), filepath=str(filepath))
         trimmed_st.write(datachunk_file.filepath, format="mseed")
 
         sampling_rate: Union[str, float] = trimmed_st[0].stats.sampling_rate
         npts: int = trimmed_st[0].stats.npts
 
-        # T070: Create datachunk with ULID and file_ulid reference
+        # T070: Create datachunk with ULID and file_id reference
         datachunk = Datachunk(
-            ulid=str(datachunk_ulid),
+            id=str(datachunk_ulid),
             datachunk_params_id=processing_params.id,
             component_id=component.id,
             timespan_id=timespan.id,
             sampling_rate=sampling_rate,
             npts=npts,
             file=datachunk_file,
-            file_ulid=str(file_ulid),
+            datachunk_file_id=str(file_ulid),
             padded_npts=padded_npts,
             device_id=component.device_id,
         )

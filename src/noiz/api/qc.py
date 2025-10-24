@@ -5,8 +5,8 @@
 import datetime
 from loguru import logger
 from sqlalchemy import and_
-from sqlalchemy.dialects.postgresql import insert, Insert
 from sqlalchemy.orm import Query
+from sqlalchemy.sql import Insert
 from typing import List, Collection, Union, Optional, Generator
 
 
@@ -21,7 +21,7 @@ from noiz.api.helpers import (
 )
 from noiz.api.processing_config import fetch_datachunkparams_by_id
 from noiz.api.timespan import fetch_timespans_between_dates
-from noiz.database import db
+from noiz.database import db, get_dialect_insert, dialect_agnostic_on_conflict
 from noiz.exceptions import EmptyResultException
 from noiz.models import (
     Datachunk,
@@ -557,60 +557,60 @@ def _prepare_upsert_command_qcone(results: QCOneResults) -> Insert:
 
     :param results: Instance which is to be upserted
     :type results: noiz.models.qc.QCOneResults
-    :return: Postgres-specific upsert command
-    :rtype: sqlalchemy.dialects.postgresql.Insert
+    :return: Database-agnostic upsert command
+    :rtype: Insert
     """
-    insert_command = (
-        insert(QCOneResults)
-        .values(
-            starttime=results.starttime,
-            endtime=results.endtime,
-            accepted_time=results.accepted_time,
-            avg_gps_time_error_min=results.avg_gps_time_error_min,
-            avg_gps_time_error_max=results.avg_gps_time_error_max,
-            avg_gps_time_uncertainty_min=results.avg_gps_time_uncertainty_min,
-            avg_gps_time_uncertainty_max=results.avg_gps_time_uncertainty_max,
-            signal_energy_min=results.signal_energy_min,
-            signal_energy_max=results.signal_energy_max,
-            signal_min_value_min=results.signal_min_value_min,
-            signal_min_value_max=results.signal_min_value_max,
-            signal_max_value_min=results.signal_max_value_min,
-            signal_max_value_max=results.signal_max_value_max,
-            signal_mean_value_min=results.signal_mean_value_min,
-            signal_mean_value_max=results.signal_mean_value_max,
-            signal_variance_min=results.signal_variance_min,
-            signal_variance_max=results.signal_variance_max,
-            signal_skewness_min=results.signal_skewness_min,
-            signal_skewness_max=results.signal_skewness_max,
-            signal_kurtosis_min=results.signal_kurtosis_min,
-            signal_kurtosis_max=results.signal_kurtosis_max,
-        )
-        .on_conflict_do_update(
-            constraint="unique_qcone_results_per_config_per_datachunk",
-            set_={
-                "starttime": results.starttime,
-                "endtime": results.endtime,
-                "accepted_time": results.accepted_time,
-                "avg_gps_time_error_min": results.avg_gps_time_error_min,
-                "avg_gps_time_error_max": results.avg_gps_time_error_max,
-                "avg_gps_time_uncertainty_min": results.avg_gps_time_uncertainty_min,
-                "avg_gps_time_uncertainty_max": results.avg_gps_time_uncertainty_max,
-                "signal_energy_min": results.signal_energy_min,
-                "signal_energy_max": results.signal_energy_max,
-                "signal_min_value_min": results.signal_min_value_min,
-                "signal_min_value_max": results.signal_min_value_max,
-                "signal_max_value_min": results.signal_max_value_min,
-                "signal_max_value_max": results.signal_max_value_max,
-                "signal_mean_value_min": results.signal_mean_value_min,
-                "signal_mean_value_max": results.signal_mean_value_max,
-                "signal_variance_min": results.signal_variance_min,
-                "signal_variance_max": results.signal_variance_max,
-                "signal_skewness_min": results.signal_skewness_min,
-                "signal_skewness_max": results.signal_skewness_max,
-                "signal_kurtosis_min": results.signal_kurtosis_min,
-                "signal_kurtosis_max": results.signal_kurtosis_max,
-            },
-        )
+    insert_func = get_dialect_insert()
+    insert_stmt = insert_func(QCOneResults).values(
+        starttime=results.starttime,
+        endtime=results.endtime,
+        accepted_time=results.accepted_time,
+        avg_gps_time_error_min=results.avg_gps_time_error_min,
+        avg_gps_time_error_max=results.avg_gps_time_error_max,
+        avg_gps_time_uncertainty_min=results.avg_gps_time_uncertainty_min,
+        avg_gps_time_uncertainty_max=results.avg_gps_time_uncertainty_max,
+        signal_energy_min=results.signal_energy_min,
+        signal_energy_max=results.signal_energy_max,
+        signal_min_value_min=results.signal_min_value_min,
+        signal_min_value_max=results.signal_min_value_max,
+        signal_max_value_min=results.signal_max_value_min,
+        signal_max_value_max=results.signal_max_value_max,
+        signal_mean_value_min=results.signal_mean_value_min,
+        signal_mean_value_max=results.signal_mean_value_max,
+        signal_variance_min=results.signal_variance_min,
+        signal_variance_max=results.signal_variance_max,
+        signal_skewness_min=results.signal_skewness_min,
+        signal_skewness_max=results.signal_skewness_max,
+        signal_kurtosis_min=results.signal_kurtosis_min,
+        signal_kurtosis_max=results.signal_kurtosis_max,
+    )
+
+    insert_command = dialect_agnostic_on_conflict(
+        insert_stmt,
+        constraint_name="unique_qcone_results_per_config_per_datachunk",
+        set_={
+            "starttime": results.starttime,
+            "endtime": results.endtime,
+            "accepted_time": results.accepted_time,
+            "avg_gps_time_error_min": results.avg_gps_time_error_min,
+            "avg_gps_time_error_max": results.avg_gps_time_error_max,
+            "avg_gps_time_uncertainty_min": results.avg_gps_time_uncertainty_min,
+            "avg_gps_time_uncertainty_max": results.avg_gps_time_uncertainty_max,
+            "signal_energy_min": results.signal_energy_min,
+            "signal_energy_max": results.signal_energy_max,
+            "signal_min_value_min": results.signal_min_value_min,
+            "signal_min_value_max": results.signal_min_value_max,
+            "signal_max_value_min": results.signal_max_value_min,
+            "signal_max_value_max": results.signal_max_value_max,
+            "signal_mean_value_min": results.signal_mean_value_min,
+            "signal_mean_value_max": results.signal_mean_value_max,
+            "signal_variance_min": results.signal_variance_min,
+            "signal_variance_max": results.signal_variance_max,
+            "signal_skewness_min": results.signal_skewness_min,
+            "signal_skewness_max": results.signal_skewness_max,
+            "signal_kurtosis_min": results.signal_kurtosis_min,
+            "signal_kurtosis_max": results.signal_kurtosis_max,
+        },
     )
     return insert_command
 
@@ -649,31 +649,30 @@ def process_qctwo(
 
 def _prepare_upsert_command_qctwo(results: QCTwoResults) -> Insert:
     """
-    Private method that generates an :py:class:`~sqlalchemy.dialects.postgresql.dml.Insert` for
+    Private method that generates database-agnostic upsert command for
     :py:class:`~noiz.models.qc.QCTwoResults` to be upserted to db.
-    Postgres specific because it's upsert.
 
     :param results: Instance which is to be upserted
     :type results: noiz.models.qc.QCTwoResults
-    :return: Postgres-specific upsert command
-    :rtype: sqlalchemy.dialects.postgresql.dml.Insert
+    :return: Database-agnostic upsert command
+    :rtype: Insert
     """
-    insert_command = (
-        insert(QCTwoResults)
-        .values(
-            starttime=results.starttime,
-            endtime=results.endtime,
-            accepted_time=results.accepted_time,
-            qctwo_config_id=results.qctwo_config_id,
-            crosscorrelation_cartesian_id=results.crosscorrelation_cartesian_id,
-        )
-        .on_conflict_do_update(
-            constraint="unique_qctwo_results_per_config_per_ccf",
-            set_={
-                "starttime": results.starttime,
-                "endtime": results.endtime,
-                "accepted_time": results.accepted_time,
-            },
-        )
+    insert_func = get_dialect_insert()
+    insert_stmt = insert_func(QCTwoResults).values(
+        starttime=results.starttime,
+        endtime=results.endtime,
+        accepted_time=results.accepted_time,
+        qctwo_config_id=results.qctwo_config_id,
+        crosscorrelation_cartesian_id=results.crosscorrelation_cartesian_id,
+    )
+
+    insert_command = dialect_agnostic_on_conflict(
+        insert_stmt,
+        constraint_name="unique_qctwo_results_per_config_per_ccf",
+        set_={
+            "starttime": results.starttime,
+            "endtime": results.endtime,
+            "accepted_time": results.accepted_time,
+        },
     )
     return insert_command

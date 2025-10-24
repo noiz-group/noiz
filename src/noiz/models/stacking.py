@@ -8,7 +8,7 @@ from typing import Union, Optional
 from pydantic.dataclasses import dataclass
 
 from noiz.models.timespan import TimespanMixin
-from noiz.models.mixins import ULIDMixin
+from noiz.models.mixins import IntegerIDMixin, ULIDMixin
 from noiz.database import db
 from noiz.processing.time_utils import calculate_window_step_or_overlap
 from noiz.validation_helpers import validate_as_pytimedelta_or_none
@@ -50,10 +50,10 @@ class StackingSchemaHolder:
     stacking_overlap: Optional[Union[pd.Timedelta, datetime.timedelta, str]] = None
 
 
-class StackingSchema(db.Model):
+class StackingSchema(IntegerIDMixin, db.Model):
     __tablename__ = "stacking_schema"
 
-    id = db.Column("id", db.Integer, primary_key=True)
+    # id field from ULIDMixin (ULID primary key)
     crosscorrelation_cartesian_params_id = db.Column(
         "crosscorrelation_cartesian_params_id",
         db.Integer,
@@ -118,8 +118,8 @@ class StackingSchema(db.Model):
 ccf_ccfstack_association_table = db.Table(
     "stacking_association",
     db.metadata,
-    db.Column("crosscorrelation_cartesian_id", db.BigInteger, db.ForeignKey("crosscorrelation_cartesian.id")),
-    db.Column("ccfstack_id", db.BigInteger, db.ForeignKey("ccfstack.id")),
+    db.Column("crosscorrelation_cartesian_id", db.String(26), db.ForeignKey("crosscorrelation_cartesian.id")),
+    db.Column("ccfstack_id", db.String(26), db.ForeignKey("ccfstack.id")),
 )
 
 
@@ -131,11 +131,10 @@ class CCFStack(ULIDMixin, db.Model):
         ),
     )
 
-    id = db.Column("id", db.BigInteger, primary_key=True)
-    # ulid field from ULIDMixin
+    # id field from ULIDMixin (ULID primary key)
     stacking_timespan_id = db.Column(
         "stacking_timespan_id",
-        db.BigInteger,
+        db.String(26),
         db.ForeignKey("stacking_timespan.id"),
         nullable=False,
     )
@@ -147,7 +146,7 @@ class CCFStack(ULIDMixin, db.Model):
     )
     componentpair_id = db.Column(
         "componentpair_id",
-        db.Integer,
+        db.String(26),
         db.ForeignKey("componentpair_cartesian.id"),
         nullable=False,
     )

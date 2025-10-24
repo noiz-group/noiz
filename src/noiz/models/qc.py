@@ -9,6 +9,7 @@ import datetime
 from pydantic.dataclasses import dataclass
 
 from noiz.database import db
+from noiz.models.mixins import IntegerIDMixin, ULIDMixin
 from noiz.globals import ExtendedEnum
 
 
@@ -17,12 +18,12 @@ class NullTreatmentPolicy(ExtendedEnum):
     PASS = "pass"
 
 
-class QCOneRejectedTime(db.Model):
+class QCOneRejectedTime(ULIDMixin, db.Model):
     __tablename__ = "qcone_rejected_time_periods"
-    id = db.Column("id", db.Integer, primary_key=True)
+    # id field from ULIDMixin (ULID primary key)
 
     qcone_config_id = db.Column("qcone_config_id", db.Integer, db.ForeignKey("qcone_config.id"))
-    component_id = db.Column("component_id", db.Integer, db.ForeignKey("component.id"))
+    component_id = db.Column("component_id", db.String(26), db.ForeignKey("component.id"))
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
 
@@ -32,10 +33,10 @@ class QCOneRejectedTime(db.Model):
     component = db.relationship("Component", foreign_keys=[component_id])
 
 
-class QCOneConfig(db.Model):
+class QCOneConfig(IntegerIDMixin, db.Model):
     __tablename__ = "qcone_config"
 
-    id = db.Column("id", db.Integer, primary_key=True)
+    # id field from ULIDMixin (ULID primary key)
 
     datachunk_params_id = db.Column("datachunk_params_id", db.Integer, db.ForeignKey("datachunk_params.id"))
     null_policy = db.Column("null_policy", db.UnicodeText, default=NullTreatmentPolicy.PASS.value, nullable=False)
@@ -142,16 +143,16 @@ class QCOneConfig(db.Model):
         return tuple([x.component_id for x in self.time_periods_rejected])
 
 
-class QCOneResults(db.Model):
+class QCOneResults(ULIDMixin, db.Model):
     __tablename__ = "qcone_results"
     __table_args__ = (
         db.UniqueConstraint("datachunk_id", "qcone_config_id", name="unique_qcone_results_per_config_per_datachunk"),
     )
 
-    id = db.Column("id", db.BigInteger, primary_key=True)
+    # id field from ULIDMixin (ULID primary key)
 
     qcone_config_id = db.Column("qcone_config_id", db.Integer, db.ForeignKey("qcone_config.id"))
-    datachunk_id = db.Column("datachunk_id", db.Integer, db.ForeignKey("datachunk.id"))
+    datachunk_id = db.Column("datachunk_id", db.String(26), db.ForeignKey("datachunk.id"))
 
     starttime = db.Column("starttime", db.Boolean, nullable=False)
     endtime = db.Column("endtime", db.Boolean, nullable=False)
@@ -259,12 +260,12 @@ class QCOneConfigHolder:
     signal_kurtosis_max: Optional[float] = None
 
 
-class QCTwoRejectedTime(db.Model):
+class QCTwoRejectedTime(ULIDMixin, db.Model):
     __tablename__ = "qctwo_rejected_time_periods"
-    id = db.Column("id", db.Integer, primary_key=True)
+    # id field from ULIDMixin (ULID primary key)
 
     qctwo_config_id = db.Column("qctwo_config_id", db.Integer, db.ForeignKey("qctwo_config.id"))
-    componentpair_id = db.Column("componentpair_id", db.Integer, db.ForeignKey("componentpair_cartesian.id"))
+    componentpair_id = db.Column("componentpair_id", db.String(26), db.ForeignKey("componentpair_cartesian.id"))
     starttime = db.Column("starttime", db.TIMESTAMP(timezone=True), nullable=False)
     endtime = db.Column("endtime", db.TIMESTAMP(timezone=True), nullable=False)
 
@@ -274,10 +275,10 @@ class QCTwoRejectedTime(db.Model):
     component_pair_cartesian = db.relationship("ComponentPairCartesian", foreign_keys=[componentpair_id])
 
 
-class QCTwoConfig(db.Model):
+class QCTwoConfig(IntegerIDMixin, db.Model):
     __tablename__ = "qctwo_config"
 
-    id = db.Column("id", db.Integer, primary_key=True)
+    # id field from ULIDMixin (ULID primary key)
 
     crosscorrelation_cartesian_params_id = db.Column(
         "crosscorrelation_cartesian_params_id", db.Integer, db.ForeignKey("crosscorrelation_cartesian_params.id")
@@ -308,7 +309,7 @@ class QCTwoConfig(db.Model):
         return tuple([x.componentpair_id for x in self.time_periods_rejected])
 
 
-class QCTwoResults(db.Model):
+class QCTwoResults(ULIDMixin, db.Model):
     __tablename__ = "qctwo_results"
     __table_args__ = (
         db.UniqueConstraint(
@@ -316,11 +317,11 @@ class QCTwoResults(db.Model):
         ),
     )
 
-    id = db.Column("id", db.BigInteger, primary_key=True)
+    # id field from ULIDMixin (ULID primary key)
 
     qctwo_config_id = db.Column("qctwo_config_id", db.Integer, db.ForeignKey("qctwo_config.id"))
     crosscorrelation_cartesian_id = db.Column(
-        "crosscorrelation_cartesian_id", db.Integer, db.ForeignKey("crosscorrelation_cartesian.id")
+        "crosscorrelation_cartesian_id", db.String(26), db.ForeignKey("crosscorrelation_cartesian.id")
     )
 
     starttime = db.Column("starttime", db.Boolean, nullable=False)

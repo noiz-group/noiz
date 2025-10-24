@@ -7,8 +7,8 @@ import datetime
 import more_itertools
 from loguru import logger
 import pandas as pd
-from sqlalchemy.dialects.postgresql import insert, Insert
 from sqlalchemy.orm import subqueryload, Query
+from sqlalchemy.sql import Insert
 from sqlalchemy.sql.elements import BinaryExpression
 from typing import Union, Collection, Optional, List, Tuple, Generator, Dict
 
@@ -22,7 +22,7 @@ from noiz.api.helpers import (
 from noiz.api.qc import fetch_qcone_config_single
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.models.type_aliases import BeamformingRunnerInputs
-from noiz.database import db
+from noiz.database import db, get_dialect_insert, dialect_agnostic_on_conflict
 from noiz.exceptions import EmptyResultException
 from noiz.models import Timespan, Datachunk, QCOneResults, BeamformingParams
 from noiz.models.beamforming import (
@@ -255,28 +255,26 @@ def _prepare_upsert_command_beamforming(results: BeamformingResult) -> Insert:
 
     :param results: Instance which is to be upserted
     :type results: noiz.models.beamforming.BeamformingResult
-    :return: Postgres-specific upsert command
-    :rtype: sqlalchemy.dialects.postgresql.Insert
+    :return: Database-agnostic upsert command
+    :rtype: Insert
     """
     # T080: Update upsert to include ULID fields
-    insert_command = (
-        insert(BeamformingResult)
-        .values(
-            ulid=results.ulid,
-            beamforming_params_id=results.beamforming_params_id,
-            timespan_id=results.timespan_id,
-            beamforming_file_id=results.beamforming_file_id,
-            file_ulid=results.file_ulid if hasattr(results, "file_ulid") else None,
-            used_component_count=results.used_component_count,
-        )
-        .on_conflict_do_update(
-            constraint="unique_beam_per_config_per_timespan",
-            set_={
-                "beamforming_file_id": results.beamforming_file_id,
-                "file_ulid": results.file_ulid if hasattr(results, "file_ulid") else None,
-                "used_component_count": results.used_component_count,
-            },
-        )
+    insert_func = get_dialect_insert()
+    insert_stmt = insert_func(BeamformingResult).values(
+        id=results.id,
+        beamforming_params_id=results.beamforming_params_id,
+        timespan_id=results.timespan_id,
+        beamforming_file_id=results.beamforming_file_id,
+        used_component_count=results.used_component_count,
+    )
+
+    insert_command = dialect_agnostic_on_conflict(
+        insert_stmt,
+        constraint_name="unique_beam_per_config_per_timespan",
+        set_={
+            "beamforming_file_id": results.beamforming_file_id,
+            "used_component_count": results.used_component_count,
+        },
     )
     return insert_command
 

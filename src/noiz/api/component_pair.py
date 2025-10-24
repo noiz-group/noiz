@@ -4,7 +4,7 @@
 
 from loguru import logger
 from typing import Optional, List, Union, Collection
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import insert
 from sqlalchemy.orm import aliased, subqueryload
 
 import datetime
@@ -14,7 +14,7 @@ from obspy import UTCDateTime
 
 from noiz.api.component import fetch_components
 from noiz.api.helpers import extract_object_ids
-from noiz.database import db
+from noiz.database import db, get_dialect_insert, dialect_agnostic_on_conflict
 from noiz.exceptions import EmptyResultException
 from noiz.models import Component, ComponentPairCartesian, ComponentPairCylindrical
 from noiz.processing.component_pair import prepare_componentpairs_cartesian, prepare_componentpairs_cylindrical
@@ -24,9 +24,8 @@ from noiz.validation_helpers import validate_to_tuple
 def upsert_componentpairs_cartesian(component_pairs_cartesian: List[ComponentPairCartesian]) -> None:
     """
     Takes iterable of componentpairs_cartesian and inserts it into database.
-    In case of conflict on `single_component_pair` constraint, updates the entry.
+    In case of conflict on component_a_id and component_b_id, updates the entry.
 
-    Warning: Used UPSERT operation is PostgreSQL specific due to used SQLAlchemy command.
     Warning: Has to be run within application context.
 
     :param component_pairs_cartesian: List of componentpairs_cartesian to be upserted into db
@@ -36,32 +35,37 @@ def upsert_componentpairs_cartesian(component_pairs_cartesian: List[ComponentPai
     """
     no = len(component_pairs_cartesian)
     logger.info(f"There are {no} component pairs to process")
+
+    # Get dialect-specific insert function
+    insert_func = get_dialect_insert()
+
     for i, component_pair_cartesian in enumerate(component_pairs_cartesian):
-        insert_command = (
-            insert(ComponentPairCartesian)
-            .values(
-                component_a_id=component_pair_cartesian.component_a_id,
-                component_b_id=component_pair_cartesian.component_b_id,
-                component_code_pair=component_pair_cartesian.component_code_pair,
-                autocorrelation=component_pair_cartesian.autocorrelation,
-                intracorrelation=component_pair_cartesian.intracorrelation,
-                azimuth=component_pair_cartesian.azimuth,
-                backazimuth=component_pair_cartesian.backazimuth,
-                distance=component_pair_cartesian.distance,
-                arcdistance=component_pair_cartesian.arcdistance,
-            )
-            .on_conflict_do_update(
-                constraint="single_component_pair",
-                set_={
-                    "component_code_pair": component_pair_cartesian.component_code_pair,
-                    "autocorrelation": component_pair_cartesian.autocorrelation,
-                    "intracorrelation": component_pair_cartesian.intracorrelation,
-                    "azimuth": component_pair_cartesian.azimuth,
-                    "backazimuth": component_pair_cartesian.backazimuth,
-                    "distance": component_pair_cartesian.distance,
-                    "arcdistance": component_pair_cartesian.arcdistance,
-                },
-            )
+        insert_stmt = insert_func(ComponentPairCartesian).values(
+            component_a_id=component_pair_cartesian.component_a_id,
+            component_b_id=component_pair_cartesian.component_b_id,
+            component_code_pair=component_pair_cartesian.component_code_pair,
+            autocorrelation=component_pair_cartesian.autocorrelation,
+            intracorrelation=component_pair_cartesian.intracorrelation,
+            azimuth=component_pair_cartesian.azimuth,
+            backazimuth=component_pair_cartesian.backazimuth,
+            distance=component_pair_cartesian.distance,
+            arcdistance=component_pair_cartesian.arcdistance,
+        )
+
+        # Apply dialect-agnostic on_conflict
+        insert_command = dialect_agnostic_on_conflict(
+            insert_stmt,
+            constraint_name="single_component_pair",
+            index_elements=["component_a_id", "component_b_id"],
+            set_={
+                "component_code_pair": component_pair_cartesian.component_code_pair,
+                "autocorrelation": component_pair_cartesian.autocorrelation,
+                "intracorrelation": component_pair_cartesian.intracorrelation,
+                "azimuth": component_pair_cartesian.azimuth,
+                "backazimuth": component_pair_cartesian.backazimuth,
+                "distance": component_pair_cartesian.distance,
+                "arcdistance": component_pair_cartesian.arcdistance,
+            },
         )
         db.session.execute(insert_command)
         if i % int(no / 10) == 0:
@@ -403,7 +407,7 @@ def upsert_componentpairs_cylindrical(component_pairs_cylindrical: List[Componen
     logger.info(f"There are {no} component pairs to process")
 
     for i, component_pair_cylindrical in enumerate(component_pairs_cylindrical):
-        insert_command = insert(ComponentPairCylindrical).values(
+        insert_command = insert(ComponentPairCylindrical.__table__).values(
             component_aE_id=component_pair_cylindrical.component_aE_id,
             component_bE_id=component_pair_cylindrical.component_bE_id,
             component_aN_id=component_pair_cylindrical.component_aN_id,

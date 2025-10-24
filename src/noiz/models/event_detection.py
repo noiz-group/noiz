@@ -7,6 +7,7 @@ import obspy
 
 from noiz.exceptions import MissingDataFileException
 from noiz.database import db
+from noiz.models.mixins import ULIDMixin
 from noiz.models.mixins import FileModelMixin
 from noiz.models.custom_db_types import PathInDB
 from noiz.models import Timespan, Component, EventDetectionParams, EventConfirmationParams
@@ -15,6 +16,7 @@ from noiz.models import Timespan, Component, EventDetectionParams, EventConfirma
 class EventDetectionFile(FileModelMixin):
     __tablename__ = "event_detection_file"
 
+    id: int = db.Column("id", db.BigInteger, primary_key=True)
     # \todo add a folder with detection type
     _file_model_type: str = "event_detected"
     _filename_extension: str = "mseed"
@@ -50,6 +52,7 @@ class EventDetectionFile(FileModelMixin):
 class EventConfirmationFile(FileModelMixin):
     __tablename__ = "event_confirmation_file"
 
+    id: int = db.Column("id", db.BigInteger, primary_key=True)
     _file_model_type: str = "event_confirmed"
     _filename_extension: str = ""
 
@@ -68,21 +71,21 @@ class EventConfirmationFile(FileModelMixin):
 association_table_event_confirmation_result_event_detection_result = db.Table(
     "event_confirmation_result_association_event_detection_result",
     db.metadata,
-    db.Column("event_confirmation_result_id", db.BigInteger, db.ForeignKey("event_confirmation_result.id")),
-    db.Column("event_detection_result_id", db.BigInteger, db.ForeignKey("event_detection_result.id")),
+    db.Column("event_confirmation_result_id", db.String(26), db.ForeignKey("event_confirmation_result.id")),
+    db.Column("event_detection_result_id", db.String(26), db.ForeignKey("event_detection_result.id")),
 )
 
 
 association_table_event_confirmation_run_datachunk = db.Table(
     "event_confirmation_run_association_datachunk",
     db.metadata,
-    db.Column("event_confirmation_run_id", db.BigInteger, db.ForeignKey("event_confirmation_run.id")),
-    db.Column("datachunk_id", db.Integer, db.ForeignKey("datachunk.id")),
+    db.Column("event_confirmation_run_id", db.String(26), db.ForeignKey("event_confirmation_run.id")),
+    db.Column("datachunk_id", db.String(26), db.ForeignKey("datachunk.id")),
     db.UniqueConstraint("event_confirmation_run_id", "datachunk_id"),
 )
 
 
-class EventDetectionResult(db.Model):
+class EventDetectionResult(ULIDMixin, db.Model):
     __tablename__ = "event_detection_result"
     __table_args__ = (
         db.UniqueConstraint(
@@ -94,7 +97,7 @@ class EventDetectionResult(db.Model):
         ),
     )
 
-    id = db.Column("id", db.BigInteger, primary_key=True)
+    # id field from ULIDMixin (ULID primary key)
     event_detection_run_id = db.Column("event_detection_run_id", db.Integer, nullable=False)
     event_detection_params_id = db.Column(
         "event_detection_params_id",
@@ -102,8 +105,8 @@ class EventDetectionResult(db.Model):
         db.ForeignKey("event_detection_params.id"),
         nullable=False,
     )
-    datachunk_id = db.Column("datachunk_id", db.Integer, db.ForeignKey("datachunk.id"), nullable=False)
-    timespan_id = db.Column("timespan_id", db.Integer, db.ForeignKey("timespan.id"), nullable=False)
+    datachunk_id = db.Column("datachunk_id", db.String(26), db.ForeignKey("datachunk.id"), nullable=False)
+    timespan_id = db.Column("timespan_id", db.String(26), db.ForeignKey("timespan.id"), nullable=False)
 
     detection_type = db.Column("detection_type", db.UnicodeText, nullable=False)
 
@@ -163,7 +166,7 @@ class EventDetectionResult(db.Model):
             raise MissingDataFileException(f"Data file for EventDetectionResult {self} is missing")
 
 
-class EventConfirmationResult(db.Model):
+class EventConfirmationResult(ULIDMixin, db.Model):
     __tablename__ = "event_confirmation_result"
     __table_args__ = (
         db.UniqueConstraint(
@@ -177,7 +180,7 @@ class EventConfirmationResult(db.Model):
         ),
     )
 
-    id = db.Column("id", db.BigInteger, primary_key=True)
+    # id field from ULIDMixin (ULID primary key)
     event_confirmation_params_id = db.Column(
         "event_confirmation_params_id",
         db.Integer,
@@ -186,11 +189,11 @@ class EventConfirmationResult(db.Model):
     )
     event_confirmation_run_id = db.Column(
         "event_confirmation_run_id",
-        db.Integer,
+        db.String(26),
         db.ForeignKey("event_confirmation_run.id"),
         nullable=False,
     )
-    timespan_id = db.Column("timespan_id", db.Integer, db.ForeignKey("timespan.id"), nullable=False)
+    timespan_id = db.Column("timespan_id", db.String(26), db.ForeignKey("timespan.id"), nullable=False)
     time_start = db.Column("time_start", db.TIMESTAMP(timezone=True), nullable=False)
     time_stop = db.Column("time_stop", db.TIMESTAMP(timezone=True), nullable=False)
     peak_ground_velocity = db.Column("peak_ground_velocity", db.Float, nullable=False)
@@ -252,10 +255,10 @@ class EventConfirmationResult(db.Model):
             raise MissingDataFileException(f"Data file for EventConfirmationResult {self} is missing")
 
 
-class EventConfirmationRun(db.Model):
+class EventConfirmationRun(ULIDMixin, db.Model):
     __tablename__ = "event_confirmation_run"
 
-    id = db.Column("id", db.BigInteger, primary_key=True)
+    # id field from ULIDMixin (ULID primary key)
     specific_stations_params = db.Column("specific_stations_params", db.UnicodeText, nullable=True)
 
     event_confirmation_params_id = db.Column(

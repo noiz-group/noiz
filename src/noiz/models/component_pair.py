@@ -4,16 +4,17 @@
 from typing import Tuple
 
 from noiz.database import db
+from noiz.models.mixins import ULIDMixin
 from noiz.models import Component
 
 
-class ComponentPairCartesian(db.Model):
+class ComponentPairCartesian(ULIDMixin, db.Model):
     __tablename__ = "componentpair_cartesian"
     __table_args__ = (db.UniqueConstraint("component_a_id", "component_b_id", name="single_component_pair"),)
 
-    id = db.Column("id", db.Integer, primary_key=True)
-    component_a_id = db.Column("component_a_id", db.Integer, db.ForeignKey("component.id"), nullable=False)
-    component_b_id = db.Column("component_b_id", db.Integer, db.ForeignKey("component.id"), nullable=False)
+    # id field from ULIDMixin (ULID primary key)
+    component_a_id = db.Column("component_a_id", db.String(26), db.ForeignKey("component.id"), nullable=False)
+    component_b_id = db.Column("component_b_id", db.String(26), db.ForeignKey("component.id"), nullable=False)
     component_code_pair = db.Column("component_code_pair", db.UnicodeText, nullable=False)
     autocorrelation = db.Column("autocorrelation", db.Boolean, nullable=False)
     intracorrelation = db.Column("intracorrelation", db.Boolean, nullable=False)
@@ -76,16 +77,16 @@ class ComponentPairCartesian(db.Model):
             return False
 
 
-class ComponentPairCylindrical(db.Model):
+class ComponentPairCylindrical(ULIDMixin, db.Model):
     __tablename__ = "componentpair_cylindrical"
 
-    id = db.Column("id", db.Integer, primary_key=True)
-    component_aE_id = db.Column("component_aE_id", db.Integer, db.ForeignKey("component.id"), nullable=True)
-    component_bE_id = db.Column("component_bE_id", db.Integer, db.ForeignKey("component.id"), nullable=True)
-    component_aN_id = db.Column("component_aN_id", db.Integer, db.ForeignKey("component.id"), nullable=True)
-    component_bN_id = db.Column("component_bN_id", db.Integer, db.ForeignKey("component.id"), nullable=True)
-    component_aZ_id = db.Column("component_aZ_id", db.Integer, db.ForeignKey("component.id"), nullable=True)
-    component_bZ_id = db.Column("component_bZ_id", db.Integer, db.ForeignKey("component.id"), nullable=True)
+    # id field from ULIDMixin (ULID primary key)
+    component_aE_id = db.Column("component_aE_id", db.String(26), db.ForeignKey("component.id"), nullable=True)
+    component_bE_id = db.Column("component_bE_id", db.String(26), db.ForeignKey("component.id"), nullable=True)
+    component_aN_id = db.Column("component_aN_id", db.String(26), db.ForeignKey("component.id"), nullable=True)
+    component_bN_id = db.Column("component_bN_id", db.String(26), db.ForeignKey("component.id"), nullable=True)
+    component_aZ_id = db.Column("component_aZ_id", db.String(26), db.ForeignKey("component.id"), nullable=True)
+    component_bZ_id = db.Column("component_bZ_id", db.String(26), db.ForeignKey("component.id"), nullable=True)
 
     component_cylindrical_code_pair = db.Column("component_cylindrical_code_pair", db.UnicodeText, nullable=False)
     autocorrelation = db.Column("autocorrelation", db.Boolean, nullable=False)

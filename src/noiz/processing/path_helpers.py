@@ -6,12 +6,13 @@ from loguru import logger
 from obspy.core.inventory import Network, Station
 import os
 from pathlib import Path
-from typing import Union, Optional
+from typing import Union, Optional, TYPE_CHECKING
 
-from noiz.models import Component, Timespan
+if TYPE_CHECKING:
+    from noiz.models import Component, Timespan
 
 
-def assembly_preprocessing_filename(component: Component, timespan: Timespan, count: int = 0) -> str:
+def assembly_preprocessing_filename(component: "Component", timespan: "Timespan", count: int = 0) -> str:
     year = str(timespan.starttime.year)
     doy_time = timespan.starttime.strftime("%j.%H%M")
 
@@ -20,7 +21,7 @@ def assembly_preprocessing_filename(component: Component, timespan: Timespan, co
     return fname
 
 
-def assembly_sds_like_dir(component: Component, timespan: Timespan) -> Path:
+def assembly_sds_like_dir(component: "Component", timespan: "Timespan") -> Path:
     """
     Asembles a Path object in a SDS manner. Object consists of year/network/station/component codes.
 

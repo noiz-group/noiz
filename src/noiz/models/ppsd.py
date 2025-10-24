@@ -32,22 +32,15 @@ class PPSDResult(ULIDMixin, db.Model):
     __table_args__ = (
         db.UniqueConstraint("datachunk_id", "ppsd_params_id", name="unique_ppsd_per_config_per_datachunk"),
     )
-    id = db.Column("id", db.Integer, primary_key=True)
-    # ulid field from ULIDMixin
+    # id field from ULIDMixin (ULID primary key)
     ppsd_params_id = db.Column("ppsd_params_id", db.Integer, db.ForeignKey("ppsd_params.id"), nullable=False)
-    timespan_id = db.Column("timespan_id", db.Integer, db.ForeignKey("timespan.id"), nullable=False)
-    datachunk_id = db.Column("datachunk_id", db.Integer, db.ForeignKey("datachunk.id"), nullable=False)
+    timespan_id = db.Column("timespan_id", db.String(26), db.ForeignKey("timespan.id"), nullable=False)
+    datachunk_id = db.Column("datachunk_id", db.String(26), db.ForeignKey("datachunk.id"), nullable=False)
 
     ppsd_file_id = db.Column(
         "ppsd_file_id",
-        db.BigInteger,
-        db.ForeignKey("ppsd_file.id"),
-        nullable=True,
-    )
-    file_ulid = db.Column(
-        "file_ulid",
         db.String(26),
-        db.ForeignKey("ppsd_file.ulid"),
+        db.ForeignKey("ppsd_file.id"),
         nullable=True,
     )
 

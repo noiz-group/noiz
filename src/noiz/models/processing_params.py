@@ -8,7 +8,8 @@ import numpy.typing as npt
 from pydantic.dataclasses import dataclass
 from typing import Optional, Union, Tuple, TYPE_CHECKING
 
-from noiz.database import db, NotNullColumn, NullColumn
+from noiz.database import db
+from noiz.models.mixins import IntegerIDMixin
 from noiz.globals import ExtendedEnum
 from noiz.validation_helpers import validate_exactly_one_argument_provided
 
@@ -26,10 +27,10 @@ class ZeroPaddingMethod(ExtendedEnum):
     TAPERED_PADDED = "tapered_padded"
 
 
-class DatachunkParams(db.Model):
+class DatachunkParams(IntegerIDMixin, db.Model):
     __tablename__ = "datachunk_params"
 
-    id = db.Column("id", db.Integer, primary_key=True)
+    # id field from IntegerIDMixin (integer primary key)
 
     _sampling_rate = db.Column("sampling_rate", db.Float, default=24, nullable=False)
 
@@ -291,10 +292,10 @@ class ProcessedDatachunkParamsHolder:
     quefrency: bool
 
 
-class ProcessedDatachunkParams(db.Model):
+class ProcessedDatachunkParams(IntegerIDMixin, db.Model):
     __tablename__ = "processed_datachunk_params"
 
-    id = db.Column("id", db.Integer, primary_key=True)
+    # id field from ULIDMixin (ULID primary key)
     datachunk_params_id = db.Column(
         "datachunk_params_id", db.Integer, db.ForeignKey("datachunk_params.id"), nullable=False
     )
@@ -451,10 +452,10 @@ class CrosscorrelationCartesianParamsHolder:
     correlation_max_lag: int
 
 
-class CrosscorrelationCartesianParams(db.Model):
+class CrosscorrelationCartesianParams(IntegerIDMixin, db.Model):
     __tablename__ = "crosscorrelation_cartesian_params"
 
-    id = db.Column("id", db.Integer, primary_key=True)
+    # id field from ULIDMixin (ULID primary key)
     processed_datachunk_params_id = db.Column(
         "processed_datachunk_params_id", db.Integer, db.ForeignKey("processed_datachunk_params.id"), nullable=False
     )
@@ -530,10 +531,10 @@ class CrosscorrelationCylindricalParamsHolder:
     crosscorrelation_cartesian_params_id: int
 
 
-class CrosscorrelationCylindricalParams(db.Model):
+class CrosscorrelationCylindricalParams(IntegerIDMixin, db.Model):
     __tablename__ = "crosscorrelation_cylindrical_params"
 
-    id = db.Column("id", db.Integer, primary_key=True)
+    # id field from ULIDMixin (ULID primary key)
     crosscorrelation_cartesian_params_id = db.Column(
         "crosscorrelation_cartesian_params_id",
         db.Integer,
@@ -625,81 +626,81 @@ class BeamformingParamsHolder:
     minimum_trace_count: int = 3
 
 
-class BeamformingParams(db.Model):
+class BeamformingParams(IntegerIDMixin, db.Model):
     __tablename__ = "beamforming_params"
-    id = db.Column("id", db.Integer, primary_key=True)
-    qcone_config_id = NotNullColumn("qcone_config_id", db.Integer, db.ForeignKey("qcone_config.id"))
-    min_freq = NotNullColumn("min_freq", db.Float)
-    max_freq = NotNullColumn("max_freq", db.Float)
-    slowness_x_min = NotNullColumn("slowness_x_min", db.Float)
-    slowness_x_max = NotNullColumn("slowness_x_max", db.Float)
-    slowness_y_min = NotNullColumn("slowness_y_min", db.Float)
-    slowness_y_max = NotNullColumn("slowness_y_max", db.Float)
-    slowness_step = NotNullColumn("slowness_step", db.Float)
+    # id field from ULIDMixin (ULID primary key)
+    qcone_config_id = db.Column("qcone_config_id", db.Integer, db.ForeignKey("qcone_config.id"))
+    min_freq = db.Column("min_freq", db.Float)
+    max_freq = db.Column("max_freq", db.Float)
+    slowness_x_min = db.Column("slowness_x_min", db.Float)
+    slowness_x_max = db.Column("slowness_x_max", db.Float)
+    slowness_y_min = db.Column("slowness_y_min", db.Float)
+    slowness_y_max = db.Column("slowness_y_max", db.Float)
+    slowness_step = db.Column("slowness_step", db.Float)
 
-    window_length = NotNullColumn("window_length", db.Float)
-    window_step = NotNullColumn("window_step", db.Float)
+    window_length = db.Column("window_length", db.Float)
+    window_step = db.Column("window_step", db.Float)
 
-    perform_statistical_reject = NotNullColumn("perform_statistical_reject", db.Boolean)
-    n_sigma_stat_reject = NotNullColumn("n_sigma_stat_reject", db.Float)
-    prop_bad_freqs_stat_reject = NotNullColumn("prop_bad_freqs_stat_reject", db.Float)
+    perform_statistical_reject = db.Column("perform_statistical_reject", db.Boolean)
+    n_sigma_stat_reject = db.Column("n_sigma_stat_reject", db.Float)
+    prop_bad_freqs_stat_reject = db.Column("prop_bad_freqs_stat_reject", db.Float)
 
-    save_average_beamformer_abspower = NotNullColumn("save_average_beamformer_abspower", db.Boolean)
-    save_all_beamformers_abspower = NotNullColumn("save_all_beamformers_abspower", db.Boolean)
-    save_average_beamformer_relpower = NotNullColumn("save_average_beamformer_relpower", db.Boolean)
-    save_all_beamformers_relpower = NotNullColumn("save_all_beamformers_relpower", db.Boolean)
+    save_average_beamformer_abspower = db.Column("save_average_beamformer_abspower", db.Boolean)
+    save_all_beamformers_abspower = db.Column("save_all_beamformers_abspower", db.Boolean)
+    save_average_beamformer_relpower = db.Column("save_average_beamformer_relpower", db.Boolean)
+    save_all_beamformers_relpower = db.Column("save_all_beamformers_relpower", db.Boolean)
 
     #   deconv options
-    perform_deconvolution_all = NotNullColumn("perform_deconvolution_all", db.Boolean)
-    perform_deconvolution_average = NotNullColumn("perform_deconvolution_average", db.Boolean)
-    save_all_arf = NotNullColumn("save_all_arf", db.Boolean)
-    save_average_arf = NotNullColumn("save_average_arf", db.Boolean)
-    arf_enlarge_ratio = NotNullColumn("arf_enlarge_ratio", db.Float)
+    perform_deconvolution_all = db.Column("perform_deconvolution_all", db.Boolean)
+    perform_deconvolution_average = db.Column("perform_deconvolution_average", db.Boolean)
+    save_all_arf = db.Column("save_all_arf", db.Boolean)
+    save_average_arf = db.Column("save_average_arf", db.Boolean)
+    arf_enlarge_ratio = db.Column("arf_enlarge_ratio", db.Float)
 
     #   deconv parameters
-    smin1 = NullColumn("smin1", db.Float)
-    smax1 = NullColumn("smax1", db.Float)
-    smin2 = NullColumn("smin2", db.Float)
-    smax2 = NullColumn("smax2", db.Float)
-    thetamin1 = NullColumn("thetamin1", db.Float)
-    thetamax1 = NullColumn("thetamax1", db.Float)
-    thetamin2 = NullColumn("thetamin2", db.Float)
-    thetamax2 = NullColumn("thetamax2", db.Float)
-    sparsity_max = NotNullColumn("sparsity_max", db.Integer)
-    sigma_angle_kernels = NotNullColumn("sigma_angle", db.Float)
-    sigma_slowness_kernels_ratio_to_ds = NotNullColumn("sigma_slowness_kernels_ratio_to_ds", db.Integer)
-    rms_threshold_deconv = NotNullColumn("rms_target_deconv", db.Float)
-    reg_coef_deconv = NotNullColumn("reg_coef_deconv", db.Float)
-    rel_rms_thresh_admissible_slowness = NotNullColumn("rel_rms_thresh_admissible_slowness", db.Float)
-    rel_rms_stop_crit_increase_sparsity = NotNullColumn("rel_rms_stop_crit_increase_sparsity", db.Float)
+    smin1 = db.Column("smin1", db.Float)
+    smax1 = db.Column("smax1", db.Float)
+    smin2 = db.Column("smin2", db.Float)
+    smax2 = db.Column("smax2", db.Float)
+    thetamin1 = db.Column("thetamin1", db.Float)
+    thetamax1 = db.Column("thetamax1", db.Float)
+    thetamin2 = db.Column("thetamin2", db.Float)
+    thetamax2 = db.Column("thetamax2", db.Float)
+    sparsity_max = db.Column("sparsity_max", db.Integer)
+    sigma_angle_kernels = db.Column("sigma_angle", db.Float)
+    sigma_slowness_kernels_ratio_to_ds = db.Column("sigma_slowness_kernels_ratio_to_ds", db.Integer)
+    rms_threshold_deconv = db.Column("rms_target_deconv", db.Float)
+    reg_coef_deconv = db.Column("reg_coef_deconv", db.Float)
+    rel_rms_thresh_admissible_slowness = db.Column("rel_rms_thresh_admissible_slowness", db.Float)
+    rel_rms_stop_crit_increase_sparsity = db.Column("rel_rms_stop_crit_increase_sparsity", db.Float)
 
-    # n_iter_max = NotNullColumn("n_iter_max", db.Integer)
-    # angle_step_min = NotNullColumn("angle_step_min", db.Float)
-    # angle_width_start = NotNullColumn("angle_width_start", db.Float)
-    # angle_step_mode = NotNullColumn("angle_step_mode", db.String)
-    # theta_overlap_kernel = NotNullColumn("theta_overlap_kernel", db.Float)
-    # slowness_width_ratio_to_ds = NotNullColumn("slowness_width_ratio_to_ds", db.Float)
-    # slowness_step_ratio_to_ds = NotNullColumn("slowness_step_ratio_to_ds", db.Float)
-    # random_angle_at_each_iteration = NotNullColumn("random_angle_at_each_iteration", db.Boolean)
-    # stop_crit_rel = NotNullColumn("stop_crit_rel", db.Float)
+    # n_iter_max = db.Column("n_iter_max", db.Integer)
+    # angle_step_min = db.Column("angle_step_min", db.Float)
+    # angle_width_start = db.Column("angle_width_start", db.Float)
+    # angle_step_mode = db.Column("angle_step_mode", db.String)
+    # theta_overlap_kernel = db.Column("theta_overlap_kernel", db.Float)
+    # slowness_width_ratio_to_ds = db.Column("slowness_width_ratio_to_ds", db.Float)
+    # slowness_step_ratio_to_ds = db.Column("slowness_step_ratio_to_ds", db.Float)
+    # random_angle_at_each_iteration = db.Column("random_angle_at_each_iteration", db.Boolean)
+    # stop_crit_rel = db.Column("stop_crit_rel", db.Float)
 
     #   maxima picking parameters
-    extract_peaks_average_beamformer_abspower = NotNullColumn("extract_peaks_average_beamformer_abspower", db.Boolean)
-    extract_peaks_all_beamformers_abspower = NotNullColumn("extract_peaks_all_beamformers_abspower", db.Boolean)
-    extract_peaks_average_beamformer_relpower = NotNullColumn("extract_peaks_average_beamformer_relpower", db.Boolean)
-    extract_peaks_all_beamformers_relpower = NotNullColumn("extract_peaks_all_beamformers_relpower", db.Boolean)
+    extract_peaks_average_beamformer_abspower = db.Column("extract_peaks_average_beamformer_abspower", db.Boolean)
+    extract_peaks_all_beamformers_abspower = db.Column("extract_peaks_all_beamformers_abspower", db.Boolean)
+    extract_peaks_average_beamformer_relpower = db.Column("extract_peaks_average_beamformer_relpower", db.Boolean)
+    extract_peaks_all_beamformers_relpower = db.Column("extract_peaks_all_beamformers_relpower", db.Boolean)
 
-    neighborhood_size = NotNullColumn("neighborhood_size", db.Float)
-    maxima_threshold = NotNullColumn("maxima_threshold", db.Float)
-    best_point_count = NotNullColumn("best_point_count", db.Integer)
-    beam_portion_threshold = NotNullColumn("beam_portion_threshold", db.Float)
+    neighborhood_size = db.Column("neighborhood_size", db.Float)
+    maxima_threshold = db.Column("maxima_threshold", db.Float)
+    best_point_count = db.Column("best_point_count", db.Integer)
+    beam_portion_threshold = db.Column("beam_portion_threshold", db.Float)
 
-    semblance_threshold = NotNullColumn("semblance_threshold", db.Float)
-    velocity_threshold = NotNullColumn("velocity_threshold", db.Float)
-    prewhiten = NotNullColumn("prewhiten", db.Boolean)
-    _method = NotNullColumn("method", db.String)
-    _used_component_codes = NotNullColumn("used_component_codes", db.String)
-    minimum_trace_count = NotNullColumn("minimum_trace_count", db.Integer)
+    semblance_threshold = db.Column("semblance_threshold", db.Float)
+    velocity_threshold = db.Column("velocity_threshold", db.Float)
+    prewhiten = db.Column("prewhiten", db.Boolean)
+    _method = db.Column("method", db.String)
+    _used_component_codes = db.Column("used_component_codes", db.String)
+    minimum_trace_count = db.Column("minimum_trace_count", db.Integer)
 
     qcone_config = db.relationship(
         "QCOneConfig",
@@ -955,9 +956,9 @@ class PPSDParamsHolder:
     save_compressed: bool = True
 
 
-class PPSDParams(db.Model):
+class PPSDParams(IntegerIDMixin, db.Model):
     __tablename__ = "ppsd_params"
-    id = db.Column("id", db.Integer, primary_key=True)
+    # id field from ULIDMixin (ULID primary key)
 
     datachunk_params_id = db.Column(
         "datachunk_params_id", db.Integer, db.ForeignKey("datachunk_params.id"), nullable=False
@@ -1203,10 +1204,10 @@ class EventDetectionParamsHolder:
             )
 
 
-class EventDetectionParams(db.Model):
+class EventDetectionParams(IntegerIDMixin, db.Model):
     __tablename__ = "event_detection_params"
 
-    id = db.Column("id", db.Integer, primary_key=True)
+    # id field from ULIDMixin (ULID primary key)
 
     datachunk_params_id = db.Column(
         "datachunk_params_id", db.Integer, db.ForeignKey("datachunk_params.id"), nullable=False
@@ -1317,10 +1318,10 @@ class EventConfirmationParamsHolder:
     vote_weight: Optional[Tuple[str, ...]] = None
 
 
-class EventConfirmationParams(db.Model):
+class EventConfirmationParams(IntegerIDMixin, db.Model):
     __tablename__ = "event_confirmation_params"
 
-    id = db.Column("id", db.Integer, primary_key=True)
+    # id field from ULIDMixin (ULID primary key)
 
     datachunk_params_id = db.Column(
         "datachunk_params_id", db.Integer, db.ForeignKey("datachunk_params.id"), nullable=False
