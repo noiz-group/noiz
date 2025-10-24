@@ -93,9 +93,8 @@ class EventDetectionResult(ULIDMixin, db.Model):
             "datachunk_id",
             "event_detection_params_id",
             "time_start",
-            name="unique_detection_per_timespan_per_datachunk_per_param_per_time",
         ),
-    )
+    )  # formerly: unique_detection_per_timespan_per_datachunk_per_param_per_time
 
     # id field from ULIDMixin (ULID primary key)
     event_detection_run_id = db.Column("event_detection_run_id", db.Integer, nullable=False)
@@ -176,9 +175,8 @@ class EventConfirmationResult(ULIDMixin, db.Model):
             "time_stop",
             "peak_ground_velocity",
             "number_station_triggered",
-            name="unique_confirmation_per_timespan_per_param_per_time",
         ),
-    )
+    )  # formerly: unique_confirmation_per_timespan_per_param_per_time
 
     # id field from ULIDMixin (ULID primary key)
     event_confirmation_params_id = db.Column(

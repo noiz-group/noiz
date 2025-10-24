@@ -30,8 +30,8 @@ class PPSDFile(ULIDMixin, FileModelMixin):
 class PPSDResult(ULIDMixin, db.Model):
     __tablename__ = "ppsd_result"
     __table_args__ = (
-        db.UniqueConstraint("datachunk_id", "ppsd_params_id", name="unique_ppsd_per_config_per_datachunk"),
-    )
+        db.UniqueConstraint("datachunk_id", "ppsd_params_id"),
+    )  # formerly: unique_ppsd_per_config_per_datachunk
     # id field from ULIDMixin (ULID primary key)
     ppsd_params_id = db.Column("ppsd_params_id", db.Integer, db.ForeignKey("ppsd_params.id"), nullable=False)
     timespan_id = db.Column("timespan_id", db.String(26), db.ForeignKey("timespan.id"), nullable=False)

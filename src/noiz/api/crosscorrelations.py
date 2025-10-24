@@ -30,7 +30,7 @@ from noiz.api.processing_config import (
     fetch_crosscorrelation_cylindrical_params_by_id,
 )
 from noiz.api.timespan import fetch_timespans_between_dates
-from noiz.database import db, get_dialect_insert, dialect_agnostic_on_conflict
+from noiz.database import db, get_dialect_insert
 from noiz.exceptions import InconsistentDataException, CorruptedDataException
 from noiz.models import (
     ComponentPairCartesian,
@@ -157,9 +157,8 @@ def _prepare_upsert_command_crosscorrelation_cartesian(xcorr: CrosscorrelationCa
         ccf=xcorr.ccf,
     )
 
-    insert_command = dialect_agnostic_on_conflict(
-        insert_stmt,
-        constraint_name="unique_ccfn_per_timespan_per_componentpair_per_config",
+    insert_command = insert_stmt.on_conflict_do_update(
+        index_elements=["timespan_id", "componentpair_id", "crosscorrelation_cartesian_params_id"],
         set_={
             "crosscorrelation_cartesian_file_id": xcorr.file.id if xcorr.file else None,
             "file_ulid": xcorr.file_ulid,
@@ -858,9 +857,8 @@ def _prepare_upsert_command_crosscorrelation_cylindrical(xcorr: Crosscorrelation
         ccf=xcorr.ccf,
     )
 
-    insert_command = dialect_agnostic_on_conflict(
-        insert_stmt,
-        constraint_name="unique_ccfcylindrical_per_timespan_cylindrical_per_config",
+    insert_command = insert_stmt.on_conflict_do_update(
+        index_elements=["timespan_id", "componentpair_cylindrical_id", "crosscorrelation_cylindrical_params_id"],
         set_={"ccf": xcorr.ccf},
     )
     return insert_command

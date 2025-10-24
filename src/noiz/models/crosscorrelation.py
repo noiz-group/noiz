@@ -24,9 +24,8 @@ class CrosscorrelationCartesian(ULIDMixin, db.Model):
             "timespan_id",
             "componentpair_id",
             "crosscorrelation_cartesian_params_id",
-            name="unique_ccfn_per_timespan_per_componentpair_per_config",
         ),
-    )
+    )  # formerly: unique_ccfn_per_timespan_per_componentpair_per_config
 
     # id field from ULIDMixin (ULID primary key)
     componentpair_id = db.Column(
@@ -105,9 +104,8 @@ class CrosscorrelationCylindrical(ULIDMixin, db.Model):
             "timespan_id",
             "componentpair_cylindrical_id",
             "crosscorrelation_cylindrical_params_id",
-            name="unique_ccfcylindrical_per_timespan_cylindrical_per_config",
         ),
-    )
+    )  # formerly: unique_ccfcylindrical_per_timespan_cylindrical_per_config
 
     # id field from ULIDMixin (ULID primary key)
     componentpair_cylindrical_id = db.Column(

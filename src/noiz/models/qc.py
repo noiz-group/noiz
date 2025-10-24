@@ -146,8 +146,8 @@ class QCOneConfig(IntegerIDMixin, db.Model):
 class QCOneResults(ULIDMixin, db.Model):
     __tablename__ = "qcone_results"
     __table_args__ = (
-        db.UniqueConstraint("datachunk_id", "qcone_config_id", name="unique_qcone_results_per_config_per_datachunk"),
-    )
+        db.UniqueConstraint("datachunk_id", "qcone_config_id"),
+    )  # formerly: unique_qcone_results_per_config_per_datachunk
 
     # id field from ULIDMixin (ULID primary key)
 
@@ -312,10 +312,8 @@ class QCTwoConfig(IntegerIDMixin, db.Model):
 class QCTwoResults(ULIDMixin, db.Model):
     __tablename__ = "qctwo_results"
     __table_args__ = (
-        db.UniqueConstraint(
-            "crosscorrelation_cartesian_id", "qctwo_config_id", name="unique_qctwo_results_per_config_per_ccf"
-        ),
-    )
+        db.UniqueConstraint("crosscorrelation_cartesian_id", "qctwo_config_id"),
+    )  # formerly: unique_qctwo_results_per_config_per_ccf
 
     # id field from ULIDMixin (ULID primary key)
 

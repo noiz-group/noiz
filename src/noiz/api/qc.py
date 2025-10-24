@@ -21,7 +21,7 @@ from noiz.api.helpers import (
 )
 from noiz.api.processing_config import fetch_datachunkparams_by_id
 from noiz.api.timespan import fetch_timespans_between_dates
-from noiz.database import db, get_dialect_insert, dialect_agnostic_on_conflict
+from noiz.database import db, get_dialect_insert
 from noiz.exceptions import EmptyResultException
 from noiz.models import (
     Datachunk,
@@ -585,9 +585,8 @@ def _prepare_upsert_command_qcone(results: QCOneResults) -> Insert:
         signal_kurtosis_max=results.signal_kurtosis_max,
     )
 
-    insert_command = dialect_agnostic_on_conflict(
-        insert_stmt,
-        constraint_name="unique_qcone_results_per_config_per_datachunk",
+    insert_command = insert_stmt.on_conflict_do_update(
+        index_elements=["datachunk_id", "qcone_config_id"],
         set_={
             "starttime": results.starttime,
             "endtime": results.endtime,
@@ -666,9 +665,8 @@ def _prepare_upsert_command_qctwo(results: QCTwoResults) -> Insert:
         crosscorrelation_cartesian_id=results.crosscorrelation_cartesian_id,
     )
 
-    insert_command = dialect_agnostic_on_conflict(
-        insert_stmt,
-        constraint_name="unique_qctwo_results_per_config_per_ccf",
+    insert_command = insert_stmt.on_conflict_do_update(
+        index_elements=["crosscorrelation_cartesian_id", "qctwo_config_id"],
         set_={
             "starttime": results.starttime,
             "endtime": results.endtime,

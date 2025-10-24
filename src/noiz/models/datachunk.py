@@ -26,9 +26,8 @@ class Datachunk(ULIDMixin, db.Model):
             "timespan_id",
             "component_id",
             "datachunk_params_id",
-            name="unique_datachunk_per_timespan_per_station_per_processing",
         ),
-    )
+    )  # formerly: unique_datachunk_per_timespan_per_station_per_processing
 
     # id field from ULIDMixin (ULID primary key)
     component_id = db.Column("component_id", db.String(26), db.ForeignKey("component.id"), nullable=False)
@@ -95,9 +94,8 @@ class DatachunkStats(ULIDMixin, db.Model):
     __table_args__ = (
         db.UniqueConstraint(
             "datachunk_id",
-            name="unique_stats_per_datachunk",
         ),
-    )
+    )  # formerly: unique_stats_per_datachunk
 
     # id field from ULIDMixin (ULID primary key)
 
@@ -123,9 +121,8 @@ class ProcessedDatachunk(ULIDMixin, db.Model):
         db.UniqueConstraint(
             "datachunk_id",
             "processed_datachunk_params_id",
-            name="unique_processing_per_datachunk_per_config",
         ),
-    )
+    )  # formerly: unique_processing_per_datachunk_per_config
 
     # id field from ULIDMixin (ULID primary key)
     processed_datachunk_params_id = db.Column(

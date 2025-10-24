@@ -14,7 +14,7 @@ from obspy import UTCDateTime
 
 from noiz.api.component import fetch_components
 from noiz.api.helpers import extract_object_ids
-from noiz.database import db, get_dialect_insert, dialect_agnostic_on_conflict
+from noiz.database import db, get_dialect_insert
 from noiz.exceptions import EmptyResultException
 from noiz.models import Component, ComponentPairCartesian, ComponentPairCylindrical
 from noiz.processing.component_pair import prepare_componentpairs_cartesian, prepare_componentpairs_cylindrical
@@ -52,10 +52,8 @@ def upsert_componentpairs_cartesian(component_pairs_cartesian: List[ComponentPai
             arcdistance=component_pair_cartesian.arcdistance,
         )
 
-        # Apply dialect-agnostic on_conflict
-        insert_command = dialect_agnostic_on_conflict(
-            insert_stmt,
-            constraint_name="single_component_pair",
+        # Apply on_conflict_do_update
+        insert_command = insert_stmt.on_conflict_do_update(
             index_elements=["component_a_id", "component_b_id"],
             set_={
                 "component_code_pair": component_pair_cartesian.component_code_pair,

@@ -17,7 +17,7 @@ from typing import Collection, Union, List, Optional, Tuple, Generator
 
 from noiz.api.component_pair import fetch_componentpairs_cartesian
 from noiz.api.qc import fetch_qctwo_config_single, count_qctwo_results
-from noiz.database import db, get_dialect_insert, dialect_agnostic_on_conflict
+from noiz.database import db, get_dialect_insert
 from noiz.models import (
     CrosscorrelationCartesian,
     StackingTimespan,
@@ -134,9 +134,8 @@ def _insert_upsert_stacking_timespans_into_db(
                 endtime=ts.endtime,
                 stacking_schema_id=ts.stacking_schema_id,
             )
-            insert_command = dialect_agnostic_on_conflict(
-                insert_stmt,
-                constraint_name="unique_stack_times_per_config",
+            insert_command = insert_stmt.on_conflict_do_update(
+                index_elements=["stacking_schema_id", "starttime", "midtime", "endtime"],
                 set_=update_dict,
             )
             con.execute(insert_command)
@@ -386,9 +385,8 @@ def _generate_ccfstack_upsert_command(stack: CCFStack) -> Insert:
         stack=stack.stack,
         no_ccfs=stack.no_ccfs,
     )
-    insert_command = dialect_agnostic_on_conflict(
-        insert_stmt,
-        constraint_name="unique_stack_per_pair_per_config",
+    insert_command = insert_stmt.on_conflict_do_update(
+        index_elements=["stacking_timespan_id", "componentpair_id", "stacking_schema_id"],
         set_={
             "stack": stack.stack,
             "no_ccfs": stack.no_ccfs,

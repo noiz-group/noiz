@@ -7,6 +7,7 @@
 
 # Alias common SQLAlchemy names
 from functools import partial
+import re
 
 from typing import Type
 
@@ -14,6 +15,7 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import IntegrityError
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -40,43 +42,6 @@ Column = db.Column
 relationship = db.relationship
 NullColumn: Type[db.Column] = partial(db.Column, nullable=True)  # type: ignore
 NotNullColumn: Type[db.Column] = partial(db.Column, nullable=False)  # type: ignore
-
-
-# Mapping of PostgreSQL constraint names to SQLite index_elements (columns)
-# Used for converting on_conflict_do_update() from constraint= to index_elements=
-CONSTRAINT_TO_COLUMNS = {
-    "unique_timestamp_per_station_in_sohgps": ["datetime", "z_component_id"],
-    "unique_timestamp_per_station_in_sohinstrument": ["datetime", "z_component_id"],
-    "unique_tispan_per_station_in_avgsohgps": ["timespan_id", "z_component_id"],
-    "unique_ccfn_per_timespan_per_componentpair_per_config": [
-        "timespan_id",
-        "componentpair_id",
-        "crosscorrelation_cartesian_params_id",
-    ],
-    "unique_beam_per_config_per_timespan": ["timespan_id", "beamforming_params_id"],
-    "unique_datachunk_per_timespan_per_station_per_processing": [
-        "timespan_id",
-        "component_id",
-        "datachunk_params_id",
-    ],
-    "unique_stack_per_pair_per_config": ["stacking_timespan_id", "componentpair_id", "stacking_schema_id"],
-    "unique_stack_starttime_per_config": ["stacking_schema_id", "starttime"],
-    "unique_stack_midtime_per_config": ["stacking_schema_id", "midtime"],
-    "unique_stack_endtime_per_config": ["stacking_schema_id", "endtime"],
-    "unique_stack_times_per_config": ["stacking_schema_id", "starttime", "midtime", "endtime"],
-    "single_component_pair": ["component_a_id", "component_b_id"],
-    "unique_ccfcylindrical_per_timespan_cylindrical_per_config": [
-        "timespan_id",
-        "componentpair_cylindrical_id",
-        "crosscorrelation_cylindrical_params_id",
-    ],
-    "unique_starttime": ["starttime"],
-    "unique_midtime": ["midtime"],
-    "unique_endtime": ["endtime"],
-    "unique_times": ["starttime", "midtime", "endtime"],
-    "unique_qcone_results_per_config_per_datachunk": ["datachunk_id", "qcone_config_id"],
-    "unique_qctwo_results_per_config_per_ccf": ["crosscorrelation_cartesian_id", "qctwo_config_id"],
-}
 
 
 def get_dialect_insert():
@@ -108,34 +73,58 @@ def get_dialect_insert():
         return insert
 
 
-def dialect_agnostic_on_conflict(insert_stmt, constraint_name=None, index_elements=None, set_=None):
+def parse_constraint_violation(error: IntegrityError) -> tuple:
     """
-    Apply on_conflict_do_update in a database-agnostic way.
+    Parse constraint violation error to extract table name, columns, and values.
 
-    For PostgreSQL, uses constraint name.
-    For SQLite, converts constraint name to index_elements (column names).
-
-    :param insert_stmt: The insert statement to apply conflict resolution to
-    :param constraint_name: PostgreSQL constraint name
-    :param index_elements: Column names for the unique constraint (for SQLite)
-    :param set_: Dictionary of columns to update on conflict
-    :return: Insert statement with conflict resolution
+    :param error: SQLAlchemy IntegrityError
+    :type error: IntegrityError
+    :return: tuple of (table_name, column_list, value_dict)
+    :rtype: tuple[str, list[str], dict]
     """
+    error_msg = str(error.orig)
     dialect_name = db.engine.dialect.name
 
     if dialect_name == "postgresql":
-        # PostgreSQL supports named constraints
-        return insert_stmt.on_conflict_do_update(constraint=constraint_name, set_=set_)
+        # PostgreSQL format: 'duplicate key value violates unique constraint "name"'
+        # DETAIL: Key (col1, col2)=(val1, val2) already exists.
+
+        # Extract table from constraint name if available
+        table_match = re.search(r'violates unique constraint "(\w+)"', error_msg)
+        table = table_match.group(1) if table_match else "unknown"
+
+        # Extract columns from DETAIL
+        detail_match = re.search(r"Key \(([^)]+)\)=\(([^)]+)\)", error_msg)
+        if detail_match:
+            columns = [col.strip() for col in detail_match.group(1).split(",")]
+            values_str = detail_match.group(2).split(",")
+            values = {col: val.strip() for col, val in zip(columns, values_str)}
+            return table, columns, values
+
     elif dialect_name == "sqlite":
-        # SQLite needs column names, not constraint names
-        if index_elements is None and constraint_name:
-            # Try to map constraint name to columns
-            index_elements = CONSTRAINT_TO_COLUMNS.get(constraint_name)
-            if index_elements is None:
-                raise ValueError(
-                    f"Unknown constraint '{constraint_name}'. Add mapping to CONSTRAINT_TO_COLUMNS in database.py"
-                )
-        return insert_stmt.on_conflict_do_update(index_elements=index_elements, set_=set_)
-    else:
-        # Fallback - try constraint name
-        return insert_stmt.on_conflict_do_update(constraint=constraint_name, set_=set_)
+        # SQLite format: 'UNIQUE constraint failed: table.col1, table.col2'
+        match = re.search(r"UNIQUE constraint failed: (\w+)\.([\w, .]+)", error_msg)
+        if match:
+            table = match.group(1)
+            columns_str = match.group(2)
+            # Handle both 'col1, table.col2' and 'col1, col2' formats
+            columns = [col.split(".")[-1].strip() for col in columns_str.split(",")]
+            return table, columns, {}
+
+    # Fallback
+    return "unknown", [], {}
+
+
+def enhance_constraint_error(error: IntegrityError) -> Exception:
+    """
+    Convert SQLAlchemy IntegrityError to enhanced ConstraintViolationError.
+
+    :param error: SQLAlchemy IntegrityError
+    :type error: IntegrityError
+    :return: ConstraintViolationError with parsed details
+    :rtype: ConstraintViolationError
+    """
+    from noiz.exceptions import ConstraintViolationError
+
+    table, columns, values = parse_constraint_violation(error)
+    return ConstraintViolationError(error, table, columns, values)

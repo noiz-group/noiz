@@ -194,10 +194,10 @@ class TimespanMixin(ULIDMixin, db.Model):
 class Timespan(TimespanMixin):
     __tablename__ = "timespan"
     __table_args__ = (
-        db.UniqueConstraint("starttime", name="unique_starttime"),
-        db.UniqueConstraint("midtime", name="unique_midtime"),
-        db.UniqueConstraint("endtime", name="unique_endtime"),
-        db.UniqueConstraint("starttime", "midtime", "endtime", name="unique_times"),
+        db.UniqueConstraint("starttime"),  # formerly: unique_starttime
+        db.UniqueConstraint("midtime"),  # formerly: unique_midtime
+        db.UniqueConstraint("endtime"),  # formerly: unique_endtime
+        db.UniqueConstraint("starttime", "midtime", "endtime"),  # formerly: unique_times
     )
 
     datachunks = db.relationship("Datachunk")

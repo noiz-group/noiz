@@ -10,7 +10,7 @@ import warnings
 from pathlib import Path
 
 from numpy import deprecate_with_doc
-from noiz.database import get_dialect_insert, dialect_agnostic_on_conflict
+from noiz.database import get_dialect_insert
 from sqlalchemy.orm import joinedload
 from typing import Optional, Collection, Generator, Union
 from sqlalchemy.orm.query import Query
@@ -266,9 +266,8 @@ def __upsert_into_db_soh_instrument(
             temperature=row["Temperature(C)"],
             device_id=comp.device_id,
         )
-        insert_command = dialect_agnostic_on_conflict(
-            insert_stmt,
-            constraint_name="unique_timestamp_per_station_in_sohinstrument",
+        insert_command = insert_stmt.on_conflict_do_update(
+            index_elements=["datetime", "z_component_id"],
             set_={
                 "voltage": row["Supply voltage(V)"],
                 "current": row["Total current(A)"],
@@ -358,9 +357,8 @@ def __upsert_into_db_soh_gps(
             time_uncertainty=row["Time uncertainty(ms)"],
             device_id=comp.device_id,
         )
-        insert_command = dialect_agnostic_on_conflict(
-            insert_stmt,
-            constraint_name="unique_timestamp_per_station_in_sohgps",
+        insert_command = insert_stmt.on_conflict_do_update(
+            index_elements=["datetime", "z_component_id"],
             set_={
                 "time_error": row["Time error(ms)"],
                 "time_uncertainty": row["Time uncertainty(ms)"],
@@ -508,9 +506,8 @@ def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
             time_uncertainty=row["time_uncertainty"],
             device_id=row["device_id"],
         )
-        insert_command = dialect_agnostic_on_conflict(
-            insert_stmt,
-            constraint_name="unique_tispan_per_station_in_avgsohgps",
+        insert_command = insert_stmt.on_conflict_do_update(
+            index_elements=["timespan_id", "z_component_id"],
             set_={
                 "time_error": row["time_error"],
                 "time_uncertainty": row["time_uncertainty"],
