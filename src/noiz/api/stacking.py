@@ -13,12 +13,11 @@ from noiz.api.helpers import _run_calculate_and_upsert_on_dask, _run_calculate_a
 from noiz.models.type_aliases import StackingInputs
 from noiz.exceptions import MissingProcessingStepError
 from obspy import UTCDateTime
-from sqlalchemy.dialects.postgresql import insert
 from typing import Collection, Union, List, Optional, Tuple, Generator
 
 from noiz.api.component_pair import fetch_componentpairs_cartesian
 from noiz.api.qc import fetch_qctwo_config_single, count_qctwo_results
-from noiz.database import db
+from noiz.database import db, get_dialect_insert, dialect_agnostic_on_conflict
 from noiz.models import (
     CrosscorrelationCartesian,
     StackingTimespan,
@@ -129,18 +128,16 @@ def _insert_upsert_stacking_timespans_into_db(
                 "endtime": ts.endtime,
                 "stacking_schema_id": ts.stacking_schema_id,
             }
-            insert_command = (
-                insert(StackingTimespan)
-                .values(
-                    starttime=ts.starttime,
-                    midtime=ts.midtime,
-                    endtime=ts.endtime,
-                    stacking_schema_id=ts.stacking_schema_id,
-                )
-                .on_conflict_do_update(constraint="unique_stack_starttime", set_=update_dict)
-                .on_conflict_do_update(constraint="unique_stack_midtime", set_=update_dict)
-                .on_conflict_do_update(constraint="unique_stack_endtime", set_=update_dict)
-                .on_conflict_do_update(constraint="unique_stack_times", set_=update_dict)
+            insert_stmt = get_dialect_insert()(StackingTimespan).values(
+                starttime=ts.starttime,
+                midtime=ts.midtime,
+                endtime=ts.endtime,
+                stacking_schema_id=ts.stacking_schema_id,
+            )
+            insert_command = dialect_agnostic_on_conflict(
+                insert_stmt,
+                constraint_name="unique_stack_times_per_config",
+                set_=update_dict,
             )
             con.execute(insert_command)
 
@@ -336,7 +333,7 @@ def _validate_and_stack_ccfs(
     stack_as_list = np.asarray(mean_ccf).tolist()
 
     stack = CCFStack(
-        ulid=str(stack_ulid),
+        id=str(stack_ulid),
         stacking_timespan_id=stacking_timespan.id,
         stacking_schema_id=stacking_schema.id,
         stack=stack_as_list,
@@ -381,22 +378,20 @@ def _generate_ccfstack_upsert_command(stack: CCFStack) -> Insert:
     """
 
     # T083: Update upsert to include ULID
-    insert_command = (
-        insert(CCFStack)
-        .values(
-            ulid=stack.ulid,
-            stacking_timespan_id=stack.stacking_timespan_id,
-            stacking_schema_id=stack.stacking_schema_id,
-            componentpair_id=stack.componentpair_id,
-            stack=stack.stack,
-            no_ccfs=stack.no_ccfs,
-        )
-        .on_conflict_do_update(
-            constraint="unique_stack_per_pair_per_config",
-            set_={
-                "stack": stack.stack,
-                "no_ccfs": stack.no_ccfs,
-            },
-        )
+    insert_stmt = get_dialect_insert()(CCFStack).values(
+        id=stack.id,
+        stacking_timespan_id=stack.stacking_timespan_id,
+        stacking_schema_id=stack.stacking_schema_id,
+        componentpair_id=stack.componentpair_id,
+        stack=stack.stack,
+        no_ccfs=stack.no_ccfs,
+    )
+    insert_command = dialect_agnostic_on_conflict(
+        insert_stmt,
+        constraint_name="unique_stack_per_pair_per_config",
+        set_={
+            "stack": stack.stack,
+            "no_ccfs": stack.no_ccfs,
+        },
     )
     return insert_command

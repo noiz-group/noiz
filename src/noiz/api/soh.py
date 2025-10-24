@@ -10,7 +10,7 @@ import warnings
 from pathlib import Path
 
 from numpy import deprecate_with_doc
-from sqlalchemy.dialects.postgresql import insert
+from noiz.database import get_dialect_insert, dialect_agnostic_on_conflict
 from sqlalchemy.orm import joinedload
 from typing import Optional, Collection, Generator, Union
 from sqlalchemy.orm.query import Query
@@ -258,24 +258,22 @@ def __upsert_into_db_soh_instrument(
     for i, (timestamp, row) in enumerate(df.iterrows()):
         if i % (1 + int(command_count / 10)) == 0:
             logger.info(f"Prepared already {i}/{command_count} commands")
-        insert_command = (
-            insert(SohInstrument)
-            .values(
-                z_component_id=z_component_id,
-                datetime=timestamp,
-                voltage=row["Supply voltage(V)"],
-                current=row["Total current(A)"],
-                temperature=row["Temperature(C)"],
-                device_id=comp.device_id,
-            )
-            .on_conflict_do_update(
-                constraint="unique_timestamp_per_station_in_sohinstrument",
-                set_={
-                    "voltage": row["Supply voltage(V)"],
-                    "current": row["Total current(A)"],
-                    "temperature": row["Temperature(C)"],
-                },
-            )
+        insert_stmt = get_dialect_insert()(SohInstrument).values(
+            z_component_id=z_component_id,
+            datetime=timestamp,
+            voltage=row["Supply voltage(V)"],
+            current=row["Total current(A)"],
+            temperature=row["Temperature(C)"],
+            device_id=comp.device_id,
+        )
+        insert_command = dialect_agnostic_on_conflict(
+            insert_stmt,
+            constraint_name="unique_timestamp_per_station_in_sohinstrument",
+            set_={
+                "voltage": row["Supply voltage(V)"],
+                "current": row["Total current(A)"],
+                "temperature": row["Temperature(C)"],
+            },
         )
         insert_commands.append(insert_command)
 
@@ -302,7 +300,7 @@ def __upsert_into_db_soh_instrument(
             logger.info(f"Prepared already {i}/{command_count} commands")
 
         insert_command = (
-            insert(association_table_soh_instr)
+            get_dialect_insert()(association_table_soh_instr)
             .values(soh_instrument_id=inserted_soh.id, component_id=component_id)
             .on_conflict_do_nothing()
         )
@@ -353,22 +351,20 @@ def __upsert_into_db_soh_gps(
         if i % (1 + int(command_count / 10)) == 0:
             logger.info(f"Prepared already {i}/{command_count} commands")
             print(df)
-        insert_command = (
-            insert(SohGps)
-            .values(
-                z_component_id=z_component_id,
-                datetime=timestamp,
-                time_error=row["Time error(ms)"],
-                time_uncertainty=row["Time uncertainty(ms)"],
-                device_id=comp.device_id,
-            )
-            .on_conflict_do_update(
-                constraint="unique_timestamp_per_station_in_sohgps",
-                set_={
-                    "time_error": row["Time error(ms)"],
-                    "time_uncertainty": row["Time uncertainty(ms)"],
-                },
-            )
+        insert_stmt = get_dialect_insert()(SohGps).values(
+            z_component_id=z_component_id,
+            datetime=timestamp,
+            time_error=row["Time error(ms)"],
+            time_uncertainty=row["Time uncertainty(ms)"],
+            device_id=comp.device_id,
+        )
+        insert_command = dialect_agnostic_on_conflict(
+            insert_stmt,
+            constraint_name="unique_timestamp_per_station_in_sohgps",
+            set_={
+                "time_error": row["Time error(ms)"],
+                "time_uncertainty": row["Time uncertainty(ms)"],
+            },
         )
         insert_commands.append(insert_command)
 
@@ -395,7 +391,7 @@ def __upsert_into_db_soh_gps(
             logger.info(f"Prepared already {i}/{command_count} commands")
 
         insert_command = (
-            insert(association_table_soh_gps)
+            get_dialect_insert()(association_table_soh_gps)
             .values(soh_gps_id=inserted_soh.id, component_id=component_id)
             .on_conflict_do_nothing()
         )
@@ -505,22 +501,20 @@ def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
     for i, (_timestamp, row) in enumerate(avg_results.iterrows()):
         if i % (1 + int(command_count / 10)) == 0:
             logger.info(f"Prepared already {i}/{command_count} commands")
-        insert_command = (
-            insert(AveragedSohGps)
-            .values(
-                z_component_id=row["z_component_id"],
-                timespan_id=row["timespan_id"],
-                time_error=row["time_error"],
-                time_uncertainty=row["time_uncertainty"],
-                device_id=row["device_id"],
-            )
-            .on_conflict_do_update(
-                constraint="unique_tispan_per_station_in_avgsohgps",
-                set_={
-                    "time_error": row["time_error"],
-                    "time_uncertainty": row["time_uncertainty"],
-                },
-            )
+        insert_stmt = get_dialect_insert()(AveragedSohGps).values(
+            z_component_id=row["z_component_id"],
+            timespan_id=row["timespan_id"],
+            time_error=row["time_error"],
+            time_uncertainty=row["time_uncertainty"],
+            device_id=row["device_id"],
+        )
+        insert_command = dialect_agnostic_on_conflict(
+            insert_stmt,
+            constraint_name="unique_tispan_per_station_in_avgsohgps",
+            set_={
+                "time_error": row["time_error"],
+                "time_uncertainty": row["time_uncertainty"],
+            },
         )
         insert_commands.append(insert_command)
 
@@ -562,7 +556,7 @@ def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
                 logger.info(f"Prepared already {i}/{command_count} commands")
 
             insert_command = (
-                insert(association_table_averaged_soh_gps_components)
+                get_dialect_insert()(association_table_averaged_soh_gps_components)
                 .values(averaged_soh_gps_id=inserted_soh.id, component_id=component_id)
                 .on_conflict_do_nothing()
             )

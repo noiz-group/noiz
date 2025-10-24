@@ -16,6 +16,15 @@ DEFAULT_LOGGING_LEVEL = logger.level("INFO").no
 
 def create_app(config_object: str = "noiz.settings", mode: str = "app", verbosity: int = 0, quiet: bool = False):
     app = Flask(__name__)
+
+    # Reload settings module to pick up any environment variable changes
+    # This is important for testing where env vars are set after initial import
+    import sys
+    import importlib
+
+    if config_object in sys.modules:
+        importlib.reload(sys.modules[config_object])
+
     app.config.from_object(config_object)
 
     register_extensions(app)

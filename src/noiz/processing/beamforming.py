@@ -23,6 +23,7 @@ import math
 import numpy as np
 import pandas as pd
 
+from noiz.globals import PROCESSED_DATA_DIR
 from noiz.processing.signal_helpers import validate_and_fix_subsample_starttime_error
 from noiz.processing.obspy_derived.array_analysis import array_processing, array_transff_freqslowness_wrapper
 from noiz.exceptions import ObspyError, SubobjectNotLoadedError, InconsistentDataException
@@ -514,8 +515,8 @@ def deconvolve_beamformers(arf, beam, beamforming_params):
 
     s_step_sol = sigma_slowness_kernels_ratio_to_ds * beamforming_params.slowness_step
 
-    path_tmp_beamforming_deconv_root = Path("/processed-data-dir/tmp_beamforming_deconv")
-    path_tmp_beamforming_deconv_root.mkdir(exist_ok=True)
+    path_tmp_beamforming_deconv_root = Path(PROCESSED_DATA_DIR) / "tmp_beamforming_deconv"
+    path_tmp_beamforming_deconv_root.mkdir(exist_ok=True, parents=True)
     path_tmp_beamforming_deconv_param_id = path_tmp_beamforming_deconv_root.joinpath(str(beamforming_params.id))
     path_tmp_beamforming_deconv_param_id.mkdir(exist_ok=True)
     path_basis = path_tmp_beamforming_deconv_param_id.joinpath("basis.npz")
@@ -600,7 +601,7 @@ def calculate_beamforming_results(
 
         logger.debug("Creating an empty BeamformingResult")
         res = BeamformingResult(
-            ulid=str(result_ulid), timespan_id=timespan.id, beamforming_params_id=beamforming_params.id
+            id=str(result_ulid), timespan_id=timespan.id, beamforming_params_id=beamforming_params.id
         )
 
         if len(st) < beamforming_params.minimum_trace_count:
@@ -788,7 +789,7 @@ def calculate_beamforming_results(
         beamforming_file = bk.save_beamforming_file(params=beamforming_params, ts=timespan, result_ulid=result_ulid)
         if beamforming_file is not None:
             res.file = beamforming_file
-            res.file_ulid = beamforming_file.ulid
+            res.file_ulid = beamforming_file.id
 
         res.used_component_count = len(st)
         res.datachunks = list(datachunks)
@@ -870,7 +871,7 @@ class BeamformerKeeper:
     ) -> Optional[BeamformingFile]:
         # Generate file ULID
         file_ulid = ULID()
-        bf = BeamformingFile(ulid=str(file_ulid))
+        bf = BeamformingFile(id=str(file_ulid))
         fpath = bf.find_empty_filepath(ts=ts, params=params)
 
         res_to_save = {}
@@ -1089,7 +1090,9 @@ class BeamformerKeeper:
 
         if len(df) == 0:
             plt.pcolormesh(self.xaxis, self.yaxis, data_use)
-            plt.savefig("/processed-data-dir/tmp_beamforming/" + str(self.midtime) + ".png")
+            tmp_beamforming_path = Path(PROCESSED_DATA_DIR) / "tmp_beamforming"
+            tmp_beamforming_path.mkdir(exist_ok=True, parents=True)
+            plt.savefig(tmp_beamforming_path / f"{self.midtime}.png")
 
         return df
 

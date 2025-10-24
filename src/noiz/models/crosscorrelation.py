@@ -13,8 +13,7 @@ from noiz.models.stacking import ccf_ccfstack_association_table
 
 class CrosscorrelationCartesianFile(ULIDMixin, db.Model):
     __tablename__ = "crosscorrelation_cartesian_file"
-    id = db.Column("id", db.BigInteger, primary_key=True)
-    # ulid field from ULIDMixin
+    # id field from ULIDMixin (ULID primary key)
     filepath = db.Column("filepath", db.UnicodeText, nullable=False)
 
 
@@ -29,15 +28,14 @@ class CrosscorrelationCartesian(ULIDMixin, db.Model):
         ),
     )
 
-    id = db.Column("id", db.BigInteger, primary_key=True)
-    # ulid field from ULIDMixin
+    # id field from ULIDMixin (ULID primary key)
     componentpair_id = db.Column(
         "componentpair_id",
-        db.Integer,
+        db.String(26),
         db.ForeignKey("componentpair_cartesian.id"),
         nullable=False,
     )
-    timespan_id = db.Column("timespan_id", db.BigInteger, db.ForeignKey("timespan.id"), nullable=False)
+    timespan_id = db.Column("timespan_id", db.String(26), db.ForeignKey("timespan.id"), nullable=False)
     crosscorrelation_cartesian_params_id = db.Column(
         "crosscorrelation_cartesian_params_id",
         db.Integer,
@@ -47,14 +45,8 @@ class CrosscorrelationCartesian(ULIDMixin, db.Model):
 
     crosscorrelation_cartesian_file_id = db.Column(
         "crosscorrelation_cartesian_file_id",
-        db.BigInteger,
-        db.ForeignKey("crosscorrelation_cartesian_file.id"),
-        nullable=True,
-    )
-    file_ulid = db.Column(
-        "file_ulid",
         db.String(26),
-        db.ForeignKey("crosscorrelation_cartesian_file.ulid"),
+        db.ForeignKey("crosscorrelation_cartesian_file.id"),
         nullable=True,
     )
 
@@ -102,8 +94,7 @@ class CrosscorrelationCartesian(ULIDMixin, db.Model):
 class CrosscorrelationCylindricalFile(ULIDMixin, db.Model):
     __tablename__ = "crosscorrelation_cylindrical_file"
 
-    id = db.Column("id", db.BigInteger, primary_key=True)
-    # ulid field from ULIDMixin
+    # id field from ULIDMixin (ULID primary key)
     filepath = db.Column("filepath", db.UnicodeText, nullable=False)
 
 
@@ -118,18 +109,17 @@ class CrosscorrelationCylindrical(ULIDMixin, db.Model):
         ),
     )
 
-    id = db.Column("id", db.BigInteger, primary_key=True)
-    # ulid field from ULIDMixin
+    # id field from ULIDMixin (ULID primary key)
     componentpair_cylindrical_id = db.Column(
         "componentpair_cylindrical_id",
-        db.Integer,
+        db.String(26),
         db.ForeignKey("componentpair_cylindrical.id"),
         nullable=False,
     )
-    timespan_id = db.Column("timespan_id", db.BigInteger, db.ForeignKey("timespan.id"), nullable=False)
+    timespan_id = db.Column("timespan_id", db.String(26), db.ForeignKey("timespan.id"), nullable=False)
     crosscorrelation_cartesian_1_id = db.Column(
         "crosscorrelation_cartesian_1_id",
-        db.Integer,
+        db.String(26),
         db.ForeignKey("crosscorrelation_cartesian.id"),
         nullable=True,
     )
@@ -138,7 +128,7 @@ class CrosscorrelationCylindrical(ULIDMixin, db.Model):
     )
     crosscorrelation_cartesian_2_id = db.Column(
         "crosscorrelation_cartesian_2_id",
-        db.Integer,
+        db.String(26),
         db.ForeignKey("crosscorrelation_cartesian.id"),
         nullable=True,
     )
@@ -147,7 +137,7 @@ class CrosscorrelationCylindrical(ULIDMixin, db.Model):
     )
     crosscorrelation_cartesian_3_id = db.Column(
         "crosscorrelation_cartesian_3_id",
-        db.Integer,
+        db.String(26),
         db.ForeignKey("crosscorrelation_cartesian.id"),
         nullable=True,
     )
@@ -156,7 +146,7 @@ class CrosscorrelationCylindrical(ULIDMixin, db.Model):
     )
     crosscorrelation_cartesian_4_id = db.Column(
         "crosscorrelation_cartesian_4_id",
-        db.Integer,
+        db.String(26),
         db.ForeignKey("crosscorrelation_cartesian.id"),
         nullable=True,
     )
@@ -171,14 +161,8 @@ class CrosscorrelationCylindrical(ULIDMixin, db.Model):
     )
     crosscorrelation_cylindrical_file_id = db.Column(
         "crosscorrelation_cylindrical_file_id",
-        db.BigInteger,
-        db.ForeignKey("crosscorrelation_cylindrical_file.id"),
-        nullable=True,
-    )
-    file_ulid = db.Column(
-        "file_ulid",
         db.String(26),
-        db.ForeignKey("crosscorrelation_cylindrical_file.ulid"),
+        db.ForeignKey("crosscorrelation_cylindrical_file.id"),
         nullable=True,
     )
 

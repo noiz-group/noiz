@@ -6,12 +6,11 @@ import datetime
 from obspy import UTCDateTime
 import numpy as np
 import pandas as pd
-from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Query
 from sqlalchemy.sql.elements import BinaryExpression
 from typing import Iterable, List, Union, Optional, Generator, Any, Collection
 
-from noiz.database import db
+from noiz.database import db, get_dialect_insert, dialect_agnostic_on_conflict
 from noiz.models.timespan import Timespan
 from noiz.processing.timespan import generate_timespans
 from noiz.validation_helpers import validate_timestamp_as_pydatetime, validate_to_tuple
@@ -88,26 +87,20 @@ def insert_timespans_into_db(timespans: Iterable[Timespan], bulk_insert: bool) -
         db.session.commit()
         return
 
+    insert_func = get_dialect_insert()
     for ts in timespans:
-        insert_command = (
-            insert(Timespan)
-            .values(starttime=ts.starttime, midtime=ts.midtime, endtime=ts.endtime)
-            .on_conflict_do_update(
-                constraint="unique_starttime",
-                set_={"starttime": ts.starttime, "midtime": ts.midtime, "endtime": ts.endtime},
-            )
-            .on_conflict_do_update(
-                constraint="unique_midtime",
-                set_={"starttime": ts.starttime, "midtime": ts.midtime, "endtime": ts.endtime},
-            )
-            .on_conflict_do_update(
-                constraint="unique_endtime",
-                set_={"starttime": ts.starttime, "midtime": ts.midtime, "endtime": ts.endtime},
-            )
-            .on_conflict_do_update(
-                constraint="unique_times",
-                set_={"starttime": ts.starttime, "midtime": ts.midtime, "endtime": ts.endtime},
-            )
+        # Use the most specific constraint (unique_times) which covers all three columns
+        # The other constraints (unique_starttime, unique_midtime, unique_endtime) are
+        # individual column constraints and will also trigger if any single column matches
+        insert_stmt = insert_func(Timespan).values(
+            starttime=ts.starttime,
+            midtime=ts.midtime,
+            endtime=ts.endtime,
+        )
+        insert_command = dialect_agnostic_on_conflict(
+            insert_stmt,
+            constraint_name="unique_times",
+            set_={"starttime": ts.starttime, "midtime": ts.midtime, "endtime": ts.endtime},
         )
         db.session.execute(insert_command)
     db.session.commit()

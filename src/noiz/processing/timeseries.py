@@ -90,7 +90,9 @@ def run_mseedindex_on_passed_dir(
         db.session.commit()
         logger.info(f"Successfully inserted {len(all_entries)} entries")
     else:
-        logger.warning("No entries to insert")
+        logger.warning(f"No entries to insert (found {len(filepaths)} files but mseedindex produced 0 entries)")
+        if len(filepaths) > 0:
+            logger.error(f"Expected entries from {len(filepaths)} files, but none were produced by mseedindex")
 
     return len(all_entries)
 
@@ -132,7 +134,8 @@ def _call_mseedindex_bulk(
             for filepath in filepaths:
                 cmd.append(str(filepath.absolute()))
 
-            logger.debug(f"Running mseedindex command on {len(filepaths)} files")
+            logger.info(f"Running mseedindex command on {len(filepaths)} files")
+            logger.info(f"Command: {' '.join(cmd[:5])}... (+ {len(cmd) - 5} more args)")
             proc = subprocess.Popen(
                 cmd,
                 cwd=str(current_dir.absolute()),
@@ -143,15 +146,27 @@ def _call_mseedindex_bulk(
 
             if proc.returncode != 0:
                 logger.error(f"mseedindex failed with return code {proc.returncode}")
+                logger.error(f"STDOUT: {out.decode()}")
                 logger.error(f"STDERR: {err.decode()}")
                 return []
+            else:
+                logger.info("mseedindex completed successfully")
+                if out:
+                    logger.info(f"STDOUT: {out.decode()}")
+                if err:
+                    logger.warning(f"STDERR: {err.decode()}")
 
             # Parse JSON output
             with open(json_output_path, "r") as f:
                 json_data = json.load(f)
 
+            logger.info(f"Parsed JSON with {len(json_data)} file entries")
+
             # Convert JSON data to database-ready format
-            return _parse_mseedindex_json(json_data)
+            parsed_entries = _parse_mseedindex_json(json_data)
+            logger.info(f"Parsed {len(parsed_entries)} database entries from JSON")
+
+            return parsed_entries
 
         finally:
             # Clean up temporary file
@@ -172,11 +187,15 @@ def _parse_mseedindex_json(json_data: Dict[str, Any]) -> List[Dict[str, Any]]:
     :rtype: List[Dict[str, Any]]
     """
     entries = []
+    skipped_count = 0
 
     for file_path, file_data in json_data.items():
         # file_data contains metadata for one file
         # file_path is the key (absolute path to the file)
-        for content_entry in file_data.get("content", []):
+        content_list = file_data.get("content", [])
+        logger.info(f"Processing file {file_path} with {len(content_list)} content entries")
+
+        for content_entry in content_list:
             # Parse source_id: "FDSN:TD_TD11_00_C_H_N" -> network, station, location, band, instrument, component
             source_id = content_entry.get("source_id", "")
             if source_id.startswith("FDSN:"):
@@ -191,7 +210,8 @@ def _parse_mseedindex_json(json_data: Dict[str, Any]) -> List[Dict[str, Any]]:
                 # Channel is band + instrument + component (e.g., "CHN")
                 channel = parts[3] + parts[4] + parts[5]
             else:
-                logger.warning(f"Could not parse source_id: {source_id}")
+                logger.warning(f"Could not parse source_id: {source_id} (parts: {parts})")
+                skipped_count += 1
                 continue
 
             # Convert timestamps from nanoseconds to datetime (UTC)
@@ -235,4 +255,5 @@ def _parse_mseedindex_json(json_data: Dict[str, Any]) -> List[Dict[str, Any]]:
             }
             entries.append(entry)
 
+    logger.info(f"Parsed {len(entries)} total entries, skipped {skipped_count} entries due to parse errors")
     return entries

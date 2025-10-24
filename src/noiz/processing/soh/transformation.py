@@ -35,7 +35,20 @@ def __calculate_mean_gps_soh(df: pd.DataFrame, timespan_id: int) -> List[TempAve
     if len(df) == 0:
         raise ValueError("Provided DataFrame was empty")
 
-    averaged = df.drop(["component_id", "id"], axis=1).groupby("z_component_id").mean()
+    # For numeric columns (time_error, time_uncertainty), calculate mean
+    # For device_id (ULID string), take first value since all rows in a group should have same device_id
+    averaged = (
+        df.drop(["component_id", "id"], axis=1)
+        .groupby("z_component_id")
+        .agg(
+            {
+                "time_error": "mean",
+                "time_uncertainty": "mean",
+                "device_id": "first",  # device_id is now a ULID string, take first value
+                "datetime": "first",  # Keep datetime column if present
+            }
+        )
+    )
 
     res = []
     for z_component_id, row in averaged.iterrows():

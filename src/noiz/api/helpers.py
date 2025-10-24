@@ -403,6 +403,8 @@ def _parse_query_as_dataframe(query: Query) -> pd.DataFrame:
     :return: Results of the query as a DataFrame
     :rtype: pd.DataFrame
     """
-    c = query.statement.compile(query.session.bind, compile_kwargs={"render_postcompile": True})
-    df = pd.read_sql(c.string, query.session.bind, params=c.params)
+    # Use pd.read_sql with the query statement directly to avoid parameter binding issues
+    # between PostgreSQL (named params) and SQLite (positional params).
+    # pandas handles the execution and parameter binding correctly for both dialects.
+    df = pd.read_sql(query.statement, query.session.bind)
     return df

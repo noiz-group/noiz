@@ -37,8 +37,8 @@ class BeamformingFile(ULIDMixin, FileModelMixin):
 association_table_beamforming_results_datachunks = db.Table(
     "beamforming_association_datachunks",
     db.metadata,
-    db.Column("datachunk_id", db.BigInteger, db.ForeignKey("datachunk.id")),
-    db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
+    db.Column("datachunk_id", db.String(26), db.ForeignKey("datachunk.id")),
+    db.Column("beamforming_result_id", db.String(26), db.ForeignKey("beamforming_result.id")),
     db.UniqueConstraint("beamforming_result_id", "datachunk_id"),
 )
 
@@ -47,9 +47,9 @@ association_table_beamforming_result_avg_abspower = db.Table(
     "beamforming_result_association_avg_abspower",
     db.metadata,
     db.Column(
-        "beamforming_peak_average_abspower_id", db.BigInteger, db.ForeignKey("beamforming_peak_average_abspower.id")
+        "beamforming_peak_average_abspower_id", db.String(26), db.ForeignKey("beamforming_peak_average_abspower.id")
     ),
-    db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
+    db.Column("beamforming_result_id", db.String(26), db.ForeignKey("beamforming_result.id")),
     db.UniqueConstraint("beamforming_result_id", "beamforming_peak_average_abspower_id"),
 )
 
@@ -58,9 +58,9 @@ association_table_beamforming_result_avg_relpower = db.Table(
     "beamforming_result_association_avg_relpower",
     db.metadata,
     db.Column(
-        "beamforming_peak_average_relpower_id", db.BigInteger, db.ForeignKey("beamforming_peak_average_relpower.id")
+        "beamforming_peak_average_relpower_id", db.String(26), db.ForeignKey("beamforming_peak_average_relpower.id")
     ),
-    db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
+    db.Column("beamforming_result_id", db.String(26), db.ForeignKey("beamforming_result.id")),
     db.UniqueConstraint("beamforming_result_id", "beamforming_peak_average_relpower_id"),
 )
 
@@ -68,8 +68,8 @@ association_table_beamforming_result_avg_relpower = db.Table(
 association_table_beamforming_result_all_abspower = db.Table(
     "beamforming_result_association_all_abspower",
     db.metadata,
-    db.Column("beamforming_peak_all_abspower_id", db.BigInteger, db.ForeignKey("beamforming_peak_all_abspower.id")),
-    db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
+    db.Column("beamforming_peak_all_abspower_id", db.String(26), db.ForeignKey("beamforming_peak_all_abspower.id")),
+    db.Column("beamforming_result_id", db.String(26), db.ForeignKey("beamforming_result.id")),
     db.UniqueConstraint("beamforming_result_id", "beamforming_peak_all_abspower_id"),
 )
 
@@ -77,8 +77,8 @@ association_table_beamforming_result_all_abspower = db.Table(
 association_table_beamforming_result_all_relpower = db.Table(
     "beamforming_result_association_all_relpower",
     db.metadata,
-    db.Column("beamforming_peak_all_relpower_id", db.BigInteger, db.ForeignKey("beamforming_peak_all_relpower.id")),
-    db.Column("beamforming_result_id", db.BigInteger, db.ForeignKey("beamforming_result.id")),
+    db.Column("beamforming_peak_all_relpower_id", db.String(26), db.ForeignKey("beamforming_peak_all_relpower.id")),
+    db.Column("beamforming_result_id", db.String(26), db.ForeignKey("beamforming_result.id")),
     db.UniqueConstraint("beamforming_result_id", "beamforming_peak_all_relpower_id"),
 )
 
@@ -88,28 +88,21 @@ class BeamformingResult(ULIDMixin, db.Model):
     __table_args__ = (
         db.UniqueConstraint("timespan_id", "beamforming_params_id", name="unique_beam_per_config_per_timespan"),
     )
-    id = db.Column("id", db.Integer, primary_key=True)
-    # ulid field from ULIDMixin
+    # id field from ULIDMixin (ULID primary key)
     beamforming_params_id = db.Column(
         "beamforming_params_id",
         db.Integer,
         db.ForeignKey("beamforming_params.id"),
         nullable=False,
     )
-    timespan_id = db.Column("timespan_id", db.Integer, db.ForeignKey("timespan.id"), nullable=False)
+    timespan_id = db.Column("timespan_id", db.String(26), db.ForeignKey("timespan.id"), nullable=False)
 
     used_component_count = db.Column("used_component_count", db.Integer, nullable=False)
 
     beamforming_file_id = db.Column(
         "beamforming_file_id",
-        db.BigInteger,
-        db.ForeignKey("beamforming_file.id"),
-        nullable=True,
-    )
-    file_ulid = db.Column(
-        "file_ulid",
         db.String(26),
-        db.ForeignKey("beamforming_file.ulid"),
+        db.ForeignKey("beamforming_file.id"),
         nullable=True,
     )
 

@@ -31,8 +31,7 @@ RUN apt-get update -yqq && \
         openssh-client \
         git \
         vim \
-        curl \
-        libpq-dev && \
+        curl && \
     apt-get autoremove -yqq --purge && \
     apt-get clean && \
     rm -rf \
@@ -42,12 +41,6 @@ RUN apt-get update -yqq && \
         /usr/share/man \
         /usr/share/doc \
         /usr/share/doc-base
-RUN git clone https://github.com/EarthScope/mseedindex.git /mseedindex && \
-  cd /mseedindex && \
-  git checkout e8853ccc4c685af399d1c8e5b8136cb2a15b09b1 && \
-  make clean && \
-  CFLAGS='-I/usr/include/postgresql/' make
-ENV MSEEDINDEX_EXECUTABLE="/mseedindex/mseedindex"
 
 RUN curl https://www.ietf.org/timezones/data/leap-seconds.list -o /leap-seconds.list
 ENV LIBMSEED_LEAPSECOND_FILE="/leap-seconds.list"
@@ -58,4 +51,8 @@ COPY ../.. /noiz/
 
 RUN cd /noiz/ && \
     uv sync --all-groups
+
+# Set mseedindex to use the PyPI version (>=3.0.8 with JSON support)
+# installed by uv sync from pyproject.toml dependencies
+ENV MSEEDINDEX_EXECUTABLE="mseedindex"
 ENV FLASK_APP="autoapp.py"

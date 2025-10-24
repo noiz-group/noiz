@@ -92,36 +92,54 @@ build_postgres:
       changes:
         - docker/postgres-image/Dockerfile
 
-.system_test_parent:
+.system_test_base:
   stage: system-testing
   image: $BRANCH_IMAGE_TAG
-  services:
-    - name: $POSTGRES_IMAGE_TAG
-      alias: postgres
   variables:
-    POSTGRES_HOST: postgres
-    POSTGRES_PORT: "5432"
-    POSTGRES_USER: noiztest
-    POSTGRES_PASSWORD: noiztest
-    POSTGRES_DB: noiztest
     PROCESSED_DATA_DIR: /processed-data-dir
     GIT_SUBMODULE_STRATEGY: recursive
+    LOGLEVEL: DEBUG
   before_script:
     - uv tool install rust-just
     - just sync
     - uv pip install --no-cache-dir -e .
     - mkdir -p $PROCESSED_DATA_DIR
+
+.system_test_postgres:
+  extends: .system_test_base
+  services:
+    - name: $POSTGRES_IMAGE_TAG
+      alias: postgres
+  variables:
+    DATABASE_BACKEND: postgresql
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: "5432"
+    POSTGRES_USER: noiztest
+    POSTGRES_PASSWORD: noiztest
+    POSTGRES_DB: noiztest
+    DATABASE_URL: "postgresql+psycopg2://noiztest:noiztest@postgres:5432/noiztest"
+  before_script:
+    - !reference [.system_test_base, before_script]
     - uv run noiz db upgrade  # Apply existing migrations to database
-#
+
+.system_test_sqlite:
+  extends: .system_test_base
+  variables:
+    DATABASE_BACKEND: sqlite
+    DATABASE_URL: "sqlite:////tmp/noiz-ci-test.db"
+  before_script:
+    - !reference [.system_test_base, before_script]
+    - uv run noiz db upgrade  # Apply existing migrations to database
+
 #api_system_tests:
-#  extends: .system_test_parent
+#  extends: .system_test_postgres
 #  script:
 #    - pytest --cov=noiz --runapi
 
-cli_system_tests:
-  extends: .system_test_parent
+cli_system_tests_postgres:
+  extends: .system_test_postgres
   script:
-    - SQLALCHEMY_WARN_20=1 uv run pytest --cov=noiz --runcli
+    - SQLALCHEMY_WARN_20=1 uv run pytest --cov=noiz --runcli -v -s
     - uv run coverage xml
   artifacts:
     reports:
@@ -129,8 +147,21 @@ cli_system_tests:
         coverage_format:  cobertura
         path: coverage.xml
 
-cli_system_tests_parallel:
-  extends: .system_test_parent
+cli_system_tests_sqlite:
+  extends: .system_test_sqlite
+  script:
+    - SQLALCHEMY_WARN_20=1 uv run pytest --cov=noiz --runcli -v -s
+
+cli_system_tests_parallel_postgres:
+  extends: .system_test_postgres
+  variables:
+    NOIZ_RUN_SYSTEM_TESTS_PARALLEL: "True"
+  script:
+    - SQLALCHEMY_WARN_20=1 uv run pytest --runcli
+  allow_failure: true
+
+cli_system_tests_parallel_sqlite:
+  extends: .system_test_sqlite
   variables:
     NOIZ_RUN_SYSTEM_TESTS_PARALLEL: "True"
   script:

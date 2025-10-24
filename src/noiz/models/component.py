@@ -15,6 +15,7 @@ import datetime
 
 from noiz.database import db
 from noiz.exceptions import MissingDataFileException
+from noiz.models.mixins import ULIDMixin
 from noiz.validation_helpers import validate_timestamp_as_pydatetime
 
 if TYPE_CHECKING:
@@ -24,21 +25,21 @@ else:
     from sqlalchemy.ext.hybrid import hybrid_property as typed_hybrid_property
 
 
-class Device(db.Model):
+class Device(ULIDMixin, db.Model):
     __tablename__ = "device"
     __table_args__ = (db.UniqueConstraint("network", "station", name="unique_device_per_station"),)
 
-    id = db.Column("id", db.Integer, primary_key=True)
+    # id field from ULIDMixin (ULID primary key)
     network = db.Column("network", db.UnicodeText)
     station = db.Column("station", db.UnicodeText)
     components = db.relationship("Component", uselist=True, back_populates="device")
     avg_soh_gps = db.relationship("AveragedSohGps", uselist=True, back_populates="device")
 
 
-class Component(db.Model):
+class Component(ULIDMixin, db.Model):
     __tablename__ = "component"
     __table_args__ = (db.UniqueConstraint("network", "station", "component", name="unique_component_per_station"),)
-    id = db.Column("id", db.Integer, primary_key=True)
+    # id field from ULIDMixin (ULID primary key)
     network = db.Column("network", db.UnicodeText)
     station = db.Column("station", db.UnicodeText)
     component = db.Column("component", db.UnicodeText)
@@ -52,13 +53,13 @@ class Component(db.Model):
     elevation = db.Column("elevation", db.Float)
     device_id = db.Column(
         "device_id",
-        db.Integer,
+        db.String(26),
         db.ForeignKey("device.id"),
         nullable=True,
     )
     component_file_id = db.Column(
         "component_file_id",
-        db.BigInteger,
+        db.String(26),
         db.ForeignKey("component_file.id"),
         nullable=True,
     )
@@ -225,8 +226,8 @@ class Component(db.Model):
         return func.date_part("hour", cls.end_date)  # type: ignore
 
 
-class ComponentFile(db.Model):
+class ComponentFile(ULIDMixin, db.Model):
     __tablename__ = "component_file"
 
-    id = db.Column("id", db.BigInteger, primary_key=True)
+    # id field from ULIDMixin (ULID primary key)
     filepath = db.Column("filepath", db.UnicodeText, nullable=False)

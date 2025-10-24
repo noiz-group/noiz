@@ -15,8 +15,7 @@ import obspy
 class DatachunkFile(ULIDMixin, db.Model):
     __tablename__ = "datachunk_file"
 
-    id = db.Column("id", db.BigInteger, primary_key=True)
-    # ulid field from ULIDMixin
+    # id field from ULIDMixin (ULID primary key)
     filepath = db.Column("filepath", db.UnicodeText, nullable=False)
 
 
@@ -31,32 +30,25 @@ class Datachunk(ULIDMixin, db.Model):
         ),
     )
 
-    id = db.Column("id", db.BigInteger, primary_key=True)
-    # ulid field from ULIDMixin
-    component_id = db.Column("component_id", db.Integer, db.ForeignKey("component.id"), nullable=False)
+    # id field from ULIDMixin (ULID primary key)
+    component_id = db.Column("component_id", db.String(26), db.ForeignKey("component.id"), nullable=False)
     datachunk_params_id = db.Column(
         "datachunk_params_id",
         db.Integer,
         db.ForeignKey("datachunk_params.id"),
         nullable=False,
     )
-    timespan_id = db.Column("timespan_id", db.BigInteger, db.ForeignKey("timespan.id"), nullable=False)
+    timespan_id = db.Column("timespan_id", db.String(26), db.ForeignKey("timespan.id"), nullable=False)
     sampling_rate = db.Column("sampling_rate", db.Float, nullable=False)
     npts = db.Column("npts", db.Integer, nullable=False)
     padded_npts = db.Column("padded_npts", db.Integer, nullable=True)
     datachunk_file_id = db.Column(
         "datachunk_file_id",
-        db.BigInteger,
+        db.String(26),
         db.ForeignKey("datachunk_file.id"),
         nullable=True,
     )
-    file_ulid = db.Column(
-        "file_ulid",
-        db.String(26),
-        db.ForeignKey("datachunk_file.ulid"),
-        nullable=True,
-    )
-    device_id = db.Column("device_id", db.Integer, db.ForeignKey("device.id"), nullable=True)
+    device_id = db.Column("device_id", db.String(26), db.ForeignKey("device.id"), nullable=True)
 
     device = db.relationship("Device", foreign_keys=[device_id], uselist=False, lazy="joined")
     timespan = db.relationship("Timespan", foreign_keys=[timespan_id], back_populates="datachunks")
@@ -98,7 +90,7 @@ class Datachunk(ULIDMixin, db.Model):
             raise MissingDataFileException(f"Data file for chunk {self} is missing")
 
 
-class DatachunkStats(db.Model):
+class DatachunkStats(ULIDMixin, db.Model):
     __tablename__ = "datachunk_stats"
     __table_args__ = (
         db.UniqueConstraint(
@@ -107,9 +99,9 @@ class DatachunkStats(db.Model):
         ),
     )
 
-    id = db.Column("id", db.BigInteger, primary_key=True)
+    # id field from ULIDMixin (ULID primary key)
 
-    datachunk_id = db.Column("datachunk_id", db.BigInteger, db.ForeignKey("datachunk.id"), nullable=False)
+    datachunk_id = db.Column("datachunk_id", db.String(26), db.ForeignKey("datachunk.id"), nullable=False)
 
     energy = db.Column("energy", db.Float, nullable=True)
     min = db.Column("min", db.Float, nullable=True)
@@ -135,25 +127,18 @@ class ProcessedDatachunk(ULIDMixin, db.Model):
         ),
     )
 
-    id = db.Column("id", db.BigInteger, primary_key=True)
-    # ulid field from ULIDMixin
+    # id field from ULIDMixin (ULID primary key)
     processed_datachunk_params_id = db.Column(
         "processed_datachunk_params_id",
         db.Integer,
         db.ForeignKey("processed_datachunk_params.id"),
         nullable=False,
     )
-    datachunk_id = db.Column("datachunk_id", db.Integer, db.ForeignKey("datachunk.id"), nullable=False)
+    datachunk_id = db.Column("datachunk_id", db.String(26), db.ForeignKey("datachunk.id"), nullable=False)
     processed_datachunk_file_id = db.Column(
         "processed_datachunk_file_id",
-        db.BigInteger,
-        db.ForeignKey("processed_datachunk_file.id"),
-        nullable=True,
-    )
-    file_ulid = db.Column(
-        "file_ulid",
         db.String(26),
-        db.ForeignKey("processed_datachunk_file.ulid"),
+        db.ForeignKey("processed_datachunk_file.id"),
         nullable=True,
     )
 
@@ -181,6 +166,5 @@ class ProcessedDatachunk(ULIDMixin, db.Model):
 class ProcessedDatachunkFile(ULIDMixin, db.Model):
     __tablename__ = "processed_datachunk_file"
 
-    id = db.Column("id", db.BigInteger, primary_key=True)
-    # ulid field from ULIDMixin
+    # id field from ULIDMixin (ULID primary key)
     filepath = db.Column("filepath", db.UnicodeText, nullable=False)
