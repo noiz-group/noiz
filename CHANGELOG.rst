@@ -38,6 +38,11 @@ Bugfix
 
 Maintenance
 ------------------
+- Upgraded pydantic from v1.10.22 to v2.12.3 to enable future pydantic-settings v2 integration.
+  This is an internal upgrade affecting only TOML configuration validation.
+  All existing TOML files remain compatible.
+  No user-visible changes to CLI or API behavior.
+- Upgraded mypy from 0.981 to 1.18.2 for pydantic v2 compatibility.
 - Released dependency locks on multiple dependencies. !200
 - Migrated build system to hatchling. !194
 - Added file .git-blame-ignore-revs and documentation about it. !199

@@ -4,7 +4,7 @@
 
 import datetime
 import pandas as pd
-from typing import Union, Optional
+from typing import Union, Optional, Any
 from pydantic.dataclasses import dataclass
 
 from noiz.models.timespan import TimespanMixin
@@ -45,9 +45,9 @@ class StackingSchemaHolder:
     minimum_ccf_count: int
     starttime: Union[datetime.datetime, datetime.date]
     endtime: Union[datetime.datetime, datetime.date]
-    stacking_length: Union[pd.Timedelta, datetime.timedelta, str]
-    stacking_step: Optional[Union[pd.Timedelta, datetime.timedelta, str]] = None
-    stacking_overlap: Optional[Union[pd.Timedelta, datetime.timedelta, str]] = None
+    stacking_length: Any  # pd.Timedelta, datetime.timedelta, or str - validated elsewhere
+    stacking_step: Optional[Any] = None  # pd.Timedelta, datetime.timedelta, or str
+    stacking_overlap: Optional[Any] = None  # pd.Timedelta, datetime.timedelta, or str
 
 
 class StackingSchema(IntegerIDMixin, db.Model):
