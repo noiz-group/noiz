@@ -66,47 +66,63 @@ unit_tests:
 [group('testing')]
 system_tests: run_system_tests clean_after_tests
 
+# Sync dependencies with the local venv
+[group('development')]
 sync:
     uv sync --all-groups
 
+# Run mypy type checking
+[group('lint')]
 mypy:
     uv run mypy --install-types --non-interactive src/noiz
 
 # Check ruff linting and auto-fix issues
+[group('lint')]
 ruff_check:
     uv run ruff check --unsafe-fixes --fix .
 
 # Check ruff linting without fixing (for CI)
+[group('lint-ci')]
 ruff_check_ci:
     uv run ruff check --output-format=gitlab > code-quality-report.json
 
 # Check ruff format without modifying files (for CI)
+[group('lint-ci')]
 ruff_format_check:
     uv run ruff format --diff .
 
+# Run ruff formatter on all files
+[group('lint')]
 ruff_format:
     uv run ruff format .
 
+# Run all ruff checks on all files
+[group('lint')]
 ruff: ruff_check ruff_format
 
 # Documentation build targets
 
 # Build HTML documentation
+[group('docs')]
 docs:
     uv run sphinx-build -M html docs/ docs/_build
 
 # Build documentation with specific target (html, latexpdf, pdf, etc.)
+[group('docs')]
 docs-build target="html":
     uv run sphinx-build -M {{target}} docs/ docs/_build
 
 # Clean documentation build artifacts
+[group('docs')]
 docs-clean:
     rm -rf docs/_build
 
 # Lint documentation with doc8
+[group('lint')]
 lint_docs:
     uv run doc8 docs/content
 
 # Build and open documentation in browser (macOS)
+[group('docs')]
 docs-open: docs
     open docs/_build/html/index.html
