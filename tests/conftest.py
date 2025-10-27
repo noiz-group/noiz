@@ -169,22 +169,22 @@ def module_db_session(module_db_engine, module_database_url, processed_data_dir)
     from noiz.app import create_app
     from noiz.database import db
 
-    # Set DATABASE_BACKEND environment variable based on database URL
+    # Set NOIZ_DATABASE_BACKEND environment variable based on database URL
     is_sqlite = module_database_url.startswith("sqlite")
     if is_sqlite:
-        os.environ["DATABASE_BACKEND"] = "sqlite"
+        os.environ["NOIZ_DATABASE_BACKEND"] = "sqlite"
     else:
-        os.environ["DATABASE_BACKEND"] = "postgresql"
+        os.environ["NOIZ_DATABASE_BACKEND"] = "postgresql"
 
-    # Set DATABASE_URL to ensure settings.py picks it up
-    os.environ["DATABASE_URL"] = module_database_url
+    # Set NOIZ_DATABASE_URL to ensure new config system picks it up
+    os.environ["NOIZ_DATABASE_URL"] = module_database_url
 
-    # Set PROCESSED_DATA_DIR to the pytest temporary directory for this module
-    os.environ["PROCESSED_DATA_DIR"] = str(processed_data_dir)
+    # Set NOIZ_PROCESSED_DATA_DIR to the pytest temporary directory for this module
+    os.environ["NOIZ_PROCESSED_DATA_DIR"] = str(processed_data_dir)
 
-    # Set MSEEDINDEX_EXECUTABLE if not already set
-    if "MSEEDINDEX_EXECUTABLE" not in os.environ:
-        os.environ["MSEEDINDEX_EXECUTABLE"] = "mseedindex"
+    # Set NOIZ_MSEEDINDEX_EXECUTABLE if not already set
+    if "NOIZ_MSEEDINDEX_EXECUTABLE" not in os.environ:
+        os.environ["NOIZ_MSEEDINDEX_EXECUTABLE"] = "mseedindex"
 
     # Create Flask app with test database
     app = create_app()

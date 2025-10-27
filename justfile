@@ -1,39 +1,10 @@
 timestamp := `date +%s`
-env_file_system_test := "env_system_tests"
+system_tests_artifacts_dir := justfile_directory() / "tmp-system-tests-artifacts"
 
 _default:
     just --list
 
-clean_after_tests:
-    rm -rf system_test_processed_data_dir_*
-
-prepare_dotenv:
-    #! /usr/bin/env bash
-    echo POSTGRES_HOST=localhost >> {{env_file_system_test}}
-    echo POSTGRES_PORT="5432" >> {{env_file_system_test}}
-    echo POSTGRES_USER=noiztest >> {{env_file_system_test}}
-    echo POSTGRES_PASSWORD=noiztest >> {{env_file_system_test}}
-    echo POSTGRES_DB=noiztest_{{timestamp}} >> {{env_file_system_test}}
-    echo MSEEDINDEX_EXECUTABLE=../mseedindex/mseedindex >> {{env_file_system_test}}
-    echo SQLALCHEMY_WARN_20=1 >> {{env_file_system_test}}
-
-    export PROCESSED_DATA_DIR="system_test_processed_data_dir_{{timestamp}}/"
-    echo PROCESSED_DATA_DIR=$PROCESSED_DATA_DIR >> {{env_file_system_test}}
-
-    mkdir $PROCESSED_DATA_DIR
-
-run_system_tests: prepare_dotenv
-    #! /usr/bin/env bash
-    export $(grep -v '^#' {{env_file_system_test}} | xargs)
-
-    python tests/system_tests/create_new_db.py
-
-    python -m noiz db migrate
-    python -m noiz db upgrade
-    python -m pytest --runcli
-
-    rm {{env_file_system_test}}
-
+[group('repo')]
 submodule cmd="":
     #! /bin/bash
     set -euf -o pipefail
@@ -48,8 +19,52 @@ submodule cmd="":
         echo "The command {{cmd}} does not exist."
     fi
 
+# Cleanup artifacts after system tests
+[group('testing')]
+clean_after_tests:
+    rm -rf {{system_tests_artifacts_dir}}
+
+# Run system tests on sqlite without cleanup
+[group('testing')]
+run_system_tests:
+    #! /usr/bin/env bash
+    set -e
+
+    # Unset any PostgreSQL-related environment variables that might interfere
+    unset DATABASE_URL
+    unset POSTGRES_HOST
+    unset POSTGRES_PORT
+    unset POSTGRES_USER
+    unset POSTGRES_PASSWORD
+    unset POSTGRES_DB
+
+    # Create main artifacts directory
+    mkdir -p "{{system_tests_artifacts_dir}}"
+
+    # Set SQLite configuration for system tests
+    export NOIZ_DATABASE_BACKEND=sqlite
+    export NOIZ_DATABASE_URL="sqlite:///{{system_tests_artifacts_dir}}/system_test_database_{{timestamp}}.db"
+    export NOIZ_PROCESSED_DATA_DIR="{{system_tests_artifacts_dir}}/system_test_processed_data_dir_{{timestamp}}/"
+    export NOIZ_MSEEDINDEX_EXECUTABLE=mseedindex
+    export SQLALCHEMY_WARN_20=1
+
+    mkdir -p "$NOIZ_PROCESSED_DATA_DIR"
+
+    # Run database migrations
+    uv run noiz db upgrade
+
+    # Run system tests with CLI marker
+    uv run pytest --runcli
+
+# Run unit tests
+[group('testing')]
 unit_tests:
-    SQLALCHEMY_WARN_20=1 uv run pytest --cov=noiz
+    export SQLALCHEMY_WARN_20=1
+    uv run pytest --cov=noiz
+
+# Run system tests and cleanup afterwards
+[group('testing')]
+system_tests: run_system_tests clean_after_tests
 
 sync:
     uv sync --all-groups

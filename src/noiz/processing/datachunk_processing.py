@@ -13,6 +13,7 @@ from noiz.models.datachunk import Datachunk, ProcessedDatachunk, ProcessedDatach
 from noiz.models.processing_params import ProcessedDatachunkParams, DatachunkParams
 from noiz.models.timespan import Timespan
 from noiz.models.component import Component
+from noiz.config import get_config
 from noiz.processing.path_helpers import (
     parent_directory_exists_or_create,
     assembly_filepath,
@@ -20,7 +21,6 @@ from noiz.processing.path_helpers import (
     assembly_sds_like_dir,
     increment_filename_counter,
 )
-from noiz.globals import PROCESSED_DATA_DIR
 
 
 def whiten_trace(
@@ -236,7 +236,7 @@ def process_datachunk(
         st[0] = one_bit_normalization(st[0])
 
     filepath = assembly_filepath(
-        PROCESSED_DATA_DIR,  # type: ignore
+        get_config().processed_data_dir,
         "processed_datachunk",
         assembly_sds_like_dir(datachunk.component, datachunk.timespan).joinpath(
             assembly_preprocessing_filename(component=datachunk.component, timespan=datachunk.timespan, count=0)

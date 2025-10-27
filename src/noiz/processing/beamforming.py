@@ -23,7 +23,7 @@ import math
 import numpy as np
 import pandas as pd
 
-from noiz.globals import PROCESSED_DATA_DIR
+from noiz.config import get_config
 from noiz.processing.signal_helpers import validate_and_fix_subsample_starttime_error
 from noiz.processing.obspy_derived.array_analysis import array_processing, array_transff_freqslowness_wrapper
 from noiz.exceptions import ObspyError, SubobjectNotLoadedError, InconsistentDataException
@@ -515,7 +515,7 @@ def deconvolve_beamformers(arf, beam, beamforming_params):
 
     s_step_sol = sigma_slowness_kernels_ratio_to_ds * beamforming_params.slowness_step
 
-    path_tmp_beamforming_deconv_root = Path(PROCESSED_DATA_DIR) / "tmp_beamforming_deconv"
+    path_tmp_beamforming_deconv_root = get_config().processed_data_dir / "tmp_beamforming_deconv"
     path_tmp_beamforming_deconv_root.mkdir(exist_ok=True, parents=True)
     path_tmp_beamforming_deconv_param_id = path_tmp_beamforming_deconv_root.joinpath(str(beamforming_params.id))
     path_tmp_beamforming_deconv_param_id.mkdir(exist_ok=True)
@@ -1090,7 +1090,7 @@ class BeamformerKeeper:
 
         if len(df) == 0:
             plt.pcolormesh(self.xaxis, self.yaxis, data_use)
-            tmp_beamforming_path = Path(PROCESSED_DATA_DIR) / "tmp_beamforming"
+            tmp_beamforming_path = get_config().processed_data_dir / "tmp_beamforming"
             tmp_beamforming_path.mkdir(exist_ok=True, parents=True)
             plt.savefig(tmp_beamforming_path / f"{self.midtime}.png")
 

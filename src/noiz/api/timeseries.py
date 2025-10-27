@@ -54,24 +54,18 @@ def add_seismic_data(
     :type current_dir: Path
     :param filename_pattern: Pattern to call rglob with on the basedir
     :type filename_pattern: str
+    :param parallel: Whether to process files in parallel
+    :type parallel: bool
     :return: None
     :rtype: NoneType
     """
-    mseedindex_executable = app.config["MSEEDINDEX_EXECUTABLE"]
-    postgres_host = app.config["POSTGRES_HOST"]
-    postgres_user = app.config["POSTGRES_USER"]
-    postgres_password = app.config["POSTGRES_PASSWORD"]
-    postgres_db = app.config["POSTGRES_DB"]
+    config = app.config["NOIZ_CONFIG"]
 
     run_mseedindex_on_passed_dir(
         basedir=basedir,
         current_dir=current_dir,
         filename_pattern=filename_pattern,
-        mseedindex_executable=mseedindex_executable,
-        postgres_host=postgres_host,
-        postgres_user=postgres_user,
-        postgres_password=postgres_password,
-        postgres_db=postgres_db,
+        mseedindex_executable=config.mseedindex_executable,
         parallel=parallel,
     )
     return

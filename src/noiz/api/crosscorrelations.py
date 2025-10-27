@@ -446,7 +446,7 @@ def _crosscorrelate_for_timespan(
     component_pairs_cartesian: Tuple[ComponentPairCartesian, ...],
 ) -> List[CrosscorrelationCartesian]:
     """filldocs"""
-    from noiz.globals import PROCESSED_DATA_DIR
+    from noiz.config import get_config
     from noiz.processing.path_helpers import (
         assembly_filepath,
         increment_filename_counter,
@@ -490,7 +490,7 @@ def _crosscorrelate_for_timespan(
         )
 
         filepath = assembly_filepath(
-            PROCESSED_DATA_DIR,  # type: ignore
+            get_config().processed_data_dir,
             "ccf",
             assembly_ccf_dir(component_pair_cartesian=pair, timespan=timespan).joinpath(
                 assembly_ccf_filename(component_pair_cartesian=pair, timespan=timespan, count=0)
@@ -678,10 +678,10 @@ def _create_cylindrical_correlation_file(component_pair_cylindrical, xcorr_cylin
     """
 
     import numpy as np
-    from noiz.globals import PROCESSED_DATA_DIR
+    from noiz.config import get_config
 
     filepath = assembly_filepath(
-        PROCESSED_DATA_DIR,  # type: ignore
+        get_config().processed_data_dir,
         "ccf_cylindrical",
         assembly_ccf_cylindrical_dir(
             component_pair_cylindrical=component_pair_cylindrical, timespan=timespan
@@ -816,13 +816,6 @@ def _crosscorrelate_cylindrical_for_timespan(
     grouped_processed_xcorrcartisian,
     component_pairs_cylindrical: Tuple[ComponentPairCylindrical, ...],
 ) -> List[CrosscorrelationCylindrical]:
-    from noiz.globals import PROCESSED_DATA_DIR
-    from noiz.processing.path_helpers import (
-        assembly_filepath,
-        increment_filename_counter,
-        parent_directory_exists_or_create,
-    )
-
     import numpy as np
 
     logger.info(f"Running crosscorrelation_cylindrical for {timespan}")

@@ -28,8 +28,8 @@ from noiz.api.processing_config import (
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.app import create_app
 from noiz.cli import cli
+from noiz.config import get_config
 from noiz.database import db
-from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models import (
     StackingSchema,
     QCOneResults,
@@ -78,7 +78,7 @@ def empty_workdir(tmp_path_factory) -> Path:
 @pytest.mark.system
 class TestDataIngestionRoutines:
     def test_existence_of_processed_data_dir(self, noiz_app):
-        assert Path(PROCESSED_DATA_DIR).absolute().exists()
+        assert get_config().processed_data_dir.absolute().exists()
 
     def test_add_inventory_data(self, workdir_with_content, noiz_app):
         inventory_path = workdir_with_content.joinpath("STI_station_minimal.xml")

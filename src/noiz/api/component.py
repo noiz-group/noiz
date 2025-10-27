@@ -13,11 +13,11 @@ import numpy as np
 from numpy import deprecate_with_doc
 from obspy import UTCDateTime
 
+from noiz.config import get_config
 from noiz.validation_helpers import validate_to_tuple, validate_timestamp_as_pydatetime
 from noiz.database import db
 from noiz.models.component import Component
 from noiz.processing.component import parse_inventory_for_single_component_db_entries
-from noiz.globals import PROCESSED_DATA_DIR
 
 
 @deprecate_with_doc(msg="This function is deprecated. Use noiz.api.component.fetch_components instead.")
@@ -112,7 +112,7 @@ def get_processed_inventory_dir() -> Path:
     :return: Processed inventory dir
     :rtype: Path
     """
-    processed_data_dir = Path(PROCESSED_DATA_DIR).absolute()
+    processed_data_dir = get_config().processed_data_dir.absolute()
     inventory_dir = processed_data_dir.joinpath("inventory")
     inventory_dir.mkdir(exist_ok=True)
     return inventory_dir

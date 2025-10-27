@@ -55,3 +55,40 @@ def pytest_collection_modifyitems(config, items):
     for marker_skipper in MARKER_SKIPPERS:
         if not config.getoption(marker_skipper.cli_option_name):
             _skip_items_with_mark(marker_skipper, items)
+
+
+@pytest.fixture(autouse=True)
+def clear_config_cache(monkeypatch):
+    """Clear the global config cache and environment variables before each test.
+
+    This prevents config instances from one test bleeding into another,
+    which is especially important when tests set different environment variables.
+
+    Also clears Noiz-specific environment variables to ensure tests start with a
+    clean slate, preventing environment variables set by just run_system_tests
+    or other external sources from affecting test behavior.
+    """
+    import noiz.config
+    import os
+
+    # Clear config cache
+    noiz.config._CONFIG_INSTANCE = None
+
+    # Save and clear Noiz environment variables
+    noiz_env_vars = [
+        "NOIZ_DATABASE_BACKEND",
+        "NOIZ_DATABASE_URL",
+        "NOIZ_PROCESSED_DATA_DIR",
+        "NOIZ_MSEEDINDEX_EXECUTABLE",
+        "NOIZ_LOGLEVEL",
+        "NOIZ_RUN_SYSTEM_TESTS_PARALLEL",
+    ]
+
+    for var in noiz_env_vars:
+        if var in os.environ:
+            monkeypatch.delenv(var, raising=False)
+
+    yield
+
+    # Clear again after test
+    noiz.config._CONFIG_INSTANCE = None
