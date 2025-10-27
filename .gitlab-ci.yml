@@ -96,14 +96,15 @@ build_postgres:
   stage: system-testing
   image: $BRANCH_IMAGE_TAG
   variables:
-    PROCESSED_DATA_DIR: /processed-data-dir
+    NOIZ_PROCESSED_DATA_DIR: /processed-data-dir
+    NOIZ_MSEEDINDEX_EXECUTABLE: mseedindex
     GIT_SUBMODULE_STRATEGY: recursive
-    LOGLEVEL: DEBUG
+    NOIZ_LOGLEVEL: DEBUG
   before_script:
     - uv tool install rust-just
     - just sync
     - uv pip install --no-cache-dir -e .
-    - mkdir -p $PROCESSED_DATA_DIR
+    - mkdir -p $NOIZ_PROCESSED_DATA_DIR
 
 .system_test_postgres:
   extends: .system_test_base
@@ -111,13 +112,15 @@ build_postgres:
     - name: $POSTGRES_IMAGE_TAG
       alias: postgres
   variables:
-    DATABASE_BACKEND: postgresql
+    # PostgreSQL service container variables (needed for database initialization)
     POSTGRES_HOST: postgres
     POSTGRES_PORT: "5432"
     POSTGRES_USER: noiztest
     POSTGRES_PASSWORD: noiztest
     POSTGRES_DB: noiztest
-    DATABASE_URL: "postgresql+psycopg2://noiztest:noiztest@postgres:5432/noiztest"
+    # Noiz application variables (composed from above)
+    NOIZ_DATABASE_BACKEND: postgresql
+    NOIZ_DATABASE_URL: "postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
   before_script:
     - !reference [.system_test_base, before_script]
     - uv run noiz db upgrade  # Apply existing migrations to database
@@ -125,8 +128,8 @@ build_postgres:
 .system_test_sqlite:
   extends: .system_test_base
   variables:
-    DATABASE_BACKEND: sqlite
-    DATABASE_URL: "sqlite:////tmp/noiz-ci-test.db"
+    NOIZ_DATABASE_BACKEND: sqlite
+    NOIZ_DATABASE_URL: "sqlite:////tmp/noiz-ci-test.db"
   before_script:
     - !reference [.system_test_base, before_script]
     - uv run noiz db upgrade  # Apply existing migrations to database

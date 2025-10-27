@@ -14,10 +14,14 @@ def _get_processed_data_dir():
     This function reads the environment variable dynamically rather than
     at import time, which allows pytest fixtures to set it after module import.
 
-    :return: Value of PROCESSED_DATA_DIR environment variable, or empty string
+    Reads from NOIZ_PROCESSED_DATA_DIR (new) with fallback to PROCESSED_DATA_DIR
+    (old) for backward compatibility during migration.
+
+    :return: Value of NOIZ_PROCESSED_DATA_DIR environment variable, or empty string
     :rtype: str
     """
-    return os.environ.get("PROCESSED_DATA_DIR", "")
+    # Try new NOIZ_ prefixed variable first, fallback to old name for backward compat
+    return os.environ.get("NOIZ_PROCESSED_DATA_DIR", os.environ.get("PROCESSED_DATA_DIR", ""))
 
 
 # For backwards compatibility, provide PROCESSED_DATA_DIR as a callable

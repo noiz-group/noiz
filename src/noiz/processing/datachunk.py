@@ -11,9 +11,9 @@ from typing import Union, Tuple, Dict, Collection, Optional
 import numpy.typing as npt
 from ulid import ULID
 
+from noiz.config import get_config
 from noiz.models.type_aliases import CalculateDatachunkStatsInputs, RunDatachunkPreparationInputs
 from noiz.exceptions import MissingDataFileException, ResponseRemovalError, CorruptedMiniseedFileException
-from noiz.globals import PROCESSED_DATA_DIR
 from noiz.models.component import Component
 from noiz.models.datachunk import Datachunk, DatachunkFile, DatachunkStats
 from noiz.models.processing_params import DatachunkParams, ZeroPaddingMethod
@@ -808,7 +808,7 @@ def create_datachunks_for_component(
             continue
 
         filepath = assembly_filepath(
-            PROCESSED_DATA_DIR,  # type: ignore
+            get_config().processed_data_dir,
             "datachunk",
             assembly_sds_like_dir(component, timespan).joinpath(
                 assembly_preprocessing_filename(component=component, timespan=timespan, count=0)

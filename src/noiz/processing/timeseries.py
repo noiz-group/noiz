@@ -15,10 +15,6 @@ def run_mseedindex_on_passed_dir(
     basedir: Union[Path, Collection[Path]],
     current_dir: Path,
     mseedindex_executable: str,
-    postgres_host: str,
-    postgres_user: str,
-    postgres_password: str,
-    postgres_db: str,
     filename_pattern: str = "*",
     parallel: bool = True,
 ) -> int:
@@ -32,20 +28,12 @@ def run_mseedindex_on_passed_dir(
     :param basedir: Directory to rglob for files
     :type basedir: Union[Path, Collection[Path]]
     :param current_dir: Current directory for execution
-    :type current_dir:  Path
+    :type current_dir: Path
     :param mseedindex_executable: Path to mseedindex executable
-    :type mseedindex_executable:  str
-    :param postgres_host: Address of PostgreSQL (unused in JSON mode, kept for compatibility)
-    :type postgres_host:  str
-    :param postgres_user: Database username (unused in JSON mode, kept for compatibility)
-    :type postgres_user:  str
-    :param postgres_password: Database password (unused in JSON mode, kept for compatibility)
-    :type postgres_password:  str
-    :param postgres_db: Name of database in the PostgreSQL (unused in JSON mode, kept for compatibility)
-    :type postgres_db:  str
+    :type mseedindex_executable: str
     :param filename_pattern: Pattern to rglob with
-    :type filename_pattern:  str
-    :param parallel: Whether to process files in parallel (unused, kept for compatibility)
+    :type filename_pattern: str
+    :param parallel: Whether to process files in parallel
     :type parallel: bool
     :return: Number of entries inserted
     :rtype: int

@@ -18,7 +18,7 @@ def generate_ulid():
     return str(ULID())
 
 
-from noiz.globals import PROCESSED_DATA_DIR
+from noiz.config import get_config
 from noiz.models.custom_db_types import PathInDB
 from noiz.processing.path_helpers import directory_exists_or_create, increment_filename_counter
 
@@ -152,8 +152,8 @@ class FileModelMixin(db.Model):
         doy = ts.starttime.strftime("%j")
         if isinstance(cmp, Component):
             return (
-                Path(PROCESSED_DATA_DIR)
-                .joinpath(self.file_model_type)
+                get_config()
+                .processed_data_dir.joinpath(self.file_model_type)
                 .joinpath(str(params.id))
                 .joinpath(year)
                 .joinpath(cmp.network)
@@ -163,8 +163,8 @@ class FileModelMixin(db.Model):
             )
         elif isinstance(cmp, ComponentPairCartesian):
             return (
-                Path(PROCESSED_DATA_DIR)
-                .joinpath(self.file_model_type)
+                get_config()
+                .processed_data_dir.joinpath(self.file_model_type)
                 .joinpath(str(params.id))
                 .joinpath(year)
                 .joinpath(doy)
@@ -176,8 +176,8 @@ class FileModelMixin(db.Model):
             )
         elif cmp is None:
             return (
-                Path(PROCESSED_DATA_DIR)
-                .joinpath(self.file_model_type)
+                get_config()
+                .processed_data_dir.joinpath(self.file_model_type)
                 .joinpath(str(params.id))
                 .joinpath(year)
                 .joinpath(doy)

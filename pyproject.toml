@@ -40,6 +40,7 @@ dependencies = [
     "dask[complete] ==2021.11.2",
     "pendulum ~=3.0",
     "werkzeug == 2.3.3",
+    "pydantic-settings>=2.0,<3.0",
 ]
 [dependency-groups]
 dev = [

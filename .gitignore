@@ -135,3 +135,4 @@ processed_datachunk/
 psd/
 tmp_beamforming_deconv/
 **/*.db
+tmp-system-tests-artifacts/
