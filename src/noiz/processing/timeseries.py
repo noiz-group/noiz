@@ -6,7 +6,7 @@ from typing import Union, Collection, Generator, TypedDict, List, Dict, Any
 import subprocess
 import json
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from loguru import logger
 from pathlib import Path
 
@@ -205,8 +205,8 @@ def _parse_mseedindex_json(json_data: Dict[str, Any]) -> List[Dict[str, Any]]:
             # Convert timestamps from nanoseconds to datetime (UTC)
             start_ns = content_entry.get("start")
             end_ns = content_entry.get("end")
-            starttime = datetime.utcfromtimestamp(start_ns / 1e9) if start_ns else None
-            endtime = datetime.utcfromtimestamp(end_ns / 1e9) if end_ns else None
+            starttime = datetime.fromtimestamp(start_ns / 1e9, tz=timezone.utc) if start_ns else None
+            endtime = datetime.fromtimestamp(end_ns / 1e9, tz=timezone.utc) if end_ns else None
 
             # Extract sample rate from timespans
             samplerate = None

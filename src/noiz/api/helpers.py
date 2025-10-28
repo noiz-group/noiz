@@ -226,9 +226,22 @@ def _run_calculate_and_upsert_on_dask(
     is_beamforming: bool = False,
     is_event_confirmation: bool = False,
 ):
-    from dask.distributed import Client
+    from dask.distributed import Client, LocalCluster
+    from noiz.config import get_config
 
-    client = Client()
+    # Get validated config and pass only required settings to workers
+    # Workers only need processing config, not database (they use app's connection)
+    config = get_config()
+    env_vars = {
+        "NOIZ_PROCESSED_DATA_DIR": str(config.processed_data_dir),
+        "NOIZ_MSEEDINDEX_EXECUTABLE": config.mseedindex_executable,
+    }
+
+    logger.debug(f"Passing {len(env_vars)} configuration variables to Dask workers")
+
+    # Create LocalCluster with environment variables for workers
+    cluster = LocalCluster(env=env_vars)
+    client = Client(cluster)
     logger.info(f"Dask client started successfully. You can monitor execution on {client.dashboard_link}")
     logger.info(f"Processing will be executed in batches. The chunks size is {batch_size}")
     for i, input_batch in enumerate(more_itertools.chunked(iterable=inputs, n=batch_size)):
@@ -249,6 +262,7 @@ def _run_calculate_and_upsert_on_dask(
             is_event_confirmation=is_event_confirmation,
         )
     client.close()
+    cluster.close()
     return
 
 
@@ -403,8 +417,20 @@ def _parse_query_as_dataframe(query: Query) -> pd.DataFrame:
     :return: Results of the query as a DataFrame
     :rtype: pd.DataFrame
     """
-    # Use pd.read_sql with the query statement directly to avoid parameter binding issues
-    # between PostgreSQL (named params) and SQLite (positional params).
-    # pandas handles the execution and parameter binding correctly for both dialects.
-    df = pd.read_sql(query.statement, query.session.bind)
+    # For pandas 2.x compatibility, compile the query to a SQL string.
+    # pandas 2.x requires string queries for both SQLite and PostgreSQL when working with SQLAlchemy.
+
+    # Use get_bind() for SQLAlchemy 2.0 compatibility (session.bind is deprecated)
+    engine = query.session.get_bind()
+
+    # Compile the query to SQL with bound parameters inlined
+    compiled_query = str(query.statement.compile(dialect=engine.dialect, compile_kwargs={"literal_binds": True}))
+
+    # Get a raw database connection from the engine for pandas
+    raw_conn = engine.raw_connection()
+    try:
+        df = pd.read_sql_query(compiled_query, raw_conn)
+    finally:
+        # Return connection to pool
+        raw_conn.close()
     return df

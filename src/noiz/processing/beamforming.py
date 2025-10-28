@@ -589,7 +589,7 @@ def calculate_beamforming_results(
     logger.debug(f"Preparing stream metadata for beamforming for timespan {timespan}")
     first_starttime = min([tr.stats.starttime for tr in st])
     first_endtime = min([tr.stats.endtime for tr in st])
-    time_vector = [pd.Timestamp.utcfromtimestamp(x).to_datetime64() for x in st[0].times("timestamp")]
+    time_vector = [pd.Timestamp(x, unit="s", tz="UTC").to_datetime64() for x in st[0].times("timestamp")]
 
     results = []
 

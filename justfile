@@ -24,9 +24,9 @@ submodule cmd="":
 clean_after_tests:
     rm -rf {{system_tests_artifacts_dir}}
 
-# Run system tests on sqlite without cleanup
+# Run system tests on sqlite without cleanup (use --parallel to enable parallel mode)
 [group('testing')]
-run_system_tests:
+run_system_tests parallel="":
     #! /usr/bin/env bash
     set -e
 
@@ -48,6 +48,14 @@ run_system_tests:
     export NOIZ_MSEEDINDEX_EXECUTABLE=mseedindex
     export SQLALCHEMY_WARN_20=1
 
+    # Enable parallel mode if requested
+    if [[ "{{parallel}}" == "--parallel" ]]; then
+        export NOIZ_RUN_SYSTEM_TESTS_PARALLEL=True
+        echo "Running system tests in PARALLEL mode"
+    else
+        echo "Running system tests in SEQUENTIAL mode"
+    fi
+
     mkdir -p "$NOIZ_PROCESSED_DATA_DIR"
 
     # Run database migrations
@@ -62,9 +70,9 @@ unit_tests:
     export SQLALCHEMY_WARN_20=1
     uv run pytest --cov=noiz
 
-# Run system tests and cleanup afterwards
+# Run system tests and cleanup afterwards (use --parallel to enable parallel mode)
 [group('testing')]
-system_tests: run_system_tests clean_after_tests
+system_tests parallel="": (run_system_tests parallel) clean_after_tests
 
 # Sync dependencies with the local venv
 [group('development')]
