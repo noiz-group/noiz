@@ -417,20 +417,29 @@ def _parse_query_as_dataframe(query: Query) -> pd.DataFrame:
     :return: Results of the query as a DataFrame
     :rtype: pd.DataFrame
     """
-    # For pandas 2.x compatibility, compile the query to a SQL string.
-    # pandas 2.x requires string queries for both SQLite and PostgreSQL when working with SQLAlchemy.
-
     # Use get_bind() for SQLAlchemy 2.0 compatibility (session.bind is deprecated)
     engine = query.session.get_bind()
 
     # Compile the query to SQL with bound parameters inlined
     compiled_query = str(query.statement.compile(dialect=engine.dialect, compile_kwargs={"literal_binds": True}))
 
-    # Get a raw database connection from the engine for pandas
-    raw_conn = engine.raw_connection()
-    try:
-        df = pd.read_sql_query(compiled_query, raw_conn)
-    finally:
-        # Return connection to pool
-        raw_conn.close()
+    # Handle pandas 2.x with SQLAlchemy 1.4 compatibility:
+    # - For SQLite: Use native sqlite3.Connection (pandas explicitly supports this, no warning)
+    # - For PostgreSQL: Use SQLAlchemy engine directly (pandas supports this)
+    if engine.dialect.name == "sqlite":
+        # For SQLite, extract the native sqlite3.Connection object
+        # This avoids any warnings and is explicitly supported by pandas
+        raw_conn = engine.raw_connection()
+        try:
+            # Unwrap the connection if it's wrapped by a connection pool
+            # For SQLite, we need the actual sqlite3.Connection object
+            native_conn = raw_conn.connection if hasattr(raw_conn, "connection") else raw_conn
+            df = pd.read_sql(compiled_query, native_conn)
+        finally:
+            raw_conn.close()
+    else:
+        # For PostgreSQL and other databases, use the engine directly
+        # pandas 2.x supports SQLAlchemy engines as connectables
+        df = pd.read_sql(compiled_query, engine)
+
     return df

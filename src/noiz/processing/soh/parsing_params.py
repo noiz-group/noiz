@@ -464,9 +464,9 @@ def _postprocess_soh_miniseed_instrument_centaur(df: pd.DataFrame) -> pd.DataFra
     :return: Postprocessed dataframe
     :rtype: pd.DataFrame
     """
-    df.loc[:, "Supply voltage(V)"] = df.loc[:, "Supply voltage(V)"] / 1000
-    df.loc[:, "Total current(A)"] = df.loc[:, "Total current(A)"] / 1000
-    df.loc[:, "Temperature(C)"] = df.loc[:, "Temperature(C)"] / 1000
+    df["Supply voltage(V)"] = df["Supply voltage(V)"].astype(float) / 1000
+    df["Total current(A)"] = df["Total current(A)"].astype(float) / 1000
+    df["Temperature(C)"] = df["Temperature(C)"].astype(float) / 1000
     return df
 
 
@@ -482,7 +482,7 @@ def _postprocess_soh_miniseed_gpstime_centaur(df: pd.DataFrame) -> pd.DataFrame:
     :return: Postprocessed dataframe
     :rtype: pd.DataFrame
     """
-    df.loc[:, "Time error(ms)"] = df.loc[:, "Time error(ms)"] / 1000
+    df["Time error(ms)"] = df["Time error(ms)"].astype(float) / 1000
     return df
 
 

@@ -11,6 +11,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Commit messages
 - Design documents
 
+## Commit Message Standards
+
+**IMPORTANT: Do NOT add AI attribution or signatures to commit messages.**
+
+Commit messages must NOT include:
+- "Generated with [Claude Code]" or similar attribution lines
+- "Co-Authored-By: Claude" or similar co-author lines
+- Any emojis (🤖, etc.)
+- Any reference to AI assistance
+
+Commit messages should be professional, concise, and follow conventional commit format (e.g., `fix:`, `feat:`, `refactor:`, etc.)
+
 ### RST Formatting: One Sentence Per Line
 
 **All RST documentation must follow "one sentence per line" formatting.**

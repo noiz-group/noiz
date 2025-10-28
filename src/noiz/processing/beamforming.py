@@ -269,7 +269,8 @@ def select_sparse_slowness(
     rms_previous_stage = 1e6
     combination_out_stage: List[int] = []
 
-    df_out = pd.DataFrame(columns=["slowness", "rms_error", "sum_coeffs", "sparsity"])
+    # Collect DataFrames in a list for efficient concatenation at the end
+    df_stages: List[pd.DataFrame] = []
 
     while current_sparse <= n_sparse:
         rms_current = 1e6
@@ -352,7 +353,8 @@ def select_sparse_slowness(
         df_stage["sparsity"] = current_sparse
         # Group by slowness, selecting the row with the minimal rms_error
         df_stage = df_stage.loc[df_stage.groupby("slowness")["rms_error"].idxmin()]
-        df_out = pd.concat([df_out, df_stage])
+        # Collect DataFrames in list for efficient concatenation later
+        df_stages.append(df_stage)
 
         print(selected_slowness_print_stage)
         print("RMS new " + str(rms_current))
@@ -380,6 +382,13 @@ def select_sparse_slowness(
     if verbose:
         print(selected_slowness_print)
         print("RMS = " + str(rms_previous_stage))
+
+    # Concatenate all collected DataFrames at once (more efficient and avoids FutureWarning)
+    if df_stages:
+        df_out = pd.concat(df_stages, ignore_index=True)
+    else:
+        # If no stages were collected, return an empty DataFrame with the expected columns
+        df_out = pd.DataFrame(columns=["slowness", "rms_error", "sum_coeffs", "sparsity"])
 
     return selected_indices_out, sparse_coeffs_out, df_out
 
