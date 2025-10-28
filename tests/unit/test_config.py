@@ -202,8 +202,12 @@ class TestProcessingConfig:
 
         assert str(config.processing.processed_data_dir) == str(empty_dir.resolve())
 
-    def test_reject_non_empty_directory(self, tmp_path, monkeypatch):
-        """Non-empty directory should fail validation."""
+    def test_accept_non_empty_directory(self, tmp_path, monkeypatch):
+        """Non-empty directory should be accepted (with warning logged).
+
+        This validates the relaxed rule for data directory validation.
+        Dask workers share parent's data directory so we cannot require empty directories.
+        """
         non_empty_dir = tmp_path / "non_empty"
         non_empty_dir.mkdir()
         (non_empty_dir / "somefile.txt").write_text("data")
@@ -212,11 +216,9 @@ class TestProcessingConfig:
         monkeypatch.setenv("NOIZ_PROCESSED_DATA_DIR", str(non_empty_dir))
         monkeypatch.setenv("NOIZ_MSEEDINDEX_EXECUTABLE", "mseedindex")
 
-        with pytest.raises(ValidationError) as exc_info:
-            NoizConfig()
-
-        error_str = str(exc_info.value)
-        assert "non-empty directory" in error_str or "naming conflicts" in error_str
+        # Should succeed without raising ValidationError
+        config = NoizConfig()
+        assert str(config.processing.processed_data_dir) == str(non_empty_dir.resolve())
 
     def test_reject_file_path(self, tmp_path, monkeypatch):
         """File path should fail validation."""

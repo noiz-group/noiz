@@ -242,7 +242,7 @@ class ProcessingConfig(NoizBaseSettings):
 
         Rules:
         1. If path exists as file -> FAIL with clear error
-        2. If path exists as non-empty directory -> FAIL (prevents conflicts)
+        2. If path exists as non-empty directory -> WARN (may cause conflicts)
         3. If path exists as empty directory -> ACCEPT silently
         4. If path doesn't exist -> CREATE (warn if parents needed)
 
@@ -261,15 +261,16 @@ class ProcessingConfig(NoizBaseSettings):
                 f"Please specify a directory path instead."
             )
 
-        # Rule 2: Path exists as non-empty directory - FAIL
+        # Rule 2: Path exists as non-empty directory - WARN (don't fail)
+        # Dask workers share parent's data directory so we cannot require empty directories
         if path.exists() and path.is_dir():
             try:
-                # Check if directory is empty
+                # Check if directory is empty and warn if not
                 if any(path.iterdir()):
-                    raise ValueError(
+                    logger.warning(
                         f"NOIZ_PROCESSED_DATA_DIR points to non-empty directory: {path}\n"
-                        f"This could cause naming conflicts when processing data.\n"
-                        f"Please use an empty directory or specify a new path."
+                        f"This could cause naming conflicts when processing data. "
+                        f"Consider using an empty directory if you encounter issues."
                     )
             except PermissionError as e:
                 raise ValueError(

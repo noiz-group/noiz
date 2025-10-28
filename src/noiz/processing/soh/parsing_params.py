@@ -440,7 +440,7 @@ def _read_single_soh_miniseed_centaur(
         for tr in st_selected:
             data_read.append(
                 pd.Series(
-                    index=[pd.Timestamp.utcfromtimestamp(t) for t in tr.times("timestamp")],
+                    index=[pd.Timestamp(t, unit="s") for t in tr.times("timestamp")],
                     data=tr.data,
                     name=parsing_params.name_mappings[channel],
                 )
