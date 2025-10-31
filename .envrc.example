@@ -1,0 +1,30 @@
+# ==================================
+# direnv configuration for Noiz
+# ==================================
+#
+# This file enables automatic environment loading when you cd into the noiz directory.
+#
+# Setup:
+#   1. Install direnv: https://direnv.net/
+#   2. Add to your shell config (~/.bashrc or ~/.zshrc):
+#      eval "$(direnv hook bash)"  # for bash
+#      eval "$(direnv hook zsh)"   # for zsh
+#   3. Copy this file: cp .envrc.example .envrc
+#   4. Create your .env file (see .env.example)
+#   5. Allow direnv: direnv allow
+#
+# Now environment variables will load automatically when you cd into this directory!
+
+# Load environment variables from .env file
+dotenv
+
+# Optional: Add project bin to PATH
+# PATH_add .venv/bin
+
+# Optional: Set up Python virtual environment
+# layout python python3.10
+
+# Optional: Display loaded environment info
+# log_status "Noiz environment loaded"
+# log_status "Database: $NOIZ_DATABASE_BACKEND"
+# log_status "Data dir: $NOIZ_PROCESSED_DATA_DIR"

@@ -5,12 +5,13 @@
 Guides
 ======
 
-Here are located all guides of Noiz.
+This section contains practical guides for using Noiz.
 
 .. toctree::
     :maxdepth: 2
     :caption: Contents:
-    :glob:
 
-
-    *
+    running_noiz
+    configuration
+    running_system_tests_locally
+    profiling
