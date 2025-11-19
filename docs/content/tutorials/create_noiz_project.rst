@@ -49,7 +49,7 @@ The docker-compose.yml have to be modified:
 
 
 - volumes:
-    - ./noiz-postgres-data:/var/lib/postgresql/data/pgdata must be modified into ./noiz-postgres-data:/var/lib/postgresql/data
+    - ./noiz-postgres-data:/var/lib/postgresql/data
 
 - ports:
     - "8020:8080"
@@ -78,8 +78,7 @@ The user has to "up" the container
 
 ::
     
-    docker-compose pull
+    docker compose pull
     git clone https://gitlab.com/noiz-group/noiz.git
-    docker-compose -p noiz_nameuser up -d
-    docker exec -it noiz_nameuser_noiz_1 /bin/bash
-    
+    docker compose -p noiz_nameuser up -d
+    docker exec -it noiz_nameuser-noiz-1 /bin/bash
