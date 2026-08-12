@@ -207,7 +207,7 @@ def _plot_avg_psds(
     if xlims is not None:
         ax.set_xlim(xlims)
     if ylims is not None:
-        ax.set_yxlim(ylims)
+        ax.set_ylim(ylims)
     if filepath is not None:
         fig.savefig(filepath, bbox_inches="tight")
     if showfig:
@@ -308,7 +308,7 @@ def _plot_spectrogram(
     mappable = ax.pcolormesh(df.index, df.columns, df.to_numpy().T, shading="auto", vmin=vmin, vmax=vmax)
 
     for label in ax.get_xticklabels():
-        label.set_ha("right")
+        label.set_horizontalalignment("right")
         label.set_rotation(45)
 
     if log_freq_scale:
@@ -321,7 +321,7 @@ def _plot_spectrogram(
     if xlims is not None:
         ax.set_xlim(xlims)
     if ylims is not None:
-        ax.set_yxlim(ylims)
+        ax.set_ylim(ylims)
     if filepath is not None:
         fig.savefig(filepath, bbox_inches="tight")
     if showfig:

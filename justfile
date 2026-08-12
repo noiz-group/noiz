@@ -55,7 +55,7 @@ sync:
     uv sync --all-groups
 
 mypy:
-    uv run mypy --install-types --non-interactive src/noiz
+    uv run mypy src/noiz
 
 # Check ruff linting and auto-fix issues
 ruff_check:

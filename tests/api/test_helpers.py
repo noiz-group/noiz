@@ -3,10 +3,16 @@
 # Copyright © 2019-2023 Contributors to the Noiz project.
 
 from dataclasses import dataclass
+from unittest.mock import MagicMock
 
 import pytest
 
-from noiz.api.helpers import extract_object_ids
+from noiz.api.helpers import (
+    CCF_PREDELETE_CHUNK_SIZE,
+    _delete_conflicting_ccf_records,
+    _extract_exact_ccf_conflict_keys,
+    extract_object_ids,
+)
 from noiz.validation_helpers import (
     validate_to_tuple,
     validate_uniformity_of_tuple,
@@ -140,3 +146,110 @@ def test_extract_object_ids():
     input = [TestingClassWithID(id=i) for i in expected_ids]
 
     assert expected_ids == extract_object_ids(instances=input)
+
+
+def test_extract_exact_ccf_conflict_keys_keeps_exact_tuples():
+    @dataclass
+    class FakeCrosscorrelationCartesian:
+        timespan_id: int
+        componentpair_id: int
+        crosscorrelation_cartesian_params_id: int
+
+    objects = (
+        FakeCrosscorrelationCartesian(timespan_id=1, componentpair_id=10, crosscorrelation_cartesian_params_id=3),
+        FakeCrosscorrelationCartesian(timespan_id=2, componentpair_id=20, crosscorrelation_cartesian_params_id=3),
+        FakeCrosscorrelationCartesian(timespan_id=1, componentpair_id=10, crosscorrelation_cartesian_params_id=3),
+    )
+
+    assert set(_extract_exact_ccf_conflict_keys(objects)) == {
+        (1, 10, 3),
+        (2, 20, 3),
+    }
+
+
+def test_delete_conflicting_ccf_records_chunks_large_delete(monkeypatch):
+    @dataclass
+    class FakeCrosscorrelationCartesian:
+        timespan_id: int
+        componentpair_id: int
+        crosscorrelation_cartesian_params_id: int
+
+    class FakeColumn:
+        pass
+
+    fake_model = type(
+        "FakeCrosscorrelationCartesianModel",
+        (),
+        {
+            "timespan_id": FakeColumn(),
+            "componentpair_id": FakeColumn(),
+            "crosscorrelation_cartesian_params_id": FakeColumn(),
+        },
+    )
+    fake_query = MagicMock()
+    fake_query.filter.return_value = fake_query
+    fake_query.delete.side_effect = [7, 0]
+    fake_session = MagicMock()
+    fake_session.query.return_value = fake_query
+
+    monkeypatch.setattr("noiz.api.helpers.db.session", fake_session)
+    monkeypatch.setattr("noiz.models.CrosscorrelationCartesian", fake_model)
+    tuple_inputs = []
+
+    class FakeTuplePredicate:
+        def in_(self, value):
+            tuple_inputs.append(tuple(value))
+            return ("fake_predicate", value)
+
+    monkeypatch.setattr("noiz.api.helpers.tuple_", lambda *args: FakeTuplePredicate())
+    objects = tuple(
+        FakeCrosscorrelationCartesian(timespan_id=i, componentpair_id=i + 100, crosscorrelation_cartesian_params_id=3)
+        for i in range(CCF_PREDELETE_CHUNK_SIZE + 1)
+    )
+
+    _delete_conflicting_ccf_records(objects)
+
+    assert fake_session.query.call_count == 2
+    assert [len(batch) for batch in tuple_inputs] == [CCF_PREDELETE_CHUNK_SIZE, 1]
+    fake_session.commit.assert_called_once()
+
+
+def test_delete_conflicting_ccf_records_skips_commit_when_nothing_deleted(monkeypatch):
+    @dataclass
+    class FakeCrosscorrelationCartesian:
+        timespan_id: int
+        componentpair_id: int
+        crosscorrelation_cartesian_params_id: int
+
+    class FakeColumn:
+        pass
+
+    fake_model = type(
+        "FakeCrosscorrelationCartesianModel",
+        (),
+        {
+            "timespan_id": FakeColumn(),
+            "componentpair_id": FakeColumn(),
+            "crosscorrelation_cartesian_params_id": FakeColumn(),
+        },
+    )
+    fake_query = MagicMock()
+    fake_query.filter.return_value = fake_query
+    fake_query.delete.return_value = 0
+    fake_session = MagicMock()
+    fake_session.query.return_value = fake_query
+
+    monkeypatch.setattr("noiz.api.helpers.db.session", fake_session)
+    monkeypatch.setattr("noiz.models.CrosscorrelationCartesian", fake_model)
+
+    class FakeTuplePredicate:
+        def in_(self, value):
+            return ("fake_predicate", value)
+
+    monkeypatch.setattr("noiz.api.helpers.tuple_", lambda *args: FakeTuplePredicate())
+
+    _delete_conflicting_ccf_records(
+        (FakeCrosscorrelationCartesian(timespan_id=1, componentpair_id=10, crosscorrelation_cartesian_params_id=3),)
+    )
+
+    fake_session.commit.assert_not_called()

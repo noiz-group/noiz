@@ -11,7 +11,11 @@ from sqlalchemy.dialects.postgresql import ARRAY
 from noiz.models.timespan import TimespanMixin
 from noiz.database import db
 from noiz.processing.time_utils import calculate_window_step_or_overlap
-from noiz.validation_helpers import validate_as_pytimedelta_or_none
+from noiz.validation_helpers import (
+    validate_as_pytimedelta_or_none,
+    is_full_time_stacking,
+    validate_timestamp_as_pydatetime,
+)
 
 
 class StackingTimespan(TimespanMixin):
@@ -38,7 +42,11 @@ class StackingTimespan(TimespanMixin):
 class StackingSchemaHolder:
     """
     This simple dataclass is just helping to validate :py:class:`~noiz.models.StackingSchema` values loaded
-    from the TOML file
+    from the TOML file.
+
+    The stacking_length can be set to "full time" (or "full_time" or "fulltime") to indicate
+    that all correlations should be stacked into a single window covering the entire time range
+    with no overlap.
     """
 
     qctwo_config_id: int
@@ -89,24 +97,51 @@ class StackingSchema(db.Model):
         self.crosscorrelation_cartesian_params_id = kwargs.get("crosscorrelation_cartesian_params_id")
         self.qctwo_config_id = kwargs.get("qctwo_config_id")
         self.minimum_ccf_count = kwargs.get("minimum_ccf_count")
-        self.starttime = kwargs.get("starttime")
-        self.endtime = kwargs.get("endtime")
+        # self.starttime = kwargs.get("starttime")
+        # self.endtime = kwargs.get("endtime")
+        self.starttime = validate_timestamp_as_pydatetime(kwargs.get("starttime"))
+        self.endtime = validate_timestamp_as_pydatetime(kwargs.get("endtime"))
 
-        self.stacking_length = validate_as_pytimedelta_or_none(kwargs.get("stacking_length", None))
-        self.stacking_step = validate_as_pytimedelta_or_none(kwargs.get("stacking_step", None))
-        self.stacking_overlap = validate_as_pytimedelta_or_none(kwargs.get("stacking_overlap", None))
+        raw_stacking_length = kwargs.get("stacking_length", None)
 
-        if self.stacking_step is None and self.stacking_overlap is None:
-            raise ValueError("You have to provide either stacking_step or stacking_overlap.")
+        # Check for "full time" mode
+        if is_full_time_stacking(raw_stacking_length):
+            # In "full time" mode, stacking_length spans entire time range with no overlap
+            # if isinstance(self.starttime, datetime.date) and not isinstance(self.starttime, datetime.datetime):
+            #     start_dt = datetime.datetime.combine(self.starttime, datetime.time.min)
+            # else:
+            #     start_dt = self.starttime
+            # if isinstance(self.endtime, datetime.date) and not isinstance(self.endtime, datetime.datetime):
+            #     end_dt = datetime.datetime.combine(self.endtime, datetime.time.min)
+            # else:
+            #     end_dt = self.endtime
+            start_dt = self.starttime
+            end_dt = self.endtime
+            self.stacking_length = end_dt - start_dt
+            self.stacking_overlap = datetime.timedelta(0)
+            self.stacking_step = self.stacking_length  # No overlap means step == length
+        else:
+            self.stacking_length = validate_as_pytimedelta_or_none(raw_stacking_length)
+            # self.stacking_step = validate_as_pytimedelta_or_none(kwargs.get("stacking_step", None))
+            step = validate_as_pytimedelta_or_none(kwargs.get("stacking_step", None))
+            self.stacking_overlap = validate_as_pytimedelta_or_none(kwargs.get("stacking_overlap", None))
 
-        if self.stacking_step is not None and self.stacking_overlap is not None:
-            raise ValueError("You cannot provide stacking_step and stacking overlap at the same time.")
+            # if self.stacking_step is None and self.stacking_overlap is None:
+            if step is None and self.stacking_overlap is None:
+                raise ValueError("You have to provide either stacking_step or stacking_overlap.")
 
-        if self.stacking_step is not None and self.stacking_overlap is None:
-            self._calclulate_overlap()
+            # if self.stacking_step is not None and self.stacking_overlap is not None:
+            if step is not None and self.stacking_overlap is not None:
+                raise ValueError("You cannot provide stacking_step and stacking overlap at the same time.")
 
-        if self.stacking_step is None and self.stacking_overlap is not None:
-            self._calculate_stacking_step()
+            # if self.stacking_step is not None and self.stacking_overlap is None:
+            if step is not None and self.stacking_overlap is None:
+                self.stacking_step = step
+                self._calclulate_overlap()
+
+            # if self.stacking_step is None and self.stacking_overlap is not None:
+            if step is None and self.stacking_overlap is not None:
+                self._calculate_stacking_step()
 
     def _calclulate_overlap(self):
         self.stacking_overlap = calculate_window_step_or_overlap(self.stacking_length, self.stacking_step)
@@ -120,6 +155,14 @@ ccf_ccfstack_association_table = db.Table(
     db.metadata,
     db.Column("crosscorrelation_cartesian_id", db.BigInteger, db.ForeignKey("crosscorrelation_cartesian.id")),
     db.Column("ccfstack_id", db.BigInteger, db.ForeignKey("ccfstack.id")),
+)
+
+
+ccf_ccfstack_cylindrical_association_table = db.Table(
+    "stacking_cylindrical_association",
+    db.metadata,
+    db.Column("crosscorrelation_cylindrical_id", db.BigInteger, db.ForeignKey("crosscorrelation_cylindrical.id")),
+    db.Column("ccfstack_cylindrical_id", db.BigInteger, db.ForeignKey("ccfstack_cylindrical.id")),
 )
 
 
@@ -163,4 +206,64 @@ class CCFStack(db.Model):
 
     stacking_schema = db.relationship(
         "StackingSchema", foreign_keys=[stacking_schema_id], uselist=False, lazy="joined"
+    )
+
+
+class CCFStackCylindrical(db.Model):
+    """
+    Stacked cylindrical cross-correlations for a component pair cylindrical within a stacking timespan.
+
+    This model stores stacked cylindrical CCFs (RR, TT, RZ, ZR, TR, ZT component pairs).
+    Unlike cartesian CCFs, cylindrical CCFs don't have QCTwo validation, so all cylindrical CCFs
+    within a timespan are stacked directly.
+    """
+
+    __tablename__ = "ccfstack_cylindrical"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "stacking_timespan_id",
+            "stacking_schema_id",
+            "componentpair_cylindrical_id",
+            name="unique_stack_cylindrical_per_pair_per_config",
+        ),
+    )
+
+    id = db.Column("id", db.BigInteger, primary_key=True)
+    stacking_timespan_id = db.Column(
+        "stacking_timespan_id",
+        db.BigInteger,
+        db.ForeignKey("stacking_timespan.id"),
+        nullable=False,
+    )
+    stacking_schema_id = db.Column(
+        "stacking_schema_id",
+        db.Integer,
+        db.ForeignKey("stacking_schema.id"),
+        nullable=False,
+    )
+    componentpair_cylindrical_id = db.Column(
+        "componentpair_cylindrical_id",
+        db.Integer,
+        db.ForeignKey("componentpair_cylindrical.id"),
+        nullable=False,
+    )
+    stack = db.Column("stack", ARRAY(db.Float), nullable=False)
+    no_ccfs = db.Column("no_ccfs", db.Integer, nullable=False)
+
+    ccfs = db.relationship(
+        "CrosscorrelationCylindrical",
+        secondary=ccf_ccfstack_cylindrical_association_table,
+        back_populates="stacks",
+    )
+
+    stacking_timespan = db.relationship(
+        "StackingTimespan", foreign_keys=[stacking_timespan_id], uselist=False, lazy="joined"
+    )
+
+    stacking_schema = db.relationship(
+        "StackingSchema", foreign_keys=[stacking_schema_id], uselist=False, lazy="joined"
+    )
+
+    componentpair_cylindrical = db.relationship(
+        "ComponentPairCylindrical", foreign_keys=[componentpair_cylindrical_id], uselist=False, lazy="joined"
     )

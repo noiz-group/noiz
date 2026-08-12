@@ -399,24 +399,26 @@ def upsert_componentpairs_cylindrical(component_pairs_cylindrical: List[Componen
     :return: None
     :rtype: None
     """
+    from noiz.validation_helpers import numpy_to_python
+
     no = len(component_pairs_cylindrical)
     logger.info(f"There are {no} component pairs to process")
 
-    for i, component_pair_cylindrical in enumerate(component_pairs_cylindrical):
+    for i, cp in enumerate(component_pairs_cylindrical):
         insert_command = insert(ComponentPairCylindrical).values(
-            component_aE_id=component_pair_cylindrical.component_aE_id,
-            component_bE_id=component_pair_cylindrical.component_bE_id,
-            component_aN_id=component_pair_cylindrical.component_aN_id,
-            component_bN_id=component_pair_cylindrical.component_bN_id,
-            component_aZ_id=component_pair_cylindrical.component_aZ_id,
-            component_bZ_id=component_pair_cylindrical.component_bZ_id,
-            component_cylindrical_code_pair=component_pair_cylindrical.component_cylindrical_code_pair,
-            autocorrelation=component_pair_cylindrical.autocorrelation,
-            intracorrelation=component_pair_cylindrical.intracorrelation,
-            azimuth=component_pair_cylindrical.azimuth,
-            backazimuth=component_pair_cylindrical.backazimuth,
-            distance=component_pair_cylindrical.distance,
-            arcdistance=component_pair_cylindrical.arcdistance,
+            component_aE_id=cp.component_aE_id,
+            component_bE_id=cp.component_bE_id,
+            component_aN_id=cp.component_aN_id,
+            component_bN_id=cp.component_bN_id,
+            component_aZ_id=cp.component_aZ_id,
+            component_bZ_id=cp.component_bZ_id,
+            component_cylindrical_code_pair=cp.component_cylindrical_code_pair,
+            autocorrelation=cp.autocorrelation,
+            intracorrelation=cp.intracorrelation,
+            azimuth=numpy_to_python(cp.azimuth),
+            backazimuth=numpy_to_python(cp.backazimuth),
+            distance=numpy_to_python(cp.distance),
+            arcdistance=numpy_to_python(cp.arcdistance),
         )
         db.session.execute(insert_command)
         logger.info(f"Inserted {i}/{no - 1} component_pairs_cylindrical")

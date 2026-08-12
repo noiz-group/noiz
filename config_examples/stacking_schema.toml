@@ -1,3 +1,12 @@
+# Stacking Schema Configuration
+# 
+# The stacking_length parameter can be:
+#   - A time duration string like "6 hours", "1 day", "30 minutes"
+#   - "full time" to stack all correlations into a single window (no overlap)
+#
+# The stacking_overlap parameter specifies the overlap between consecutive windows.
+# When stacking_length = "full time", stacking_overlap is automatically set to 0.
+
 [StackingSchema]
 qctwo_config_id = 1
 minimum_ccf_count = 5
@@ -5,3 +14,12 @@ starttime = "2019-09-20"
 endtime = "2019-10-15"
 stacking_length = "6 hours"
 stacking_overlap = "3 hours"
+
+# Example for full-time stacking (all correlations stacked into one):
+# [StackingSchema]
+# qctwo_config_id = 1
+# minimum_ccf_count = 5
+# starttime = "2019-09-20"
+# endtime = "2019-10-15"
+# stacking_length = "full time"
+# stacking_overlap = "0 hours"  # This will be ignored when stacking_length = "full time"

@@ -11,6 +11,27 @@ import pendulum
 from typing import Union, Optional, Tuple, Any, Type, List
 
 
+def numpy_to_python(value: Any) -> Any:
+    """
+    Convert numpy scalar types to native Python types for database compatibility.
+
+    PostgreSQL and SQLAlchemy cannot directly handle numpy types like np.float64.
+    This function converts them to native Python float/int types.
+
+    :param value: Value to potentially convert
+    :type value: Any
+    :return: Native Python type if input was numpy scalar, otherwise unchanged
+    :rtype: Any
+    """
+    if isinstance(value, (np.floating, np.float64, np.float32)):
+        return float(value)
+    elif isinstance(value, (np.integer, np.int64, np.int32)):
+        return int(value)
+    elif isinstance(value, np.ndarray):
+        return [numpy_to_python(v) for v in value]
+    return value
+
+
 def count_consecutive_trues(arr: npt.ArrayLike) -> npt.ArrayLike:
     """
     This method takes an array of booleans and counts all how many consecutive True values are within it.
@@ -129,15 +150,32 @@ def validate_as_pytimedelta_or_none(
         return None
 
 
+def is_full_time_stacking(stacking_length: Optional[Union[pd.Timedelta, datetime.timedelta, str]]) -> bool:
+    """
+    Checks if stacking_length is set to "full time" mode, meaning all correlations
+    should be stacked into a single window covering the entire time range.
+
+    :param stacking_length: The stacking length parameter
+    :type stacking_length: Optional[Union[pd.Timedelta, datetime.timedelta, str]]
+    :return: True if "full time" mode is requested
+    :rtype: bool
+    """
+    if isinstance(stacking_length, str):
+        return stacking_length.lower().strip() in ("full time", "full_time", "fulltime")
+    return False
+
+
 def validate_timestamp_as_pydatetime(
-    time_obj: Union[pd.Timestamp, datetime.datetime, np.datetime64, obspy.UTCDateTime, pendulum.DateTime, str],
+    time_obj: Union[
+        pd.Timestamp, datetime.datetime, datetime.date, np.datetime64, obspy.UTCDateTime, pendulum.DateTime, str
+    ],
 ) -> datetime.datetime:
     """
     Takes a time object and converts it to a pd.Timestamp if originally it was either datetime.datetime,
-    np.datetime64 or pd.Timestamp
+    datetime.date, np.datetime64 or pd.Timestamp
 
     Checks if provided variable is either :py:class:`pandas.Timestamp`, :py:class:`datetime.datetime`,
-    :py:class:`np.datetime64` or a string that can be parsed by :py:class:`pandas.Timestamp`
+    :py:class:`datetime.date`, :py:class:`np.datetime64` or a string that can be parsed by :py:class:`pandas.Timestamp`
     and converts it to :py:class:`datetime.datetime`.
 
     :param time_obj: Time object to be validated
@@ -151,6 +189,9 @@ def validate_timestamp_as_pydatetime(
         return pd.Timestamp(time_obj).to_pydatetime()
     elif isinstance(time_obj, datetime.datetime):
         return time_obj
+    elif isinstance(time_obj, datetime.date):
+        # Convert date to datetime at midnight
+        return datetime.datetime.combine(time_obj, datetime.time.min)
     elif isinstance(time_obj, obspy.UTCDateTime):
         return time_obj.datetime
     elif isinstance(time_obj, pendulum.DateTime):
@@ -159,7 +200,7 @@ def validate_timestamp_as_pydatetime(
         return validate_timestamp_as_pydatetime(pd.Timestamp(time_obj))
     else:
         raise TypeError(
-            f"Valid types are: pd.Timestamp, datetime.datetime or np.datetime64 "
+            f"Valid types are: pd.Timestamp, datetime.datetime, datetime.date or np.datetime64 "
             f"or str that can be casted to pd.Timestamp. "
             f"Provided variable is {type(time_obj)}"
         )

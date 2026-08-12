@@ -6,7 +6,7 @@ import operator as ope
 from loguru import logger
 from typing import Optional, Any, Callable, Union, Tuple
 
-from noiz.models.type_aliases import QCOneRunnerInputs
+from noiz.models.type_aliases import QCOneRunnerInputs, QCTwoRunnerInputs
 from noiz.models import (
     CrosscorrelationCartesian,
     Datachunk,
@@ -28,6 +28,22 @@ def calculate_qcone_results_wrapper(inputs: QCOneRunnerInputs) -> Tuple[QCOneRes
             qcone_config=inputs["qcone_config"],
             stats=inputs["stats"],
             avg_soh_gps=inputs["avg_soh_gps"],
+        ),
+    )
+
+
+def calculate_qctwo_results_wrapper(inputs: QCTwoRunnerInputs) -> Tuple[QCTwoResults, ...]:
+    """
+    Wrapper function for calculate_qctwo_results that accepts a QCTwoRunnerInputs TypedDict.
+    This is designed to be compatible with Dask parallel processing helpers.
+
+    :param inputs: TypedDict containing crosscorrelation_cartesian and qctwo_config
+    :return: Tuple containing the QCTwoResults
+    """
+    return (
+        calculate_qctwo_results(
+            crosscorrelation_cartesian=inputs["crosscorrelation_cartesian"],
+            qctwo_config=inputs["qctwo_config"],
         ),
     )
 
@@ -94,15 +110,12 @@ def calculate_qctwo_results(
     if not isinstance(crosscorrelation_cartesian.timespan, Timespan):
         raise ValueError("You should load timespan together with the Datachunk.")
 
-    logger.debug("Creating an empty QCTwoResults")
     qctwo_res = QCTwoResults(
         crosscorrelation_cartesian_id=crosscorrelation_cartesian.id, qctwo_config_id=qctwo_config.id
     )
-    logger.debug("Checking datachunk for main time bounds")
     qctwo_res = _determine_qc_time(
         results=qctwo_res, timespan=crosscorrelation_cartesian.timespan, config=qctwo_config
     )
-    logger.debug("Checking if datachunk within rejected time")
     qctwo_res = _determine_qctwo_accepted_times(
         results=qctwo_res,
         crosscorrelation_cartesian=crosscorrelation_cartesian,

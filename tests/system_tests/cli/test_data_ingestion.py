@@ -567,9 +567,9 @@ class TestDataIngestionRoutines:
                 "configs",
                 "generate_beamforming_params",
                 "-fn",
-                "30",
+                "2",
                 "-fx",
-                "40",
+                "12",
                 "-fp",
                 "0.1",
                 "-fw",
@@ -588,8 +588,8 @@ class TestDataIngestionRoutines:
 
         with noiz_app.app_context():
             fetched_configs = BeamformingParams.query.filter(
-                BeamformingParams.min_freq >= 30,
-                BeamformingParams.min_freq <= 40,
+                BeamformingParams.min_freq >= 2,
+                BeamformingParams.min_freq <= 12,
             ).all()
 
         for config in fetched_configs:
@@ -1076,9 +1076,55 @@ class TestDataIngestionRoutines:
         assert 30 == bf_result_count
         assert bf_file_count == bf_result_count
 
-    @pytest.mark.xfail
-    def test_run_beamforming_multiple_configs(self, noiz_app):
-        assert False
+    @pytest.mark.parametrize("parallel_flag", ["--no_parallel", "--parallel"])
+    def test_run_beamforming_multiple_configs(self, noiz_app, parallel_flag):
+        runner = CliRunner()
+        args = [
+            "processing",
+            "run_beamforming",
+            "-p",
+            "1",
+            "-p",
+            "2",
+            "-sd",
+            "2019-10-02",
+            "-ed",
+            "2019-10-03",
+            "--no_skip_existing",
+            "--no_raise_errors",
+            parallel_flag,
+        ]
+
+        result = runner.invoke(cli, args=args)
+
+        if result.exit_code != 0:
+            raise result.exception
+        assert result.exit_code == 0
+
+        with noiz_app.app_context():
+            fetched_results = (
+                db.session.query(BeamformingResult)
+                .join(Timespan, BeamformingResult.timespan_id == Timespan.id)
+                .filter(BeamformingResult.beamforming_params_id.in_((1, 2)))
+                .filter(Timespan.starttime >= datetime.date(2019, 10, 2))
+                .filter(Timespan.starttime < datetime.date(2019, 10, 3))
+                .all()
+            )
+
+        grouped_results = {1: [], 2: []}
+        for beamforming_result in fetched_results:
+            grouped_results[beamforming_result.beamforming_params_id].append(beamforming_result)
+
+        assert len(grouped_results[1]) > 0
+        assert len(grouped_results[2]) > 0
+        assert len(grouped_results[1]) == len(grouped_results[2])
+
+        average_abspower_peak_counts = {
+            params_id: sum(len(beamforming_result.average_abspower_peaks) for beamforming_result in results)
+            for params_id, results in grouped_results.items()
+        }
+        assert average_abspower_peak_counts[1] > 0
+        assert average_abspower_peak_counts[2] > 0
 
     def test_plot_beamforming_freq_slowness(self, noiz_app, empty_workdir):
         exported_filename = "beamforming_freq_slow.png"
@@ -1205,7 +1251,7 @@ class TestDataIngestionRoutines:
             [
                 "processing",
                 "run_qctwo",
-                "-c",
+                "-p",
                 "1",
             ],
         )

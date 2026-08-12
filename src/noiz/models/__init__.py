@@ -50,7 +50,7 @@ from noiz.models.crosscorrelation import (
     CrosscorrelationCylindrical,
     CrosscorrelationCylindricalFile,
 )
-from noiz.models.stacking import CCFStack, StackingSchema, StackingSchemaHolder, StackingTimespan
+from noiz.models.stacking import CCFStack, CCFStackCylindrical, StackingSchema, StackingSchemaHolder, StackingTimespan
 from noiz.models.event_detection import (
     EventDetectionResult,
     EventDetectionFile,

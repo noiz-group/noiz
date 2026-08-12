@@ -407,7 +407,11 @@ def _read_single_soh_csv(
             ) from e
 
     single_df = single_df.astype(parsing_params.header_dtypes)
-    single_df.index = single_df.index.tz_localize("UTC")
+    # Handle both tz-naive and tz-aware indices (pandas version compatibility)
+    if single_df.index.tz is None:
+        single_df.index = single_df.index.tz_localize("UTC")
+    elif str(single_df.index.tz) != "UTC":
+        single_df.index = single_df.index.tz_convert("UTC")
 
     return single_df
 
@@ -449,7 +453,11 @@ def _read_single_soh_miniseed_centaur(
     df = pd.concat(data_read, axis=1)
     df.index = pd.DatetimeIndex(df.index)
     df = df.astype(parsing_params.header_dtypes)
-    df.index = df.index.tz_localize("UTC")
+    # Handle both tz-naive and tz-aware indices (pandas version compatibility)
+    if df.index.tz is None:
+        df.index = df.index.tz_localize("UTC")
+    elif str(df.index.tz) != "UTC":
+        df.index = df.index.tz_convert("UTC")
 
     return df
 

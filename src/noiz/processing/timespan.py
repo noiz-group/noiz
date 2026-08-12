@@ -10,6 +10,16 @@ from typing import Union, Optional, Tuple, Iterable, Generator, Any
 from noiz.models.timespan import Timespan
 
 
+def _date_range_compat(start, end, freq, normalize=True, inclusive="left"):
+    """Create date range compatible with both pandas <2.0 and >=2.0."""
+    try:
+        # pandas >= 2.0 uses 'inclusive'
+        return pd.date_range(start=start, end=end, freq=freq, normalize=normalize, inclusive=inclusive)
+    except TypeError:
+        # pandas < 2.0 uses 'closed'
+        return pd.date_range(start=start, end=end, freq=freq, normalize=normalize, closed=inclusive)
+
+
 def generate_starttimes_endtimes(
     startdate: Union[datetime.datetime, np.datetime64],
     enddate: Union[datetime.datetime, np.datetime64],
@@ -56,7 +66,9 @@ def generate_starttimes_endtimes(
                          or pd.Timedelta or np.timedelta64"
         )
 
-    starttimes = pd.date_range(start=startdate, end=enddate, freq=starttime_freq, normalize=True, closed="left")
+    starttimes = _date_range_compat(
+        start=startdate, end=enddate, freq=starttime_freq, normalize=True, inclusive="left"
+    )
     endtimes = starttimes + window_length
     if not generate_midtimes:
         return starttimes.to_list(), endtimes.to_list()

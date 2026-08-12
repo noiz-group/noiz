@@ -417,7 +417,7 @@ def add_stacking_schema(filepath: str, add_to_db: bool, **kwargs):
 
     if add_to_db:
         params = create_and_add_stacking_schema_from_toml(filepath=Path(filepath), add_to_db=add_to_db)
-        click.echo(f"The StackingSchema was added to db with if {params.id}")
+        click.echo(f"The StackingSchema was added to db with id {params.id}")
         click.echo("Proceeding with creation of StackingTimespans")
         create_stacking_timespans_add_to_db(stacking_schema_id=params.id, bulk_insert=True)
     else:
@@ -836,6 +836,44 @@ def process_datachunks(
 @click.option("--raise_errors/--no_raise_errors", default=False)
 @click.option("-b", "--batch_size", nargs=1, type=int, default=1000, show_default=True)
 @click.option("--parallel/--no_parallel", default=True)
+@click.option(
+    "--overwrite/--no_overwrite",
+    default=True,
+    help="If True, delete existing DB records before insert. If False, skip records that already exist.",
+)
+@click.option(
+    "-t",
+    "--timespans_at_once",
+    nargs=1,
+    type=int,
+    default=None,
+    help="Number of timespans per batch. If not set, automatically estimated based on available RAM.",
+)
+@click.option(
+    "--ram_safety_factor",
+    nargs=1,
+    type=float,
+    default=0.5,
+    show_default=True,
+    help="Fraction of available RAM to use (0.0-1.0) for automatic estimation.",
+)
+@click.option(
+    "--restart_dask_every",
+    nargs=1,
+    type=int,
+    default=None,
+    help="Restart Dask client every N timespans for memory safety. Default: 10 in sub-timespan mode, disabled otherwise. Set to 0 to disable.",
+)
+@click.option(
+    "--verbose_ccf/--no_verbose_ccf",
+    default=False,
+    help="If True, log every individual CCF file write (original verbose). If False (default), only log batch progress.",
+)
+@click.option(
+    "--log_to_file/--no_log_to_file",
+    default=True,
+    help="If True (default), save full logs to a timestamped file in PROCESSED_DATA_DIR/logs/.",
+)
 @click.option("-v", "--verbose", count=True, callback=_setup_logging_verbosity)
 @click.option("--quiet", is_flag=True, callback=_setup_quiet)
 def run_crosscorrelations_cartesian(
@@ -849,11 +887,39 @@ def run_crosscorrelations_cartesian(
     raise_errors,
     batch_size,
     parallel,
+    overwrite,
+    timespans_at_once,
+    ram_safety_factor,
+    restart_dask_every,
+    verbose_ccf,
+    log_to_file,
     **kwargs,
 ):
     """Start processing of crosscorrelations_cartesian. Limited amount of pair selection arguments, use API directly if needed."""
 
     from noiz.api.crosscorrelations import perform_crosscorrelations_cartesian
+    from loguru import logger
+    import datetime
+
+    # Set up file logging if requested
+    log_file_path = None
+    if log_to_file:
+        processed_data_dir = os.environ.get("PROCESSED_DATA_DIR", "/processed-data-dir")
+        logs_dir = Path(processed_data_dir) / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_file_path = logs_dir / f"ccf_cartesian_{timestamp}.log"
+
+        # Add file handler to loguru - capture all levels (DEBUG and above)
+        logger.add(
+            str(log_file_path),
+            level="DEBUG",
+            format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}",
+            rotation=None,  # No rotation - single file per run
+            enqueue=True,  # Thread-safe
+        )
+        logger.info(f"Logging to file: {log_file_path}")
 
     perform_crosscorrelations_cartesian(
         crosscorrelation_cartesian_params_id=crosscorrelation_cartesian_params_id,
@@ -866,7 +932,15 @@ def run_crosscorrelations_cartesian(
         raise_errors=raise_errors,
         batch_size=batch_size,
         parallel=parallel,
+        overwrite=overwrite,
+        timespans_at_once=timespans_at_once,
+        ram_safety_factor=ram_safety_factor,
+        restart_dask_every_n_timespans=restart_dask_every,
+        verbose_ccf_logging=verbose_ccf,
     )
+
+    if log_file_path:
+        logger.info(f"Processing complete. Full logs saved to: {log_file_path}")
 
 
 @processing_group.command("run_crosscorrelations_cylindrical")
@@ -880,6 +954,16 @@ def run_crosscorrelations_cartesian(
 @click.option("--raise_errors/--no_raise_errors", default=False)
 @click.option("-b", "--batch_size", nargs=1, type=int, default=1000, show_default=True)
 @click.option("--parallel/--no_parallel", default=True)
+@click.option(
+    "--overwrite/--no_overwrite",
+    default=True,
+    help="If True, delete existing DB records before insert. If False, skip records that already exist.",
+)
+@click.option(
+    "--log_to_file/--no_log_to_file",
+    default=True,
+    help="If True (default), save full logs to a timestamped file in PROCESSED_DATA_DIR/logs/.",
+)
 @click.option("-v", "--verbose", count=True, callback=_setup_logging_verbosity)
 @click.option("--quiet", is_flag=True, callback=_setup_quiet)
 def run_crosscorrelations_cylindrical(
@@ -892,11 +976,35 @@ def run_crosscorrelations_cylindrical(
     raise_errors,
     batch_size,
     parallel,
+    overwrite,
+    log_to_file,
     **kwargs,
 ):
     """Start processing of crosscorrelations_cylindrical. Limited amount of pair selection arguments, use API directly if needed."""
 
     from noiz.api.crosscorrelations import perform_crosscorrelations_cylindrical
+    from loguru import logger
+    import datetime
+
+    # Set up file logging if requested
+    log_file_path = None
+    if log_to_file:
+        processed_data_dir = os.environ.get("PROCESSED_DATA_DIR", "/processed-data-dir")
+        logs_dir = Path(processed_data_dir) / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_file_path = logs_dir / f"ccf_cylindrical_{timestamp}.log"
+
+        # Add file handler to loguru - capture all levels (DEBUG and above)
+        logger.add(
+            str(log_file_path),
+            level="DEBUG",
+            format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}",
+            rotation=None,  # No rotation - single file per run
+            enqueue=True,  # Thread-safe
+        )
+        logger.info(f"Logging to file: {log_file_path}")
 
     perform_crosscorrelations_cylindrical(
         crosscorrelation_cylindrical_params_id=crosscorrelation_cylindrical_params_id,
@@ -908,27 +1016,67 @@ def run_crosscorrelations_cylindrical(
         raise_errors=raise_errors,
         batch_size=batch_size,
         parallel=parallel,
+        overwrite=overwrite,
     )
+
+    if log_file_path:
+        logger.info(f"Processing complete. Full logs saved to: {log_file_path}")
 
 
 @processing_group.command("run_qctwo")
 @with_appcontext
-@click.option("-c", "--qctwo_config_id", nargs=1, type=int, default=1, show_default=True)
+@click.option("-p", "--qctwo_config_id", nargs=1, type=int, default=1, show_default=True)
+@click.option(
+    "-b",
+    "--batch_size",
+    nargs=1,
+    type=int,
+    default=5000,
+    show_default=True,
+    help="Number of CCFs to process per Dask batch (for parallel mode).",
+)
+@click.option(
+    "--parallel/--no_parallel",
+    default=True,
+    show_default=True,
+    help="Use Dask for parallel processing (default) or sequential processing.",
+)
+@click.option(
+    "--ram_safety_factor",
+    nargs=1,
+    type=float,
+    default=0.5,
+    show_default=True,
+    help="Fraction of available RAM to use (0.0-1.0).",
+)
+@click.option(
+    "--max_ccfs_per_batch",
+    nargs=1,
+    type=int,
+    default=50000,
+    show_default=True,
+    help="Maximum CCFs to load from DB per batch regardless of RAM.",
+)
 @click.option("-v", "--verbose", count=True, callback=_setup_logging_verbosity)
 @click.option("--quiet", is_flag=True, callback=_setup_quiet)
-def run_qctwo(qctwo_config_id, **kwargs):
+def run_qctwo(qctwo_config_id, batch_size, parallel, ram_safety_factor, max_ccfs_per_batch, **kwargs):
     """Calculate QCTwo results"""
 
     from noiz.api.qc import process_qctwo
 
     process_qctwo(
         qctwo_config_id=qctwo_config_id,
+        batch_size=batch_size,
+        parallel=parallel,
+        ram_safety_factor=ram_safety_factor,
+        max_ccfs_per_batch=max_ccfs_per_batch,
     )
 
 
 @processing_group.command("run_stacking")
 @with_appcontext
 @click.option("-s", "--station_code", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option("-sr", "--station_code_to_reject", multiple=True, type=str, callback=_validate_zero_length_as_none)
 @click.option("-c", "--component_code_pair", multiple=True, type=str, callback=_validate_zero_length_as_none)
 @click.option("-sd", "--startdate", nargs=1, type=str, required=False, callback=_parse_as_date)
 @click.option("-ed", "--enddate", nargs=1, type=str, required=False, callback=_parse_as_date)
@@ -936,12 +1084,33 @@ def run_qctwo(qctwo_config_id, **kwargs):
 @click.option("-ia", "--include_autocorrelation", is_flag=True)
 @click.option("-ii", "--include_intracorrelation", is_flag=True)
 @click.option("--raise_errors/--no_raise_errors", default=False)
-@click.option("-b", "--batch_size", nargs=1, type=int, default=1000, show_default=True)
+@click.option(
+    "-b",
+    "--batch_size",
+    nargs=1,
+    type=int,
+    default=None,
+    show_default="auto (parallel) / 1000 (no_parallel)",
+    help=(
+        "Number of individual stack computations per batch. Each stack computation is for one "
+        "(stacking_timespan, componentpair) combination. If omitted, parallel mode uses automatic "
+        "batch sizing and no_parallel mode falls back to 1000."
+    ),
+)
+@click.option(
+    "--ram_safety_factor",
+    nargs=1,
+    type=float,
+    default=0.5,
+    show_default=True,
+    help="Fraction of available RAM to use when estimating a safe parallel worker count for stacking.",
+)
 @click.option("--parallel/--no_parallel", default=True)
 @click.option("-v", "--verbose", count=True, callback=_setup_logging_verbosity)
 @click.option("--quiet", is_flag=True, callback=_setup_quiet)
 def run_stacking(
     station_code,
+    station_code_to_reject,
     component_code_pair,
     startdate,
     enddate,
@@ -950,10 +1119,26 @@ def run_stacking(
     include_intracorrelation,
     raise_errors,
     batch_size,
+    ram_safety_factor,
     parallel,
     **kwargs,
 ):
-    """Start stacking of crosscorrelations_cartesian. Limited amount of pair selection arguments, use API directly if needed."""
+    """Start stacking of crosscorrelations_cartesian. Limited amount of pair selection arguments, use API directly if needed.
+
+    The stacking_schema TOML file can specify stacking_length = "full time" to stack all correlations
+    into a single window covering the entire time range with no overlap.
+
+    The batch_size parameter controls how many individual stack computations are processed per batch.
+    Each stack computation corresponds to one (stacking_timespan, componentpair) combination -
+    i.e., one CCF stack for one component pair within one time window. If omitted,
+    parallel mode uses automatic sizing while no_parallel mode uses 1000.
+
+    In parallel mode, the worker count is also estimated from available RAM and the
+    worst-case number of CCFs loaded by a single stack task.
+
+    After stacking completes, H5 files are automatically exported to an 'h5_outputs' folder
+    (at the same level as 'logs' in the results directory).
+    """
 
     from noiz.api.stacking import stack_crosscorrelation_cartesian
 
@@ -968,7 +1153,109 @@ def run_stacking(
         raise_errors=raise_errors,
         batch_size=batch_size,
         parallel=parallel,
+        ram_safety_factor=ram_safety_factor,
     )
+
+    # Export stacks to H5 files
+    from noiz.api.stacking import export_stacks_to_h5_files
+    from noiz.settings import PROCESSED_DATA_DIR
+
+    h5_output_dir = Path(PROCESSED_DATA_DIR) / "h5_outputs"
+    click.echo(f"Exporting stacked correlations to H5 files in {h5_output_dir}")
+
+    created_files = export_stacks_to_h5_files(
+        stacking_schema_id=stacking_schema_id,
+        station_code_to_reject=station_code_to_reject,
+        output_dir=h5_output_dir,
+        starttime=startdate,
+        endtime=enddate,
+    )
+
+    click.echo(f"Successfully exported {len(created_files)} H5 files to {h5_output_dir}")
+
+
+@processing_group.command("run_stacking_cylindrical")
+@with_appcontext
+@click.option("-s", "--station_code", multiple=True, type=str, callback=_validate_zero_length_as_none)
+@click.option(
+    "-c",
+    "--component_code_pair_cylindrical",
+    multiple=True,
+    type=str,
+    callback=_validate_zero_length_as_none,
+    help="Cylindrical component pair codes, e.g., RR, TT, ZR, RZ, TR, ZT",
+)
+@click.option("-sd", "--startdate", nargs=1, type=str, required=False, callback=_parse_as_date)
+@click.option("-ed", "--enddate", nargs=1, type=str, required=False, callback=_parse_as_date)
+@click.option("-p", "--stacking_schema_id", nargs=1, type=int, default=1, show_default=True)
+@click.option(
+    "-cp",
+    "--crosscorrelation_cylindrical_params_id",
+    nargs=1,
+    type=int,
+    default=None,
+    help="Optional: ID of crosscorrelation_cylindrical_params to filter CCFs.",
+)
+@click.option("--raise_errors/--no_raise_errors", default=False)
+@click.option(
+    "-b",
+    "--batch_size",
+    nargs=1,
+    type=int,
+    default=1000,
+    show_default=True,
+    help="Number of individual stack computations per batch.",
+)
+@click.option("--parallel/--no_parallel", default=True)
+@click.option("-v", "--verbose", count=True, callback=_setup_logging_verbosity)
+@click.option("--quiet", is_flag=True, callback=_setup_quiet)
+def run_stacking_cylindrical(
+    station_code,
+    component_code_pair_cylindrical,
+    startdate,
+    enddate,
+    stacking_schema_id,
+    crosscorrelation_cylindrical_params_id,
+    raise_errors,
+    batch_size,
+    parallel,
+    **kwargs,
+):
+    """Start stacking of crosscorrelations_cylindrical.
+
+    This command stacks cylindrical CCFs (RR, TT, ZR, RZ, TR, ZT components).
+    Unlike cartesian CCF stacking, cylindrical CCF stacking does not use QCTwo validation -
+    all cylindrical CCFs within a stacking timespan are stacked directly.
+
+    The stacking_schema TOML file can specify stacking_length = "full time" to stack all correlations
+    into a single window covering the entire time range with no overlap.
+
+    The batch_size parameter controls how many individual stack computations are processed per batch.
+    Each stack computation corresponds to one (stacking_timespan, componentpair_cylindrical) combination.
+
+    Example cylindrical component pairs:
+      - RR: Radial-Radial
+      - TT: Transverse-Transverse
+      - ZR: Z-Radial
+      - RZ: Radial-Z
+      - TR: Transverse-Radial
+      - ZT: Z-Transverse
+    """
+    from noiz.api.stacking import stack_crosscorrelation_cylindrical
+
+    stack_crosscorrelation_cylindrical(
+        stacking_schema_id=stacking_schema_id,
+        starttime=startdate,
+        endtime=enddate,
+        station_codes_a=station_code,
+        accepted_component_code_pairs_cylindrical=component_code_pair_cylindrical,
+        raise_errors=raise_errors,
+        batch_size=batch_size,
+        parallel=parallel,
+        crosscorrelation_cylindrical_params_id=crosscorrelation_cylindrical_params_id,
+    )
+
+    click.echo("Cylindrical CCF stacking complete!")
 
 
 @processing_group.command("run_event_detection")

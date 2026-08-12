@@ -127,3 +127,5 @@ env_system_tests
 system_test_processed_data_dir*/
 *.ipynb
 docs/content/autoapi
+
+uv.lock
