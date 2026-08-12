@@ -6,6 +6,7 @@ exclude = [
             "build",
             "dist",
             ".ipynb_checkpoints",
+            "src/notebook-data-viz-storengy-internal",
             "examples",
             "migrations",
             ".venv",

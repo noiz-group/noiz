@@ -2,8 +2,8 @@
 # Copyright © 2015-2019 EOST UNISTRA, Storengy SAS, Damian Kula
 # Copyright © 2019-2023 Contributors to the Noiz project.
 from pathlib import Path
+import warnings
 
-from numpy import deprecate_with_doc
 from sqlalchemy.dialects.postgresql import HSTORE, ARRAY, NUMRANGE
 from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -38,11 +38,11 @@ class Tsindex(db.Model):
     updated = db.Column("updated", db.TIMESTAMP(timezone=True), nullable=False)
     scanned = db.Column("scanned", db.TIMESTAMP(timezone=True), nullable=False)
 
-    @deprecate_with_doc(msg="This function is deprecated. use load_data instead.")
     def read_file(self) -> obspy.Stream:
         """
-        Deprecated. Use load_data
+        Deprecated. Use load_data instead.
         """
+        warnings.warn("read_file is deprecated, use load_data instead.", DeprecationWarning, stacklevel=2)
         return self.load_data()
 
     def load_data(self) -> obspy.Stream:

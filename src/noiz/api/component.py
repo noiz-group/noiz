@@ -10,7 +10,7 @@ from typing import List, Iterable, Optional, Collection, Union
 import datetime
 import pandas as pd
 import numpy as np
-from numpy import deprecate_with_doc
+import warnings
 from obspy import UTCDateTime
 
 from noiz.validation_helpers import validate_to_tuple, validate_timestamp_as_pydatetime
@@ -20,7 +20,6 @@ from noiz.processing.component import parse_inventory_for_single_component_db_en
 from noiz.globals import PROCESSED_DATA_DIR
 
 
-@deprecate_with_doc(msg="This function is deprecated. Use noiz.api.component.fetch_components instead.")
 def fetch_components_by_id(component_ids: Collection[int]) -> List[Component]:
     """
     DEPRECATED. Use noiz.api.component.fetch_components instead
@@ -32,6 +31,11 @@ def fetch_components_by_id(component_ids: Collection[int]) -> List[Component]:
     :return: List of all fetched components
     :rtype: List[Component]
     """
+    warnings.warn(
+        "This function is deprecated. Use noiz.api.component.fetch_components instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     logger.warning("DEPRACATION. Method depracted. Use noiz.api.component.fetch_components")
     return fetch_components(component_ids=component_ids)
 

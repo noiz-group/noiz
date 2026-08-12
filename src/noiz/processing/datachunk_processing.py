@@ -85,7 +85,7 @@ def whiten_trace(
 
     if quefrency:
         s_waterlevel_log = np.log(s_waterlevel)
-        min_waterlevel_log = np.min(s_waterlevel_log)
+        min_waterlevel_log: np.floating = np.min(s_waterlevel_log)
         s_waterlevel_log_shifted = s_waterlevel_log - min_waterlevel_log
 
         l_conv, smooth_vector = _convolution_kernel_def(
@@ -97,7 +97,7 @@ def whiten_trace(
             len(spectrum),
         )  # definition convolution filter
 
-        s_log_new = s_waterlevel_log_shifted.copy()  # convolution application
+        s_log_new: np.ndarray = s_waterlevel_log_shifted.copy()  # convolution application
         s_log_new_conv = (1 / np.sum(smooth_vector)) * np.convolve(
             s_waterlevel_log_shifted[1:], smooth_vector, mode="same"
         )
@@ -116,7 +116,7 @@ def whiten_trace(
         spectrum_fft_shift_tap = spectrum_fft_shift * taper_qfr  # application du taper
         spectrum_fft_tap = np.fft.ifftshift(spectrum_fft_shift_tap)
         smooth_s = np.fft.ifft(spectrum_fft_tap)
-        smooth_s_real = np.real(smooth_s)
+        smooth_s_real: np.ndarray = np.real(smooth_s)
         taper_to_td = _taper_to_timedomaine(len(smooth_s_real), filtering_low, filtering_high, f_niquist, l_conv)
         smooth_s_exp_conv = np.exp(s_log_new + min_waterlevel_log)
         psd_white = (spectrum / smooth_s_exp_conv) * taper_to_td
@@ -408,7 +408,7 @@ def _waterlevel_f(
     :rtype: np.ndarray
     """
 
-    s_waterlevel = spectrum.copy()
+    s_waterlevel: np.ndarray = spectrum.copy()
     s_waterlevel[np.abs(s_waterlevel) <= waterlevel_ratio_to_max * np.max(np.abs(s_waterlevel))] = (
         waterlevel_ratio_to_max * np.max(np.abs(s_waterlevel))
     )

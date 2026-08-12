@@ -7,7 +7,7 @@ from typing import Optional
 
 from noiz.database import db
 from noiz.exceptions import MissingDataFileException
-from noiz.models.stacking import ccf_ccfstack_association_table
+from noiz.models.stacking import ccf_ccfstack_association_table, ccf_ccfstack_cylindrical_association_table
 
 
 class CrosscorrelationCartesianFile(db.Model):
@@ -197,6 +197,12 @@ class CrosscorrelationCylindrical(db.Model):
         "CrosscorrelationCartesian",
         foreign_keys=[crosscorrelation_cartesian_4_id],
         lazy="joined",
+    )
+
+    stacks = db.relationship(
+        "CCFStackCylindrical",
+        secondary=ccf_ccfstack_cylindrical_association_table,
+        back_populates="ccfs",
     )
 
     def load_data_cylindrical(

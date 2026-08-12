@@ -113,6 +113,7 @@ def run_beamforming(
         component_ids=component_ids,
         skip_existing=skip_existing,
         batch_size=batch_size,
+        raise_errors=raise_errors,
     )
 
     if parallel:
@@ -121,6 +122,7 @@ def run_beamforming(
             inputs=calculation_inputs,
             calculation_task=calculate_beamforming_results_wrapper,  # type: ignore
             upserter_callable=_prepare_upsert_command_beamforming,
+            raise_errors=raise_errors,
             with_file=True,
             is_beamforming=True,
         )
@@ -146,6 +148,7 @@ def _prepare_inputs_for_beamforming_runner(
     component_ids: Optional[Union[Collection[int], int]] = None,
     skip_existing: bool = True,
     batch_size: int = 500,
+    raise_errors: bool = True,
 ) -> Generator[BeamformingRunnerInputs, None, None]:
     logger.debug(f"Fetching BeamformingParams with ids {beamforming_params_ids}")
     params = fetch_beamforming_params(ids=beamforming_params_ids)
@@ -244,6 +247,7 @@ def _prepare_inputs_for_beamforming_runner(
                 beamforming_params=used_params,
                 timespan=ts,
                 datachunks=tuple(passing_chunks),
+                raise_errors=raise_errors,
             )
 
 

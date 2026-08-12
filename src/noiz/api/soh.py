@@ -9,7 +9,6 @@ import pandas as pd
 import warnings
 from pathlib import Path
 
-from numpy import deprecate_with_doc
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload
 from typing import Optional, Collection, Generator, Union
@@ -20,7 +19,7 @@ import numpy as np
 from noiz.api.timespan import fetch_timespans_between_dates
 from noiz.api.component import fetch_components
 from noiz.api.helpers import extract_object_ids, _parse_query_as_dataframe
-from noiz.validation_helpers import validate_exactly_one_argument_provided
+from noiz.validation_helpers import validate_exactly_one_argument_provided, numpy_to_python
 from noiz.database import db
 from noiz.models.component import Component
 from noiz.models.timespan import Timespan
@@ -258,22 +257,25 @@ def __upsert_into_db_soh_instrument(
     for i, (timestamp, row) in enumerate(df.iterrows()):
         if i % (1 + int(command_count / 10)) == 0:
             logger.info(f"Prepared already {i}/{command_count} commands")
+        voltage = numpy_to_python(row["Supply voltage(V)"])
+        current = numpy_to_python(row["Total current(A)"])
+        temperature = numpy_to_python(row["Temperature(C)"])
         insert_command = (
             insert(SohInstrument)
             .values(
                 z_component_id=z_component_id,
                 datetime=timestamp,
-                voltage=row["Supply voltage(V)"],
-                current=row["Total current(A)"],
-                temperature=row["Temperature(C)"],
+                voltage=voltage,
+                current=current,
+                temperature=temperature,
                 device_id=comp.device_id,
             )
             .on_conflict_do_update(
                 constraint="unique_timestamp_per_station_in_sohinstrument",
                 set_={
-                    "voltage": row["Supply voltage(V)"],
-                    "current": row["Total current(A)"],
-                    "temperature": row["Temperature(C)"],
+                    "voltage": voltage,
+                    "current": current,
+                    "temperature": temperature,
                 },
             )
         )
@@ -353,20 +355,22 @@ def __upsert_into_db_soh_gps(
         if i % (1 + int(command_count / 10)) == 0:
             logger.info(f"Prepared already {i}/{command_count} commands")
             print(df)
+        time_error = numpy_to_python(row["Time error(ms)"])
+        time_uncertainty = numpy_to_python(row["Time uncertainty(ms)"])
         insert_command = (
             insert(SohGps)
             .values(
                 z_component_id=z_component_id,
                 datetime=timestamp,
-                time_error=row["Time error(ms)"],
-                time_uncertainty=row["Time uncertainty(ms)"],
+                time_error=time_error,
+                time_uncertainty=time_uncertainty,
                 device_id=comp.device_id,
             )
             .on_conflict_do_update(
                 constraint="unique_timestamp_per_station_in_sohgps",
                 set_={
-                    "time_error": row["Time error(ms)"],
-                    "time_uncertainty": row["Time uncertainty(ms)"],
+                    "time_error": time_error,
+                    "time_uncertainty": time_uncertainty,
                 },
             )
         )
@@ -580,12 +584,12 @@ def __insert_averaged_gps_soh_into_db(avg_results: pd.DataFrame) -> None:
     return
 
 
-@deprecate_with_doc(msg="This function is deprecated. use official API methods.")
 def parse_soh_insert_into_db(station, station_type, saint_illiers_fulldir, single_day, execution_date):
     """
     DEPRECATED. Do not use.
     It's a wrapped just to preserve compatibility with current code.
     """
+    warnings.warn("This function is deprecated. Use official API methods.", DeprecationWarning, stacklevel=2)
 
     soh_path = (
         Path(saint_illiers_fulldir).joinpath("STI-soh").joinpath(station).joinpath(execution_date.strftime("%Y/%m"))

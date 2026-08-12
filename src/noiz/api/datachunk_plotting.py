@@ -112,9 +112,9 @@ def __plot_availability(
     keys.sort(reverse=True)
 
     for key in keys:
-        ax.scatter(midtimes[key], [key] * len(midtimes[key]), marker="x", linewidth=0.1, alpha=1)
+        ax.scatter(midtimes[key], [key] * len(midtimes[key]), marker="x", linewidth=0.1, alpha=1)  # type: ignore[arg-type]
 
-    ax.set_xlim(starttime - timedelta(days=5), endtime + timedelta(days=5))
+    ax.set_xlim(starttime - timedelta(days=5), endtime + timedelta(days=5))  # type: ignore[arg-type]
     fig.autofmt_xdate()
 
     height = len(midtimes.keys()) * 0.75

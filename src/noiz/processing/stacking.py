@@ -7,7 +7,7 @@ from typing import Generator, Collection
 import numpy.typing as npt
 import pandas as pd
 
-from noiz.models import CrosscorrelationCartesian, StackingSchema, StackingTimespan
+from noiz.models import CrosscorrelationCartesian, CrosscorrelationCylindrical, StackingSchema, StackingTimespan
 from noiz.processing.timespan import generate_starttimes_endtimes
 
 
@@ -47,6 +47,21 @@ def do_linear_stack_of_crosscorrelations_cartesian(ccfs: Collection[Crosscorrela
     :param ccfs: CrosscorrelationCartesians to stack
     :type ccfs: Collection[CrosscorrelationCartesian]
     :return: Array with stacked crosscorrelation_cartesian
+    :rtype: np.array
+    """
+    mean_ccf = np.array([x.ccf for x in ccfs]).mean(axis=0)
+    return mean_ccf
+
+
+def do_linear_stack_of_crosscorrelations_cylindrical(ccfs: Collection[CrosscorrelationCylindrical]) -> npt.ArrayLike:
+    """
+    Takes a collection of :py:class:`~noiz.models.crosscorrelation.CrosscorrelationCylindrical` objects and performs
+    a linear stack on all of them.
+    Returns raw array with the stack itself.
+
+    :param ccfs: CrosscorrelationCylindricals to stack
+    :type ccfs: Collection[CrosscorrelationCylindrical]
+    :return: Array with stacked crosscorrelation_cylindrical
     :rtype: np.array
     """
     mean_ccf = np.array([x.ccf for x in ccfs]).mean(axis=0)

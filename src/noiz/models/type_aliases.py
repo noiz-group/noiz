@@ -7,6 +7,7 @@ from typing import Union, TypedDict, Collection, Callable, Optional, List, Tuple
 
 from noiz.models import (
     CCFStack,
+    CCFStackCylindrical,
     DatachunkStats,
     ProcessedDatachunk,
     QCOneResults,
@@ -14,6 +15,7 @@ from noiz.models import (
     Datachunk,
     DatachunkFile,
     QCOneConfig,
+    QCTwoConfig,
     AveragedSohGps,
     ComponentPairCartesian,
     StackingSchema,
@@ -60,6 +62,7 @@ BulkAddableObjects = Union[
     BeamformingResult,
     PPSDResult,
     CCFStack,
+    CCFStackCylindrical,
     DatachunkStats,
     ProcessedDatachunk,
     QCOneResults,
@@ -122,10 +125,21 @@ class QCOneRunnerInputs(TypedDict):
     avg_soh_gps: Optional[AveragedSohGps]
 
 
+class QCTwoRunnerInputs(TypedDict):
+    crosscorrelation_cartesian: CrosscorrelationCartesian
+    qctwo_config: QCTwoConfig
+
+
+class QCTwoParallelInputs(TypedDict):
+    qctwo_config_id: int
+    crosscorrelation_cartesian_ids: Tuple[int, ...]
+
+
 class BeamformingRunnerInputs(TypedDict):
     beamforming_params: Collection[BeamformingParams]
     timespan: Timespan
     datachunks: Tuple[Datachunk, ...]
+    raise_errors: bool
 
 
 class PPSDRunnerInputs(TypedDict):
@@ -140,6 +154,9 @@ class CrosscorrelationCartesianRunnerInputs(TypedDict):
     crosscorrelation_cartesian_params: CrosscorrelationCartesianParams
     grouped_processed_chunks: Dict[int, ProcessedDatachunk]
     component_pairs_cartesian: Tuple[ComponentPairCartesian, ...]
+    verbose_ccf_logging: bool
+    batch_index: int
+    total_batches: int
 
 
 class CrosscorrelationCylindricalRunnerInputs(TypedDict):
@@ -152,6 +169,22 @@ class CrosscorrelationCylindricalRunnerInputs(TypedDict):
 class StackingInputs(TypedDict):
     qctwo_ccfs_container: List[Tuple[QCTwoResults, CrosscorrelationCartesian]]
     componentpair_cartesian: ComponentPairCartesian
+    stacking_schema: StackingSchema
+    stacking_timespan: StackingTimespan
+
+
+class StackingParallelInputs(TypedDict):
+    qctwo_config_id: int
+    componentpair_cartesian_id: int
+    stacking_schema_id: int
+    stacking_timespan_id: int
+
+
+class StackingCylindricalInputs(TypedDict):
+    """TypedDict for cylindrical CCF stacking inputs."""
+
+    ccfs_cylindrical: List[CrosscorrelationCylindrical]
+    componentpair_cylindrical: ComponentPairCylindrical
     stacking_schema: StackingSchema
     stacking_timespan: StackingTimespan
 
@@ -178,10 +211,14 @@ InputsForMassCalculations = Union[
     BeamformingRunnerInputs,
     PPSDRunnerInputs,
     QCOneRunnerInputs,
+    QCTwoRunnerInputs,
+    QCTwoParallelInputs,
     ProcessDatachunksInputs,
     CrosscorrelationCartesianRunnerInputs,
     CrosscorrelationCylindricalRunnerInputs,
     StackingInputs,
+    StackingParallelInputs,
+    StackingCylindricalInputs,
     EventDetectionRunnerInputs,
     EventConfirmationRunnerInputs,
 ]

@@ -6,6 +6,7 @@ from typing import Optional
 
 from noiz.exceptions import MissingDataFileException
 from noiz.database import db
+from noiz.processing.miniseed_helpers import _read_single_miniseed
 
 from pathlib import Path
 import obspy
@@ -82,9 +83,8 @@ class Datachunk(db.Model):
             if datachunk_file.id != self.datachunk_file_id:
                 raise ValueError("You provided wrong datachunk file! Expected id: {self.datachunk_file_id}")
 
-        if filepath.exists:
-            # FIXME when obspy will be released, str(Path) wont be necesary
-            return obspy.read(str(filepath), "MSEED")
+        if filepath.exists():
+            return _read_single_miniseed(filename=filepath, format="MSEED")
         else:
             raise MissingDataFileException(f"Data file for chunk {self} is missing")
 
@@ -155,9 +155,8 @@ class ProcessedDatachunk(db.Model):
 
     def load_data(self):
         filepath = Path(self.file.filepath)
-        if filepath.exists:
-            # FIXME when obspy will be released, str(Path) wont be necesary
-            return obspy.read(str(filepath), "MSEED")
+        if filepath.exists():
+            return _read_single_miniseed(filename=filepath, format="MSEED")
         else:
             raise MissingDataFileException(f"Data file for chunk {self} is missing")
 

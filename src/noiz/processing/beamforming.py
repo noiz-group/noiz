@@ -197,7 +197,7 @@ def select_top_n_sparse_slowness(g, convolved_basis, slowness_values, slowness_t
             # Update the best (minimum) misfit for this slowness
             slowness_misfits[i] = min(slowness_misfits[i], misfit)
 
-    best_misfit = np.min(slowness_misfits)
+    best_misfit: np.floating = np.min(slowness_misfits)
 
     # Get the indices of the top n_sparse lowest misfits
     i_sort_slowness_indices = np.argsort(slowness_misfits)
@@ -232,14 +232,14 @@ def select_sparse_slowness(
     alpha_reg=1e0,
     rel_rms_thresh_admissible_slowness=2,
     rel_rms_stop_crit_increase_sparsity=0.25,
-    verbose=True,
+    verbose=False,
     optimization_method="nnls",
 ):
     """Select an optimal sparse set of slowness values using NNLS, limited by RMS misfit threshold."""
     min_g = np.min(g)
     g_demin = g - min_g
     g_flat = g_demin.flatten()
-    selected_indices: np.ndarray[Any, np.dtype[np.int_]] = np.empty(0, dtype=np.int_)
+    selected_indices: np.ndarray = np.empty(0, dtype=np.int_)
     selected_slowness = []
 
     # Initialize number of slowness values to consider
@@ -352,8 +352,9 @@ def select_sparse_slowness(
         df_stage = df_stage.loc[df_stage.groupby("slowness")["rms_error"].idxmin()]
         df_out = pd.concat([df_out, df_stage])
 
-        print(selected_slowness_print_stage)
-        print("RMS new " + str(rms_current))
+        if verbose:
+            print(selected_slowness_print_stage)
+            print("RMS new " + str(rms_current))
 
         if (rms_previous_stage - rms_current) / rms_previous_stage < rel_rms_stop_crit_increase_sparsity:
             if verbose:
@@ -378,6 +379,9 @@ def select_sparse_slowness(
     if verbose:
         print(selected_slowness_print)
         print("RMS = " + str(rms_previous_stage))
+    else:
+        # Condensed output: single line with final RMS and dominant slowness
+        print(f"Sparse deconv: slowness={selected_slowness_print}, RMS={rms_previous_stage:.4f}")
 
     return selected_indices_out, sparse_coeffs_out, df_out
 
@@ -551,6 +555,7 @@ def calculate_beamforming_results_wrapper(inputs: BeamformingRunnerInputs) -> Tu
             beamforming_params_collection=inputs["beamforming_params"],
             timespan=inputs["timespan"],
             datachunks=inputs["datachunks"],
+            raise_errors=inputs["raise_errors"],
         ),
     )
 
@@ -559,6 +564,7 @@ def calculate_beamforming_results(
     beamforming_params_collection: Collection[BeamformingParams],
     timespan: Timespan,
     datachunks: Tuple[Datachunk, ...],
+    raise_errors: bool = True,
 ) -> List[BeamformingResult]:
     """filldocs"""
 
@@ -740,44 +746,52 @@ def calculate_beamforming_results(
 
         # except ValueError as e:
         except ValueError as e:
-            raise ObspyError(
+            beamforming_error = ObspyError(
                 f"Ecountered error while running beamforming routine. "
                 f"Error happenned for timespan: {timespan}, beamform_params: {beamforming_params} "
                 f"Error was: {e}"
-            ) from e
+            )
+            if raise_errors:
+                raise beamforming_error from e
+            logger.error(f"{beamforming_error}. Skipping this beamforming params/timespan combination.")
+            continue
 
         if beamforming_params.extract_peaks_average_beamformer_abspower:
-            res.average_abspower_peaks = bk.get_average_abspower_peaks(
+            for peak in bk.get_average_abspower_peaks(
                 neighborhood_size=beamforming_params.neighborhood_size,
                 maxima_threshold=beamforming_params.maxima_threshold,
                 best_point_count=beamforming_params.best_point_count,
                 beam_portion_threshold=beamforming_params.beam_portion_threshold,
                 bool_use_deconv=beamforming_params.perform_deconvolution_average,
-            )
+            ):
+                res.average_abspower_peaks.append(peak)
         if beamforming_params.extract_peaks_average_beamformer_relpower:
-            res.average_relpower_peaks = bk.get_average_relpower_peaks(
+            for peak in bk.get_average_relpower_peaks(
                 neighborhood_size=beamforming_params.neighborhood_size,
                 maxima_threshold=beamforming_params.maxima_threshold,
                 best_point_count=beamforming_params.best_point_count,
                 beam_portion_threshold=beamforming_params.beam_portion_threshold,
                 bool_use_deconv=beamforming_params.perform_deconvolution_average,
-            )
+            ):
+                res.average_relpower_peaks.append(peak)
         if beamforming_params.extract_peaks_all_beamformers_abspower:
-            res.all_abspower_peaks = bk.get_all_abspower_peaks(
+            for peak in bk.get_all_abspower_peaks(
                 neighborhood_size=beamforming_params.neighborhood_size,
                 maxima_threshold=beamforming_params.maxima_threshold,
                 best_point_count=beamforming_params.best_point_count,
                 beam_portion_threshold=beamforming_params.beam_portion_threshold,
                 bool_use_deconv=beamforming_params.perform_deconvolution_all,
-            )
+            ):
+                res.all_abspower_peaks.append(peak)
         if beamforming_params.extract_peaks_all_beamformers_relpower:
-            res.all_relpower_peaks = bk.get_all_relpower_peaks(
+            for peak in bk.get_all_relpower_peaks(
                 neighborhood_size=beamforming_params.neighborhood_size,
                 maxima_threshold=beamforming_params.maxima_threshold,
                 best_point_count=beamforming_params.best_point_count,
                 beam_portion_threshold=beamforming_params.beam_portion_threshold,
                 bool_use_deconv=beamforming_params.perform_deconvolution_all,
-            )
+            ):
+                res.all_relpower_peaks.append(peak)
 
         beamforming_file = bk.save_beamforming_file(params=beamforming_params, ts=timespan)
         if beamforming_file is not None:
@@ -1208,12 +1222,12 @@ class BeamformerKeeper:
         for _i, row in df.iterrows():
             res.append(
                 BeamformingPeakAverageAbspower(
-                    slowness=row.slowness,
-                    slowness_x=row.x,
-                    slowness_y=row.y,
-                    amplitude=row.avg_amplitude,
-                    azimuth=row.azimuth,
-                    backazimuth=row.backazimuth,
+                    slowness=float(row.slowness),
+                    slowness_x=float(row.x),
+                    slowness_y=float(row.y),
+                    amplitude=float(row.avg_amplitude),
+                    azimuth=float(row.azimuth),
+                    backazimuth=float(row.backazimuth),
                 )
             )
         return res
@@ -1237,12 +1251,12 @@ class BeamformerKeeper:
         for _i, row in df.iterrows():
             res.append(
                 BeamformingPeakAverageRelpower(
-                    slowness=row.slowness,
-                    slowness_x=row.x,
-                    slowness_y=row.y,
-                    amplitude=row.avg_amplitude,
-                    azimuth=row.azimuth,
-                    backazimuth=row.backazimuth,
+                    slowness=float(row.slowness),
+                    slowness_x=float(row.x),
+                    slowness_y=float(row.y),
+                    amplitude=float(row.avg_amplitude),
+                    azimuth=float(row.azimuth),
+                    backazimuth=float(row.backazimuth),
                 )
             )
         return res
@@ -1266,12 +1280,12 @@ class BeamformerKeeper:
         for _i, row in df.iterrows():
             res.append(
                 BeamformingPeakAllAbspower(
-                    slowness=row.slowness,
-                    slowness_x=row.x,
-                    slowness_y=row.y,
-                    amplitude=row.avg_amplitude,
-                    azimuth=row.azimuth,
-                    backazimuth=row.backazimuth,
+                    slowness=float(row.slowness),
+                    slowness_x=float(row.x),
+                    slowness_y=float(row.y),
+                    amplitude=float(row.avg_amplitude),
+                    azimuth=float(row.azimuth),
+                    backazimuth=float(row.backazimuth),
                 )
             )
         return res
@@ -1295,12 +1309,12 @@ class BeamformerKeeper:
         for _i, row in df.iterrows():
             res.append(
                 BeamformingPeakAllRelpower(
-                    slowness=row.slowness,
-                    slowness_x=row.x,
-                    slowness_y=row.y,
-                    amplitude=row.avg_amplitude,
-                    azimuth=row.azimuth,
-                    backazimuth=row.backazimuth,
+                    slowness=float(row.slowness),
+                    slowness_x=float(row.x),
+                    slowness_y=float(row.y),
+                    amplitude=float(row.avg_amplitude),
+                    azimuth=float(row.azimuth),
+                    backazimuth=float(row.backazimuth),
                 )
             )
         return res

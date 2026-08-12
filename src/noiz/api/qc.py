@@ -3,21 +3,28 @@
 # Copyright © 2019-2023 Contributors to the Noiz project.
 
 import datetime
+from dataclasses import dataclass
 from loguru import logger
 from sqlalchemy import and_
 from sqlalchemy.dialects.postgresql import insert, Insert
-from sqlalchemy.orm import Query
-from typing import List, Collection, Union, Optional, Generator
+from sqlalchemy.orm import Query, subqueryload
+from typing import List, Collection, Union, Optional, Generator, Callable, Tuple, Dict
 
 
 from noiz.api.component import fetch_components
-from noiz.api.crosscorrelations import fetch_crosscorrelation_cartesian
+from noiz.api.crosscorrelations import (
+    fetch_crosscorrelation_cartesian,
+    count_crosscorrelation_cartesian,
+    _query_crosscorrelation_cartesian,
+)
 from noiz.api.datachunk import _determine_filters_and_opts_for_datachunk
 from noiz.api.helpers import (
     extract_object_ids,
     bulk_add_or_upsert_objects,
     _run_calculate_and_upsert_on_dask,
     _run_calculate_and_upsert_sequentially,
+    create_process_dask_client,
+    recreate_process_dask_client,
 )
 from noiz.api.processing_config import fetch_datachunkparams_by_id
 from noiz.api.timespan import fetch_timespans_between_dates
@@ -36,9 +43,116 @@ from noiz.models import (
     CrosscorrelationCartesian,
     DatachunkParams,
 )
-from noiz.models.type_aliases import QCOneRunnerInputs
-from noiz.processing.qc import calculate_qctwo_results, calculate_qcone_results_wrapper
+from noiz.models.type_aliases import QCOneRunnerInputs, QCTwoRunnerInputs, QCTwoParallelInputs
+from noiz.processing.qc import (
+    calculate_qctwo_results,
+    calculate_qcone_results_wrapper,
+    calculate_qctwo_results_wrapper,
+)
 from noiz.validation_helpers import validate_to_tuple
+
+
+_QCTWO_WORKER_APP = None
+
+
+@dataclass
+class QCTwoMemoryEstimation:
+    """Result of memory estimation for QCTwo processing."""
+
+    ccfs_per_batch: int
+    total_ccfs: int
+    mem_per_ccf: float  # Memory per CCF object in bytes
+    usable_ram: float
+    num_batches: int
+
+
+def _estimate_ccfs_per_batch(
+    total_ccfs: int,
+    load_timespan: bool = True,
+    ram_safety_factor: float = 0.5,
+    max_ccfs_per_batch: int = 50000,
+) -> QCTwoMemoryEstimation:
+    """
+    Estimate optimal number of CCFs to load at once based on available RAM.
+
+    Memory estimation factors:
+    - CrosscorrelationCartesian SQLAlchemy object: ~2KB base overhead
+    - Timespan relationship (if loaded): ~500 bytes additional
+    - QCTwoResults output object: ~1KB per CCF
+    - Python list overhead: ~8 bytes per element
+
+    :param total_ccfs: Total number of CCFs to process
+    :param load_timespan: Whether timespan relationship is being loaded
+    :param ram_safety_factor: Fraction of available RAM to use (0.0-1.0), default 0.5 (50%)
+    :param max_ccfs_per_batch: Maximum CCFs per batch regardless of RAM
+    :return: QCTwoMemoryEstimation with recommended batch size
+    """
+    import psutil
+
+    # Get available system RAM
+    mem = psutil.virtual_memory()
+    available_ram_bytes = mem.available
+    total_ram_bytes = mem.total
+
+    logger.info(
+        f"QCTwo RAM estimation: Total={total_ram_bytes / 1024**3:.2f}GB, "
+        f"Available={available_ram_bytes / 1024**3:.2f}GB"
+    )
+
+    # Memory per CCF object estimation (in bytes)
+    # Base SQLAlchemy CrosscorrelationCartesian object
+    ccf_object_overhead = 2048  # ~2KB per SQLAlchemy object with relationships
+
+    # Timespan relationship if loaded
+    timespan_overhead = 512 if load_timespan else 0  # ~500 bytes
+
+    # QCTwoResults output object (we accumulate these in a list)
+    qctwo_result_overhead = 1024  # ~1KB per result object
+
+    # Python list and reference overhead
+    list_overhead = 64  # ~64 bytes per list element (reference + overhead)
+
+    # Total memory per CCF (input + output)
+    mem_per_ccf = ccf_object_overhead + timespan_overhead + qctwo_result_overhead + list_overhead
+
+    # Add base Python/process overhead (~300MB)
+    base_overhead = 300 * 1024**2
+
+    # Calculate usable RAM
+    usable_ram = (available_ram_bytes - base_overhead) * ram_safety_factor
+
+    if usable_ram <= 0:
+        logger.warning(f"Very low available RAM ({available_ram_bytes / 1024**3:.2f}GB).")
+        usable_ram = 100 * 1024**2  # Minimum 100MB
+
+    # Calculate optimal CCFs per batch
+    optimal_ccfs_raw = usable_ram / mem_per_ccf
+    optimal_ccfs = int(optimal_ccfs_raw)
+    optimal_ccfs = max(100, min(optimal_ccfs, max_ccfs_per_batch, total_ccfs))
+
+    # Calculate number of batches needed
+    num_batches = (total_ccfs + optimal_ccfs - 1) // optimal_ccfs  # Ceiling division
+
+    logger.info(
+        f"QCTwo RAM estimation breakdown:\n"
+        f"  - Total CCFs to process: {total_ccfs:,}\n"
+        f"  - Memory per CCF: {mem_per_ccf / 1024:.2f}KB\n"
+        f"    - CCF object: {ccf_object_overhead / 1024:.2f}KB\n"
+        f"    - Timespan overhead: {timespan_overhead / 1024:.2f}KB\n"
+        f"    - QCTwoResult object: {qctwo_result_overhead / 1024:.2f}KB\n"
+        f"    - List overhead: {list_overhead} bytes\n"
+        f"  - Usable RAM: {usable_ram / 1024**3:.2f}GB (safety factor: {ram_safety_factor})\n"
+        f"  - Recommended CCFs per batch: {optimal_ccfs:,}\n"
+        f"  - Number of batches: {num_batches}"
+    )
+
+    return QCTwoMemoryEstimation(
+        ccfs_per_batch=optimal_ccfs,
+        total_ccfs=total_ccfs,
+        mem_per_ccf=mem_per_ccf,
+        usable_ram=usable_ram,
+        num_batches=num_batches,
+    )
 
 
 def fetch_qcone_config(ids: Union[int, Collection[int]]) -> List[QCOneConfig]:
@@ -201,7 +315,7 @@ def fetch_qctwo_config_single(id: int) -> QCTwoConfig:
     )
 
     if fetched is None:
-        raise EmptyResultException(f"There was no QCOneConfig with if={id} in the database.")
+        raise EmptyResultException(f"There was no QC Config with id={id} in the database.")
 
     return fetched
 
@@ -617,34 +731,402 @@ def _prepare_upsert_command_qcone(results: QCOneResults) -> Insert:
 
 def process_qctwo(
     qctwo_config_id: int,
+    batch_size: int = 5000,
+    parallel: bool = True,
+    ram_safety_factor: float = 0.5,
+    max_ccfs_per_batch: int = 50000,
 ):
+    """
+    Process QCTwo for all crosscorrelation cartesian results associated with a QCTwoConfig.
+
+    This function loads CCFs in batches to avoid excessive RAM consumption.
+    The batch size is automatically determined based on available RAM.
+    Supports both parallel (Dask) and sequential processing modes.
+
+    :param qctwo_config_id: ID of QCTwoConfig from the database
+    :param batch_size: Number of CCFs to process per Dask batch (for parallel mode)
+    :param parallel: If True (default), use Dask for parallel processing; if False, process sequentially
+    :param ram_safety_factor: Fraction of available RAM to use (0.0-1.0), default 0.5 (50%)
+    :param max_ccfs_per_batch: Maximum CCFs to load per batch regardless of RAM (for sequential mode)
+    """
+    import more_itertools
+
     try:
         qctwo_config: QCTwoConfig = fetch_qctwo_config_single(id=qctwo_config_id)
     except EmptyResultException as e:
         logger.error(e)
         raise e
 
-    ccfs = fetch_crosscorrelation_cartesian(
+    # Count total CCFs first (lightweight query)
+    total_ccfs = count_crosscorrelation_cartesian(
+        crosscorrelation_cartesian_params_id=qctwo_config.crosscorrelation_cartesian_params_id,
+    )
+
+    if total_ccfs == 0:
+        logger.warning("No crosscorrelation cartesian results found for the given config. Nothing to process.")
+        return
+
+    logger.info(f"Found {total_ccfs:,} CCFs to process for QCTwo.")
+
+    if parallel:
+        logger.info("Processing QCTwo in parallel mode using Dask.")
+        _run_qctwo_on_dask(
+            qctwo_config_id=qctwo_config.id,
+            batch_size=batch_size,
+            inputs=_generate_inputs_for_qctwo_runner_parallel(
+                qctwo_config=qctwo_config,
+                total_ccfs=total_ccfs,
+                ram_safety_factor=ram_safety_factor,
+                max_ccfs_per_batch=max_ccfs_per_batch,
+            ),
+            upserter_callable=_prepare_upsert_command_qctwo,
+        )
+    else:
+        logger.info("Processing QCTwo in sequential mode.")
+        _run_qctwo_sequentially(
+            upsert_batch_size=max_ccfs_per_batch,
+            inputs=_generate_inputs_for_qctwo_runner(
+                qctwo_config=qctwo_config,
+                total_ccfs=total_ccfs,
+                ram_safety_factor=ram_safety_factor,
+                max_ccfs_per_batch=max_ccfs_per_batch,
+            ),
+            upserter_callable=_prepare_upsert_command_qctwo,
+        )
+
+    logger.info("QCTwo processing completed.")
+    return
+
+
+def _run_qctwo_sequentially(
+    inputs: Generator[QCTwoRunnerInputs, None, None],
+    upserter_callable: Callable[[QCTwoResults], Insert],
+    upsert_batch_size: int = 50000,
+):
+    """
+    Run QCTwo processing sequentially with efficient batch upserts.
+
+    This function processes items from the generator and upserts results in batches.
+    Since the generator already handles memory-efficient loading from DB, we simply
+    accumulate results and upsert every upsert_batch_size items.
+
+    :param inputs: Generator of QCTwoRunnerInputs
+    :param upserter_callable: Function to prepare upsert command
+    :param upsert_batch_size: Number of results to accumulate before upserting
+    """
+    results: List[QCTwoResults] = []
+    total_processed = 0
+    batch_num = 0
+
+    for inp in inputs:
+        res = calculate_qctwo_results_wrapper(inp)
+        if res is not None:
+            results.extend(res)
+
+        # Upsert when we've accumulated enough results
+        if len(results) >= upsert_batch_size:
+            logger.info(f"Batch {batch_num}: Upserting {len(results):,} results...")
+            bulk_add_or_upsert_objects(
+                objects_to_add=results,
+                upserter_callable=upserter_callable,
+                bulk_insert=True,
+            )
+            total_processed += len(results)
+            logger.info(f"Batch {batch_num}: Upsert completed. Total processed: {total_processed:,}")
+            results = []
+            batch_num += 1
+
+    # Upsert any remaining results
+    if results:
+        logger.info(f"Final batch {batch_num}: Upserting {len(results):,} remaining results...")
+        bulk_add_or_upsert_objects(
+            objects_to_add=results,
+            upserter_callable=upserter_callable,
+            bulk_insert=True,
+        )
+        total_processed += len(results)
+        logger.info(f"Final batch {batch_num}: Upsert completed.")
+
+    logger.info(f"All processing is done. Total processed: {total_processed:,}")
+    return
+
+
+def _run_qctwo_on_dask(
+    inputs: Generator[Tuple[int, ...], None, None],
+    upserter_callable: Callable[[QCTwoResults], Insert],
+    qctwo_config_id: int,
+    batch_size: int = 5000,
+):
+    """
+    Run QCTwo processing on Dask with efficient batch upserts.
+
+    Unlike the generic _run_calculate_and_upsert_on_dask, this function:
+    - Waits for ALL results in a batch before upserting (more efficient for lightweight calculations)
+    - Performs a single bulk upsert per batch instead of many small ones
+
+    :param inputs: Generator of QCTwoRunnerInputs
+    :param upserter_callable: Function to prepare upsert command
+    :param batch_size: Number of inputs per batch
+    """
+    import more_itertools
+    from dask.distributed import wait
+
+    client, cluster, n_workers = create_process_dask_client()
+    logger.info(f"Dask client started. Dashboard: {client.dashboard_link}")
+
+    total_processed = 0
+    batch_num = 0
+
+    for batch_num, ccf_id_batch in enumerate(inputs):
+        if not ccf_id_batch:
+            continue
+
+        scheduler_worker_count = len(client.scheduler_info().get("workers", {}))
+        effective_worker_count = max(1, scheduler_worker_count, len(getattr(cluster, "workers", {})), n_workers)
+        requested_task_batch_size = max(1, batch_size)
+        worker_target_chunk_size = max(1, len(ccf_id_batch) // effective_worker_count)
+        per_task_chunk_size = max(requested_task_batch_size, worker_target_chunk_size)
+        chunked_inputs = _prepare_qctwo_parallel_task_inputs(
+            ccf_id_batch=ccf_id_batch,
+            qctwo_config_id=qctwo_config_id,
+            per_task_chunk_size=per_task_chunk_size,
+        )
+
+        logger.info(
+            f"Batch {batch_num}: submitting {len(ccf_id_batch):,} QCTwo items as {len(chunked_inputs)} Dask tasks "
+            f"(~{per_task_chunk_size} CCFs per task, effective_workers={effective_worker_count})."
+        )
+
+        futures = [
+            client.submit(_calculate_qctwo_results_batch_by_id_wrapper, inp_chunk) for inp_chunk in chunked_inputs
+        ]
+
+        wait(futures)
+
+        finished_futures = [future for future in futures if future.status == "finished"]
+        non_finished_futures = [future for future in futures if future.status != "finished"]
+
+        if non_finished_futures:
+            statuses = [future.status for future in non_finished_futures]
+            for future in non_finished_futures:
+                try:
+                    logger.error(f"QCTwo task {future.key} ended with status {future.status}: {future.exception()}")
+                except Exception as exception_error:
+                    logger.error(
+                        f"QCTwo task {future.key} ended with status {future.status} and exception could not be read: {exception_error}"
+                    )
+            raise RuntimeError(
+                f"Dask returned cancelled or failed QCTwo tasks. Aborting to avoid partial database writes. Statuses: {statuses}"
+            )
+
+        results_nested = client.gather(finished_futures)
+
+        results = []
+        for res in results_nested:
+            if res is not None:
+                results.extend(res)
+
+        logger.info(f"Batch {batch_num}: Upserting {len(results):,} results...")
+
+        # Single bulk upsert for the entire batch
+        if results:
+            bulk_add_or_upsert_objects(
+                objects_to_add=results,
+                upserter_callable=upserter_callable,
+                bulk_insert=True,
+            )
+
+        total_processed += len(results)
+        logger.info(f"Batch {batch_num}: Upsert completed. Total processed: {total_processed:,}")
+
+    client.close()
+    cluster.close()
+    logger.info(f"All processing is done. Total processed: {total_processed:,}")
+    return
+
+
+def _calculate_qctwo_results_batch_wrapper(
+    inputs_batch: Tuple[QCTwoRunnerInputs, ...],
+) -> Tuple[QCTwoResults, ...]:
+    results: List[QCTwoResults] = []
+    for inputs in inputs_batch:
+        results.extend(calculate_qctwo_results_wrapper(inputs))
+    return tuple(results)
+
+
+def _get_qctwo_worker_app():
+    global _QCTWO_WORKER_APP
+    if _QCTWO_WORKER_APP is None:
+        from noiz.app import create_app
+
+        _QCTWO_WORKER_APP = create_app()
+    return _QCTWO_WORKER_APP
+
+
+def _fetch_crosscorrelation_cartesian_for_qctwo_ids(
+    crosscorrelation_cartesian_ids: Collection[int],
+) -> List[CrosscorrelationCartesian]:
+    return (
+        db.session.query(CrosscorrelationCartesian)
+        .filter(CrosscorrelationCartesian.id.in_(crosscorrelation_cartesian_ids))
+        .options(subqueryload(CrosscorrelationCartesian.timespan))
+        .order_by(CrosscorrelationCartesian.id)
+        .all()
+    )
+
+
+def _prepare_qctwo_parallel_task_inputs(
+    ccf_id_batch: Tuple[int, ...],
+    qctwo_config_id: int,
+    per_task_chunk_size: int,
+) -> List[QCTwoParallelInputs]:
+    import more_itertools
+
+    return [
+        QCTwoParallelInputs(
+            qctwo_config_id=qctwo_config_id,
+            crosscorrelation_cartesian_ids=tuple(chunk),
+        )
+        for chunk in more_itertools.chunked(ccf_id_batch, per_task_chunk_size)
+    ]
+
+
+def _calculate_qctwo_results_batch_by_id_wrapper(
+    inputs_batch: QCTwoParallelInputs,
+) -> Tuple[QCTwoResults, ...]:
+    app = _get_qctwo_worker_app()
+    with app.app_context():
+        try:
+            qctwo_config = fetch_qctwo_config_single(id=inputs_batch["qctwo_config_id"])
+            _ = qctwo_config.time_periods_rejected
+            _ = qctwo_config.componentpair_ids_rejected_times
+            _ = qctwo_config.null_value
+
+            ccfs = _fetch_crosscorrelation_cartesian_for_qctwo_ids(inputs_batch["crosscorrelation_cartesian_ids"])
+            results: List[QCTwoResults] = []
+            for ccf in ccfs:
+                results.extend(
+                    calculate_qctwo_results_wrapper(
+                        QCTwoRunnerInputs(
+                            crosscorrelation_cartesian=ccf,
+                            qctwo_config=qctwo_config,
+                        )
+                    )
+                )
+            return tuple(results)
+        finally:
+            db.session.remove()
+
+
+def _generate_inputs_for_qctwo_runner_parallel(
+    qctwo_config: QCTwoConfig,
+    total_ccfs: int,
+    ram_safety_factor: float = 0.5,
+    max_ccfs_per_batch: int = 50000,
+) -> Generator[Tuple[int, ...], None, None]:
+    mem_estimation = _estimate_ccfs_per_batch(
+        total_ccfs=total_ccfs,
+        load_timespan=False,
+        ram_safety_factor=ram_safety_factor,
+        max_ccfs_per_batch=max_ccfs_per_batch,
+    )
+
+    ccfs_per_batch = mem_estimation.ccfs_per_batch
+    num_batches = mem_estimation.num_batches
+
+    logger.info(f"Loading CCF ids in {num_batches} batch(es) of up to {ccfs_per_batch:,} CCFs each.")
+
+    base_query = _query_crosscorrelation_cartesian(
+        crosscorrelation_cartesian_params_id=qctwo_config.crosscorrelation_cartesian_params_id,
+        load_timespan=False,
+    )
+
+    for batch_idx in range(num_batches):
+        offset = batch_idx * ccfs_per_batch
+        ccf_id_batch = tuple(
+            row.id
+            for row in base_query.with_entities(CrosscorrelationCartesian.id)
+            .order_by(CrosscorrelationCartesian.id)
+            .offset(offset)
+            .limit(ccfs_per_batch)
+            .all()
+        )
+
+        if not ccf_id_batch:
+            logger.info(f"Batch {batch_idx + 1}/{num_batches}: No more CCF ids to load.")
+            break
+
+        logger.info(f"Batch {batch_idx + 1}/{num_batches}: Loaded {len(ccf_id_batch):,} CCF ids (offset={offset:,})")
+        yield ccf_id_batch
+
+
+def _generate_inputs_for_qctwo_runner(
+    qctwo_config: QCTwoConfig,
+    total_ccfs: int,
+    ram_safety_factor: float = 0.5,
+    max_ccfs_per_batch: int = 50000,
+) -> Generator[QCTwoRunnerInputs, None, None]:
+    """
+    Generator that yields QCTwoRunnerInputs for each CCF to be processed.
+
+    Loads CCFs in memory-efficient batches and yields them one by one for processing.
+    This allows Dask or sequential processing to handle memory management.
+
+    Objects are expunged from the session after yielding to allow proper serialization
+    to Dask workers.
+
+    :param qctwo_config: QCTwoConfig for the processing
+    :param total_ccfs: Total number of CCFs to process
+    :param ram_safety_factor: Fraction of available RAM to use (0.0-1.0)
+    :param max_ccfs_per_batch: Maximum CCFs to load per batch
+    :yield: QCTwoRunnerInputs for each CCF
+    """
+    # Pre-load all lazy relationships on qctwo_config that will be needed during processing
+    # This ensures they're available after session expunge
+    _ = qctwo_config.time_periods_rejected  # Force load relationship
+    _ = qctwo_config.componentpair_ids_rejected_times  # Force compute cached property
+    _ = qctwo_config.null_value  # Force compute cached property
+
+    # Estimate optimal batch size based on RAM
+    mem_estimation = _estimate_ccfs_per_batch(
+        total_ccfs=total_ccfs,
+        load_timespan=True,
+        ram_safety_factor=ram_safety_factor,
+        max_ccfs_per_batch=max_ccfs_per_batch,
+    )
+
+    ccfs_per_batch = mem_estimation.ccfs_per_batch
+    num_batches = mem_estimation.num_batches
+
+    logger.info(f"Loading CCFs in {num_batches} batch(es) of up to {ccfs_per_batch:,} CCFs each.")
+
+    # Get the base query for pagination
+    base_query = _query_crosscorrelation_cartesian(
         crosscorrelation_cartesian_params_id=qctwo_config.crosscorrelation_cartesian_params_id,
         load_timespan=True,
     )
-    qctwo_results = []
-    logger.info(f"Starting QCTwoResults calculations {len(ccfs)} elements.")
-    for ccf in ccfs:
-        qctwo_res = calculate_qctwo_results(
-            qctwo_config=qctwo_config,
-            crosscorrelation_cartesian=ccf,
-        )
-        qctwo_results.append(qctwo_res)
-    logger.info("Calculations of QCTwoResults done.")
 
-    logger.info("All processing finished. Trying to insert data into db.")
-    bulk_add_or_upsert_objects(
-        objects_to_add=qctwo_results,
-        upserter_callable=_prepare_upsert_command_qctwo,
-        bulk_insert=True,
-    )
-    return
+    # Load in batches and yield individual items
+    for batch_idx in range(num_batches):
+        offset = batch_idx * ccfs_per_batch
+
+        # Fetch batch using LIMIT/OFFSET
+        ccfs_batch = base_query.order_by(CrosscorrelationCartesian.id).offset(offset).limit(ccfs_per_batch).all()
+
+        if not ccfs_batch:
+            logger.info(f"Batch {batch_idx + 1}/{num_batches}: No more CCFs to load.")
+            break
+
+        logger.info(f"Batch {batch_idx + 1}/{num_batches}: Loaded {len(ccfs_batch):,} CCFs (offset={offset:,})")
+
+        for ccf in ccfs_batch:
+            # Expunge all objects from session to allow proper serialization to Dask workers
+            # This is the same pattern used in _generate_inputs_for_qcone_runner
+            db.session.expunge_all()
+            yield QCTwoRunnerInputs(
+                crosscorrelation_cartesian=ccf,
+                qctwo_config=qctwo_config,
+            )
 
 
 def _prepare_upsert_command_qctwo(results: QCTwoResults) -> Insert:

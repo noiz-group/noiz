@@ -10,6 +10,7 @@ from noiz.database import db
 from noiz.models.mixins import FileModelMixin
 from noiz.models.custom_db_types import PathInDB
 from noiz.models import Timespan, Component, EventDetectionParams, EventConfirmationParams
+from noiz.processing.miniseed_helpers import _read_single_miniseed
 
 
 class EventDetectionFile(FileModelMixin):
@@ -156,9 +157,8 @@ class EventDetectionResult(db.Model):
         """
         filepath = Path(self.file.filepath)
 
-        if filepath.exists:
-            # FIXME when obspy will be released, str(Path) wont be necessary
-            return obspy.read(str(filepath), "MSEED")
+        if filepath.exists():
+            return _read_single_miniseed(filename=filepath, format="MSEED")
         else:
             raise MissingDataFileException(f"Data file for EventDetectionResult {self} is missing")
 
@@ -245,9 +245,8 @@ class EventConfirmationResult(db.Model):
         """
         filepath = Path(self.file.filepath)
 
-        if filepath.exists:
-            # FIXME when obspy will be released, str(Path) wont be necessary
-            return obspy.read(str(filepath), "MSEED")
+        if filepath.exists():
+            return _read_single_miniseed(filename=filepath, format="MSEED")
         else:
             raise MissingDataFileException(f"Data file for EventConfirmationResult {self} is missing")
 

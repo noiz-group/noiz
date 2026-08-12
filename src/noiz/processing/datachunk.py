@@ -18,6 +18,7 @@ from noiz.models.datachunk import Datachunk, DatachunkFile, DatachunkStats
 from noiz.models.processing_params import DatachunkParams, ZeroPaddingMethod
 from noiz.models.timeseries import Tsindex
 from noiz.models.timespan import Timespan
+from noiz.validation_helpers import numpy_to_python
 from noiz.processing.path_helpers import (
     assembly_filepath,
     assembly_sds_like_dir,
@@ -875,12 +876,12 @@ def calculate_datachunk_stats(
     energy = np.sum(np.power(st[0].data, 2)) / descibed_stats.nobs
     ret = DatachunkStats(
         datachunk_id=datachunk.id,
-        energy=energy,
-        min=descibed_stats.minmax[0],
-        max=descibed_stats.minmax[1],
-        mean=descibed_stats.mean,
-        variance=descibed_stats.variance,
-        skewness=descibed_stats.skewness,
-        kurtosis=descibed_stats.kurtosis,
+        energy=numpy_to_python(energy),
+        min=numpy_to_python(descibed_stats.minmax[0]),
+        max=numpy_to_python(descibed_stats.minmax[1]),
+        mean=numpy_to_python(descibed_stats.mean),
+        variance=numpy_to_python(descibed_stats.variance),
+        skewness=numpy_to_python(descibed_stats.skewness),
+        kurtosis=numpy_to_python(descibed_stats.kurtosis),
     )
     return ret

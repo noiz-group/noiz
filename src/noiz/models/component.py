@@ -8,7 +8,8 @@ from obspy import read_inventory
 from pathlib import Path
 from sqlalchemy import func
 from typing import Optional, Tuple, TYPE_CHECKING
-from numpy import deprecate_with_doc
+import warnings
+from functools import wraps
 
 import utm
 import datetime
@@ -116,9 +117,9 @@ class Component(db.Model):
 
     def _set_xy_from_latlon(self, lat, lon):
         x, y, zone, zone_letter = utm.from_latlon(lat, lon)
-        self.x = x
-        self.y = y
-        self.zone = zone
+        self.x = float(x)
+        self.y = float(y)
+        self.zone = int(zone)
         # Checks if zone letter is in the norther hemisphere
         self.northern = self.__checkif_zone_letter_in_northern(zone_letter=zone_letter)
         return
@@ -128,11 +129,11 @@ class Component(db.Model):
         self.lat = lat
         self.lon = lon
 
-    @deprecate_with_doc(msg="This function is deprecated. use load_data instead.")
     def read_inventory(self):
         """
-        Deprecated. Use load_data
+        Deprecated. Use load_data instead.
         """
+        warnings.warn("read_inventory is deprecated, use load_data instead.", DeprecationWarning, stacklevel=2)
         return self.load_data()
 
     def load_data(self):

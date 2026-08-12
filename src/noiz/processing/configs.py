@@ -177,10 +177,11 @@ def validate_dict_as_qctwo_holder(loaded_dict: Dict) -> QCTwoConfigHolder:
 
     processed_dict = loaded_dict.copy()
 
-    validated_forbidden_channels = []
-    for forb_chn in loaded_dict["rejected_times"]:
-        validated_forbidden_channels.append(QCTwoConfigRejectedTimeHolder(**forb_chn))
-    processed_dict["rejected_times"] = validated_forbidden_channels
+    if "rejected_times" in loaded_dict.keys():
+        validated_forbidden_channels = []
+        for forb_chn in loaded_dict["rejected_times"]:
+            validated_forbidden_channels.append(QCTwoConfigRejectedTimeHolder(**forb_chn))
+        processed_dict["rejected_times"] = validated_forbidden_channels
 
     return QCTwoConfigHolder(**processed_dict)
 
@@ -738,8 +739,9 @@ def generate_multiple_beamforming_configs_based_on_single_holder(
 
     param_holders = []
     for i_f, start in enumerate(window_starts):
-        min_freq = np.round(start, rounding_precision)
-        max_freq = np.round(start + freq_window_width, rounding_precision)
+        # Convert numpy floats to native Python floats for database compatibility
+        min_freq = float(np.round(start, rounding_precision))
+        max_freq = float(np.round(start + freq_window_width, rounding_precision))
         logger.debug(f"Generating beamforming params for {min_freq}-{max_freq}Hz. ")
 
         new_param_holder = copy.deepcopy(params_holder)
@@ -748,10 +750,10 @@ def generate_multiple_beamforming_configs_based_on_single_holder(
 
         # if 1 slowness limits folder assign smin1, smax1
         if not np.isnan(smin1_interpolated[i_f]):
-            new_param_holder.smin1 = smin1_interpolated[i_f]
-            new_param_holder.smax1 = smax1_interpolated[i_f]
-            new_param_holder.thetamin1 = thetamin1_interpolated[i_f]
-            new_param_holder.thetamax1 = thetamax1_interpolated[i_f]
+            new_param_holder.smin1 = float(smin1_interpolated[i_f])
+            new_param_holder.smax1 = float(smax1_interpolated[i_f])
+            new_param_holder.thetamin1 = float(thetamin1_interpolated[i_f])
+            new_param_holder.thetamax1 = float(thetamax1_interpolated[i_f])
         # if 2 slowness limits folder assign smin2, smax2
         if not np.isnan(smin2_interpolated[i_f]):
             result, intersects = merge_intervals(
@@ -765,15 +767,15 @@ def generate_multiple_beamforming_configs_based_on_single_holder(
             )
 
             if intersects & intersects_theta:
-                new_param_holder.smin1 = result[0]
-                new_param_holder.smax1 = result[1]
-                new_param_holder.thetamin1 = result_theta[0]
-                new_param_holder.thetamax1 = result_theta[1]
+                new_param_holder.smin1 = float(result[0])
+                new_param_holder.smax1 = float(result[1])
+                new_param_holder.thetamin1 = float(result_theta[0])
+                new_param_holder.thetamax1 = float(result_theta[1])
             else:
-                new_param_holder.smin2 = smin2_interpolated[i_f]
-                new_param_holder.smax2 = smax2_interpolated[i_f]
-                new_param_holder.thetamin2 = thetamin2_interpolated[i_f]
-                new_param_holder.thetamax2 = thetamax2_interpolated[i_f]
+                new_param_holder.smin2 = float(smin2_interpolated[i_f])
+                new_param_holder.smax2 = float(smax2_interpolated[i_f])
+                new_param_holder.thetamin2 = float(thetamin2_interpolated[i_f])
+                new_param_holder.thetamax2 = float(thetamax2_interpolated[i_f])
 
         param_holders.append(new_param_holder)
 

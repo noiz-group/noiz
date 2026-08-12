@@ -4,6 +4,7 @@
 
 import datetime
 import numpy as np
+import pandas as pd
 
 from loguru import logger
 from sqlalchemy.orm import Query, subqueryload
@@ -159,7 +160,7 @@ def check_length_and_timepans(
 
     timespans = fetch_timespans()
 
-    lenght_timespans = np.mean([t.length for t in timespans[:50]]).total_seconds() * 2
+    lenght_timespans = pd.Series([t.length for t in timespans[:50]]).mean().total_seconds() * 2
     print(lenght_timespans, (endtime - starttime).total_seconds())
     if (endtime - starttime).total_seconds() < lenght_timespans:
         raise EmptyResultException(
