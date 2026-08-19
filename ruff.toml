@@ -1,5 +1,6 @@
 exclude = [
             ".git",
+            ".Trash-0",
             "__pycache__",
             "docs/conf.py",
             "old",
