@@ -24,7 +24,7 @@ import os
 import numpy.typing as npt
 from loguru import logger
 from pathlib import Path
-from typing import List, Dict, Tuple, Optional, Collection
+from typing import List, Dict, Tuple, Optional, Collection, Mapping
 
 from noiz.models import CCFStack, StackingTimespan, Component
 from noiz.api.component_pair import fetch_componentpairs_cartesian, fetch_componentpairs_cartesian_by_id
@@ -228,6 +228,8 @@ def export_stacks_to_h5_full(
     fmin: float,
     fmax: float,
     component_pairs_info: Dict[int, Tuple[Component, Component]],
+    ccf_params_id: Optional[int] = None,
+    stacking_schema_id: Optional[int] = None,
 ) -> Path:
     """
     Export stacked cross-correlations with full component information to HDF5 format.
@@ -257,7 +259,12 @@ def export_stacks_to_h5_full(
     # Format filename with start and end times
     start_str = stacking_timespan.starttime.strftime("%Y%m%dT%H%M%S")
     end_str = stacking_timespan.endtime.strftime("%Y%m%dT%H%M%S")
-    filename = f"stacks_{start_str}_{end_str}.h5"
+    id_tag = ""
+    if ccf_params_id is not None:
+        id_tag += f"_ccf{ccf_params_id}"
+    if stacking_schema_id is not None:
+        id_tag += f"_ss{stacking_schema_id}"
+    filename = f"stacks{id_tag}_{start_str}_{end_str}.h5"
     filepath = output_dir / filename
 
     stacks_list = list(stacks)
@@ -365,3 +372,82 @@ def export_stacks_to_h5_full(
     )
     df_component_id_to_idx.to_csv(os.path.join(output_dir, "df_component_id_to_idx.csv"), index=False)
     return filepath
+
+
+def export_convergence_stacks_to_h5(
+    stacks: Dict[int, npt.NDArray[np.float64]],
+    time_axis: npt.NDArray[np.float64],
+    fmin: float,
+    fmax: float,
+    component_pairs: Mapping[int, Tuple[Component, Component]],
+    output_path: Path,
+) -> Path:
+    """Export convergence study stacks to H5.
+
+    Same structure as the main export (global_stacks, time_axis_corr,
+    f_intervals, id_couples, position_matrix, loc_matrix) but from
+    in-memory numpy arrays rather than DB objects.
+    """
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    sorted_pair_ids = sorted(stacks.keys())
+    n_couples = len(sorted_pair_ids)
+    if n_couples == 0:
+        logger.warning(f"No stacks to export to {output_path}")
+        return output_path
+
+    global_stacks = np.array(
+        [stacks[pid] / max(np.max(np.abs(stacks[pid])), 1e-30) for pid in sorted_pair_ids],
+        dtype=np.float64,
+    )
+
+    time_axis_adjusted, global_stacks_adjusted = ensure_odd_samples_with_zero(
+        time_axis=time_axis,
+        data=global_stacks,
+    )
+    mid_idx = len(time_axis_adjusted) // 2
+    time_axis_adjusted[mid_idx] = 0.0
+
+    comp_id_to_idx: Dict[int, int] = {}
+    unique_comps: list = []
+    for pid in sorted_pair_ids:
+        if pid not in component_pairs:
+            continue
+        ca, cb = component_pairs[pid]
+        for comp in (ca, cb):
+            if comp.id not in comp_id_to_idx:
+                comp_id_to_idx[comp.id] = len(unique_comps)
+                unique_comps.append(comp)
+
+    n_stations = len(unique_comps)
+    id_couples = np.zeros((2, n_couples), dtype=np.int64)
+    position_matrix = np.zeros((2, n_couples), dtype=np.float64)
+    for i, pid in enumerate(sorted_pair_ids):
+        if pid in component_pairs:
+            ca, cb = component_pairs[pid]
+            id_couples[0, i] = comp_id_to_idx.get(ca.id, 0)
+            id_couples[1, i] = comp_id_to_idx.get(cb.id, 0)
+            position_matrix[0, i] = ca.x - cb.x
+            position_matrix[1, i] = ca.y - cb.y
+
+    loc_matrix = np.zeros((2, max(n_stations, 1)), dtype=np.float64)
+    for comp in unique_comps:
+        idx = comp_id_to_idx[comp.id]
+        loc_matrix[0, idx] = comp.x
+        loc_matrix[1, idx] = comp.y
+
+    f_intervals = np.array([[fmin], [fmax]], dtype=np.float64)
+
+    logger.info(f"Exporting {n_couples} convergence stacks to {output_path}")
+    with h5py.File(str(output_path), "w") as hf:
+        hf.create_dataset("global_stacks", data=global_stacks_adjusted, dtype="float64")
+        hf.create_dataset("time_axis_corr", data=time_axis_adjusted, dtype="float64")
+        hf.create_dataset("f_intervals", data=f_intervals, dtype="float64")
+        hf.create_dataset("id_couples", data=id_couples, dtype="int64")
+        hf.create_dataset("position_matrix", data=position_matrix, dtype="float64")
+        hf.create_dataset("loc_matrix", data=loc_matrix, dtype="float64")
+        hf.attrs["n_couples"] = n_couples
+        hf.attrs["n_stations"] = n_stations
+        hf.attrs["n_time_samples"] = len(time_axis_adjusted)
+
+    return output_path

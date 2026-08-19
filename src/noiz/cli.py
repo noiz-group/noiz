@@ -1106,6 +1106,145 @@ def run_qctwo(qctwo_config_id, batch_size, parallel, ram_safety_factor, max_ccfs
     help="Fraction of available RAM to use when estimating a safe parallel worker count for stacking.",
 )
 @click.option("--parallel/--no_parallel", default=True)
+@click.option(
+    "--study_convergence",
+    is_flag=True,
+    default=False,
+    help=(
+        "Run a convergence study instead of normal stacking. Computes incremental stacks "
+        "over common timespans and produces RMS relative difference plots."
+    ),
+)
+@click.option(
+    "--increment_hours",
+    nargs=1,
+    type=float,
+    default=24.0,
+    show_default=True,
+    help="Duration of each stacking increment in hours for the convergence study.",
+)
+@click.option(
+    "--availability_threshold",
+    nargs=1,
+    type=float,
+    default=0.7,
+    show_default=True,
+    help="Minimum fraction of available timespans required to keep a pair in the convergence study.",
+)
+@click.option(
+    "--frequency_bands",
+    nargs=1,
+    type=str,
+    default=None,
+    help=(
+        "Comma-separated frequency bands for convergence study, e.g. '0.1-0.5,0.5-1.0,1.0-2.0'. "
+        "Each band is filtered with a zero-phase bandpass. If omitted, uses the nominal CCF band."
+    ),
+)
+@click.option(
+    "--force_reload",
+    is_flag=True,
+    default=False,
+    help="Force reloading CCFs from the database, ignoring cached npz files from previous runs.",
+)
+@click.option(
+    "--per_station_plots",
+    is_flag=True,
+    default=False,
+    help="Generate per-station-excluded global RMS plots (convergence_global_rms_without_<station>).",
+)
+@click.option(
+    "--skip_gathers",
+    is_flag=True,
+    default=False,
+    help="Skip generation of per-station CCF gather plots.",
+)
+@click.option(
+    "--skip_psd_gathers",
+    is_flag=True,
+    default=False,
+    help="Skip generation of per-station PSD gather plots.",
+)
+@click.option(
+    "--plot_pcolors",
+    is_flag=True,
+    default=False,
+    help="Generate pcolor plots (RMS per-pair and PSD). Skipped by default.",
+)
+@click.option(
+    "--plot_gathers_for_all",
+    is_flag=True,
+    default=False,
+    help="Plot gathers for all stations instead of a subset of 10.",
+)
+@click.option(
+    "--skip_stability",
+    is_flag=True,
+    default=False,
+    help="Skip the stability analysis.",
+)
+@click.option(
+    "--stability_window_days",
+    type=float,
+    default=7.0,
+    show_default=True,
+    help="Stability study: running window length in days.",
+)
+@click.option(
+    "--stability_overlap",
+    type=float,
+    default=0.5,
+    show_default=True,
+    help="Stability study: fractional overlap between successive windows (0-1).",
+)
+@click.option(
+    "--only_psd_vs_raw",
+    is_flag=True,
+    default=False,
+    help="Run only the PSD vs raw PSD comparison study (skips convergence, stability, gathers, DB write).",
+)
+@click.option(
+    "--only_psd_vs_gathers",
+    is_flag=True,
+    default=False,
+    help="Run only the raw PSD vs band-filtered gather plots (skips convergence, stability, DB write).",
+)
+@click.option(
+    "--overwrite_stacks",
+    is_flag=True,
+    default=False,
+    help="Overwrite existing stacks in DB. By default, DB write is skipped if stacks already exist.",
+)
+@click.option(
+    "--notch_whitening",
+    type=str,
+    default=None,
+    help="Frequency bands to whiten (same format as --frequency_bands, e.g. '0.1-0.3,0.8-1.2').",
+)
+@click.option(
+    "--notch_cut",
+    type=str,
+    default=None,
+    help="Frequency bands to notch-cut spectral peaks (clips peaks to smooth background, e.g. '1.0-1.6').",
+)
+@click.option(
+    "--notch_interpolate",
+    type=str,
+    default=None,
+    help="Frequency bands to replace by interpolated spectrum from edges (e.g. '1.0-1.6').",
+)
+@click.option(
+    "--notch_factor",
+    type=float,
+    default=1.0,
+    help="Downscale factor for whitened bands. 1.0=same level as surroundings, 2.0=half amplitude, etc.",
+)
+@click.option(
+    "--max_lag_seconds",
+    type=float,
+    default=None,
+    help="Truncate CCFs to +/- this many seconds before processing. Cache keeps full length.",
+)
 @click.option("-v", "--verbose", count=True, callback=_setup_logging_verbosity)
 @click.option("--quiet", is_flag=True, callback=_setup_quiet)
 def run_stacking(
@@ -1121,6 +1260,27 @@ def run_stacking(
     batch_size,
     ram_safety_factor,
     parallel,
+    study_convergence,
+    increment_hours,
+    availability_threshold,
+    frequency_bands,
+    force_reload,
+    per_station_plots,
+    skip_gathers,
+    skip_psd_gathers,
+    plot_pcolors,
+    plot_gathers_for_all,
+    skip_stability,
+    stability_window_days,
+    stability_overlap,
+    only_psd_vs_raw,
+    only_psd_vs_gathers,
+    overwrite_stacks,
+    notch_whitening,
+    notch_cut,
+    notch_interpolate,
+    notch_factor,
+    max_lag_seconds,
     **kwargs,
 ):
     """Start stacking of crosscorrelations_cartesian. Limited amount of pair selection arguments, use API directly if needed.
@@ -1138,23 +1298,114 @@ def run_stacking(
 
     After stacking completes, H5 files are automatically exported to an 'h5_outputs' folder
     (at the same level as 'logs' in the results directory).
+
+    Use --study_convergence to run a convergence analysis instead of normal stacking.
+    This computes incremental stacks over timespans common to all eligible pairs and
+    produces two PNG plots showing RMS relative difference vs stacking time.
     """
 
-    from noiz.api.stacking import stack_crosscorrelation_cartesian
+    if study_convergence:
+        from noiz.api.stacking import run_convergence_study
+        from noiz.settings import PROCESSED_DATA_DIR
 
-    stack_crosscorrelation_cartesian(
-        stacking_schema_id=stacking_schema_id,
-        starttime=startdate,
-        endtime=enddate,
-        station_codes_a=station_code,
-        accepted_component_code_pairs=component_code_pair,
-        include_autocorrelation=include_autocorrelation,
-        include_intracorrelation=include_intracorrelation,
-        raise_errors=raise_errors,
-        batch_size=batch_size,
-        parallel=parallel,
-        ram_safety_factor=ram_safety_factor,
-    )
+        parsed_bands = None
+        if frequency_bands is not None:
+            from noiz.processing.stacking import parse_frequency_bands
+
+            parsed_bands = parse_frequency_bands(frequency_bands)
+
+        parsed_whiten_bands = None
+        if notch_whitening is not None:
+            from noiz.processing.stacking import parse_frequency_bands
+
+            parsed_whiten_bands = parse_frequency_bands(notch_whitening)
+
+        parsed_notch_cut_bands = None
+        if notch_cut is not None:
+            from noiz.processing.stacking import parse_frequency_bands
+
+            parsed_notch_cut_bands = parse_frequency_bands(notch_cut)
+
+        parsed_notch_interpolate_bands = None
+        if notch_interpolate is not None:
+            from noiz.processing.stacking import parse_frequency_bands
+
+            parsed_notch_interpolate_bands = parse_frequency_bands(notch_interpolate)
+
+        convergence_output_dir = Path(PROCESSED_DATA_DIR) / "convergence_study"
+        click.echo(f"Running convergence study (increment={increment_hours}h, threshold={availability_threshold})")
+
+        completed_pair_ids = run_convergence_study(
+            stacking_schema_id=stacking_schema_id,
+            starttime=startdate,
+            endtime=enddate,
+            station_codes_a=station_code,
+            accepted_component_code_pairs=component_code_pair,
+            include_autocorrelation=include_autocorrelation,
+            include_intracorrelation=include_intracorrelation,
+            increment_hours=increment_hours,
+            availability_threshold=availability_threshold,
+            output_dir=convergence_output_dir,
+            batch_size=batch_size if batch_size is not None else 50,
+            parallel=parallel,
+            frequency_bands=parsed_bands,
+            force_reload=force_reload,
+            per_station_plots=per_station_plots,
+            skip_gathers=skip_gathers,
+            skip_psd_gathers=skip_psd_gathers,
+            plot_pcolors=plot_pcolors,
+            plot_gathers_for_all=plot_gathers_for_all,
+            skip_stability=skip_stability,
+            stability_window_days=stability_window_days,
+            stability_overlap=stability_overlap,
+            overwrite_stacks=overwrite_stacks,
+            only_psd_vs_raw=only_psd_vs_raw,
+            only_psd_vs_gathers=only_psd_vs_gathers,
+            notch_whitening=parsed_whiten_bands,
+            notch_cut=parsed_notch_cut_bands,
+            notch_interpolate=parsed_notch_interpolate_bands,
+            notch_factor=notch_factor,
+            max_lag_seconds=max_lag_seconds,
+        )
+
+        click.echo(f"Convergence study plots saved to {convergence_output_dir}")
+        click.echo(f"Stacks for {len(completed_pair_ids)} eligible pairs saved to DB.")
+
+        if not only_psd_vs_raw and not only_psd_vs_gathers:
+            click.echo("Now completing stacking for remaining pairs...")
+
+            from noiz.api.stacking import stack_crosscorrelation_cartesian
+
+            stack_crosscorrelation_cartesian(
+                stacking_schema_id=stacking_schema_id,
+                starttime=startdate,
+                endtime=enddate,
+                station_codes_a=station_code,
+                accepted_component_code_pairs=component_code_pair,
+                include_autocorrelation=include_autocorrelation,
+                include_intracorrelation=include_intracorrelation,
+                raise_errors=raise_errors,
+                batch_size=batch_size,
+                parallel=parallel,
+                ram_safety_factor=ram_safety_factor,
+                skip_componentpair_ids=completed_pair_ids,
+            )
+    else:
+        from noiz.api.stacking import stack_crosscorrelation_cartesian
+
+        stack_crosscorrelation_cartesian(
+            stacking_schema_id=stacking_schema_id,
+            starttime=startdate,
+            endtime=enddate,
+            station_codes_a=station_code,
+            accepted_component_code_pairs=component_code_pair,
+            include_autocorrelation=include_autocorrelation,
+            include_intracorrelation=include_intracorrelation,
+            raise_errors=raise_errors,
+            batch_size=batch_size,
+            parallel=parallel,
+            ram_safety_factor=ram_safety_factor,
+        )
 
     # Export stacks to H5 files
     from noiz.api.stacking import export_stacks_to_h5_files
@@ -1167,8 +1418,6 @@ def run_stacking(
         stacking_schema_id=stacking_schema_id,
         station_code_to_reject=station_code_to_reject,
         output_dir=h5_output_dir,
-        starttime=startdate,
-        endtime=enddate,
     )
 
     click.echo(f"Successfully exported {len(created_files)} H5 files to {h5_output_dir}")
