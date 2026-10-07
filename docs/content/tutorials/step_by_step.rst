@@ -399,6 +399,54 @@ The cartesian cross-correlations results are stored in the database (table: cros
 .. image:: _images/32_xcorr_run_db.PNG
 
 
+Stacking cross-correlations in cartesian components
+====================================================
+
+The cross-correlations in cartesian components stacking requires two different steps: 
+
+- a second QC allowing to remove specific station couples at specific time periods
+
+- the stacking
+
+
+QCTwo
+-----
+
+The following command has to be run to set the parameters:
+::
+
+    noiz configs add_qctwo_config -f /SDS/param_toml/QCTwoConfig.toml
+
+This step requires user interaction. He must answer the API question with Y (yes) or N (no).
+
+.. image:: _images/41_QCTwo_params_db.PNG
+
+The API returns an identification number, here 1.
+This id refers to the defined parameters and the user must then refer to it to stack the cartesian cross-correlations.
+
+The chosen parameters are stored in the database:
+
+.. image:: _images/42_QCTwo_params_db2.PNG
+
+To run the QCTwo according to the selected parameters, the user runs the following command
+::
+    
+    noiz processing run_qctwo -p1
+
+where,
+
+-p is the QCTwo parameter identifier.
+
+The QCTwo results are stored in the database (table: qctwo_results):
+
+.. image:: _images/43_QCTwo_run_db.PNG
+
+
+Stacking
+--------
+
+
+
 Beamforming
 ===========
 
