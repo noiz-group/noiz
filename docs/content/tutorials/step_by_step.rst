@@ -29,7 +29,7 @@ Open a navigator:
 
     ssh -L 8880:localhost:5020 XXX@XXX
 
-Then, you have to complete a table with the following information:
+Then, the user has to fill out a table with the following information:
 
 ::
 
