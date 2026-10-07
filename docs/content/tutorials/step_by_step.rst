@@ -380,10 +380,21 @@ To run the cartesian cross-correlations according to the selected parameters, th
 where,
 
 -p is the cartesian cross-correlations parameter identifier,
--b is the batch size. 
--c is an option allowing to choose the component pair to use (ZZ, EE, NN, EZ, EN, NZ, NE, ZE,ZN).
 
-The cartesian cross-correlations results are stored in the database (table: crosscorrelation_cartesiannew):
+-b is the batch size. 
+
+Other options exist
+::
+    -c is an option allowing to choose the component pair to use (ZZ, EE, NN, EZ, EN, NZ, NE, ZE,ZN),
+
+    -t is the timespan number that can be processed together (-t5 for example),
+
+    --ram_safety_factor defines the maximum percentage of system RAM that the program is allowed to use. For example, --ram_safety_factor 70 limits memory usage to 70% of the total available RAM.
+
+    --restart_dask_every specifies how often the Dask client is restarted, expressed as the number of batches to process before a restart. For example, --restart_dask_every 1 means that Dask is restarted after every batch.
+
+
+The cartesian cross-correlations results are stored in the database (table: crosscorrelation_cartesian):
 
 .. image:: _images/32_xcorr_run_db.PNG
 
