@@ -18,6 +18,27 @@ Third, noiz processing is the data processing step. With the corresponding param
 
 Finally, noiz plot allows plotting seismic results (obtained from noiz processing).
 
+Noiz database : How to access 
+=============================
+
+The database can be access through : 
+
+Open a navigator:
+
+::
+
+    ssh -L 8880:localhost:5020 XXX@XXX
+
+Then, you have to complete a table with the following information:
+
+::
+
+    Système : PostgreSQL
+    Serveur : Postgres 
+    Utilisateur : noiztest
+    Mot de passe : noiztest
+    Base de données : noiztest
+
 
 Database Migration
 ==================
