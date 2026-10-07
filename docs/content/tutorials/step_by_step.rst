@@ -422,11 +422,13 @@ This step requires user interaction. He must answer the API question with Y (yes
 .. image:: _images/41_QCTwo_params_db.PNG
 
 The API returns an identification number, here 1.
-This id refers to the defined parameters and the user must then refer to it to stack the cartesian cross-correlations.
+This id refers to the defined parameters and the user must then refer to it to perform the QCTwo.
 
 The chosen parameters are stored in the database:
 
 .. image:: _images/42_QCTwo_params_db2.PNG
+
+
 
 To run the QCTwo according to the selected parameters, the user runs the following command
 ::
@@ -445,6 +447,45 @@ The QCTwo results are stored in the database (table: qctwo_results):
 Stacking
 --------
 
+Cross-correlation stack allow to stack  the all set of computed correlation either for the whole period or for a specific period.
+
+The following command has to be run to set the parameters:
+::
+
+    noiz configs add_stacking_schema -f /SDS/param_toml/my_stacking_schema.toml
+
+This step requires user interaction. He must answer the API question with Y (yes) or N (no).
+
+.. image:: _images/44_stacking_params_db.PNG
+
+The API returns an identification number, here 1.
+This id refers to the defined parameters and the user must then refer to it to stack the cartesian cross-correlations.
+
+The chosen parameters are stored in the database:
+
+.. image:: _images/45_stacking_params_db2.PNG
+
+
+
+To run the cross-correlation stacking according to the selected parameters, the user runs the following command
+::
+    
+    noiz processing run_stacking -sd "2019-10-01" -ed "2019-10-08" -p1 -cZZ -b200
+
+where,
+
+-p is the QCTwo parameter identifier,
+
+-c is the component to use,
+
+-b is the batch size
+
+The stacking results are stored in the database (table: ccfstack ):
+
+.. image:: _images/46_stacking_run_db.PNG
+
+
+A h5 file containing the correlation stacking is saved in the processing folder.
 
 
 Beamforming
