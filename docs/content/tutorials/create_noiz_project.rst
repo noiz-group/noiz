@@ -58,8 +58,9 @@ The docker-compose.yml have to be modified:
       - "5000:5000"  # Flask port        must be modified into "5050:5050" 
       - "5088:8888"  # Jupyterlab port   must be modified into "5053:8853"
 
-- command: jupyter lab --no-browser --ip=0.0.0.0 --port=8888 --allow-root
-becomes command: jupyter lab --no-browser --ip=0.0.0.0 --port=8853 --allow-root
+- command: bash -c "cd /noiz && uv sync && source .venv/bin/activate && uv pip install ipykernel && python -m ipykernel install --user --name=noiz --display-name='Python (noiz)' && jupyter lab --no-browser --ip=0.0.0.0 --port=8888 --allow-root"
+
+becomes command: bash -c "cd /noiz && uv sync && source .venv/bin/activate && uv pip install ipykernel && python -m ipykernel install --user --name=noiz --display-name='Python (noiz)' && jupyter lab --no-browser --ip=0.0.0.0 --port=8853 --allow-root"
 
 -    volumes:
       - ./processed-data-dir:/processed-data-dir
